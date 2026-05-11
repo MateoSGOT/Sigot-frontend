@@ -198,8 +198,8 @@ export default function OrdenesPage() {
 
   const columns = [
     { key: '#', label: '#', width: '50px', render: (_, __, i) => i + 1 },
-    { key: 'Vehiculo', label: 'Vehículo', render: (v, row) => <span className="font-medium">{v || row.Placa || '—'}</span> },
-    { key: 'Cliente', label: 'Cliente', render: v => v || '—' },
+    { key: 'Vehiculo', label: 'Vehículo', render: (v, row) => <span className="font-medium">{v || row.vehiculo || row.Placa || '—'}</span> },
+    { key: 'Cliente', label: 'Cliente', render: (v, row) => v || row.cliente || '—' },
     { key: 'Diagnostico', label: 'Diagnóstico', render: v => <span className="diag-cell">{v || '—'}</span> },
     { key: 'FechaIngreso', label: 'Ingreso', render: v => formatDate(v) },
     { key: 'FechaEntrega', label: 'Entrega', render: v => formatDate(v) },
