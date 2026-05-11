@@ -3,6 +3,15 @@ import { authService } from '../services/authService.js';
 import { TOKEN_KEY } from '../../../shared/services/api.js';
 import api from '../../../shared/services/api.js';
 
+export const fetchUserPermisos = createAsyncThunk('auth/fetchPermisos', async (id_rol) => {
+  try {
+    const r = await api.get(`/api/permisos/rol/${id_rol}/nombres`);
+    return Array.isArray(r.data?.data) ? r.data.data : [];
+  } catch {
+    return [];
+  }
+});
+
 const storedToken = localStorage.getItem(TOKEN_KEY);
 
 export const loginThunk = createAsyncThunk('auth/login', async ({ Correo, Password }, { rejectWithValue }) => {
@@ -30,14 +39,16 @@ const authSlice = createSlice({
   initialState: {
     token: storedToken || null,
     empleado: null,
+    permisos: null,  // null = no cargado, [] = cargado sin permisos, [...] = lista de nombres
     loading: false,
-    restoring: !!storedToken, // true while we verify the stored token
+    restoring: !!storedToken,
     error: null,
   },
   reducers: {
     logout(state) {
       state.token = null;
       state.empleado = null;
+      state.permisos = null;
       state.restoring = false;
       localStorage.removeItem(TOKEN_KEY);
       authService.logout().catch(() => {});
@@ -72,11 +83,15 @@ const authSlice = createSlice({
         state.restoring = false;
       })
       .addCase(restoreSession.rejected, (state) => {
-        // Token is invalid — clear everything and force login
         state.token = null;
         state.empleado = null;
+        state.permisos = null;
         state.restoring = false;
         localStorage.removeItem(TOKEN_KEY);
+      })
+      // Permisos del usuario logueado
+      .addCase(fetchUserPermisos.fulfilled, (state, action) => {
+        state.permisos = action.payload;
       });
   },
 });

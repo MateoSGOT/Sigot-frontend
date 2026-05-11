@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
-import { restoreSession } from './features/auth/slices/authSlice.js';
+import { restoreSession, fetchUserPermisos } from './features/auth/slices/authSlice.js';
 import Layout from './shared/components/Layout/Layout.jsx';
 import LandingPage from './features/landing/pages/LandingPage.jsx';
 import LoginPage from './features/auth/pages/LoginPage.jsx';
@@ -37,6 +37,13 @@ function App() {
       dispatch(restoreSession());
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Fetch permission names whenever the logged-in role changes (login or session restore)
+  useEffect(() => {
+    if (token && empleado?.Id_Rol) {
+      dispatch(fetchUserPermisos(empleado.Id_Rol));
+    }
+  }, [empleado?.Id_Rol]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (restoring) return null;
 

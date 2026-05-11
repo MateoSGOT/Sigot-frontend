@@ -13,56 +13,58 @@ import './Sidebar.css';
 
 const NAV_STRUCTURE = [
   { type: 'section', label: 'Menú principal' },
-  { type: 'link', to: '/dashboard', icon: MdDashboard, label: 'Dashboard' },
+  { type: 'link', to: '/dashboard', icon: MdDashboard,           label: 'Dashboard',   permiso: 'DASHBOARD' },
   {
     type: 'group', name: 'Usuarios', icon: MdPeopleAlt,
     children: [
-      { to: '/empleados', icon: MdPeople, label: 'Empleados' },
-      { to: '/clientes',  icon: MdPerson, label: 'Clientes' },
+      { to: '/empleados', icon: MdPeople, label: 'Empleados', permiso: 'EMPLEADOS' },
+      { to: '/clientes',  icon: MdPerson, label: 'Clientes',  permiso: 'CLIENTES'  },
     ],
   },
-  { type: 'link', to: '/vehiculos',  icon: MdDirectionsCar,        label: 'Vehículos' },
-  { type: 'link', to: '/agenda',     icon: MdEventNote,             label: 'Agenda' },
-  { type: 'link', to: '/ordenes',    icon: MdAssignment,            label: 'Órdenes' },
-  { type: 'link', to: '/servicios',  icon: MdMiscellaneousServices, label: 'Servicios' },
+  { type: 'link', to: '/vehiculos',  icon: MdDirectionsCar,        label: 'Vehículos',   permiso: 'VEHICULOS'   },
+  { type: 'link', to: '/agenda',     icon: MdEventNote,             label: 'Agenda',      permiso: 'AGENDA'      },
+  { type: 'link', to: '/ordenes',    icon: MdAssignment,            label: 'Órdenes',     permiso: 'ORDENES'     },
+  { type: 'link', to: '/servicios',  icon: MdMiscellaneousServices, label: 'Servicios',   permiso: 'SERVICIOS'   },
   {
     type: 'group', name: 'Inventario', icon: MdStorage,
     children: [
-      { to: '/repuestos',  icon: MdBuild,    label: 'Repuestos' },
-      { to: '/categorias', icon: MdCategory, label: 'Categorías' },
+      { to: '/repuestos',  icon: MdBuild,    label: 'Repuestos',  permiso: 'REPUESTOS'  },
+      { to: '/categorias', icon: MdCategory, label: 'Categorías', permiso: 'CATEGORIAS' },
     ],
   },
-  { type: 'link', to: '/proveedores', icon: MdLocalShipping, label: 'Proveedores' },
-  { type: 'link', to: '/compras',     icon: MdShoppingCart,  label: 'Compras' },
-  { type: 'link', to: '/novedades',   icon: MdNewReleases,   label: 'Novedades' },
+  { type: 'link', to: '/proveedores', icon: MdLocalShipping, label: 'Proveedores', permiso: 'PROVEEDORES' },
+  { type: 'link', to: '/compras',     icon: MdShoppingCart,  label: 'Compras',     permiso: 'COMPRAS'     },
+  { type: 'link', to: '/novedades',   icon: MdNewReleases,   label: 'Novedades',   permiso: 'NOVEDADES'   },
   { type: 'section', label: 'Configuración' },
-  { type: 'link', to: '/roles', icon: MdSecurity, label: 'Roles' },
+  { type: 'link', to: '/roles', icon: MdSecurity, label: 'Roles', permiso: 'ROLES' },
 ];
 
-// Routes visible to the Técnico role only
-const TECNICO_PATHS = new Set(['/vehiculos', '/servicios', '/repuestos', '/categorias', '/ordenes']);
+function buildVisibleNav(nav, permisos) {
+  // permisos === null → todavía cargando → mostrar todo sin flash
+  const canSee = (permiso) => {
+    if (!permiso || permisos === null) return true;
+    if (permiso === 'DASHBOARD') return permisos.some(p => p.startsWith('DASHBOARD.'));
+    return permisos.includes(`${permiso}.LISTAR`);
+  };
 
-function filterNavForRole(nav, rolNombre) {
-  const isTecnico = rolNombre === 'Técnico' || rolNombre === 'Tecnico';
-  if (!isTecnico) return nav;
-
-  const filtered = [];
-  for (const item of nav) {
-    if (item.type === 'section') {
-      filtered.push(item);
-    } else if (item.type === 'link' && TECNICO_PATHS.has(item.to)) {
-      filtered.push(item);
-    } else if (item.type === 'group') {
-      const visibleChildren = item.children.filter(c => TECNICO_PATHS.has(c.to));
-      if (visibleChildren.length > 0) filtered.push({ ...item, children: visibleChildren });
+  const filtered = nav.reduce((acc, item) => {
+    if (item.type === 'section') { acc.push(item); return acc; }
+    if (item.type === 'link') {
+      if (canSee(item.permiso)) acc.push(item);
+      return acc;
     }
-  }
+    if (item.type === 'group') {
+      const visible = item.children.filter(c => canSee(c.permiso));
+      if (visible.length > 0) acc.push({ ...item, children: visible });
+      return acc;
+    }
+    return acc;
+  }, []);
 
-  // Drop section labels that have no visible items after them
+  // Eliminar section labels que no tienen ítems después
   return filtered.filter((item, i, arr) => {
     if (item.type !== 'section') return true;
-    const nextNonSection = arr.slice(i + 1).find(x => x.type !== 'section');
-    return !!nextNonSection;
+    return arr.slice(i + 1).some(x => x.type !== 'section');
   });
 }
 
@@ -70,9 +72,9 @@ export default function Sidebar() {
   const dispatch  = useDispatch();
   const navigate  = useNavigate();
   const location  = useLocation();
-  const { empleado } = useSelector((state) => state.auth);
+  const { empleado, permisos } = useSelector((state) => state.auth);
 
-  const visibleNav = filterNavForRole(NAV_STRUCTURE, empleado?.Rol);
+  const visibleNav = buildVisibleNav(NAV_STRUCTURE, permisos);
 
   const [openGroups, setOpenGroups] = useState(() => {
     const groups = {};
