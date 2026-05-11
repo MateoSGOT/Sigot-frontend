@@ -1,23 +1,19 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import { dashboardService } from '../services/dashboardService.js';
 
-export const fetchDashboard = createAsyncThunk('dashboard/fetchAll', async (_, { rejectWithValue }) => {
-  try {
-    const [repuestos, compras, servicios, empleados] = await Promise.all([
-      dashboardService.getRepuestos(),
-      dashboardService.getCompras(),
-      dashboardService.getServicios(),
-      dashboardService.getEmpleados(),
-    ]);
-    return {
-      repuestos: repuestos.data || repuestos,
-      compras: compras.data || compras,
-      servicios: servicios.data || servicios,
-      empleados: empleados.data || empleados,
-    };
-  } catch (err) {
-    return rejectWithValue(err?.response?.data?.message || 'Error al cargar dashboard');
-  }
+const safeGet = async (fn) => {
+  try { const r = await fn(); return r?.data ?? r; }
+  catch { return null; }
+};
+
+export const fetchDashboard = createAsyncThunk('dashboard/fetchAll', async () => {
+  const [repuestos, compras, servicios, empleados] = await Promise.all([
+    safeGet(dashboardService.getRepuestos),
+    safeGet(dashboardService.getCompras),
+    safeGet(dashboardService.getServicios),
+    safeGet(dashboardService.getEmpleados),
+  ]);
+  return { repuestos, compras, servicios, empleados };
 });
 
 const dashboardSlice = createSlice({

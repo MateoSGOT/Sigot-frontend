@@ -70,7 +70,6 @@ export default function LoginPage() {
     setRecoveryLoading(true);
     setRecoveryError('');
     setRecoveryResult(null);
-    setCopied(false);
     try {
       await authService.solicitarRecuperacion(recoveryEmail.trim());
       setRecoveryResult(true);
@@ -205,20 +204,19 @@ export default function LoginPage() {
                       // Clientes van al portal usando su propio endpoint
                       setClienteLoading(true);
                       try {
-                        const res = await api.post('/api/auth/cliente-login', { Correo: acc.correo, Password: acc.pwd });
+                        const res = await api.post('/api/auth/cliente-login', { Correo: acc.correo });
                         const { token, cliente } = res.data?.data || {};
                         localStorage.setItem(PORTAL_KEY, token);
                         localStorage.setItem(PORTAL_CLIENT_KEY, JSON.stringify(cliente));
                         navigate('/portal');
                       } catch {
-                        // Silenciosamente ignora — el portal mostrará error de login
                         navigate('/portal');
                       } finally {
                         setClienteLoading(false);
                       }
                     } else {
-                      setForm({ Correo: acc.correo, Password: acc.pwd });
                       if (error) dispatch(clearError());
+                      dispatch(loginThunk({ Correo: acc.correo, Password: acc.pwd }));
                     }
                   }}
                 >
