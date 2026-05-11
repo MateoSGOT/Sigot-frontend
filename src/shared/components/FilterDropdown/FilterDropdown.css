@@ -1,0 +1,184 @@
+/* === Trigger button === */
+.fdd {
+  position: relative;
+}
+
+.fdd__trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.5rem 0.875rem;
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-input-bg);
+  color: var(--color-text-muted);
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  font-family: inherit;
+}
+
+.fdd__trigger:hover,
+.fdd__trigger--open {
+  background: rgba(45, 106, 45, 0.10);
+  color: #2d6a2d;
+  border-color: #2d6a2d;
+  box-shadow: 0 2px 8px rgba(45, 106, 45, 0.12);
+}
+
+.fdd__arrow {
+  transition: transform 0.2s ease;
+  opacity: 0.6;
+}
+
+.fdd__arrow--open {
+  transform: rotate(180deg);
+}
+
+/* === Dropdown panel === */
+.fdd__panel {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  min-width: 220px;
+  background: #ffffff;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+  z-index: 500;
+  overflow: hidden;
+  animation: fddOpen 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes fddOpen {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* === Sections === */
+.fdd__section {
+  padding: 0.625rem 0.5rem;
+}
+
+.fdd__section-title {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: var(--color-text-light);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 0.25rem 0.625rem 0.5rem;
+}
+
+.fdd__divider {
+  height: 1px;
+  background: var(--color-border);
+  margin: 0 0.5rem;
+}
+
+/* === Status items === */
+.fdd__item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border: none;
+  background: transparent;
+  color: var(--color-text-muted);
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  border-radius: 8px;
+  transition: background 0.15s ease, color 0.15s ease;
+  font-family: inherit;
+  text-align: left;
+}
+
+.fdd__item:hover {
+  background: rgba(45, 106, 45, 0.08);
+  color: #2d6a2d;
+}
+
+.fdd__item--active {
+  background: rgba(45, 106, 45, 0.10);
+  color: #2d6a2d;
+  font-weight: 600;
+}
+
+.fdd__item-check {
+  color: #2d6a2d;
+  flex-shrink: 0;
+}
+
+/* === Page size chips === */
+.fdd__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+  padding: 0 0.625rem 0.5rem;
+}
+
+.fdd__chip {
+  padding: 0.3rem 0.75rem;
+  border: 1.5px solid var(--color-border);
+  border-radius: 20px;
+  background: var(--color-surface-solid);
+  color: var(--color-text-muted);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-family: inherit;
+}
+
+.fdd__chip:hover {
+  border-color: rgba(181, 242, 61, 0.4);
+  color: #b5f23d;
+  background: rgba(181, 242, 61, 0.06);
+}
+
+.fdd__chip--active {
+  background: #b5f23d;
+  border-color: transparent;
+  color: #000000;
+  font-weight: 700;
+}
+
+.fdd__chip--active:hover {
+  background: #c8f55a;
+  color: #000000;
+}
+
+/* === Custom input === */
+.fdd__custom {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0 0.625rem;
+}
+
+.fdd__custom-label {
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
+.fdd__custom-input {
+  width: 72px;
+  padding: 0.3rem 0.5rem;
+  border: 1.5px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-input-bg);
+  font-size: 0.8125rem;
+  color: var(--color-text);
+  outline: none !important;
+  font-family: inherit;
+  transition: border-color 0.2s ease;
+}
+
+.fdd__custom-input:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px rgba(181, 242, 61, 0.15);
+}

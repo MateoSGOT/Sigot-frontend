@@ -1,0 +1,5 @@
+.table-actions { display: flex; align-items: center; gap: 0.25rem; }
+.font-medium { font-weight: 600; }
+.text-success { color: var(--color-success); }
+.text-danger { color: var(--color-danger); }
+.descripcion-cell { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; max-width: 250px; color: var(--color-text-muted); font-size: 0.875rem; }

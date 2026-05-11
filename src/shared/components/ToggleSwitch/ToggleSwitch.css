@@ -1,0 +1,50 @@
+.toggle-switch {
+  display: inline-block;
+  width: 42px;
+  height: 24px;
+  border-radius: 12px;
+  border: none;
+  cursor: pointer;
+  position: relative;
+  padding: 0;
+  flex-shrink: 0;
+  transition: background 0.25s ease, box-shadow 0.25s ease;
+  vertical-align: middle;
+}
+
+.toggle-switch::after {
+  content: '';
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: white;
+  top: 3px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+  transition: left 0.25s cubic-bezier(0.34, 1.4, 0.64, 1);
+}
+
+/* ON — forest green, toggle a la derecha */
+.toggle-switch--on {
+  background: #2d6a2d;
+  box-shadow: 0 2px 8px rgba(45, 106, 45, 0.30);
+}
+
+.toggle-switch--on::after {
+  left: 21px;
+}
+
+/* OFF — gris claro con sombra interior, toggle a la izquierda */
+.toggle-switch--off {
+  background: #cbd5e1;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.12);
+}
+
+.toggle-switch--off::after {
+  left: 3px;
+}
+
+.toggle-switch--disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}

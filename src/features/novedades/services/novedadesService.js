@@ -1,0 +1,8 @@
+import api from '../../../shared/services/api.js';
+const BASE = '/api/novedades';
+export const novedadesService = {
+  getAll: () => api.get(BASE).then(r => r.data),
+  getById: (id) => api.get(`${BASE}/${id}`).then(r => r.data),
+  create: (data) => api.post(BASE, data).then(r => r.data),
+  update: (id, data) => api.put(`${BASE}/${id}`, data).then(r => r.data),
+};

@@ -1,0 +1,14 @@
+.layout {
+  display: flex;
+  min-height: 100vh;
+  background: var(--color-bg);
+}
+
+.layout__main {
+  flex: 1;
+  margin-left: var(--sidebar-width);
+  background: var(--color-bg);
+  overflow-x: hidden;
+  min-height: 100vh;
+  color: var(--color-text);
+}

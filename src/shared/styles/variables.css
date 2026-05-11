@@ -1,0 +1,81 @@
+:root {
+  /* === Neon Green Accent (Dark Mode Primary) === */
+  --color-primary: #b5f23d;
+  --color-primary-hover: #c8f55a;
+  --color-primary-light: #d4f87a;
+  --color-primary-dark: #8bc82a;
+  --color-primary-50: rgba(181, 242, 61, 0.06);
+  --color-primary-100: rgba(181, 242, 61, 0.12);
+  --color-primary-200: rgba(181, 242, 61, 0.22);
+  --color-primary-500: #b5f23d;
+  --color-primary-600: #b5f23d;
+  --color-primary-700: #8bc82a;
+  --color-primary-800: #6fa020;
+  --color-primary-900: #517815;
+
+  /* === Support Colors === */
+  --color-info: #4e9af1;
+  --color-info-light: rgba(78, 154, 241, 0.15);
+  --color-warning: #f5a623;
+  --color-warning-light: rgba(245, 166, 35, 0.15);
+  --color-danger: #f14e4e;
+  --color-danger-light: rgba(241, 78, 78, 0.15);
+  --color-success: #b5f23d;
+  --color-success-light: rgba(181, 242, 61, 0.15);
+
+  /* === Sidebar (Deep Forest Green) === */
+  --sidebar-bg: #0d1f0d;
+  --sidebar-hover: rgba(181, 242, 61, 0.08);
+  --sidebar-active-bg: #1a3a1a;
+  --sidebar-text: rgba(255, 255, 255, 0.78);
+  --sidebar-text-muted: rgba(255, 255, 255, 0.30);
+  --sidebar-icon: rgba(255, 255, 255, 0.55);
+  --sidebar-border: rgba(0, 0, 0, 0.18);
+  --sidebar-width: 240px;
+  --sidebar-collapsed: 240px;
+
+  /* === Background & Surfaces (Light Mode) === */
+  --color-bg: #f0f2f5;
+  --color-surface: #ffffff;
+  --color-surface-solid: #f8f9fa;
+  --color-surface-raised: #f0f2f5;
+  --color-input-bg: #f8f9fa;
+  --color-border: rgba(0, 0, 0, 0.09);
+  --color-border-light: rgba(0, 0, 0, 0.05);
+
+  /* === Text (Dark on Light) === */
+  --color-text: #111111;
+  --color-text-secondary: #374151;
+  --color-text-muted: #6b7280;
+  --color-text-light: #9ca3af;
+  --color-text-disabled: #d1d5db;
+
+  /* === Shadows (Soft for Light Mode) === */
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.06);
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.08);
+  --shadow: 0 4px 16px rgba(0, 0, 0, 0.10), 0 1px 4px rgba(0, 0, 0, 0.06);
+  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.08);
+  --shadow-lg: 0 16px 40px rgba(0, 0, 0, 0.14), 0 4px 12px rgba(0, 0, 0, 0.08);
+  --shadow-xl: 0 24px 64px rgba(0, 0, 0, 0.16), 0 8px 24px rgba(0, 0, 0, 0.10);
+  --shadow-green: 0 8px 24px rgba(181, 242, 61, 0.20);
+  --shadow-green-sm: 0 4px 12px rgba(181, 242, 61, 0.15);
+
+  /* === Border Radius === */
+  --radius-sm: 6px;
+  --radius: 8px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
+  --radius-2xl: 24px;
+  --radius-full: 9999px;
+
+  /* === Transitions === */
+  --transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-slow: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* === Backdrop Blur === */
+  --blur-sm: blur(8px);
+  --blur: blur(16px);
+  --blur-lg: blur(24px);
+  --blur-xl: blur(40px);
+}

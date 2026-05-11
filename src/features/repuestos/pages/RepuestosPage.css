@@ -1,0 +1,21 @@
+.table-actions { display: flex; align-items: center; gap: 0.25rem; }
+.font-medium { font-weight: 600; }
+.text-success { color: var(--color-success); }
+.text-danger { color: var(--color-danger); }
+.stock-cell { display: inline-flex; align-items: center; font-weight: 600; }
+.stock-cell--low { color: #f5a623; }
+
+/* Campo de garantía: número + selector de unidad en línea */
+.garantia-field {
+  display: flex;
+  gap: 0.5rem;
+}
+.garantia-field .form-control:first-child {
+  flex: 1;
+  width: auto;
+  min-width: 0;
+}
+.garantia-unit {
+  width: 110px !important;
+  flex-shrink: 0;
+}

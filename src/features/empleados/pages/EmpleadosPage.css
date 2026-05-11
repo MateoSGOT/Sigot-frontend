@@ -1,0 +1,15 @@
+.table-actions { display: flex; align-items: center; gap: 0.25rem; }
+.font-medium { font-weight: 600; }
+.text-success { color: var(--color-success); }
+.text-danger { color: var(--color-danger); }
+.text-muted { color: var(--color-text-muted); }
+.novedades-list { display: flex; flex-direction: column; gap: 0.625rem; }
+.novedad-item { display: flex; align-items: flex-start; gap: 0.625rem; padding: 0.75rem; background: rgba(245, 166, 35, 0.10); border: 1px solid rgba(245, 166, 35, 0.25); border-radius: 8px; }
+
+/* File upload */
+.file-upload-wrap { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
+.file-upload-preview { width: 64px; height: 64px; border-radius: 50%; object-fit: cover; border: 2px solid rgba(181,242,61,0.35); flex-shrink: 0; }
+.file-upload-area { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.25rem; padding: 0.625rem 1.25rem; border: 1.5px dashed rgba(181,242,61,0.25); border-radius: 10px; cursor: pointer; transition: border-color 0.18s ease, background 0.18s ease; min-width: 160px; }
+.file-upload-area:hover { border-color: rgba(181,242,61,0.5); background: rgba(181,242,61,0.04); }
+.file-upload-label { font-size: 0.875rem; font-weight: 500; color: var(--color-text-muted); }
+.file-upload-hint { font-size: 0.7rem; color: rgba(255,255,255,0.28); }

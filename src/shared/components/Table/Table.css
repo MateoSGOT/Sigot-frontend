@@ -1,0 +1,147 @@
+.table-wrapper {
+  overflow-x: auto;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border);
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.table__head {
+  background: #f8f9fa;
+}
+
+.table__th {
+  padding: 0.75rem 1rem;
+  text-align: left;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.table__td {
+  padding: 0.875rem 1rem;
+  color: var(--color-text);
+  border-top: 1px solid var(--color-border-light);
+  vertical-align: middle;
+}
+
+@keyframes rowFadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.table__row {
+  transition: background 0.15s ease;
+  animation: rowFadeIn 0.18s ease both;
+}
+
+.table__row:hover {
+  background: rgba(0, 0, 0, 0.025);
+}
+
+.table__row--inactive {
+  opacity: 0.45;
+}
+
+.table__row--separator {
+  pointer-events: none;
+}
+
+.table__td--separator {
+  padding: 0.5rem 1rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--color-text-light);
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  border-top: 1px solid var(--color-border);
+  background: var(--color-surface-solid);
+  text-align: center;
+}
+
+.table__row--inactive .table__td {
+  color: var(--color-text-muted);
+}
+
+.table__empty {
+  text-align: center;
+  padding: 3rem 1rem;
+  color: var(--color-text-muted);
+  font-size: 0.9375rem;
+}
+
+/* === Loading === */
+.table-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  padding: 3rem;
+  color: var(--color-text-muted);
+}
+
+.table-spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid var(--color-border);
+  border-top-color: var(--color-primary);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* === Pagination === */
+.table-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.375rem;
+  padding: 0.625rem 1rem;
+}
+
+.table-pagination__btn {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  color: var(--color-text-muted);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.table-pagination__btn:hover:not(:disabled) {
+  background: rgba(181, 242, 61, 0.10);
+  color: var(--color-primary);
+}
+
+.table-pagination__btn:disabled {
+  opacity: 0.25;
+  cursor: not-allowed;
+}
+
+.table-pagination__current {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--color-primary);
+}
+
+.table-pagination__sep,
+.table-pagination__total {
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+}

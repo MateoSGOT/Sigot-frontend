@@ -1,0 +1,90 @@
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.5625rem 1.125rem;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  border: 1px solid transparent;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  white-space: nowrap;
+  text-decoration: none;
+  position: relative;
+  overflow: hidden;
+}
+
+.btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* === Primary (Forest Green) === */
+.btn--primary {
+  background: #2d6a2d;
+  color: #ffffff;
+  border-color: transparent;
+  font-weight: 700;
+}
+
+.btn--primary:hover:not(:disabled) {
+  background: #3a7d3a;
+  box-shadow: 0 4px 20px rgba(45, 106, 45, 0.30);
+}
+
+.btn--primary:active:not(:disabled) {
+  background: #255522;
+  box-shadow: none;
+}
+
+/* === Outline (Secondary) === */
+.btn--outline {
+  background: transparent;
+  color: var(--color-text-secondary);
+  border-color: var(--color-border);
+}
+
+.btn--outline:hover:not(:disabled) {
+  background: var(--color-surface-solid);
+  border-color: rgba(0, 0, 0, 0.18);
+  color: var(--color-text);
+}
+
+/* === Danger === */
+.btn--danger {
+  background: rgba(220, 38, 38, 0.08);
+  color: #dc2626;
+  border-color: rgba(220, 38, 38, 0.25);
+}
+
+.btn--danger:hover:not(:disabled) {
+  background: rgba(220, 38, 38, 0.14);
+  box-shadow: 0 4px 16px rgba(220, 38, 38, 0.15);
+}
+
+/* === Ghost (Table Action Buttons) === */
+.btn--ghost {
+  background: rgba(0, 0, 0, 0.04);
+  color: var(--color-text-muted);
+  border: 1px solid var(--color-border);
+}
+
+.btn--ghost:hover:not(:disabled) {
+  background: rgba(0, 0, 0, 0.07);
+  color: var(--color-text);
+  border-color: rgba(0, 0, 0, 0.14);
+}
+
+/* === Sizes === */
+.btn--sm {
+  padding: 0.375rem 0.75rem;
+  font-size: 0.8125rem;
+}
+
+.btn--icon {
+  width: 34px;
+  height: 34px;
+  padding: 0;
+}

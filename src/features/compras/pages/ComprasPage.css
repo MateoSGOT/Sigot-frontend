@@ -1,0 +1,107 @@
+.table-actions { display: flex; align-items: center; gap: 0.25rem; }
+.font-medium { font-weight: 600; }
+
+.compra-anular-btn { color: var(--color-danger) !important; }
+.compra-anular-btn:hover { background: rgba(220,38,38,0.08) !important; }
+
+/* === Formulario multi-producto === */
+.compra-form { display: flex; flex-direction: column; gap: 1.25rem; }
+
+.compra-productos {
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.compra-productos__header {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1.2fr 1.1fr 36px;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  background: var(--color-surface-solid);
+  border-bottom: 1.5px solid var(--color-border);
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  letter-spacing: 0.04em;
+}
+
+.compra-producto-row {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1.2fr 1.1fr 36px;
+  gap: 0.5rem;
+  align-items: start;
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.compra-producto-row:last-child { border-bottom: none; }
+
+/* Tamaño reducido para controles dentro de la tabla */
+.form-control--sm {
+  padding: 0.375rem 0.625rem;
+  font-size: 0.8125rem;
+}
+
+select.form-control--sm {
+  padding-right: 2rem;
+}
+
+/* Wrapper precio + preview formateado */
+.price-input-wrap { display: flex; flex-direction: column; gap: 0; }
+
+.price-preview {
+  font-size: 0.7rem;
+  color: var(--color-text-secondary);
+  font-weight: 600;
+  margin-top: 3px;
+  padding-left: 2px;
+  white-space: nowrap;
+}
+
+.compra-subtotal {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-text);
+  padding-top: 0.45rem;
+  white-space: nowrap;
+}
+
+.compra-remove-btn { color: var(--color-danger) !important; margin-top: 2px; }
+.compra-remove-btn:not(:disabled):hover { background: rgba(220,38,38,0.08) !important; }
+.compra-remove-btn:disabled { opacity: 0.25 !important; cursor: not-allowed; }
+
+/* Pie del formulario: botón agregar + total */
+.compra-form-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.compra-total {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+}
+
+.compra-total__label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+.compra-total__value {
+  font-size: 1.0625rem;
+  font-weight: 800;
+  color: var(--color-text);
+}
+
+/* Price mismatch warning */
+.form-control--warn { border-color: rgba(245,166,35,0.6) !important; background: rgba(245,166,35,0.05) !important; }
+.price-warning {
+  display: flex; align-items: center; gap: 0.375rem;
+  font-size: 0.75rem; color: #f5a623;
+  padding: 0.25rem 0.75rem 0.5rem;
+}
