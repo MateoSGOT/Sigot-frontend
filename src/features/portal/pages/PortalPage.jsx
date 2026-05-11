@@ -30,19 +30,18 @@ function StateBadge({ estado }) {
 /* ── Login panel ─────────────────────────────────────────── */
 function PortalLogin({ onLogin }) {
   const navigate = useNavigate();
-  const [form, setForm] = useState({ Correo: '', Password: '' });
+  const [form, setForm] = useState({ Correo: '', Documento: '' });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [showPwd, setShowPwd] = useState(false);
 
-  const fillDemo = (correo, pwd) => setForm({ Correo: correo, Password: pwd });
+  const fillDemo = (correo, doc) => setForm({ Correo: correo, Documento: doc });
 
   const handleSubmit = async e => {
     e.preventDefault();
-    if (!form.Correo || !form.Password) { setError('Ingresa tu correo y contraseña.'); return; }
+    if (!form.Correo || !form.Documento) { setError('Ingresa tu correo y número de documento.'); return; }
     setLoading(true); setError('');
     try {
-      const res = await api.post('/api/auth/cliente-login', form);
+      const res = await api.post('/api/auth/cliente-login', { Correo: form.Correo });
       const { token, cliente } = res.data?.data || {};
       localStorage.setItem(PORTAL_KEY, token);
       localStorage.setItem(PORTAL_CLIENT_KEY, JSON.stringify(cliente));
@@ -80,17 +79,12 @@ function PortalLogin({ onLogin }) {
             />
           </div>
           <div className="portal-form-group">
-            <label>Contraseña</label>
-            <div className="portal-pwd-wrap">
-              <input
-                type={showPwd ? 'text' : 'password'} value={form.Password} placeholder="••••••••"
-                onChange={e => { setForm(p => ({ ...p, Password: e.target.value })); setError(''); }}
-                required
-              />
-              <button type="button" className="portal-pwd-toggle" onClick={() => setShowPwd(p => !p)}>
-                {showPwd ? '🙈' : '👁'}
-              </button>
-            </div>
+            <label>Número de documento</label>
+            <input
+              type="text" value={form.Documento} placeholder="Ej: 1234567890"
+              onChange={e => { setForm(p => ({ ...p, Documento: e.target.value })); setError(''); }}
+              required
+            />
           </div>
           <button type="submit" className="portal-btn portal-btn--primary portal-btn--full" disabled={loading}>
             {loading ? 'Ingresando...' : 'Ingresar'}
@@ -102,10 +96,9 @@ function PortalLogin({ onLogin }) {
           <p className="portal-demo__title">Acceso rápido demo</p>
           <div className="portal-demo__grid">
             {[
-              { label: 'Juan Pérez', correo: 'juan@email.com', pwd: 'cliente123' },
-              { label: 'María García', correo: 'maria@email.com', pwd: 'cliente456' },
+              { label: 'Cliente Demo', correo: 'cliente@sigot.com', doc: '1234567890' },
             ].map(d => (
-              <button key={d.correo} className="portal-demo__btn" type="button" onClick={() => fillDemo(d.correo, d.pwd)}>
+              <button key={d.correo} className="portal-demo__btn" type="button" onClick={() => fillDemo(d.correo, d.doc)}>
                 <span className="portal-demo__name">{d.label}</span>
                 <span className="portal-demo__cred">{d.correo}</span>
               </button>
@@ -165,16 +158,11 @@ export default function PortalPage() {
     setLoading(true);
     const headers = { Authorization: `Bearer ${token}` };
     Promise.all([
-      api.get('/api/vehiculos', { headers }),
-      api.get('/api/ordenes', { headers }),
+      api.get('/api/portal/vehiculos', { headers }),
+      api.get('/api/portal/ordenes', { headers }),
     ]).then(([vRes, oRes]) => {
-      const allV = vRes.data?.data || [];
-      const myV = allV.filter(v => v.Id_Cliente == cliente.Id_Cliente);
-      setVehiculos(myV);
-      const allO = oRes.data?.data || [];
-      const myVIds = myV.map(v => v.Id_Vehiculo);
-      const myO = allO.filter(o => o.Id_Cliente == cliente.Id_Cliente || myVIds.includes(o.Id_Vehiculo));
-      setOrdenes(myO);
+      setVehiculos(vRes.data?.data || []);
+      setOrdenes(oRes.data?.data || []);
     }).catch(() => {}).finally(() => setLoading(false));
   }, [cliente, token]);
 
@@ -188,7 +176,8 @@ export default function PortalPage() {
   const handleLogout = () => {
     localStorage.removeItem(PORTAL_KEY);
     localStorage.removeItem(PORTAL_CLIENT_KEY);
-    navigate('/login');
+    setCliente(null);
+    setToken(null);
   };
 
   const handleFotoChange = e => {
@@ -203,9 +192,9 @@ export default function PortalPage() {
     e.preventDefault();
     setSaving(true);
     try {
-      await api.put(`/api/clientes/${cliente.Id_Cliente}`, {
-        ...editData,
-        Foto: fotoPreview,
+      await api.put('/api/portal/perfil', {
+        Correo:   editData.Correo,
+        Contacto: editData.Telefono,
       }, { headers: { Authorization: `Bearer ${token}` } });
       const updated = { ...cliente, ...editData, Foto: fotoPreview };
       setCliente(updated);
@@ -221,7 +210,7 @@ export default function PortalPage() {
     setDetailOrden(null);
     setLoadingOrden(true);
     try {
-      const r = await api.get(`/api/ordenes/${orden.Id_Orden}`, {
+      const r = await api.get(`/api/portal/ordenes/${orden.Id_Orden}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setDetailOrden(r.data?.data || orden);
@@ -231,11 +220,8 @@ export default function PortalPage() {
 
   // Espera a que el useEffect lea localStorage antes de decidir
   if (!initialized) return null;
-  // Sin sesión de cliente → redirige al login principal
-  if (!cliente) {
-    navigate('/login');
-    return null;
-  }
+  // Sin sesión → muestra el formulario de login del portal
+  if (!cliente) return <PortalLogin onLogin={handleLogin} />;
 
   const BRAND_COLORS = ['#16a34a','#2563eb','#9333ea','#ea580c','#0891b2'];
   const brandColor = (name) => BRAND_COLORS[name?.charCodeAt(0) % BRAND_COLORS.length] || '#16a34a';
