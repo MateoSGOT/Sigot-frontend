@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+﻿import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { MdAdd, MdVisibility, MdEdit } from 'react-icons/md';
 import { fetchNovedades, createNovedad, updateNovedad } from '../slices/novedadesSlice.js';
@@ -18,7 +18,7 @@ export default function NovedadesPage() {
   const { items, loading, actionLoading } = useSelector(s => s.novedades);
   const [empleados, setEmpleados] = useState([]);
   const [search, setSearch]       = useState('');
-  const [pageSize, setPageSize]   = useState(10);
+  const [pageSize, setPageSize]   = useState(5);
   const [detailItem, setDetailItem] = useState(null);
   const [formData, setFormData]   = useState(EMPTY);
   const [editingId, setEditingId] = useState(null);
@@ -54,7 +54,13 @@ export default function NovedadesPage() {
     if (!formData.id_empleado || !formData.Descripcion || !formData.Fecha_Novedad || !formData.FechaRealizacion) {
       setFormError('Completa los campos obligatorios.'); return;
     }
-    const action = editingId ? updateNovedad({ id: editingId, data: formData }) : createNovedad(formData);
+    const payload = {
+      ...formData,
+      id_empleado:     Number(formData.id_empleado),
+      Fecha_Novedad:   new Date(formData.Fecha_Novedad).toISOString(),
+      FechaRealizacion: new Date(formData.FechaRealizacion).toISOString(),
+    };
+    const action = editingId ? updateNovedad({ id: editingId, data: payload }) : createNovedad(payload);
     const result = await dispatch(action);
     if (!result.error) { setShowForm(false); dispatch(fetchNovedades()); }
     else setFormError(result.payload || 'Error al guardar.');
@@ -63,9 +69,9 @@ export default function NovedadesPage() {
   const columns = [
     { key: '#', label: '#', width: '50px', render: (_, __, i) => i + 1 },
     { key: 'id_empleado', label: 'Empleado', render: (v, row) => getEmpleadoNombre(v || row.Id_Empleado) },
-    { key: 'Descripcion', label: 'Descripción', render: v => <span className="descripcion-cell">{v}</span> },
+    { key: 'Descripcion', label: 'DescripciÃ³n', render: v => <span className="descripcion-cell">{v}</span> },
     { key: 'Fecha_Novedad',    label: 'Fecha novedad',    render: v => formatDate(v) },
-    { key: 'FechaRealizacion', label: 'Fecha realización', render: v => formatDate(v) },
+    { key: 'FechaRealizacion', label: 'Fecha realizaciÃ³n', render: v => formatDate(v) },
     {
       key: 'acciones', label: 'Acciones', render: (_, row) => (
         <div className="table-actions">
@@ -87,7 +93,7 @@ export default function NovedadesPage() {
           <SearchBar
             value={search}
             onChange={setSearch}
-            placeholder="Buscar por descripción..."
+            placeholder="Buscar por descripciÃ³n..."
             filterSlot={
               <FilterDropdown
                 statusFilter="todos"
@@ -105,8 +111,8 @@ export default function NovedadesPage() {
         {detailItem && <div className="detail-grid">
           <div className="detail-item"><span className="detail-label">Empleado</span><span className="detail-value">{getEmpleadoNombre(detailItem.id_empleado || detailItem.Id_Empleado)}</span></div>
           <div className="detail-item"><span className="detail-label">Fecha novedad</span><span className="detail-value">{formatDate(detailItem.Fecha_Novedad)}</span></div>
-          <div className="detail-item" style={{ gridColumn: 'span 2' }}><span className="detail-label">Descripción</span><span className="detail-value">{detailItem.Descripcion}</span></div>
-          <div className="detail-item"><span className="detail-label">Fecha realización</span><span className="detail-value">{formatDate(detailItem.FechaRealizacion)}</span></div>
+          <div className="detail-item" style={{ gridColumn: 'span 2' }}><span className="detail-label">DescripciÃ³n</span><span className="detail-value">{detailItem.Descripcion}</span></div>
+          <div className="detail-item"><span className="detail-label">Fecha realizaciÃ³n</span><span className="detail-value">{formatDate(detailItem.FechaRealizacion)}</span></div>
         </div>}
       </Modal>
 
@@ -123,7 +129,7 @@ export default function NovedadesPage() {
             </select>
           </div>
           <div className="form-group span-2">
-            <label className="form-label">Descripción <span className="required">*</span></label>
+            <label className="form-label">DescripciÃ³n <span className="required">*</span></label>
             <textarea name="Descripcion" className="form-control" value={formData.Descripcion} onChange={handleChange} rows={3} placeholder="Describe la novedad..." />
           </div>
           <div className="form-group">
@@ -131,7 +137,7 @@ export default function NovedadesPage() {
             <input name="Fecha_Novedad" type="date" className="form-control" value={formData.Fecha_Novedad} onChange={handleChange} min={TODAY} />
           </div>
           <div className="form-group">
-            <label className="form-label">Fecha de realización <span className="required">*</span></label>
+            <label className="form-label">Fecha de realizaciÃ³n <span className="required">*</span></label>
             <input name="FechaRealizacion" type="date" className="form-control" value={formData.FechaRealizacion} onChange={handleChange} min={TODAY} />
           </div>
         </form>
@@ -139,3 +145,4 @@ export default function NovedadesPage() {
     </div>
   );
 }
+

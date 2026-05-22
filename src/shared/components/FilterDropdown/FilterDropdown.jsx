@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { MdTune, MdKeyboardArrowDown, MdCheck } from 'react-icons/md';
 import './FilterDropdown.css';
 
-const PAGE_OPTIONS = [10, 20, 30];
+const PAGE_OPTIONS = [5, 10, 25, 50];
 
 const STATUS_OPTIONS = [
   { value: 'todos',    label: 'Todos' },

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+﻿import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { MdAdd, MdEdit, MdLock, MdCheck, MdClose } from 'react-icons/md';
 import { fetchPermisos, createPermiso, updatePermiso, togglePermisoEstado } from '../slices/permisosSlice.js';
@@ -15,7 +15,7 @@ export default function PermisosPage() {
   const { items, loading, actionLoading } = useSelector(s => s.permisos);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('todos');
-  const [pageSize, setPageSize] = useState(10);
+  const [pageSize, setPageSize] = useState(5);
 
   // Create modal state
   const [showCreate, setShowCreate] = useState(false);
@@ -75,7 +75,7 @@ export default function PermisosPage() {
   const columns = [
     { key: '#', label: '#', width: '50px', render: (_, __, i) => i + 1 },
     {
-      key: 'Nombre', label: 'Módulo', render: (v, row) => {
+      key: 'Nombre', label: 'MÃ³dulo', render: (v, row) => {
         if (editingId === row.Id_Permiso) {
           return (
             <div className="inline-edit">
@@ -122,7 +122,7 @@ export default function PermisosPage() {
       <div className="page__header">
         <div>
           <h1 className="page__title">Permisos</h1>
-          <p className="page__subtitle">Módulos del sistema — {items.length} registrado(s)</p>
+          <p className="page__subtitle">MÃ³dulos del sistema â€” {items.length} registrado(s)</p>
         </div>
         <button className="btn btn--primary" onClick={() => { setCreateNombre(''); setCreateError(''); setShowCreate(true); }}>
           <MdAdd size={18} />Nuevo permiso
@@ -134,7 +134,7 @@ export default function PermisosPage() {
           <SearchBar
             value={search}
             onChange={setSearch}
-            placeholder="Buscar módulo..."
+            placeholder="Buscar mÃ³dulo..."
             filterSlot={
               <FilterDropdown
                 statusFilter={statusFilter}
@@ -152,7 +152,7 @@ export default function PermisosPage() {
       <Modal
         isOpen={showCreate}
         onClose={() => setShowCreate(false)}
-        title="Nuevo módulo"
+        title="Nuevo mÃ³dulo"
         size="sm"
         footer={
           <>
@@ -169,7 +169,7 @@ export default function PermisosPage() {
           </div>
         )}
         <div className="form-group">
-          <label className="form-label">Nombre del módulo <span className="required">*</span></label>
+          <label className="form-label">Nombre del mÃ³dulo <span className="required">*</span></label>
           <input
             className="form-control"
             value={createNombre}
@@ -183,3 +183,4 @@ export default function PermisosPage() {
     </div>
   );
 }
+

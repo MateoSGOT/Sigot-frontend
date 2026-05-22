@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+﻿import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { MdAdd, MdVisibility, MdEdit } from 'react-icons/md';
 import ToggleSwitch from '../../../shared/components/ToggleSwitch/ToggleSwitch.jsx';
@@ -39,7 +39,7 @@ export default function VehiculosPage() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('todos');
   const [marcaFilter, setMarcaFilter] = useState('');
-  const [pageSize, setPageSize] = useState(10);
+  const [pageSize, setPageSize] = useState(5);
   const [detailItem, setDetailItem] = useState(null);
   const [formData, setFormData] = useState(EMPTY);
   const [editingId, setEditingId] = useState(null);
@@ -117,7 +117,7 @@ export default function VehiculosPage() {
     { key: 'VIN', label: 'VIN' },
     { key: 'Marca', label: 'Marca' },
     { key: 'Modelo', label: 'Modelo' },
-    { key: 'Anio', label: 'Año' },
+    { key: 'Anio', label: 'AÃ±o' },
     { key: 'Color', label: 'Color' },
     { key: 'Cliente', label: 'Cliente' },
     { key: 'Estado', label: 'Estado', render: v => <StatusBadge estado={v} /> },
@@ -135,8 +135,8 @@ export default function VehiculosPage() {
   return (
     <div className="page">
       <div className="page__header">
-        <div><h1 className="page__title">Vehículos</h1><p className="page__subtitle">{items.length} vehículo(s) registrado(s)</p></div>
-        <button className="btn btn--primary" onClick={openCreate}><MdAdd size={18} />Nuevo vehículo</button>
+        <div><h1 className="page__title">VehÃ­culos</h1><p className="page__subtitle">{items.length} vehÃ­culo(s) registrado(s)</p></div>
+        <button className="btn btn--primary" onClick={openCreate}><MdAdd size={18} />Nuevo vehÃ­culo</button>
       </div>
       <div className="card">
         <div className="card__header">
@@ -160,23 +160,23 @@ export default function VehiculosPage() {
             }
           />
         </div>
-        <Table columns={columns} data={filtered} loading={loading} pageSize={pageSize} emptyMessage="No se encontraron vehículos" />
+        <Table columns={columns} data={filtered} loading={loading} pageSize={pageSize} emptyMessage="No se encontraron vehÃ­culos" />
       </div>
 
-      <Modal isOpen={!!detailItem} onClose={() => setDetailItem(null)} title="Detalle del vehículo" size="md">
+      <Modal isOpen={!!detailItem} onClose={() => setDetailItem(null)} title="Detalle del vehÃ­culo" size="md">
         {detailItem && <div className="detail-grid">
           <div className="detail-item"><span className="detail-label">Placa</span><span className="detail-value">{detailItem.Placa}</span></div>
-          <div className="detail-item"><span className="detail-label">VIN</span><span className="detail-value">{detailItem.VIN || '—'}</span></div>
+          <div className="detail-item"><span className="detail-label">VIN</span><span className="detail-value">{detailItem.VIN || 'â€”'}</span></div>
           <div className="detail-item"><span className="detail-label">Marca</span><span className="detail-value">{detailItem.Marca || detailItem.Id_Marca}</span></div>
           <div className="detail-item"><span className="detail-label">Modelo</span><span className="detail-value">{detailItem.Modelo}</span></div>
-          <div className="detail-item"><span className="detail-label">Año</span><span className="detail-value">{detailItem.Anio}</span></div>
-          <div className="detail-item"><span className="detail-label">Color</span><span className="detail-value">{detailItem.Color || '—'}</span></div>
+          <div className="detail-item"><span className="detail-label">AÃ±o</span><span className="detail-value">{detailItem.Anio}</span></div>
+          <div className="detail-item"><span className="detail-label">Color</span><span className="detail-value">{detailItem.Color || 'â€”'}</span></div>
           <div className="detail-item"><span className="detail-label">Cliente</span><span className="detail-value">{detailItem.Cliente || detailItem.Id_Cliente}</span></div>
           <div className="detail-item"><span className="detail-label">Estado</span><span className="detail-value"><StatusBadge estado={detailItem.Estado} /></span></div>
         </div>}
       </Modal>
 
-      <Modal isOpen={showForm} onClose={() => setShowForm(false)} title={editingId ? 'Editar vehículo' : 'Nuevo vehículo'} size="md"
+      <Modal isOpen={showForm} onClose={() => setShowForm(false)} title={editingId ? 'Editar vehÃ­culo' : 'Nuevo vehÃ­culo'} size="md"
         footer={<><button className="btn btn--outline" onClick={() => setShowForm(false)}>Cancelar</button><button className="btn btn--primary" onClick={handleSubmit} disabled={actionLoading}>{actionLoading ? 'Guardando...' : 'Guardar'}</button></>}
       >
         {formError && <div className="form-error-box">{formError}</div>}
@@ -187,7 +187,7 @@ export default function VehiculosPage() {
           </div>
           <div className="form-group">
             <label className="form-label">VIN</label>
-            <input name="VIN" className="form-control" value={formData.VIN} onChange={handleChange} placeholder="Número VIN" />
+            <input name="VIN" className="form-control" value={formData.VIN} onChange={handleChange} placeholder="NÃºmero VIN" />
           </div>
           <div className="form-group">
             <label className="form-label">Marca <span className="required">*</span></label>
@@ -208,7 +208,7 @@ export default function VehiculosPage() {
             )}
           </div>
           <div className="form-group">
-            <label className="form-label">Año <span className="required">*</span></label>
+            <label className="form-label">AÃ±o <span className="required">*</span></label>
             <input name="Anio" type="number" className="form-control" value={formData.Anio} onChange={handleChange} placeholder="2023" min="1900" max="2100" />
           </div>
           <div className="form-group">
@@ -243,3 +243,4 @@ export default function VehiculosPage() {
     </div>
   );
 }
+

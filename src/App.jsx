@@ -5,6 +5,7 @@ import { restoreSession, fetchUserPermisos } from './features/auth/slices/authSl
 import Layout from './shared/components/Layout/Layout.jsx';
 import LandingPage from './features/landing/pages/LandingPage.jsx';
 import LoginPage from './features/auth/pages/LoginPage.jsx';
+import ResetPasswordPage from './features/auth/pages/ResetPasswordPage.jsx';
 import PortalPage from './features/portal/pages/PortalPage.jsx';
 import DashboardPage from './features/dashboard/pages/DashboardPage.jsx';
 import ClientesPage from './features/clientes/pages/ClientesPage.jsx';
@@ -52,6 +53,7 @@ function App() {
       {/* Public routes */}
       <Route path="/" element={<LandingPage />} />
       <Route path="/portal" element={<PortalPage />} />
+      <Route path="/reset-password" element={<ResetPasswordPage />} />
       <Route
         path="/login"
         element={token ? <Navigate to="/dashboard" replace /> : <LoginPage />}

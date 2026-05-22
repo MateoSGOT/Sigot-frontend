@@ -13,7 +13,7 @@ import './Sidebar.css';
 
 const NAV_STRUCTURE = [
   { type: 'section', label: 'Menú principal' },
-  { type: 'link', to: '/dashboard', icon: MdDashboard,           label: 'Dashboard',   permiso: 'DASHBOARD' },
+  { type: 'link', to: '/dashboard', icon: MdDashboard, label: 'Dashboard', permiso: 'DASHBOARD' },
   {
     type: 'group', name: 'Usuarios', icon: MdPeopleAlt,
     children: [
@@ -21,20 +21,20 @@ const NAV_STRUCTURE = [
       { to: '/clientes',  icon: MdPerson, label: 'Clientes',  permiso: 'CLIENTES'  },
     ],
   },
-  { type: 'link', to: '/vehiculos',  icon: MdDirectionsCar,        label: 'Vehículos',   permiso: 'VEHICULOS'   },
-  { type: 'link', to: '/agenda',     icon: MdEventNote,             label: 'Agenda',      permiso: 'AGENDA'      },
-  { type: 'link', to: '/ordenes',    icon: MdAssignment,            label: 'Órdenes',     permiso: 'ORDENES'     },
-  { type: 'link', to: '/servicios',  icon: MdMiscellaneousServices, label: 'Servicios',   permiso: 'SERVICIOS'   },
+  { type: 'link', to: '/vehiculos', icon: MdDirectionsCar,        label: 'Vehículos', permiso: 'VEHICULOS' },
+  { type: 'link', to: '/agenda',    icon: MdEventNote,             label: 'Agenda',    permiso: 'AGENDA'    },
+  { type: 'link', to: '/servicios', icon: MdMiscellaneousServices, label: 'Servicios', permiso: 'SERVICIOS' },
   {
     type: 'group', name: 'Inventario', icon: MdStorage,
     children: [
-      { to: '/repuestos',  icon: MdBuild,    label: 'Repuestos',  permiso: 'REPUESTOS'  },
       { to: '/categorias', icon: MdCategory, label: 'Categorías', permiso: 'CATEGORIAS' },
+      { to: '/repuestos',  icon: MdBuild,    label: 'Repuestos',  permiso: 'REPUESTOS'  },
     ],
   },
-  { type: 'link', to: '/proveedores', icon: MdLocalShipping, label: 'Proveedores', permiso: 'PROVEEDORES' },
-  { type: 'link', to: '/compras',     icon: MdShoppingCart,  label: 'Compras',     permiso: 'COMPRAS'     },
-  { type: 'link', to: '/novedades',   icon: MdNewReleases,   label: 'Novedades',   permiso: 'NOVEDADES'   },
+  { type: 'link', to: '/ordenes',    icon: MdAssignment,   label: 'Orden de Trabajo', permiso: 'ORDENES'     },
+  { type: 'link', to: '/proveedores', icon: MdLocalShipping, label: 'Proveedores',    permiso: 'PROVEEDORES' },
+  { type: 'link', to: '/compras',    icon: MdShoppingCart,  label: 'Compras',         permiso: 'COMPRAS'     },
+  { type: 'link', to: '/novedades',  icon: MdNewReleases,   label: 'Novedades',       permiso: 'NOVEDADES'   },
   { type: 'section', label: 'Configuración' },
   { type: 'link', to: '/roles', icon: MdSecurity, label: 'Roles', permiso: 'ROLES' },
 ];
@@ -73,6 +73,16 @@ export default function Sidebar() {
   const navigate  = useNavigate();
   const location  = useLocation();
   const { empleado, permisos } = useSelector((state) => state.auth);
+  const [profileOpen, setProfileOpen] = useState(false);
+  const profileRef = React.useRef(null);
+
+  React.useEffect(() => {
+    const handler = (e) => {
+      if (profileRef.current && !profileRef.current.contains(e.target)) setProfileOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
 
   const visibleNav = buildVisibleNav(NAV_STRUCTURE, permisos);
 
@@ -164,24 +174,31 @@ export default function Sidebar() {
 
       {/* Footer */}
       <div className="sidebar__footer">
-        <div className="sidebar__user">
-          {empleado && (
-            <>
-              <div className="sidebar__user-avatar">
-                {empleado.Foto
-                  ? <img src={empleado.Foto} alt="" style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} />
-                  : empleado.Nombre?.charAt(0).toUpperCase()
-                }
-              </div>
-              <div className="sidebar__user-info">
-                <span className="sidebar__user-name">{empleado.Nombre}</span>
-                <span className="sidebar__user-role">{empleado.Rol || 'Administrador'}</span>
-              </div>
-            </>
+        <div className="sidebar__user-wrap" ref={profileRef}>
+          {profileOpen && (
+            <div className="sidebar__profile-dropdown">
+              <button className="sidebar__profile-item" onClick={() => { setProfileOpen(false); handleLogout(); }}>
+                <MdLogout size={16} />
+                <span>Cerrar sesión</span>
+              </button>
+            </div>
           )}
-          <button className="sidebar__logout" onClick={handleLogout} title="Cerrar sesión">
-            <MdLogout size={18} />
-          </button>
+          <div className="sidebar__user" onClick={() => setProfileOpen(o => !o)} style={{ cursor: 'pointer' }}>
+            {empleado && (
+              <>
+                <div className="sidebar__user-avatar">
+                  {(empleado.Foto_url || empleado.Foto)
+                    ? <img src={empleado.Foto_url || empleado.Foto} alt="" style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} />
+                    : empleado.Nombre?.charAt(0).toUpperCase()
+                  }
+                </div>
+                <div className="sidebar__user-info">
+                  <span className="sidebar__user-name">{empleado.Nombre}</span>
+                  <span className="sidebar__user-role">{empleado.Rol || empleado.rol || 'Administrador'}</span>
+                </div>
+              </>
+            )}
+          </div>
         </div>
       </div>
     </aside>

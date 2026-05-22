@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+﻿import React, { useEffect, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { MdAdd, MdVisibility, MdEdit, MdWarning, MdVisibilityOff, MdUploadFile } from 'react-icons/md';
 import ToggleSwitch from '../../../shared/components/ToggleSwitch/ToggleSwitch.jsx';
@@ -23,7 +23,7 @@ export default function EmpleadosPage() {
   const [novedades, setNovedades] = useState([]);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('todos');
-  const [pageSize, setPageSize] = useState(10);
+  const [pageSize, setPageSize] = useState(5);
   const [detailItem, setDetailItem] = useState(null);
   const [formData, setFormData] = useState(EMPTY);
   const [editingId, setEditingId] = useState(null);
@@ -86,7 +86,7 @@ export default function EmpleadosPage() {
       setFormError('Completa los campos obligatorios.'); return;
     }
     if (!editingId && !formData.Password) {
-      setFormError('La contraseña es obligatoria para nuevos empleados.'); return;
+      setFormError('La contraseÃ±a es obligatoria para nuevos empleados.'); return;
     }
     const payload = { ...formData };
     if (!payload.Password) delete payload.Password;
@@ -150,7 +150,7 @@ export default function EmpleadosPage() {
 
       {savedOk && (
         <div style={{ margin: '0.75rem 2rem 0', padding: '0.75rem 1rem', background: 'rgba(181,242,61,0.12)', border: '1px solid rgba(181,242,61,0.3)', borderRadius: '8px', color: '#b5f23d', fontSize: '0.875rem' }}>
-          ✓ Empleado guardado correctamente.
+          âœ“ Empleado guardado correctamente.
         </div>
       )}
 
@@ -202,7 +202,7 @@ export default function EmpleadosPage() {
         {formError && <div className="form-error-box">{formError}</div>}
         <form className="form-grid" onSubmit={handleSubmit} noValidate>
 
-          {/* Foto de perfil — arriba del formulario */}
+          {/* Foto de perfil â€” arriba del formulario */}
           <div className="form-group span-2">
             <label className="form-label">Foto de perfil</label>
             <div className="file-upload-wrap">
@@ -214,7 +214,7 @@ export default function EmpleadosPage() {
                 <span className="file-upload-label">
                   {fotoPreview ? 'Cambiar foto' : 'Adjuntar foto'}
                 </span>
-                <span className="file-upload-hint">JPG, PNG o WebP · máx. 5 MB</span>
+                <span className="file-upload-hint">JPG, PNG o WebP Â· mÃ¡x. 5 MB</span>
               </div>
               <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleFotoChange} />
             </div>
@@ -232,7 +232,7 @@ export default function EmpleadosPage() {
             </select>
           </div>
 
-          {/* Tipo de documento PRIMERO, luego número */}
+          {/* Tipo de documento PRIMERO, luego nÃºmero */}
           <div className="form-group">
             <label className="form-label">Tipo de documento <span className="required">*</span></label>
             <select name="Id_TipoDoc" className="form-control" value={formData.Id_TipoDoc} onChange={handleChange}>
@@ -241,21 +241,21 @@ export default function EmpleadosPage() {
             </select>
           </div>
           <div className="form-group">
-            <label className="form-label">Número de documento <span className="required">*</span></label>
-            <input name="Documento" className="form-control" value={formData.Documento} onChange={handleChange} placeholder="Número de documento" />
+            <label className="form-label">NÃºmero de documento <span className="required">*</span></label>
+            <input name="Documento" className="form-control" value={formData.Documento} onChange={handleChange} placeholder="NÃºmero de documento" />
           </div>
 
           <div className="form-group">
-            <label className="form-label">Correo electrónico <span className="required">*</span></label>
+            <label className="form-label">Correo electrÃ³nico <span className="required">*</span></label>
             <input name="Correo" type="email" className="form-control" value={formData.Correo} onChange={handleChange} placeholder="correo@empresa.com" />
           </div>
           <div className="form-group">
             <label className="form-label">
-              Contraseña {!editingId && <span className="required">*</span>}
+              ContraseÃ±a {!editingId && <span className="required">*</span>}
               {editingId && <span style={{ fontSize: '0.7rem', color: 'var(--color-text-muted)', marginLeft: '4px' }}>(dejar igual o cambiar)</span>}
             </label>
             <div className="form-password-wrap">
-              <input name="Password" type={showPassword ? 'text' : 'password'} className="form-control" value={formData.Password} onChange={handleChange} placeholder={editingId ? 'Contraseña actual' : 'Nueva contraseña'} />
+              <input name="Password" type={showPassword ? 'text' : 'password'} className="form-control" value={formData.Password} onChange={handleChange} placeholder={editingId ? 'ContraseÃ±a actual' : 'Nueva contraseÃ±a'} />
               <button type="button" className="form-password-toggle" onClick={() => setShowPassword(p => !p)} tabIndex={-1}>
                 {showPassword ? <MdVisibilityOff size={18} /> : <MdVisibility size={18} />}
               </button>
@@ -266,3 +266,4 @@ export default function EmpleadosPage() {
     </div>
   );
 }
+

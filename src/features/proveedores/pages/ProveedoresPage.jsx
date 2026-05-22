@@ -7,18 +7,22 @@ import Modal from '../../../shared/components/Modal/Modal.jsx';
 import Table from '../../../shared/components/Table/Table.jsx';
 import SearchBar from '../../../shared/components/SearchBar/SearchBar.jsx';
 import FilterDropdown from '../../../shared/components/FilterDropdown/FilterDropdown.jsx';
+import SearchableSelect from '../../../shared/components/SearchableSelect/SearchableSelect.jsx';
 import { StatusBadge } from '../../../shared/components/Badge/Badge.jsx';
 import { sortByStatus, filterItems } from '../../../shared/utils/helpers.js';
+import { MUNICIPIOS_POR_DEPARTAMENTO } from '../../../shared/data/colombiaGeo.js';
 import './ProveedoresPage.css';
 
-const EMPTY = { Documento: '', TipoProveedor: '', nombre: '', correo: '', contacto: '', ciudad: '', direccion: '', detalles: '' };
+const DEPARTAMENTOS = Object.keys(MUNICIPIOS_POR_DEPARTAMENTO).sort().map(d => ({ label: d, value: d }));
+
+const EMPTY = { TipoProveedor: '', Documento: '', nombre: '', correo: '', contacto: '', departamento: '', ciudad: '', direccion: '', detalles: '' };
 
 export default function ProveedoresPage() {
   const dispatch = useDispatch();
   const { items, loading, actionLoading } = useSelector(s => s.proveedores);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('todos');
-  const [pageSize, setPageSize] = useState(10);
+  const [pageSize, setPageSize] = useState(5);
   const [detailItem, setDetailItem] = useState(null);
   const [formData, setFormData] = useState(EMPTY);
   const [editingId, setEditingId] = useState(null);
@@ -26,6 +30,10 @@ export default function ProveedoresPage() {
   const [formError, setFormError] = useState('');
 
   useEffect(() => { dispatch(fetchProveedores()); }, [dispatch]);
+
+  const ciudadesOpts = formData.departamento
+    ? (MUNICIPIOS_POR_DEPARTAMENTO[formData.departamento] || []).map(c => ({ label: c, value: c }))
+    : [];
 
   const filtered = (() => {
     let list = items;
@@ -38,10 +46,15 @@ export default function ProveedoresPage() {
   const openCreate = () => { setFormData(EMPTY); setEditingId(null); setFormError(''); setShowForm(true); };
   const openEdit = (item) => {
     setFormData({
-      Documento: item.Documento || '', TipoProveedor: item.TipoProveedor || '',
-      nombre: item.nombre || '', correo: item.correo || '',
-      contacto: item.contacto || '', ciudad: item.ciudad || '',
-      direccion: item.direccion || '', detalles: item.detalles || '',
+      TipoProveedor: item.TipoProveedor || '',
+      Documento: item.Documento || '',
+      nombre: item.nombre || '',
+      correo: item.correo || '',
+      contacto: item.contacto || '',
+      departamento: item.departamento || '',
+      ciudad: item.ciudad || '',
+      direccion: item.direccion || '',
+      detalles: item.detalles || '',
     });
     setEditingId(item.Id_Proveedor); setFormError(''); setShowForm(true);
   };
@@ -50,7 +63,7 @@ export default function ProveedoresPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!formData.Documento || !formData.TipoProveedor || !formData.nombre) {
-      setFormError('Documento, tipo de proveedor y nombre son obligatorios.'); return;
+      setFormError('Tipo de proveedor, documento y nombre son obligatorios.'); return;
     }
     const action = editingId ? updateProveedor({ id: editingId, data: formData }) : createProveedor(formData);
     const result = await dispatch(action);
@@ -60,11 +73,11 @@ export default function ProveedoresPage() {
 
   const columns = [
     { key: '#', label: '#', width: '50px', render: (_, __, i) => i + 1 },
-    { key: 'Nombre', label: 'Nombre', render: v => <span className="font-medium">{v}</span> },
+    { key: 'Nombre', label: 'Nombre', render: (v, row) => <span className="font-medium">{v || row.nombre}</span> },
     { key: 'Documento', label: 'Documento' },
     { key: 'TipoProveedor', label: 'Tipo' },
-    { key: 'Contacto', label: 'Contacto', render: v => v || '—' },
-    { key: 'Correo', label: 'Correo', render: v => v || '—' },
+    { key: 'contacto', label: 'Contacto', render: (v, row) => v || row.Contacto || '—' },
+    { key: 'correo', label: 'Correo', render: (v, row) => v || row.Correo || '—' },
     { key: 'Estado', label: 'Estado', render: v => <StatusBadge estado={v} /> },
     {
       key: 'acciones', label: 'Acciones', render: (_, row) => (
@@ -86,14 +99,7 @@ export default function ProveedoresPage() {
       <div className="card">
         <div className="card__header">
           <SearchBar value={search} onChange={setSearch} placeholder="Buscar por nombre, documento, contacto..."
-            filterSlot={
-              <FilterDropdown
-                statusFilter={statusFilter}
-                onStatusChange={setStatusFilter}
-                pageSize={pageSize}
-                onPageSizeChange={setPageSize}
-              />
-            }
+            filterSlot={<FilterDropdown statusFilter={statusFilter} onStatusChange={setStatusFilter} pageSize={pageSize} onPageSizeChange={setPageSize} />}
           />
         </div>
         <Table columns={columns} data={filtered} loading={loading} pageSize={pageSize} emptyMessage="No se encontraron proveedores" />
@@ -101,11 +107,12 @@ export default function ProveedoresPage() {
 
       <Modal isOpen={!!detailItem} onClose={() => setDetailItem(null)} title="Detalle del proveedor" size="md">
         {detailItem && <div className="detail-grid">
-          <div className="detail-item"><span className="detail-label">Nombre</span><span className="detail-value">{detailItem.Nombre}</span></div>
-          <div className="detail-item"><span className="detail-label">Documento</span><span className="detail-value">{detailItem.Documento || '—'}</span></div>
+          <div className="detail-item"><span className="detail-label">Nombre</span><span className="detail-value">{detailItem.Nombre || detailItem.nombre}</span></div>
           <div className="detail-item"><span className="detail-label">Tipo</span><span className="detail-value">{detailItem.TipoProveedor || '—'}</span></div>
-          <div className="detail-item"><span className="detail-label">Contacto</span><span className="detail-value">{detailItem.Contacto || '—'}</span></div>
-          <div className="detail-item"><span className="detail-label">Correo</span><span className="detail-value">{detailItem.Correo || '—'}</span></div>
+          <div className="detail-item"><span className="detail-label">Documento</span><span className="detail-value">{detailItem.Documento || '—'}</span></div>
+          <div className="detail-item"><span className="detail-label">Contacto</span><span className="detail-value">{detailItem.contacto || detailItem.Contacto || '—'}</span></div>
+          <div className="detail-item"><span className="detail-label">Correo</span><span className="detail-value">{detailItem.correo || detailItem.Correo || '—'}</span></div>
+          <div className="detail-item"><span className="detail-label">Departamento</span><span className="detail-value">{detailItem.departamento || '—'}</span></div>
           <div className="detail-item"><span className="detail-label">Ciudad</span><span className="detail-value">{detailItem.ciudad || '—'}</span></div>
           <div className="detail-item" style={{ gridColumn: 'span 2' }}><span className="detail-label">Dirección</span><span className="detail-value">{detailItem.direccion || '—'}</span></div>
           {detailItem.detalles && (
@@ -121,16 +128,16 @@ export default function ProveedoresPage() {
         {formError && <div className="form-error-box">{formError}</div>}
         <form className="form-grid" onSubmit={handleSubmit} noValidate>
           <div className="form-group">
-            <label className="form-label">Documento <span className="required">*</span></label>
-            <input name="Documento" className="form-control" value={formData.Documento} onChange={handleChange} placeholder="Número de documento o NIT" />
-          </div>
-          <div className="form-group">
             <label className="form-label">Tipo de proveedor <span className="required">*</span></label>
             <select name="TipoProveedor" className="form-control" value={formData.TipoProveedor} onChange={handleChange}>
               <option value="">Seleccionar...</option>
               <option value="Natural">Natural</option>
-              <option value="Juridico">Juridico</option>
+              <option value="Juridico">Jurídico</option>
             </select>
+          </div>
+          <div className="form-group">
+            <label className="form-label">Documento <span className="required">*</span></label>
+            <input name="Documento" className="form-control" value={formData.Documento} onChange={handleChange} placeholder="Número de documento o NIT" />
           </div>
           <div className="form-group span-2">
             <label className="form-label">Nombre <span className="required">*</span></label>
@@ -145,8 +152,27 @@ export default function ProveedoresPage() {
             <input name="contacto" className="form-control" value={formData.contacto} onChange={handleChange} placeholder="Teléfono o persona de contacto" />
           </div>
           <div className="form-group">
+            <label className="form-label">Departamento</label>
+            <SearchableSelect
+              options={DEPARTAMENTOS}
+              value={formData.departamento}
+              onChange={v => setFormData(p => ({ ...p, departamento: v, ciudad: '' }))}
+              placeholder="Seleccionar departamento..."
+              labelKey="label"
+              valueKey="value"
+            />
+          </div>
+          <div className="form-group">
             <label className="form-label">Ciudad</label>
-            <input name="ciudad" className="form-control" value={formData.ciudad} onChange={handleChange} placeholder="Ciudad" />
+            <SearchableSelect
+              options={ciudadesOpts}
+              value={formData.ciudad}
+              onChange={v => setFormData(p => ({ ...p, ciudad: v }))}
+              placeholder={formData.departamento ? 'Seleccionar ciudad...' : 'Primero selecciona departamento'}
+              labelKey="label"
+              valueKey="value"
+              disabled={!formData.departamento}
+            />
           </div>
           <div className="form-group">
             <label className="form-label">Dirección</label>
@@ -154,7 +180,7 @@ export default function ProveedoresPage() {
           </div>
           <div className="form-group span-2">
             <label className="form-label">Detalles</label>
-            <textarea name="detalles" className="form-control" value={formData.detalles} onChange={handleChange} rows={3} placeholder="Información adicional..." />
+            <textarea name="detalles" className="form-control" value={formData.detalles} onChange={handleChange} rows={2} placeholder="Información adicional..." />
           </div>
         </form>
       </Modal>

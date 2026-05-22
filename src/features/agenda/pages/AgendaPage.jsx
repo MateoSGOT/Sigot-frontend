@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+﻿import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { MdAdd, MdVisibility, MdEdit, MdAssignment } from 'react-icons/md';
 import ToggleSwitch from '../../../shared/components/ToggleSwitch/ToggleSwitch.jsx';
@@ -25,7 +25,7 @@ export default function AgendaPage() {
   const [search, setSearch]             = useState('');
   const [statusFilter, setStatusFilter] = useState('todos');
   const [empleadoFilter, setEmpleadoFilter] = useState('');
-  const [pageSize, setPageSize]         = useState(10);
+  const [pageSize, setPageSize]         = useState(5);
   const [detailItem, setDetailItem]   = useState(null);
   const [formData, setFormData]       = useState(EMPTY_CITA);
   const [editingId, setEditingId]     = useState(null);
@@ -128,7 +128,7 @@ export default function AgendaPage() {
   const columns = [
     { key: '#', label: '#', width: '50px', render: (_, __, i) => i + 1 },
     { key: 'Cliente',  label: 'Cliente',  render: (v, row) => v || getClienteNombre(row.Id_Cliente) },
-    { key: 'Vehiculo', label: 'Vehículo', render: (v, row) => v || getVehiculoPlaca(row.Id_Vehiculo) },
+    { key: 'Vehiculo', label: 'VehÃ­culo', render: (v, row) => v || getVehiculoPlaca(row.Id_Vehiculo) },
     { key: 'Empleado', label: 'Empleado', render: (v, row) => v || getEmpleadoNombre(row.id_empleado || row.Id_Empleado) },
     { key: 'FechaAgendamiento', label: 'Fecha', render: v => formatDate(v) },
     { key: 'Hora', label: 'Hora' },
@@ -156,7 +156,7 @@ export default function AgendaPage() {
           <SearchBar
             value={search}
             onChange={setSearch}
-            placeholder="Buscar por cliente, vehículo..."
+            placeholder="Buscar por cliente, vehÃ­culo..."
             filterSlot={
               <>
                 <select className="filter-select" value={empleadoFilter} onChange={e => setEmpleadoFilter(e.target.value)}>
@@ -179,7 +179,7 @@ export default function AgendaPage() {
       <Modal isOpen={!!detailItem} onClose={() => setDetailItem(null)} title="Detalle de la cita" size="md">
         {detailItem && <div className="detail-grid">
           <div className="detail-item"><span className="detail-label">Cliente</span><span className="detail-value">{detailItem.Cliente || getClienteNombre(detailItem.Id_Cliente)}</span></div>
-          <div className="detail-item"><span className="detail-label">Vehículo</span><span className="detail-value">{detailItem.Vehiculo || getVehiculoPlaca(detailItem.Id_Vehiculo)}</span></div>
+          <div className="detail-item"><span className="detail-label">VehÃ­culo</span><span className="detail-value">{detailItem.Vehiculo || getVehiculoPlaca(detailItem.Id_Vehiculo)}</span></div>
           <div className="detail-item"><span className="detail-label">Empleado</span><span className="detail-value">{detailItem.Empleado || getEmpleadoNombre(detailItem.id_empleado || detailItem.Id_Empleado)}</span></div>
           <div className="detail-item"><span className="detail-label">Fecha</span><span className="detail-value">{formatDate(detailItem.FechaAgendamiento)}</span></div>
           <div className="detail-item"><span className="detail-label">Hora</span><span className="detail-value">{detailItem.Hora}</span></div>
@@ -193,7 +193,7 @@ export default function AgendaPage() {
         {formError && <div className="form-error-box">{formError}</div>}
         <form className="form-grid" onSubmit={handleSubmit} noValidate>
           <div className="form-group"><label className="form-label">Cliente <span className="required">*</span></label><select name="Id_Cliente" className="form-control" value={formData.Id_Cliente} onChange={handleChange}><option value="">Seleccionar cliente...</option>{clientes.map(c => <option key={c.Id_Cliente} value={c.Id_Cliente}>{c.Nombre}</option>)}</select></div>
-          <div className="form-group"><label className="form-label">Vehículo <span className="required">*</span></label><select name="Id_Vehiculo" className="form-control" value={formData.Id_Vehiculo} onChange={handleChange}><option value="">Seleccionar vehículo...</option>{vehiculosFiltered.map(v => <option key={v.Id_Vehiculo} value={v.Id_Vehiculo}>{v.Placa} - {v.Modelo}</option>)}</select></div>
+          <div className="form-group"><label className="form-label">VehÃ­culo <span className="required">*</span></label><select name="Id_Vehiculo" className="form-control" value={formData.Id_Vehiculo} onChange={handleChange}><option value="">Seleccionar vehÃ­culo...</option>{vehiculosFiltered.map(v => <option key={v.Id_Vehiculo} value={v.Id_Vehiculo}>{v.Placa} - {v.Modelo}</option>)}</select></div>
           <div className="form-group span-2">
             <label className="form-label">Empleado <span className="required">*</span></label>
             <select name="id_empleado" className="form-control" value={formData.id_empleado} onChange={handleChange}>
@@ -203,13 +203,13 @@ export default function AgendaPage() {
                 const conNovedad = novedadesActivas.has(String(empId));
                 return (
                   <option key={empId} value={empId} disabled={conNovedad}>
-                    {e.Nombre}{conNovedad ? ' — Con novedad' : ''}
+                    {e.Nombre}{conNovedad ? ' â€” Con novedad' : ''}
                   </option>
                 );
               })}
             </select>
             {formData.id_empleado && novedadesActivas.has(String(formData.id_empleado)) && (
-              <p className="novedad-warning">⚠ Este empleado tiene una novedad activa y no puede ser asignado.</p>
+              <p className="novedad-warning">âš  Este empleado tiene una novedad activa y no puede ser asignado.</p>
             )}
           </div>
           <div className="form-group"><label className="form-label">Fecha de agendamiento <span className="required">*</span></label><input name="FechaAgendamiento" type="date" className="form-control" value={formData.FechaAgendamiento} onChange={handleChange} /></div>
@@ -224,10 +224,11 @@ export default function AgendaPage() {
         <form className="form-grid" onSubmit={handleOrdenSubmit} noValidate>
           <div className="form-group"><label className="form-label">Fecha de ingreso <span className="required">*</span></label><input name="FechaIngreso" type="date" className="form-control" value={ordenData.FechaIngreso} onChange={handleOrdenChange} /></div>
           <div className="form-group"><label className="form-label">Fecha de entrega <span className="required">*</span></label><input name="FechaEntrega" type="date" className="form-control" value={ordenData.FechaEntrega} onChange={handleOrdenChange} /></div>
-          <div className="form-group span-2"><label className="form-label">Diagnóstico <span className="required">*</span></label><textarea name="Diagnostico" className="form-control" value={ordenData.Diagnostico} onChange={handleOrdenChange} rows={3} placeholder="Describe el diagnóstico..." /></div>
-          <div className="form-group span-2"><label className="form-label">Kilometraje <span className="required">*</span></label><input name="Kilometraje" type="number" min="0" className="form-control" value={ordenData.Kilometraje} onChange={handleOrdenChange} placeholder="km actuales del vehículo" /></div>
+          <div className="form-group span-2"><label className="form-label">DiagnÃ³stico <span className="required">*</span></label><textarea name="Diagnostico" className="form-control" value={ordenData.Diagnostico} onChange={handleOrdenChange} rows={3} placeholder="Describe el diagnÃ³stico..." /></div>
+          <div className="form-group span-2"><label className="form-label">Kilometraje <span className="required">*</span></label><input name="Kilometraje" type="number" min="0" className="form-control" value={ordenData.Kilometraje} onChange={handleOrdenChange} placeholder="km actuales del vehÃ­culo" /></div>
         </form>
       </Modal>
     </div>
   );
 }
+

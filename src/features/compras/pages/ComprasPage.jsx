@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+﻿import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { MdAdd, MdVisibility, MdBlock, MdDeleteOutline, MdWarning } from 'react-icons/md';
 import { fetchCompras, createCompra, anularCompra } from '../slices/comprasSlice.js';
@@ -9,6 +9,7 @@ import ConfirmDialog from '../../../shared/components/ConfirmDialog/ConfirmDialo
 import Badge from '../../../shared/components/Badge/Badge.jsx';
 import FilterDropdown from '../../../shared/components/FilterDropdown/FilterDropdown.jsx';
 import { filterItems, formatDate, formatCurrency } from '../../../shared/utils/helpers.js';
+import { generarFacturaCompra } from '../../../shared/utils/generarFacturaPDF.js';
 import api from '../../../shared/services/api.js';
 import './ComprasPage.css';
 
@@ -22,7 +23,7 @@ export default function ComprasPage() {
   const [repuestos, setRepuestos] = useState([]);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('todas');
-  const [pageSize, setPageSize] = useState(10);
+  const [pageSize, setPageSize] = useState(5);
   const [detailItem, setDetailItem] = useState(null);
   const [formData, setFormData] = useState(newForm());
   const [showForm, setShowForm] = useState(false);
@@ -216,8 +217,10 @@ export default function ComprasPage() {
         <Table columns={columns} data={filtered} loading={loading} pageSize={pageSize} emptyMessage="No se encontraron compras" />
       </div>
 
-      {/* Modal de detalle — muestra TODOS los productos de esa compra */}
-      <Modal isOpen={!!detailItem} onClose={() => setDetailItem(null)} title="Detalle de la compra" size="lg">
+      {/* Modal de detalle â€” muestra TODOS los productos de esa compra */}
+      <Modal isOpen={!!detailItem} onClose={() => setDetailItem(null)} title="Detalle de la compra" size="lg"
+        footer={detailItem ? <button className="btn btn--primary" onClick={() => generarFacturaCompra({ ...detailItem, detalles: detailItems })}>Factura (PDF)</button> : null}
+      >
         {detailItem && (
           <div>
             <div className="detail-grid" style={{ marginBottom: '1.25rem' }}>
@@ -365,11 +368,12 @@ export default function ComprasPage() {
         onClose={() => setConfirmAnular(null)}
         onConfirm={handleConfirmAnular}
         title="Anular compra"
-        message={`¿Estás seguro de anular la compra de "${confirmAnular?.Repuesto || 'este repuesto'}"? El stock se revertirá y esta acción no se puede deshacer.`}
-        confirmLabel="Sí, anular"
+        message={`Â¿EstÃ¡s seguro de anular la compra de "${confirmAnular?.Repuesto || 'este repuesto'}"? El stock se revertirÃ¡ y esta acciÃ³n no se puede deshacer.`}
+        confirmLabel="SÃ­, anular"
         danger
         loading={actionLoading}
       />
     </div>
   );
 }
+

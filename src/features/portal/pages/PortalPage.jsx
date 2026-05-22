@@ -139,6 +139,13 @@ export default function PortalPage() {
   // Order detail modal
   const [detailOrden, setDetailOrden] = useState(null);
   const [loadingOrden, setLoadingOrden] = useState(false);
+  // Citas
+  const [citas, setCitas] = useState([]);
+  const [showCitaModal, setShowCitaModal] = useState(false);
+  const [citaForm, setCitaForm] = useState({ Id_Vehiculo: '', Fecha: '', Hora: '', Descripcion: '' });
+  const [citaError, setCitaError] = useState('');
+  const [citaLoading, setCitaLoading] = useState(false);
+  const [citaToast, setCitaToast] = useState(false);
 
   useEffect(() => {
     const storedToken = localStorage.getItem(PORTAL_KEY);
@@ -160,9 +167,11 @@ export default function PortalPage() {
     Promise.all([
       api.get('/api/portal/vehiculos', { headers }),
       api.get('/api/portal/ordenes', { headers }),
-    ]).then(([vRes, oRes]) => {
+      api.get('/api/portal/citas', { headers }),
+    ]).then(([vRes, oRes, cRes]) => {
       setVehiculos(vRes.data?.data || []);
       setOrdenes(oRes.data?.data || []);
+      setCitas(cRes.data?.data || []);
     }).catch(() => {}).finally(() => setLoading(false));
   }, [cliente, token]);
 
@@ -206,6 +215,32 @@ export default function PortalPage() {
     } finally { setSaving(false); }
   };
 
+  const fetchCitas = async () => {
+    try {
+      const r = await api.get('/api/portal/citas', { headers: { Authorization: `Bearer ${token}` } });
+      setCitas(r.data?.data || []);
+    } catch { /* silent */ }
+  };
+
+  const handleCrearCita = async e => {
+    e.preventDefault();
+    setCitaError('');
+    if (!citaForm.Id_Vehiculo || !citaForm.Fecha || !citaForm.Hora) {
+      setCitaError('Vehículo, fecha y hora son obligatorios.'); return;
+    }
+    setCitaLoading(true);
+    try {
+      await api.post('/api/portal/citas', citaForm, { headers: { Authorization: `Bearer ${token}` } });
+      setShowCitaModal(false);
+      setCitaForm({ Id_Vehiculo: '', Fecha: '', Hora: '', Descripcion: '' });
+      await fetchCitas();
+      setCitaToast(true);
+      setTimeout(() => setCitaToast(false), 3000);
+    } catch (err) {
+      setCitaError(err.response?.data?.message || 'Error al crear la cita.');
+    } finally { setCitaLoading(false); }
+  };
+
   const openOrden = async (orden) => {
     setDetailOrden(null);
     setLoadingOrden(true);
@@ -239,7 +274,7 @@ export default function PortalPage() {
             </div>
           </div>
           <nav className="portal-header__nav">
-            {[['cuenta','Mi Cuenta'],['vehiculos','Mis Vehículos'],['ordenes','Mis Órdenes']].map(([k,l]) => (
+            {[['cuenta','Mi Cuenta'],['vehiculos','Mis Vehículos'],['ordenes','Mis Órdenes'],['citas','Mis Citas']].map(([k,l]) => (
               <button key={k} className={`portal-tab${tab===k?' portal-tab--active':''}`} onClick={() => setTab(k)}>{l}</button>
             ))}
           </nav>
@@ -423,6 +458,115 @@ export default function PortalPage() {
                   </div>
                 ))}
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── MIS CITAS ────────────────────────────────────── */}
+      {tab === 'citas' && (
+        <div className="portal-section">
+          <div className="portal-section__header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <div>
+              <h2>Mis Citas</h2>
+              <p>Historial y nuevas citas con el taller</p>
+            </div>
+            <button className="portal-btn portal-btn--primary" onClick={() => { setCitaForm({ Id_Vehiculo: '', Fecha: '', Hora: '', Descripcion: '' }); setCitaError(''); setShowCitaModal(true); }}>
+              + Agendar nueva cita
+            </button>
+          </div>
+
+          {citaToast && (
+            <div style={{ background: 'rgba(22,163,74,0.15)', border: '1px solid #16a34a', borderRadius: '8px', padding: '0.75rem 1rem', color: '#16a34a', marginBottom: '1rem', fontSize: '0.875rem' }}>
+              ✓ Cita agendada exitosamente
+            </div>
+          )}
+
+          {citas.length === 0 ? (
+            <div className="portal-empty">No tienes citas registradas.</div>
+          ) : (
+            <div className="portal-table-wrap">
+              <table className="portal-table">
+                <thead>
+                  <tr>
+                    <th>Vehículo</th>
+                    <th>Fecha</th>
+                    <th>Hora</th>
+                    <th>Descripción</th>
+                    <th>Estado</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {citas.map(c => {
+                    const estadoCita = c.Estado ? 'Pendiente' : 'Completada';
+                    const badgeCls = c.Estado ? 'badge--yellow' : 'badge--green';
+                    return (
+                      <tr key={c.Id_Agenda}>
+                        <td>{c.vehiculo?.Placa || '—'}</td>
+                        <td>{fmtDate(c.FechaAgendamiento)}</td>
+                        <td>{c.Hora || '—'}</td>
+                        <td>{c.Descripcion || '—'}</td>
+                        <td><span className={`portal-badge ${badgeCls}`}>{estadoCita}</span></td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── MODAL NUEVA CITA ─────────────────────────────── */}
+      {showCitaModal && (
+        <div className="portal-modal-overlay" onClick={() => setShowCitaModal(false)}>
+          <div className="portal-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '480px' }}>
+            <div className="portal-modal__header">
+              <h3>Agendar nueva cita</h3>
+              <button className="portal-modal__close" onClick={() => setShowCitaModal(false)}>✕</button>
+            </div>
+            <div className="portal-modal__body">
+              <form onSubmit={handleCrearCita}>
+                {citaError && <div style={{ color: '#f87171', marginBottom: '0.75rem', fontSize: '0.85rem' }}>{citaError}</div>}
+                <div style={{ marginBottom: '0.875rem' }}>
+                  <label style={{ display: 'block', fontSize: '0.8rem', color: '#aaa', marginBottom: '0.25rem' }}>Vehículo *</label>
+                  <select className="form-control" value={citaForm.Id_Vehiculo} onChange={e => setCitaForm(p => ({ ...p, Id_Vehiculo: e.target.value }))} required>
+                    <option value="">Seleccionar vehículo...</option>
+                    {vehiculos.map(v => <option key={v.Id_Vehiculo} value={v.Id_Vehiculo}>{v.Placa} — {v.Marca || v.marca || ''}</option>)}
+                  </select>
+                </div>
+                <div style={{ marginBottom: '0.875rem' }}>
+                  <label style={{ display: 'block', fontSize: '0.8rem', color: '#aaa', marginBottom: '0.25rem' }}>Fecha *</label>
+                  <input type="date" className="form-control" value={citaForm.Fecha} min={new Date().toISOString().split('T')[0]}
+                    onChange={e => setCitaForm(p => ({ ...p, Fecha: e.target.value }))} required />
+                </div>
+                <div style={{ marginBottom: '0.875rem' }}>
+                  <label style={{ display: 'block', fontSize: '0.8rem', color: '#aaa', marginBottom: '0.25rem' }}>Hora *</label>
+                  <select className="form-control" value={citaForm.Hora} onChange={e => setCitaForm(p => ({ ...p, Hora: e.target.value }))} required>
+                    <option value="">Seleccionar hora...</option>
+                    {Array.from({ length: 21 }, (_, i) => {
+                      const totalMins = 480 + i * 30;
+                      const h = Math.floor(totalMins / 60);
+                      const m = totalMins % 60;
+                      const label = `${h > 12 ? h - 12 : h}:${m.toString().padStart(2, '0')} ${h >= 12 ? 'PM' : 'AM'}`;
+                      const value = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+                      return <option key={value} value={value}>{label}</option>;
+                    })}
+                  </select>
+                </div>
+                <div style={{ marginBottom: '1rem' }}>
+                  <label style={{ display: 'block', fontSize: '0.8rem', color: '#aaa', marginBottom: '0.25rem' }}>Descripción</label>
+                  <textarea className="form-control" value={citaForm.Descripcion} rows={3} maxLength={300}
+                    onChange={e => setCitaForm(p => ({ ...p, Descripcion: e.target.value }))}
+                    placeholder="Describe brevemente el motivo de la cita..." />
+                </div>
+                <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+                  <button type="button" className="portal-btn" onClick={() => setShowCitaModal(false)}>Cancelar</button>
+                  <button type="submit" className="portal-btn portal-btn--primary" disabled={citaLoading}>
+                    {citaLoading ? 'Guardando...' : 'Agendar cita'}
+                  </button>
+                </div>
+              </form>
             </div>
           </div>
         </div>

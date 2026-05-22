@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+﻿import React, { useEffect, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { MdAdd, MdVisibility, MdEdit, MdUploadFile } from 'react-icons/md';
 import ToggleSwitch from '../../../shared/components/ToggleSwitch/ToggleSwitch.jsx';
@@ -20,7 +20,7 @@ export default function ClientesPage() {
   const [tiposDoc, setTiposDoc] = useState([]);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('todos');
-  const [pageSize, setPageSize] = useState(10);
+  const [pageSize, setPageSize] = useState(5);
   const [detailItem, setDetailItem] = useState(null);
   const [formData, setFormData] = useState(EMPTY_FORM);
   const [editingId, setEditingId] = useState(null);
@@ -100,7 +100,7 @@ export default function ClientesPage() {
       )
     },
     { key: 'Documento', label: 'Documento' },
-    { key: 'Telefono', label: 'Teléfono' },
+    { key: 'Telefono', label: 'TelÃ©fono' },
     { key: 'Correo', label: 'Correo' },
     { key: 'Estado', label: 'Estado', render: (v) => <StatusBadge estado={v} /> },
     {
@@ -147,9 +147,9 @@ export default function ClientesPage() {
             <div className="detail-item"><span className="detail-label">Nombre</span><span className="detail-value">{detailItem.Nombre}</span></div>
             <div className="detail-item"><span className="detail-label">Tipo de documento</span><span className="detail-value">{detailItem.TipoDoc || detailItem.Id_TipoDoc}</span></div>
             <div className="detail-item"><span className="detail-label">Documento</span><span className="detail-value">{detailItem.Documento}</span></div>
-            <div className="detail-item"><span className="detail-label">Teléfono</span><span className="detail-value">{detailItem.Telefono || '—'}</span></div>
-            <div className="detail-item"><span className="detail-label">Correo</span><span className="detail-value">{detailItem.Correo || '—'}</span></div>
-            <div className="detail-item"><span className="detail-label">Dirección</span><span className="detail-value">{detailItem.Direccion || '—'}</span></div>
+            <div className="detail-item"><span className="detail-label">TelÃ©fono</span><span className="detail-value">{detailItem.Telefono || 'â€”'}</span></div>
+            <div className="detail-item"><span className="detail-label">Correo</span><span className="detail-value">{detailItem.Correo || 'â€”'}</span></div>
+            <div className="detail-item"><span className="detail-label">DirecciÃ³n</span><span className="detail-value">{detailItem.Direccion || 'â€”'}</span></div>
             <div className="detail-item"><span className="detail-label">Estado</span><span className="detail-value"><StatusBadge estado={detailItem.Estado} /></span></div>
           </div>
         )}
@@ -177,7 +177,7 @@ export default function ClientesPage() {
               <div className="file-upload-area" onClick={() => fileRef.current?.click()}>
                 <MdUploadFile size={22} style={{ color: 'var(--color-text-muted)' }} />
                 <span className="file-upload-label">{fotoPreview ? 'Cambiar foto' : 'Adjuntar foto'}</span>
-                <span className="file-upload-hint">JPG, PNG o WebP · máx. 5 MB</span>
+                <span className="file-upload-hint">JPG, PNG o WebP Â· mÃ¡x. 5 MB</span>
               </div>
               <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleFotoChange} />
             </div>
@@ -196,25 +196,26 @@ export default function ClientesPage() {
             </select>
           </div>
           <div className="form-group">
-            <label className="form-label">Número de documento <span className="required">*</span></label>
-            <input name="Documento" className="form-control" value={formData.Documento} onChange={handleFormChange} placeholder="Número de documento" />
+            <label className="form-label">NÃºmero de documento <span className="required">*</span></label>
+            <input name="Documento" className="form-control" value={formData.Documento} onChange={handleFormChange} placeholder="NÃºmero de documento" />
           </div>
 
           <div className="form-group">
-            <label className="form-label">Teléfono</label>
-            <input name="Telefono" className="form-control" value={formData.Telefono} onChange={handleFormChange} placeholder="Teléfono de contacto" />
+            <label className="form-label">TelÃ©fono</label>
+            <input name="Telefono" className="form-control" value={formData.Telefono} onChange={handleFormChange} placeholder="TelÃ©fono de contacto" />
           </div>
           <div className="form-group">
-            <label className="form-label">Correo electrónico</label>
+            <label className="form-label">Correo electrÃ³nico</label>
             <input name="Correo" type="email" className="form-control" value={formData.Correo} onChange={handleFormChange} placeholder="correo@ejemplo.com" />
           </div>
 
           <div className="form-group span-2">
-            <label className="form-label">Dirección</label>
-            <input name="Direccion" className="form-control" value={formData.Direccion} onChange={handleFormChange} placeholder="Dirección" />
+            <label className="form-label">DirecciÃ³n</label>
+            <input name="Direccion" className="form-control" value={formData.Direccion} onChange={handleFormChange} placeholder="DirecciÃ³n" />
           </div>
         </form>
       </Modal>
     </div>
   );
 }
+

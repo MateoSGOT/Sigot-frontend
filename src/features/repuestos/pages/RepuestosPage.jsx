@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from 'react';
+﻿import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { MdAdd, MdVisibility, MdEdit, MdWarning } from 'react-icons/md';
+import { MdAdd, MdVisibility, MdEdit, MdWarning, MdTableChart } from 'react-icons/md';
+import * as XLSX from 'xlsx';
 import ToggleSwitch from '../../../shared/components/ToggleSwitch/ToggleSwitch.jsx';
 import { fetchRepuestos, createRepuesto, updateRepuesto, toggleRepuestoEstado } from '../slices/repuestosSlice.js';
 import Modal from '../../../shared/components/Modal/Modal.jsx';
@@ -21,7 +22,7 @@ export default function RepuestosPage() {
   const [search, setSearch]               = useState('');
   const [statusFilter, setStatusFilter]   = useState('todos');
   const [categoriaFilter, setCategoriaFilter] = useState('');
-  const [pageSize, setPageSize]           = useState(10);
+  const [pageSize, setPageSize]           = useState(5);
   const [detailItem, setDetailItem]       = useState(null);
   const [formData, setFormData]           = useState(EMPTY);
   const [editingId, setEditingId]         = useState(null);
@@ -41,6 +42,28 @@ export default function RepuestosPage() {
     list = filterItems(list, search, ['Nombre', 'NombreRepuesto']);
     return sortByStatus(list);
   })();
+
+  const exportarExcel = async () => {
+    try {
+      const res = await api.get('/api/repuestos?limit=9999');
+      const data = res.data?.data || res.data || items;
+      const catMap = {};
+      categorias.forEach(c => { catMap[c.Id_categoria ?? c.Id_Categoria] = c.Nombre; });
+      const rows = data.map((r, i) => ({
+        '#': i + 1,
+        Nombre: r.NombreRepuesto || r.Nombre || '',
+        Categoría: catMap[r.Id_categoria ?? r.Id_Categoria] || '—',
+        Stock: r.Stock ?? 0,
+        Precio: Number(r.Precio ?? 0),
+        Estado: r.Estado ? 'Activo' : 'Inactivo',
+      }));
+      const ws = XLSX.utils.json_to_sheet(rows);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Inventario');
+      const fecha = new Date().toISOString().split('T')[0];
+      XLSX.writeFile(wb, `inventario-repuestos-${fecha}.xlsx`);
+    } catch { /* silent */ }
+  };
 
   const openCreate = () => { setFormData(EMPTY); setEditingId(null); setFormError(''); setShowForm(true); };
   const openEdit = (item) => {
@@ -74,7 +97,7 @@ export default function RepuestosPage() {
   const columns = [
     { key: '#', label: '#', width: '50px', render: (_, __, i) => i + 1 },
     { key: 'Nombre', label: 'Nombre', render: v => <span className="font-medium">{v}</span> },
-    { key: 'Categoria', label: 'Categoría' },
+    { key: 'Categoria', label: 'CategorÃ­a' },
     {
       key: 'Stock', label: 'Stock', render: v => (
         <span className={`stock-cell ${Number(v) < 5 ? 'stock-cell--low' : ''}`}>
@@ -99,7 +122,10 @@ export default function RepuestosPage() {
     <div className="page">
       <div className="page__header">
         <div><h1 className="page__title">Repuestos</h1><p className="page__subtitle">{items.length} repuesto(s) en inventario</p></div>
-        <button className="btn btn--primary" onClick={openCreate}><MdAdd size={18} />Nuevo repuesto</button>
+        <div style={{ display: 'flex', gap: '0.5rem' }}>
+          <button className="btn btn--outline" onClick={exportarExcel} style={{ color: '#16a34a', borderColor: '#16a34a' }}><MdTableChart size={17} />Exportar Excel</button>
+          <button className="btn btn--primary" onClick={openCreate}><MdAdd size={18} />Nuevo repuesto</button>
+        </div>
       </div>
       <div className="card">
         <div className="card__header">
@@ -110,7 +136,7 @@ export default function RepuestosPage() {
             filterSlot={
               <>
                 <select className="filter-select" value={categoriaFilter} onChange={e => setCategoriaFilter(e.target.value)}>
-                  <option value="">Todas las categorías</option>
+                  <option value="">Todas las categorÃ­as</option>
                   {categorias.map(c => <option key={c.Id_categoria} value={c.Id_categoria}>{c.Nombre}</option>)}
                 </select>
                 <FilterDropdown
@@ -129,7 +155,7 @@ export default function RepuestosPage() {
       <Modal isOpen={!!detailItem} onClose={() => setDetailItem(null)} title="Detalle del repuesto" size="md">
         {detailItem && <div className="detail-grid">
           <div className="detail-item"><span className="detail-label">Nombre</span><span className="detail-value">{detailItem.Nombre}</span></div>
-          <div className="detail-item"><span className="detail-label">Categoría</span><span className="detail-value">{detailItem.Categoria || detailItem.Id_Categoria}</span></div>
+          <div className="detail-item"><span className="detail-label">CategorÃ­a</span><span className="detail-value">{detailItem.Categoria || detailItem.Id_Categoria}</span></div>
           <div className="detail-item"><span className="detail-label">Stock</span><span className="detail-value">{detailItem.Stock}</span></div>
           <div className="detail-item"><span className="detail-label">Precio</span><span className="detail-value">{formatCurrency(detailItem.Precio)}</span></div>
           <div className="detail-item"><span className="detail-label">Estado</span><span className="detail-value"><StatusBadge estado={detailItem.Estado} /></span></div>
@@ -146,9 +172,9 @@ export default function RepuestosPage() {
             <input name="NombreRepuesto" className="form-control" value={formData.NombreRepuesto} onChange={handleChange} placeholder="Nombre del repuesto" />
           </div>
           <div className="form-group span-2">
-            <label className="form-label">Categoría <span className="required">*</span></label>
+            <label className="form-label">CategorÃ­a <span className="required">*</span></label>
             <select name="Id_categoria" className="form-control" value={formData.Id_categoria} onChange={handleChange}>
-              <option value="">Seleccionar categoría...</option>
+              <option value="">Seleccionar categorÃ­a...</option>
               {categorias.map(c => <option key={c.Id_categoria} value={c.Id_categoria}>{c.Nombre}</option>)}
             </select>
           </div>
@@ -165,3 +191,4 @@ export default function RepuestosPage() {
     </div>
   );
 }
+

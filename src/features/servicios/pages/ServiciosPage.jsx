@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+﻿import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { MdAdd, MdVisibility, MdEdit } from 'react-icons/md';
 import ToggleSwitch from '../../../shared/components/ToggleSwitch/ToggleSwitch.jsx';
@@ -18,7 +18,7 @@ export default function ServiciosPage() {
   const { items, loading, actionLoading } = useSelector(s => s.servicios);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('todos');
-  const [pageSize, setPageSize] = useState(10);
+  const [pageSize, setPageSize] = useState(5);
   const [detailItem, setDetailItem] = useState(null);
   const [formData, setFormData] = useState(EMPTY);
   const [editingId, setEditingId] = useState(null);
@@ -51,7 +51,7 @@ export default function ServiciosPage() {
   const columns = [
     { key: '#', label: '#', width: '50px', render: (_, __, i) => i + 1 },
     { key: 'Nombre', label: 'Nombre', render: v => <span className="font-medium">{v}</span> },
-    { key: 'Descripcion', label: 'Descripción', render: v => <span className="descripcion-cell">{v || '—'}</span> },
+    { key: 'Descripcion', label: 'DescripciÃ³n', render: v => <span className="descripcion-cell">{v || 'â€”'}</span> },
     { key: 'Precio', label: 'Precio', render: v => formatCurrency(v) },
     { key: 'Estado', label: 'Estado', render: v => <StatusBadge estado={v} /> },
     {
@@ -76,7 +76,7 @@ export default function ServiciosPage() {
           <SearchBar
             value={search}
             onChange={setSearch}
-            placeholder="Buscar por nombre, descripción..."
+            placeholder="Buscar por nombre, descripciÃ³n..."
             filterSlot={
               <FilterDropdown
                 statusFilter={statusFilter}
@@ -93,7 +93,7 @@ export default function ServiciosPage() {
       <Modal isOpen={!!detailItem} onClose={() => setDetailItem(null)} title="Detalle del servicio" size="md">
         {detailItem && <div className="detail-grid">
           <div className="detail-item" style={{ gridColumn: 'span 2' }}><span className="detail-label">Nombre</span><span className="detail-value">{detailItem.Nombre}</span></div>
-          <div className="detail-item" style={{ gridColumn: 'span 2' }}><span className="detail-label">Descripción</span><span className="detail-value">{detailItem.Descripcion || '—'}</span></div>
+          <div className="detail-item" style={{ gridColumn: 'span 2' }}><span className="detail-label">DescripciÃ³n</span><span className="detail-value">{detailItem.Descripcion || 'â€”'}</span></div>
           <div className="detail-item"><span className="detail-label">Precio</span><span className="detail-value">{formatCurrency(detailItem.Precio)}</span></div>
           <div className="detail-item"><span className="detail-label">Estado</span><span className="detail-value"><StatusBadge estado={detailItem.Estado} /></span></div>
         </div>}
@@ -105,10 +105,11 @@ export default function ServiciosPage() {
         {formError && <div className="form-error-box">{formError}</div>}
         <form className="form-grid" onSubmit={handleSubmit} noValidate>
           <div className="form-group span-2"><label className="form-label">Nombre <span className="required">*</span></label><input name="Nombre" className="form-control" value={formData.Nombre} onChange={handleChange} placeholder="Nombre del servicio" /></div>
-          <div className="form-group span-2"><label className="form-label">Descripción</label><textarea name="Descripcion" className="form-control" value={formData.Descripcion} onChange={handleChange} rows={3} placeholder="Describe el servicio..." /></div>
+          <div className="form-group span-2"><label className="form-label">DescripciÃ³n</label><textarea name="Descripcion" className="form-control" value={formData.Descripcion} onChange={handleChange} rows={3} placeholder="Describe el servicio..." /></div>
           <div className="form-group span-2"><label className="form-label">Precio <span className="required">*</span></label><input name="Precio" type="number" min="0" className="form-control" value={formData.Precio} onChange={handleChange} placeholder="0" /></div>
         </form>
       </Modal>
     </div>
   );
 }
+
