@@ -47,3 +47,66 @@
 
 .font-medium { font-weight: 600; }
 .table-actions { display: flex; align-items: center; gap: 0.25rem; }
+
+/* ── Permission matrix ──────────────────────────────────── */
+.perm-matrix {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.perm-matrix th,
+.perm-matrix td {
+  padding: 0.625rem 0.75rem;
+  text-align: center;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.perm-matrix th {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.perm-matrix__mod-col {
+  text-align: left !important;
+  min-width: 160px;
+}
+
+.perm-matrix__todo-col {
+  min-width: 56px;
+}
+
+.perm-matrix__action-col {
+  min-width: 72px;
+}
+
+.perm-matrix__row:hover td {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.perm-matrix__mod-name {
+  text-align: left;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.perm-matrix__cell {
+  vertical-align: middle;
+}
+
+.perm-matrix__cell--empty {
+  color: var(--color-text-muted);
+  opacity: 0.4;
+  font-size: 1rem;
+}
+
+.perm-checkbox {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  accent-color: var(--color-primary);
+}

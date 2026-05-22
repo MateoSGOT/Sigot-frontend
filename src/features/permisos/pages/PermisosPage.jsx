@@ -1,186 +1,144 @@
-﻿import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { MdAdd, MdEdit, MdLock, MdCheck, MdClose } from 'react-icons/md';
-import { fetchPermisos, createPermiso, updatePermiso, togglePermisoEstado } from '../slices/permisosSlice.js';
-import Modal from '../../../shared/components/Modal/Modal.jsx';
-import Table from '../../../shared/components/Table/Table.jsx';
-import SearchBar from '../../../shared/components/SearchBar/SearchBar.jsx';
-import FilterDropdown from '../../../shared/components/FilterDropdown/FilterDropdown.jsx';
-import ToggleSwitch from '../../../shared/components/ToggleSwitch/ToggleSwitch.jsx';
-import { filterItems } from '../../../shared/utils/helpers.js';
+import { MdSave } from 'react-icons/md';
+import { fetchPermisos, updatePermiso } from '../slices/permisosSlice.js';
 import './PermisosPage.css';
+
+const ACTION_MAP = {
+  LISTAR:         'Ver',
+  CONSULTAR:      'Ver',
+  REGISTRAR:      'Crear',
+  CREAR:          'Crear',
+  EDITAR:         'Editar',
+  ACTUALIZAR:     'Editar',
+  ELIMINAR:       'Eliminar',
+  CAMBIAR_ESTADO: 'Eliminar',
+};
+const COLS = ['Ver', 'Crear', 'Editar', 'Eliminar'];
+
+function groupPermisos(items) {
+  const modules = {};
+  items.forEach(p => {
+    const parts = p.Nombre.split('.');
+    const mod   = parts[0];
+    const act   = parts[1] || '';
+    const col   = ACTION_MAP[act] || act;
+    if (!modules[mod]) modules[mod] = {};
+    if (!modules[mod][col]) modules[mod][col] = [];
+    modules[mod][col].push(p);
+  });
+  return modules;
+}
 
 export default function PermisosPage() {
   const dispatch = useDispatch();
-  const { items, loading, actionLoading } = useSelector(s => s.permisos);
-  const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState('todos');
-  const [pageSize, setPageSize] = useState(5);
-
-  // Create modal state
-  const [showCreate, setShowCreate] = useState(false);
-  const [createNombre, setCreateNombre] = useState('');
-  const [createError, setCreateError] = useState('');
-
-  // Inline edit state
-  const [editingId, setEditingId] = useState(null);
-  const [editingValue, setEditingValue] = useState('');
+  const { items, actionLoading } = useSelector(s => s.permisos);
+  const [localState, setLocalState] = useState({});
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
 
   useEffect(() => { dispatch(fetchPermisos()); }, [dispatch]);
 
-  const startInlineEdit = (item) => {
-    setEditingId(item.Id_Permiso);
-    setEditingValue(item.Nombre);
+  useEffect(() => {
+    const s = {};
+    items.forEach(p => { s[p.Id_Permiso] = p.Estado === 1; });
+    setLocalState(s);
+  }, [items]);
+
+  const grouped  = groupPermisos(items);
+  const modNames = Object.keys(grouped).sort();
+
+  const toggle = (id) => setLocalState(prev => ({ ...prev, [id]: !prev[id] }));
+
+  const toggleRow = (mod) => {
+    const all   = COLS.flatMap(col => grouped[mod]?.[col] || []);
+    const allOn = all.every(p => localState[p.Id_Permiso]);
+    setLocalState(prev => {
+      const next = { ...prev };
+      all.forEach(p => { next[p.Id_Permiso] = !allOn; });
+      return next;
+    });
   };
 
-  const cancelInlineEdit = () => {
-    setEditingId(null);
-    setEditingValue('');
-  };
-
-  const saveInlineEdit = async () => {
-    if (!editingValue.trim() || !editingId) return;
-    const result = await dispatch(updatePermiso({ id: editingId, data: { Nombre: editingValue.trim() } }));
-    if (!result.error) {
-      cancelInlineEdit();
-      dispatch(fetchPermisos());
+  const handleSave = async () => {
+    setSaving(true);
+    const changed = items.filter(p => (p.Estado === 1) !== !!localState[p.Id_Permiso]);
+    for (const p of changed) {
+      await dispatch(updatePermiso({ id: p.Id_Permiso, data: { Estado: localState[p.Id_Permiso] ? 1 : 0 } }));
     }
+    setSaving(false);
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2500);
   };
-
-  const handleInlineKeyDown = (e) => {
-    if (e.key === 'Enter') saveInlineEdit();
-    if (e.key === 'Escape') cancelInlineEdit();
-  };
-
-  const handleCreate = async (e) => {
-    e.preventDefault();
-    if (!createNombre.trim()) { setCreateError('El nombre es obligatorio.'); return; }
-    const result = await dispatch(createPermiso({ Nombre: createNombre.trim() }));
-    if (!result.error) {
-      setShowCreate(false);
-      setCreateNombre('');
-      dispatch(fetchPermisos());
-    } else {
-      setCreateError(result.payload || 'Error al crear.');
-    }
-  };
-
-  const afterSearch = filterItems(items, search, ['Nombre']);
-  const filtered = statusFilter === 'activos'
-    ? afterSearch.filter(p => p.Estado === 1)
-    : statusFilter === 'inactivos'
-      ? afterSearch.filter(p => p.Estado === 0)
-      : afterSearch;
-
-  const columns = [
-    { key: '#', label: '#', width: '50px', render: (_, __, i) => i + 1 },
-    {
-      key: 'Nombre', label: 'MÃ³dulo', render: (v, row) => {
-        if (editingId === row.Id_Permiso) {
-          return (
-            <div className="inline-edit">
-              <input
-                className="inline-edit__input"
-                value={editingValue}
-                onChange={e => setEditingValue(e.target.value)}
-                onKeyDown={handleInlineKeyDown}
-                autoFocus
-              />
-              <button className="btn btn--ghost btn--icon btn--sm" onClick={saveInlineEdit} title="Guardar">
-                <MdCheck size={16} style={{ color: '#16a34a' }} />
-              </button>
-              <button className="btn btn--ghost btn--icon btn--sm" onClick={cancelInlineEdit} title="Cancelar">
-                <MdClose size={16} />
-              </button>
-            </div>
-          );
-        }
-        return (
-          <div className="perm-name-cell">
-            <span className="perm-icon"><MdLock size={15} /></span>
-            <span className="font-medium">{v}</span>
-            <button
-              className="btn btn--ghost btn--icon btn--sm perm-edit-inline-btn"
-              onClick={() => startInlineEdit(row)}
-              title="Editar nombre"
-            >
-              <MdEdit size={15} />
-            </button>
-          </div>
-        );
-      }
-    },
-    {
-      key: 'Estado', label: 'Estado', render: (v, row) => (
-        <ToggleSwitch checked={v === 1} onChange={() => dispatch(togglePermisoEstado(row.Id_Permiso))} />
-      )
-    },
-  ];
 
   return (
     <div className="page">
       <div className="page__header">
         <div>
           <h1 className="page__title">Permisos</h1>
-          <p className="page__subtitle">MÃ³dulos del sistema â€” {items.length} registrado(s)</p>
+          <p className="page__subtitle">Módulos del sistema — {items.length} permiso(s)</p>
         </div>
-        <button className="btn btn--primary" onClick={() => { setCreateNombre(''); setCreateError(''); setShowCreate(true); }}>
-          <MdAdd size={18} />Nuevo permiso
+        <button className="btn btn--primary" onClick={handleSave} disabled={saving}>
+          <MdSave size={17} />{saving ? 'Guardando...' : 'Guardar cambios'}
         </button>
       </div>
 
-      <div className="card">
-        <div className="card__header">
-          <SearchBar
-            value={search}
-            onChange={setSearch}
-            placeholder="Buscar mÃ³dulo..."
-            filterSlot={
-              <FilterDropdown
-                statusFilter={statusFilter}
-                onStatusChange={setStatusFilter}
-                pageSize={pageSize}
-                onPageSizeChange={setPageSize}
-              />
-            }
-          />
+      {saved && (
+        <div style={{ margin: '0.5rem 2rem', padding: '0.75rem 1rem', background: 'rgba(181,242,61,0.12)', border: '1px solid rgba(181,242,61,0.3)', borderRadius: '8px', color: '#b5f23d', fontSize: '0.875rem' }}>
+          ✓ Cambios guardados correctamente.
         </div>
-        <Table columns={columns} data={filtered} loading={loading} pageSize={pageSize} emptyMessage="No se encontraron permisos" />
-      </div>
+      )}
 
-      {/* Create modal */}
-      <Modal
-        isOpen={showCreate}
-        onClose={() => setShowCreate(false)}
-        title="Nuevo mÃ³dulo"
-        size="sm"
-        footer={
-          <>
-            <button className="btn btn--outline" onClick={() => setShowCreate(false)}>Cancelar</button>
-            <button className="btn btn--primary" onClick={handleCreate} disabled={actionLoading}>
-              {actionLoading ? 'Guardando...' : 'Crear'}
-            </button>
-          </>
-        }
-      >
-        {createError && (
-          <div style={{ marginBottom: '1rem', padding: '0.75rem', background: '#fee2e2', borderRadius: '8px', color: '#dc2626', fontSize: '0.875rem' }}>
-            {createError}
-          </div>
-        )}
-        <div className="form-group">
-          <label className="form-label">Nombre del mÃ³dulo <span className="required">*</span></label>
-          <input
-            className="form-control"
-            value={createNombre}
-            onChange={e => setCreateNombre(e.target.value)}
-            placeholder="Ej: Reportes"
-            onKeyDown={e => e.key === 'Enter' && handleCreate(e)}
-            autoFocus
-          />
-        </div>
-      </Modal>
+      <div className="card" style={{ overflowX: 'auto' }}>
+        <table className="perm-matrix">
+          <thead>
+            <tr>
+              <th className="perm-matrix__mod-col">Módulo</th>
+              <th className="perm-matrix__todo-col">Todo</th>
+              {COLS.map(c => <th key={c} className="perm-matrix__action-col">{c}</th>)}
+            </tr>
+          </thead>
+          <tbody>
+            {modNames.map(mod => {
+              const allPerms = COLS.flatMap(col => grouped[mod]?.[col] || []);
+              const allOn    = allPerms.length > 0 && allPerms.every(p => localState[p.Id_Permiso]);
+              const someOn   = allPerms.some(p => localState[p.Id_Permiso]);
+              return (
+                <tr key={mod} className="perm-matrix__row">
+                  <td className="perm-matrix__mod-name">{mod}</td>
+                  <td className="perm-matrix__cell">
+                    <input
+                      type="checkbox"
+                      className="perm-checkbox"
+                      checked={allOn}
+                      ref={el => { if (el) el.indeterminate = someOn && !allOn; }}
+                      onChange={() => toggleRow(mod)}
+                    />
+                  </td>
+                  {COLS.map(col => {
+                    const perms = grouped[mod]?.[col] || [];
+                    if (perms.length === 0) return <td key={col} className="perm-matrix__cell perm-matrix__cell--empty">—</td>;
+                    return (
+                      <td key={col} className="perm-matrix__cell">
+                        {perms.map(p => (
+                          <input
+                            key={p.Id_Permiso}
+                            type="checkbox"
+                            className="perm-checkbox"
+                            checked={!!localState[p.Id_Permiso]}
+                            onChange={() => toggle(p.Id_Permiso)}
+                            title={p.Nombre}
+                          />
+                        ))}
+                      </td>
+                    );
+                  })}
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
-

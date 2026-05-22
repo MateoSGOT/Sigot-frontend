@@ -17,12 +17,12 @@ const PRIMARY_ROLES = [
   { nombre: 'Administrador', color: 'success' },
   { nombre: 'Secretario',    color: 'info'    },
   { nombre: 'Bodeguero',     color: 'warning' },
-  { nombre: 'TÃ©cnico',       color: 'danger'  },
+  { nombre: 'Técnico',       color: 'danger'  },
 ];
 const matchRol = (a, b) => a?.localeCompare(b, undefined, { sensitivity: 'base' }) === 0;
 const isPrimaryRol = (nombre) => PRIMARY_ROLES.some(pr => matchRol(pr.nombre, nombre));
 const ROLE_COLORS = ['success', 'info', 'warning', 'danger', 'default'];
-const MODULOS = ['Clientes', 'VehÃ­culos', 'Empleados', 'Repuestos', 'Proveedores', 'Compras', 'Servicios', 'Agenda', 'Ã“rdenes', 'Novedades', 'Roles'];
+const MODULOS = ['Clientes', 'Vehículos', 'Empleados', 'Repuestos', 'Proveedores', 'Compras', 'Servicios', 'Agenda', 'Ã“rdenes', 'Novedades', 'Roles'];
 
 const emptyAccesos = () => {
   const a = {};
@@ -275,7 +275,7 @@ export default function RolesPage() {
                 <label className="form-label">Nombre del rol <span className="required">*</span></label>
                 <input className="form-control" value={formNombre} onChange={e => setFormNombre(e.target.value)} placeholder="Nombre del rol" />
               </div>
-              <p className="form-label" style={{ marginBottom: '0.75rem' }}>Acceso por mÃ³dulo</p>
+              <p className="form-label" style={{ marginBottom: '0.75rem' }}>Acceso por módulo</p>
               {permsLoading ? (
                 <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--color-text-muted)' }}>Cargando...</div>
               ) : (

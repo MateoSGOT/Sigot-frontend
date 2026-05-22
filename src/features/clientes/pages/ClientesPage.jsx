@@ -8,6 +8,7 @@ import Table from '../../../shared/components/Table/Table.jsx';
 import SearchBar from '../../../shared/components/SearchBar/SearchBar.jsx';
 import FilterDropdown from '../../../shared/components/FilterDropdown/FilterDropdown.jsx';
 import { StatusBadge } from '../../../shared/components/Badge/Badge.jsx';
+import SearchableSelect from '../../../shared/components/SearchableSelect/SearchableSelect.jsx';
 import { sortByStatus, filterItems, formatDate } from '../../../shared/utils/helpers.js';
 import api from '../../../shared/services/api.js';
 import './ClientesPage.css';
@@ -41,6 +42,8 @@ export default function ClientesPage() {
     list = filterItems(list, search, ['Nombre', 'Documento', 'Correo', 'Telefono']);
     return sortByStatus(list);
   })();
+
+  const tiposDocOpts = tiposDoc.map(t => ({ value: String(t.Id_TipoDoc), label: t.Nombre }));
 
   const openCreate = () => {
     setFormData(EMPTY_FORM); setEditingId(null); setFormError('');
@@ -100,7 +103,7 @@ export default function ClientesPage() {
       )
     },
     { key: 'Documento', label: 'Documento' },
-    { key: 'Telefono', label: 'TelÃ©fono' },
+    { key: 'Telefono', label: 'Teléfono' },
     { key: 'Correo', label: 'Correo' },
     { key: 'Estado', label: 'Estado', render: (v) => <StatusBadge estado={v} /> },
     {
@@ -147,9 +150,9 @@ export default function ClientesPage() {
             <div className="detail-item"><span className="detail-label">Nombre</span><span className="detail-value">{detailItem.Nombre}</span></div>
             <div className="detail-item"><span className="detail-label">Tipo de documento</span><span className="detail-value">{detailItem.TipoDoc || detailItem.Id_TipoDoc}</span></div>
             <div className="detail-item"><span className="detail-label">Documento</span><span className="detail-value">{detailItem.Documento}</span></div>
-            <div className="detail-item"><span className="detail-label">TelÃ©fono</span><span className="detail-value">{detailItem.Telefono || 'â€”'}</span></div>
+            <div className="detail-item"><span className="detail-label">Teléfono</span><span className="detail-value">{detailItem.Telefono || 'â€”'}</span></div>
             <div className="detail-item"><span className="detail-label">Correo</span><span className="detail-value">{detailItem.Correo || 'â€”'}</span></div>
-            <div className="detail-item"><span className="detail-label">DirecciÃ³n</span><span className="detail-value">{detailItem.Direccion || 'â€”'}</span></div>
+            <div className="detail-item"><span className="detail-label">Dirección</span><span className="detail-value">{detailItem.Direccion || 'â€”'}</span></div>
             <div className="detail-item"><span className="detail-label">Estado</span><span className="detail-value"><StatusBadge estado={detailItem.Estado} /></span></div>
           </div>
         )}
@@ -177,7 +180,7 @@ export default function ClientesPage() {
               <div className="file-upload-area" onClick={() => fileRef.current?.click()}>
                 <MdUploadFile size={22} style={{ color: 'var(--color-text-muted)' }} />
                 <span className="file-upload-label">{fotoPreview ? 'Cambiar foto' : 'Adjuntar foto'}</span>
-                <span className="file-upload-hint">JPG, PNG o WebP Â· mÃ¡x. 5 MB</span>
+                <span className="file-upload-hint">JPG, PNG o WebP · máx. 5 MB</span>
               </div>
               <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleFotoChange} />
             </div>
@@ -190,28 +193,30 @@ export default function ClientesPage() {
 
           <div className="form-group">
             <label className="form-label">Tipo de documento <span className="required">*</span></label>
-            <select name="Id_TipoDoc" className="form-control" value={formData.Id_TipoDoc} onChange={handleFormChange}>
-              <option value="">Seleccionar...</option>
-              {tiposDoc.map(t => <option key={t.Id_TipoDoc} value={t.Id_TipoDoc}>{t.Nombre}</option>)}
-            </select>
+            <SearchableSelect
+              options={tiposDocOpts}
+              value={String(formData.Id_TipoDoc)}
+              onChange={v => setFormData(p => ({ ...p, Id_TipoDoc: v }))}
+              placeholder="Seleccionar tipo..."
+            />
           </div>
           <div className="form-group">
-            <label className="form-label">NÃºmero de documento <span className="required">*</span></label>
-            <input name="Documento" className="form-control" value={formData.Documento} onChange={handleFormChange} placeholder="NÃºmero de documento" />
+            <label className="form-label">Número de documento <span className="required">*</span></label>
+            <input name="Documento" className="form-control" value={formData.Documento} onChange={handleFormChange} placeholder="Número de documento" />
           </div>
 
           <div className="form-group">
-            <label className="form-label">TelÃ©fono</label>
-            <input name="Telefono" className="form-control" value={formData.Telefono} onChange={handleFormChange} placeholder="TelÃ©fono de contacto" />
+            <label className="form-label">Teléfono</label>
+            <input name="Telefono" className="form-control" value={formData.Telefono} onChange={handleFormChange} placeholder="Teléfono de contacto" />
           </div>
           <div className="form-group">
-            <label className="form-label">Correo electrÃ³nico</label>
+            <label className="form-label">Correo electrónico</label>
             <input name="Correo" type="email" className="form-control" value={formData.Correo} onChange={handleFormChange} placeholder="correo@ejemplo.com" />
           </div>
 
           <div className="form-group span-2">
-            <label className="form-label">DirecciÃ³n</label>
-            <input name="Direccion" className="form-control" value={formData.Direccion} onChange={handleFormChange} placeholder="DirecciÃ³n" />
+            <label className="form-label">Dirección</label>
+            <input name="Direccion" className="form-control" value={formData.Direccion} onChange={handleFormChange} placeholder="Dirección" />
           </div>
         </form>
       </Modal>

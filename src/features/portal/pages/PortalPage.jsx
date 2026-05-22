@@ -41,7 +41,7 @@ function PortalLogin({ onLogin }) {
     if (!form.Correo || !form.Documento) { setError('Ingresa tu correo y número de documento.'); return; }
     setLoading(true); setError('');
     try {
-      const res = await api.post('/api/auth/cliente-login', { Correo: form.Correo });
+      const res = await api.post('/api/auth/cliente-login', { Correo: form.Correo, Documento: form.Documento });
       const { token, cliente } = res.data?.data || {};
       localStorage.setItem(PORTAL_KEY, token);
       localStorage.setItem(PORTAL_CLIENT_KEY, JSON.stringify(cliente));
@@ -437,6 +437,60 @@ export default function PortalPage() {
             )}
           </div>
         )}
+
+        {/* ── MIS CITAS ────────────────────────────────────── */}
+        {tab === 'citas' && (
+          <div className="portal-section">
+            <div className="portal-section__header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <div>
+                <h2>Mis Citas</h2>
+                <p>Historial y nuevas citas con el taller</p>
+              </div>
+              <button className="portal-btn portal-btn--primary" onClick={() => { setCitaForm({ Id_Vehiculo: '', Fecha: '', Hora: '', Descripcion: '' }); setCitaError(''); setShowCitaModal(true); }}>
+                + Agendar nueva cita
+              </button>
+            </div>
+
+            {citaToast && (
+              <div style={{ background: 'rgba(22,163,74,0.15)', border: '1px solid #16a34a', borderRadius: '8px', padding: '0.75rem 1rem', color: '#16a34a', marginBottom: '1rem', fontSize: '0.875rem' }}>
+                ✓ Cita agendada exitosamente
+              </div>
+            )}
+
+            {citas.length === 0 ? (
+              <div className="portal-empty">No tienes citas registradas.</div>
+            ) : (
+              <div className="portal-table-wrap">
+                <table className="portal-table">
+                  <thead>
+                    <tr>
+                      <th>Vehículo</th>
+                      <th>Fecha</th>
+                      <th>Hora</th>
+                      <th>Descripción</th>
+                      <th>Estado</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {citas.map(c => {
+                      const estadoCita = c.Estado ? 'Pendiente' : 'Completada';
+                      const badgeCls = c.Estado ? 'badge--yellow' : 'badge--green';
+                      return (
+                        <tr key={c.Id_Agenda}>
+                          <td>{c.vehiculo?.Placa || '—'}</td>
+                          <td>{fmtDate(c.FechaAgendamiento)}</td>
+                          <td>{c.Hora || '—'}</td>
+                          <td>{c.Descripcion || '—'}</td>
+                          <td><span className={`portal-badge ${badgeCls}`}>{estadoCita}</span></td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
       </main>
 
       {/* ── VEHICLE DETAIL MODAL ──────────────────────────── */}
@@ -460,60 +514,6 @@ export default function PortalPage() {
               </div>
             </div>
           </div>
-        </div>
-      )}
-
-      {/* ── MIS CITAS ────────────────────────────────────── */}
-      {tab === 'citas' && (
-        <div className="portal-section">
-          <div className="portal-section__header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <div>
-              <h2>Mis Citas</h2>
-              <p>Historial y nuevas citas con el taller</p>
-            </div>
-            <button className="portal-btn portal-btn--primary" onClick={() => { setCitaForm({ Id_Vehiculo: '', Fecha: '', Hora: '', Descripcion: '' }); setCitaError(''); setShowCitaModal(true); }}>
-              + Agendar nueva cita
-            </button>
-          </div>
-
-          {citaToast && (
-            <div style={{ background: 'rgba(22,163,74,0.15)', border: '1px solid #16a34a', borderRadius: '8px', padding: '0.75rem 1rem', color: '#16a34a', marginBottom: '1rem', fontSize: '0.875rem' }}>
-              ✓ Cita agendada exitosamente
-            </div>
-          )}
-
-          {citas.length === 0 ? (
-            <div className="portal-empty">No tienes citas registradas.</div>
-          ) : (
-            <div className="portal-table-wrap">
-              <table className="portal-table">
-                <thead>
-                  <tr>
-                    <th>Vehículo</th>
-                    <th>Fecha</th>
-                    <th>Hora</th>
-                    <th>Descripción</th>
-                    <th>Estado</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {citas.map(c => {
-                    const estadoCita = c.Estado ? 'Pendiente' : 'Completada';
-                    const badgeCls = c.Estado ? 'badge--yellow' : 'badge--green';
-                    return (
-                      <tr key={c.Id_Agenda}>
-                        <td>{c.vehiculo?.Placa || '—'}</td>
-                        <td>{fmtDate(c.FechaAgendamiento)}</td>
-                        <td>{c.Hora || '—'}</td>
-                        <td>{c.Descripcion || '—'}</td>
-                        <td><span className={`portal-badge ${badgeCls}`}>{estadoCita}</span></td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )}
         </div>
       )}
 
@@ -612,7 +612,7 @@ export default function PortalPage() {
                         <tbody>
                           {detailOrden.servicios.map((s, i) => (
                             <tr key={i}>
-                              <td>{s.Nombre || `Servicio #${s.Id_Servicio}`}</td>
+                              <td>{s.servicio || s.Nombre || `Servicio #${s.Id_Servicio}`}</td>
                               <td>{fmtCurrency(s.precio_unitario)}</td>
                             </tr>
                           ))}
@@ -629,7 +629,7 @@ export default function PortalPage() {
                         <tbody>
                           {detailOrden.repuestos.map((r, i) => (
                             <tr key={i}>
-                              <td>{r.Nombre || `Repuesto #${r.Id_Repuesto}`}</td>
+                              <td>{r.repuesto || r.Nombre || `Repuesto #${r.Id_Repuesto}`}</td>
                               <td>{r.cantidad}</td>
                               <td>{fmtCurrency(r.precio_unitario)}</td>
                               <td>{fmtCurrency(Number(r.cantidad||0) * Number(r.precio_unitario||0))}</td>

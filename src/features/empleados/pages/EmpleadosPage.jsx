@@ -1,6 +1,6 @@
-﻿import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { MdAdd, MdVisibility, MdEdit, MdWarning, MdVisibilityOff, MdUploadFile } from 'react-icons/md';
+import { MdAdd, MdVisibility, MdEdit, MdWarning, MdVisibilityOff } from 'react-icons/md';
 import ToggleSwitch from '../../../shared/components/ToggleSwitch/ToggleSwitch.jsx';
 import { fetchEmpleados, createEmpleado, updateEmpleado, toggleEmpleadoEstado } from '../slices/empleadosSlice.js';
 import Modal from '../../../shared/components/Modal/Modal.jsx';
@@ -9,11 +9,13 @@ import SearchBar from '../../../shared/components/SearchBar/SearchBar.jsx';
 import FilterDropdown from '../../../shared/components/FilterDropdown/FilterDropdown.jsx';
 import { StatusBadge } from '../../../shared/components/Badge/Badge.jsx';
 import Badge from '../../../shared/components/Badge/Badge.jsx';
+import SearchableSelect from '../../../shared/components/SearchableSelect/SearchableSelect.jsx';
+import ImageUploader from '../../../shared/components/ImageUploader/ImageUploader.jsx';
 import { sortByStatus, filterItems, formatDate } from '../../../shared/utils/helpers.js';
 import api from '../../../shared/services/api.js';
 import './EmpleadosPage.css';
 
-const EMPTY = { Nombre: '', Id_TipoDoc: '', Documento: '', Id_Rol: '', Correo: '', Password: '', Foto: '' };
+const EMPTY = { Nombre: '', Id_TipoDoc: '', Documento: '', Id_Rol: '', Correo: '', Password: '' };
 
 export default function EmpleadosPage() {
   const dispatch = useDispatch();
@@ -31,8 +33,8 @@ export default function EmpleadosPage() {
   const [formError, setFormError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [fotoPreview, setFotoPreview] = useState(null);
+  const [photoFile, setPhotoFile] = useState(null);
   const [savedOk, setSavedOk] = useState(false);
-  const fileRef = useRef(null);
 
   useEffect(() => {
     dispatch(fetchEmpleados());
@@ -53,31 +55,26 @@ export default function EmpleadosPage() {
 
   const openCreate = () => {
     setFormData(EMPTY); setEditingId(null); setFormError('');
-    setShowPassword(false); setFotoPreview(null); setSavedOk(false); setShowForm(true);
+    setShowPassword(false); setFotoPreview(null); setPhotoFile(null); setSavedOk(false); setShowForm(true);
   };
 
   const openEdit = (item) => {
     setEditingId(item.Id_Empleado); setFormError(''); setSavedOk(false); setShowPassword(false);
-    setFotoPreview(item.Foto || null);
+    setFotoPreview(item.Foto_url || item.Foto || null);
+    setPhotoFile(null);
     setFormData({
       Nombre: item.Nombre || '', Id_TipoDoc: item.Id_TipoDoc || '',
       Documento: item.Documento || '', Id_Rol: item.Id_Rol || '',
-      Correo: item.Correo || '', Password: '', Foto: item.Foto || '',
+      Correo: item.Correo || '', Password: '',
     });
     setShowForm(true);
   };
 
   const handleChange = e => setFormData(p => ({ ...p, [e.target.name]: e.target.value }));
 
-  const handleFotoChange = e => {
-    const file = e.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = ev => {
-      setFotoPreview(ev.target.result);
-      setFormData(p => ({ ...p, Foto: ev.target.result }));
-    };
-    reader.readAsDataURL(file);
+  const handlePhotoChange = (file) => {
+    setPhotoFile(file);
+    setFotoPreview(URL.createObjectURL(file));
   };
 
   const handleSubmit = async (e) => {
@@ -86,11 +83,19 @@ export default function EmpleadosPage() {
       setFormError('Completa los campos obligatorios.'); return;
     }
     if (!editingId && !formData.Password) {
-      setFormError('La contraseÃ±a es obligatoria para nuevos empleados.'); return;
+      setFormError('La contraseña es obligatoria para nuevos empleados.'); return;
     }
-    const payload = { ...formData };
-    if (!payload.Password) delete payload.Password;
-    const action = editingId ? updateEmpleado({ id: editingId, data: payload }) : createEmpleado(payload);
+
+    const fd = new FormData();
+    fd.append('Nombre', formData.Nombre);
+    fd.append('Documento', formData.Documento);
+    fd.append('Id_TipoDoc', formData.Id_TipoDoc);
+    fd.append('Id_Rol', formData.Id_Rol);
+    fd.append('Correo', formData.Correo);
+    if (formData.Password) fd.append('Password', formData.Password);
+    if (photoFile) fd.append('foto', photoFile);
+
+    const action = editingId ? updateEmpleado({ id: editingId, data: fd }) : createEmpleado(fd);
     const result = await dispatch(action);
     if (!result.error) {
       setShowForm(false); setSavedOk(true); dispatch(fetchEmpleados());
@@ -98,13 +103,16 @@ export default function EmpleadosPage() {
     } else { setFormError(result.payload || 'Error al guardar.'); }
   };
 
+  const tiposDocOpts = tiposDoc.map(t => ({ value: String(t.Id_TipoDoc), label: t.Nombre }));
+  const rolesOpts    = roles.map(r => ({ value: String(r.Id_Rol), label: r.Nombre }));
+
   const columns = [
     { key: '#', label: '#', width: '50px', render: (_, __, i) => i + 1 },
     {
       key: 'Nombre', label: 'Nombre', render: (v, row) => (
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
-          {row.Foto
-            ? <img src={row.Foto} alt="" style={{ width: 28, height: 28, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
+          {(row.Foto_url || row.Foto)
+            ? <img src={row.Foto_url || row.Foto} alt="" style={{ width: 28, height: 28, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
             : <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'rgba(181,242,61,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', fontWeight: 700, color: '#b5f23d', flexShrink: 0 }}>{v?.charAt(0)}</div>
           }
           <span className="font-medium">{v}</span>
@@ -150,7 +158,7 @@ export default function EmpleadosPage() {
 
       {savedOk && (
         <div style={{ margin: '0.75rem 2rem 0', padding: '0.75rem 1rem', background: 'rgba(181,242,61,0.12)', border: '1px solid rgba(181,242,61,0.3)', borderRadius: '8px', color: '#b5f23d', fontSize: '0.875rem' }}>
-          âœ“ Empleado guardado correctamente.
+          ✓ Empleado guardado correctamente.
         </div>
       )}
 
@@ -163,7 +171,6 @@ export default function EmpleadosPage() {
         <Table columns={columns} data={filtered} loading={loading} pageSize={pageSize} emptyMessage="No se encontraron empleados" />
       </div>
 
-      {/* Detail modal */}
       <Modal isOpen={!!detailItem} onClose={() => setDetailItem(null)} title="Detalle del empleado" size="lg">
         {detailItem && (
           <div>
@@ -195,75 +202,72 @@ export default function EmpleadosPage() {
         )}
       </Modal>
 
-      {/* Create/Edit modal */}
       <Modal isOpen={showForm} onClose={() => setShowForm(false)} title={editingId ? 'Editar empleado' : 'Nuevo empleado'} size="lg"
         footer={<><button className="btn btn--outline" onClick={() => setShowForm(false)}>Cancelar</button><button className="btn btn--primary" onClick={handleSubmit} disabled={actionLoading}>{actionLoading ? 'Guardando...' : 'Guardar'}</button></>}
       >
         {formError && <div className="form-error-box">{formError}</div>}
         <form className="form-grid" onSubmit={handleSubmit} noValidate>
 
-          {/* Foto de perfil â€” arriba del formulario */}
-          <div className="form-group span-2">
-            <label className="form-label">Foto de perfil</label>
-            <div className="file-upload-wrap">
-              {fotoPreview && (
-                <img src={fotoPreview} alt="preview" className="file-upload-preview" />
-              )}
-              <div className="file-upload-area" onClick={() => fileRef.current?.click()}>
-                <MdUploadFile size={22} style={{ color: 'var(--color-text-muted)' }} />
-                <span className="file-upload-label">
-                  {fotoPreview ? 'Cambiar foto' : 'Adjuntar foto'}
-                </span>
-                <span className="file-upload-hint">JPG, PNG o WebP Â· mÃ¡x. 5 MB</span>
-              </div>
-              <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleFotoChange} />
+          {/* Foto + Nombre inline */}
+          <div className="form-group span-2" style={{ display: 'flex', gap: '1rem', alignItems: 'flex-start' }}>
+            <ImageUploader
+              preview={fotoPreview}
+              onChange={handlePhotoChange}
+              size={80}
+              initials={formData.Nombre?.charAt(0)?.toUpperCase()}
+            />
+            <div style={{ flex: 1 }}>
+              <label className="form-label">Nombre <span className="required">*</span></label>
+              <input name="Nombre" className="form-control" value={formData.Nombre} onChange={handleChange} placeholder="Nombre completo" />
             </div>
           </div>
 
           <div className="form-group">
-            <label className="form-label">Nombre <span className="required">*</span></label>
-            <input name="Nombre" className="form-control" value={formData.Nombre} onChange={handleChange} placeholder="Nombre completo" />
-          </div>
-          <div className="form-group">
             <label className="form-label">Rol <span className="required">*</span></label>
-            <select name="Id_Rol" className="form-control" value={formData.Id_Rol} onChange={handleChange} disabled={editingId && formData.Id_Rol == 1}>
-              <option value="">Seleccionar...</option>
-              {roles.map(r => <option key={r.Id_Rol} value={r.Id_Rol}>{r.Nombre}</option>)}
-            </select>
+            <SearchableSelect
+              options={rolesOpts}
+              value={String(formData.Id_Rol)}
+              onChange={v => setFormData(p => ({ ...p, Id_Rol: v }))}
+              placeholder="Seleccionar rol..."
+              disabled={!!(editingId && formData.Id_Rol == 1)}
+            />
           </div>
 
-          {/* Tipo de documento PRIMERO, luego nÃºmero */}
           <div className="form-group">
             <label className="form-label">Tipo de documento <span className="required">*</span></label>
-            <select name="Id_TipoDoc" className="form-control" value={formData.Id_TipoDoc} onChange={handleChange}>
-              <option value="">Seleccionar...</option>
-              {tiposDoc.map(t => <option key={t.Id_TipoDoc} value={t.Id_TipoDoc}>{t.Nombre}</option>)}
-            </select>
-          </div>
-          <div className="form-group">
-            <label className="form-label">NÃºmero de documento <span className="required">*</span></label>
-            <input name="Documento" className="form-control" value={formData.Documento} onChange={handleChange} placeholder="NÃºmero de documento" />
+            <SearchableSelect
+              options={tiposDocOpts}
+              value={String(formData.Id_TipoDoc)}
+              onChange={v => setFormData(p => ({ ...p, Id_TipoDoc: v }))}
+              placeholder="Seleccionar tipo..."
+            />
           </div>
 
           <div className="form-group">
-            <label className="form-label">Correo electrÃ³nico <span className="required">*</span></label>
+            <label className="form-label">Número de documento <span className="required">*</span></label>
+            <input name="Documento" className="form-control" value={formData.Documento} onChange={handleChange} placeholder="Número de documento" />
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">Correo electrónico <span className="required">*</span></label>
             <input name="Correo" type="email" className="form-control" value={formData.Correo} onChange={handleChange} placeholder="correo@empresa.com" />
           </div>
+
           <div className="form-group">
             <label className="form-label">
-              ContraseÃ±a {!editingId && <span className="required">*</span>}
-              {editingId && <span style={{ fontSize: '0.7rem', color: 'var(--color-text-muted)', marginLeft: '4px' }}>(dejar igual o cambiar)</span>}
+              Contraseña {!editingId && <span className="required">*</span>}
+              {editingId && <span style={{ fontSize: '0.7rem', color: 'var(--color-text-muted)', marginLeft: '4px' }}>(dejar vacío para no cambiar)</span>}
             </label>
             <div className="form-password-wrap">
-              <input name="Password" type={showPassword ? 'text' : 'password'} className="form-control" value={formData.Password} onChange={handleChange} placeholder={editingId ? 'ContraseÃ±a actual' : 'Nueva contraseÃ±a'} />
+              <input name="Password" type={showPassword ? 'text' : 'password'} className="form-control" value={formData.Password} onChange={handleChange} placeholder={editingId ? 'Nueva contraseña' : 'Contraseña'} />
               <button type="button" className="form-password-toggle" onClick={() => setShowPassword(p => !p)} tabIndex={-1}>
                 {showPassword ? <MdVisibilityOff size={18} /> : <MdVisibility size={18} />}
               </button>
             </div>
           </div>
+
         </form>
       </Modal>
     </div>
   );
 }
-

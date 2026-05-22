@@ -64,8 +64,8 @@ export default function CategoriasPage() {
   return (
     <div className="page">
       <div className="page__header">
-        <div><h1 className="page__title">CategorÃ­as de repuesto</h1><p className="page__subtitle">{items.length} categorÃ­a(s) registrada(s)</p></div>
-        <button className="btn btn--primary" onClick={openCreate}><MdAdd size={18} />Nueva categorÃ­a</button>
+        <div><h1 className="page__title">Categorías de repuesto</h1><p className="page__subtitle">{items.length} categoría(s) registrada(s)</p></div>
+        <button className="btn btn--primary" onClick={openCreate}><MdAdd size={18} />Nueva categoría</button>
       </div>
       <div className="card">
         <div className="card__header">
@@ -83,16 +83,16 @@ export default function CategoriasPage() {
             }
           />
         </div>
-        <Table columns={columns} data={filtered} loading={loading} pageSize={pageSize} emptyMessage="No se encontraron categorÃ­as" />
+        <Table columns={columns} data={filtered} loading={loading} pageSize={pageSize} emptyMessage="No se encontraron categorías" />
       </div>
 
-      <Modal isOpen={showForm} onClose={() => setShowForm(false)} title={editingId ? 'Editar categorÃ­a' : 'Nueva categorÃ­a'} size="sm"
+      <Modal isOpen={showForm} onClose={() => setShowForm(false)} title={editingId ? 'Editar categoría' : 'Nueva categoría'} size="sm"
         footer={<><button className="btn btn--outline" onClick={() => setShowForm(false)}>Cancelar</button><button className="btn btn--primary" onClick={handleSubmit} disabled={actionLoading}>{actionLoading ? 'Guardando...' : 'Guardar'}</button></>}
       >
         {formError && <div className="form-error-box">{formError}</div>}
         <div className="form-group">
           <label className="form-label">Nombre <span className="required">*</span></label>
-          <input name="Nombre" className="form-control" value={formData.Nombre} onChange={handleChange} placeholder="Nombre de la categorÃ­a" />
+          <input name="Nombre" className="form-control" value={formData.Nombre} onChange={handleChange} placeholder="Nombre de la categoría" />
         </div>
       </Modal>
     </div>

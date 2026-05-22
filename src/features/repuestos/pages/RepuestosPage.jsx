@@ -97,7 +97,7 @@ export default function RepuestosPage() {
   const columns = [
     { key: '#', label: '#', width: '50px', render: (_, __, i) => i + 1 },
     { key: 'Nombre', label: 'Nombre', render: v => <span className="font-medium">{v}</span> },
-    { key: 'Categoria', label: 'CategorÃ­a' },
+    { key: 'Categoria', label: 'Categoría' },
     {
       key: 'Stock', label: 'Stock', render: v => (
         <span className={`stock-cell ${Number(v) < 5 ? 'stock-cell--low' : ''}`}>
@@ -136,7 +136,7 @@ export default function RepuestosPage() {
             filterSlot={
               <>
                 <select className="filter-select" value={categoriaFilter} onChange={e => setCategoriaFilter(e.target.value)}>
-                  <option value="">Todas las categorÃ­as</option>
+                  <option value="">Todas las categorías</option>
                   {categorias.map(c => <option key={c.Id_categoria} value={c.Id_categoria}>{c.Nombre}</option>)}
                 </select>
                 <FilterDropdown
@@ -155,7 +155,7 @@ export default function RepuestosPage() {
       <Modal isOpen={!!detailItem} onClose={() => setDetailItem(null)} title="Detalle del repuesto" size="md">
         {detailItem && <div className="detail-grid">
           <div className="detail-item"><span className="detail-label">Nombre</span><span className="detail-value">{detailItem.Nombre}</span></div>
-          <div className="detail-item"><span className="detail-label">CategorÃ­a</span><span className="detail-value">{detailItem.Categoria || detailItem.Id_Categoria}</span></div>
+          <div className="detail-item"><span className="detail-label">Categoría</span><span className="detail-value">{detailItem.Categoria || detailItem.Id_Categoria}</span></div>
           <div className="detail-item"><span className="detail-label">Stock</span><span className="detail-value">{detailItem.Stock}</span></div>
           <div className="detail-item"><span className="detail-label">Precio</span><span className="detail-value">{formatCurrency(detailItem.Precio)}</span></div>
           <div className="detail-item"><span className="detail-label">Estado</span><span className="detail-value"><StatusBadge estado={detailItem.Estado} /></span></div>
@@ -172,9 +172,9 @@ export default function RepuestosPage() {
             <input name="NombreRepuesto" className="form-control" value={formData.NombreRepuesto} onChange={handleChange} placeholder="Nombre del repuesto" />
           </div>
           <div className="form-group span-2">
-            <label className="form-label">CategorÃ­a <span className="required">*</span></label>
+            <label className="form-label">Categoría <span className="required">*</span></label>
             <select name="Id_categoria" className="form-control" value={formData.Id_categoria} onChange={handleChange}>
-              <option value="">Seleccionar categorÃ­a...</option>
+              <option value="">Seleccionar categoría...</option>
               {categorias.map(c => <option key={c.Id_categoria} value={c.Id_categoria}>{c.Nombre}</option>)}
             </select>
           </div>

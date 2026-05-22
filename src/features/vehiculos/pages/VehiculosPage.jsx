@@ -1,6 +1,7 @@
 ﻿import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { MdAdd, MdVisibility, MdEdit } from 'react-icons/md';
+import SearchableSelect from '../../../shared/components/SearchableSelect/SearchableSelect.jsx';
 import ToggleSwitch from '../../../shared/components/ToggleSwitch/ToggleSwitch.jsx';
 import { fetchVehiculos, createVehiculo, updateVehiculo, toggleVehiculoEstado } from '../slices/vehiculosSlice.js';
 import Modal from '../../../shared/components/Modal/Modal.jsx';
@@ -45,8 +46,6 @@ export default function VehiculosPage() {
   const [editingId, setEditingId] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [formError, setFormError] = useState('');
-  const [clientSearch, setClientSearch] = useState('');
-  const [showClientDrop, setShowClientDrop] = useState(false);
 
   useEffect(() => {
     dispatch(fetchVehiculos());
@@ -57,11 +56,8 @@ export default function VehiculosPage() {
   const selectedMarcaNombre = marcas.find(m => String(m.Id_Marca) === String(formData.Id_Marca))?.Nombre || '';
   const modeloOptions = MARCAS_MODELOS[selectedMarcaNombre] || [];
 
-  const filteredClientes = clientes.filter(c =>
-    !clientSearch ||
-    c.Nombre?.toLowerCase().includes(clientSearch.toLowerCase()) ||
-    c.Documento?.toLowerCase().includes(clientSearch.toLowerCase())
-  );
+  const marcasOpts   = marcas.map(m => ({ value: String(m.Id_Marca), label: m.Nombre }));
+  const clientesOpts = clientes.map(c => ({ value: String(c.Id_Cliente), label: `${c.Nombre} — ${c.Documento}` }));
 
   const filtered = (() => {
     let list = items;
@@ -73,15 +69,11 @@ export default function VehiculosPage() {
   })();
 
   const openCreate = () => {
-    setFormData(EMPTY); setEditingId(null); setFormError('');
-    setClientSearch(''); setShowClientDrop(false); setShowForm(true);
+    setFormData(EMPTY); setEditingId(null); setFormError(''); setShowForm(true);
   };
 
   const openEdit = (item) => {
     setFormData({ Placa: item.Placa || '', VIN: item.VIN || '', Id_Marca: item.Id_Marca || '', Modelo: item.Modelo || '', Anio: item.Anio || '', Color: item.Color || '', Id_Cliente: item.Id_Cliente || '' });
-    const c = clientes.find(c => c.Id_Cliente == item.Id_Cliente);
-    setClientSearch(c?.Nombre || item.Cliente || '');
-    setShowClientDrop(false);
     setEditingId(item.Id_Vehiculo); setFormError(''); setShowForm(true);
   };
 
@@ -92,12 +84,6 @@ export default function VehiculosPage() {
       if (name === 'Id_Marca') next.Modelo = '';
       return next;
     });
-  };
-
-  const selectCliente = (c) => {
-    setFormData(p => ({ ...p, Id_Cliente: c.Id_Cliente }));
-    setClientSearch(c.Nombre);
-    setShowClientDrop(false);
   };
 
   const handleSubmit = async (e) => {
@@ -117,7 +103,7 @@ export default function VehiculosPage() {
     { key: 'VIN', label: 'VIN' },
     { key: 'Marca', label: 'Marca' },
     { key: 'Modelo', label: 'Modelo' },
-    { key: 'Anio', label: 'AÃ±o' },
+    { key: 'Anio', label: 'Año' },
     { key: 'Color', label: 'Color' },
     { key: 'Cliente', label: 'Cliente' },
     { key: 'Estado', label: 'Estado', render: v => <StatusBadge estado={v} /> },
@@ -135,8 +121,8 @@ export default function VehiculosPage() {
   return (
     <div className="page">
       <div className="page__header">
-        <div><h1 className="page__title">VehÃ­culos</h1><p className="page__subtitle">{items.length} vehÃ­culo(s) registrado(s)</p></div>
-        <button className="btn btn--primary" onClick={openCreate}><MdAdd size={18} />Nuevo vehÃ­culo</button>
+        <div><h1 className="page__title">Vehículos</h1><p className="page__subtitle">{items.length} vehículo(s) registrado(s)</p></div>
+        <button className="btn btn--primary" onClick={openCreate}><MdAdd size={18} />Nuevo vehículo</button>
       </div>
       <div className="card">
         <div className="card__header">
@@ -160,23 +146,23 @@ export default function VehiculosPage() {
             }
           />
         </div>
-        <Table columns={columns} data={filtered} loading={loading} pageSize={pageSize} emptyMessage="No se encontraron vehÃ­culos" />
+        <Table columns={columns} data={filtered} loading={loading} pageSize={pageSize} emptyMessage="No se encontraron vehículos" />
       </div>
 
-      <Modal isOpen={!!detailItem} onClose={() => setDetailItem(null)} title="Detalle del vehÃ­culo" size="md">
+      <Modal isOpen={!!detailItem} onClose={() => setDetailItem(null)} title="Detalle del vehículo" size="md">
         {detailItem && <div className="detail-grid">
           <div className="detail-item"><span className="detail-label">Placa</span><span className="detail-value">{detailItem.Placa}</span></div>
           <div className="detail-item"><span className="detail-label">VIN</span><span className="detail-value">{detailItem.VIN || 'â€”'}</span></div>
           <div className="detail-item"><span className="detail-label">Marca</span><span className="detail-value">{detailItem.Marca || detailItem.Id_Marca}</span></div>
           <div className="detail-item"><span className="detail-label">Modelo</span><span className="detail-value">{detailItem.Modelo}</span></div>
-          <div className="detail-item"><span className="detail-label">AÃ±o</span><span className="detail-value">{detailItem.Anio}</span></div>
+          <div className="detail-item"><span className="detail-label">Año</span><span className="detail-value">{detailItem.Anio}</span></div>
           <div className="detail-item"><span className="detail-label">Color</span><span className="detail-value">{detailItem.Color || 'â€”'}</span></div>
           <div className="detail-item"><span className="detail-label">Cliente</span><span className="detail-value">{detailItem.Cliente || detailItem.Id_Cliente}</span></div>
           <div className="detail-item"><span className="detail-label">Estado</span><span className="detail-value"><StatusBadge estado={detailItem.Estado} /></span></div>
         </div>}
       </Modal>
 
-      <Modal isOpen={showForm} onClose={() => setShowForm(false)} title={editingId ? 'Editar vehÃ­culo' : 'Nuevo vehÃ­culo'} size="md"
+      <Modal isOpen={showForm} onClose={() => setShowForm(false)} title={editingId ? 'Editar vehículo' : 'Nuevo vehículo'} size="md"
         footer={<><button className="btn btn--outline" onClick={() => setShowForm(false)}>Cancelar</button><button className="btn btn--primary" onClick={handleSubmit} disabled={actionLoading}>{actionLoading ? 'Guardando...' : 'Guardar'}</button></>}
       >
         {formError && <div className="form-error-box">{formError}</div>}
@@ -187,14 +173,16 @@ export default function VehiculosPage() {
           </div>
           <div className="form-group">
             <label className="form-label">VIN</label>
-            <input name="VIN" className="form-control" value={formData.VIN} onChange={handleChange} placeholder="NÃºmero VIN" />
+            <input name="VIN" className="form-control" value={formData.VIN} onChange={handleChange} placeholder="Número VIN" />
           </div>
           <div className="form-group">
             <label className="form-label">Marca <span className="required">*</span></label>
-            <select name="Id_Marca" className="form-control" value={formData.Id_Marca} onChange={handleChange}>
-              <option value="">Seleccionar...</option>
-              {marcas.map(m => <option key={m.Id_Marca} value={m.Id_Marca}>{m.Nombre}</option>)}
-            </select>
+            <SearchableSelect
+              options={marcasOpts}
+              value={String(formData.Id_Marca)}
+              onChange={v => setFormData(p => ({ ...p, Id_Marca: v, Modelo: '' }))}
+              placeholder="Seleccionar marca..."
+            />
           </div>
           <div className="form-group">
             <label className="form-label">Modelo <span className="required">*</span></label>
@@ -208,7 +196,7 @@ export default function VehiculosPage() {
             )}
           </div>
           <div className="form-group">
-            <label className="form-label">AÃ±o <span className="required">*</span></label>
+            <label className="form-label">Año <span className="required">*</span></label>
             <input name="Anio" type="number" className="form-control" value={formData.Anio} onChange={handleChange} placeholder="2023" min="1900" max="2100" />
           </div>
           <div className="form-group">
@@ -217,26 +205,12 @@ export default function VehiculosPage() {
           </div>
           <div className="form-group span-2">
             <label className="form-label">Cliente <span className="required">*</span></label>
-            <div className="client-search-wrap">
-              <input
-                className="form-control"
-                placeholder="Buscar cliente por nombre o documento..."
-                value={clientSearch}
-                onChange={e => { setClientSearch(e.target.value); setShowClientDrop(true); setFormData(p => ({ ...p, Id_Cliente: '' })); }}
-                onFocus={() => setShowClientDrop(true)}
-                onBlur={() => setTimeout(() => setShowClientDrop(false), 150)}
-              />
-              {showClientDrop && filteredClientes.length > 0 && (
-                <div className="client-dropdown">
-                  {filteredClientes.slice(0, 8).map(c => (
-                    <div key={c.Id_Cliente} className="client-dropdown-item" onMouseDown={() => selectCliente(c)}>
-                      <span>{c.Nombre}</span>
-                      <span>{c.Documento}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
+            <SearchableSelect
+              options={clientesOpts}
+              value={String(formData.Id_Cliente)}
+              onChange={v => setFormData(p => ({ ...p, Id_Cliente: v }))}
+              placeholder="Buscar cliente por nombre o documento..."
+            />
           </div>
         </form>
       </Modal>

@@ -1,6 +1,7 @@
 ﻿import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { MdAdd, MdVisibility, MdBlock, MdDeleteOutline, MdWarning } from 'react-icons/md';
+import SearchableSelect from '../../../shared/components/SearchableSelect/SearchableSelect.jsx';
 import { fetchCompras, createCompra, anularCompra } from '../slices/comprasSlice.js';
 import Modal from '../../../shared/components/Modal/Modal.jsx';
 import Table from '../../../shared/components/Table/Table.jsx';
@@ -279,10 +280,12 @@ export default function ComprasPage() {
           <div className="form-grid">
             <div className="form-group">
               <label className="form-label">Proveedor <span className="required">*</span></label>
-              <select name="Id_Proveedor" className="form-control" value={formData.Id_Proveedor} onChange={handleFormChange}>
-                <option value="">Seleccionar proveedor...</option>
-                {proveedores.map(p => { const pid = p.Id_Proveedor ?? p.id_proveedor; return <option key={pid} value={pid}>{p.Nombre ?? p.nombre}</option>; })}
-              </select>
+              <SearchableSelect
+                options={proveedores.map(p => { const pid = p.Id_Proveedor ?? p.id_proveedor; return { value: String(pid), label: p.Nombre ?? p.nombre }; })}
+                value={String(formData.Id_Proveedor)}
+                onChange={v => { setFormData(p => ({ ...p, Id_Proveedor: v, productos: [{ ...EMPTY_ITEM }] })); setPriceWarnings({}); }}
+                placeholder="Seleccionar proveedor..."
+              />
             </div>
             <div className="form-group">
               <label className="form-label">Fecha <span className="required">*</span></label>
@@ -301,14 +304,12 @@ export default function ComprasPage() {
             {formData.productos.map((item, idx) => (
               <div key={idx}>
                 <div className="compra-producto-row">
-                  <select
-                    className="form-control form-control--sm"
-                    value={item.Id_Repuesto}
-                    onChange={e => handleItemChange(idx, 'Id_Repuesto', e.target.value)}
-                  >
-                    <option value="">Seleccionar repuesto...</option>
-                    {repuestosFiltrados.map(r => <option key={r.Id_Repuesto} value={r.Id_Repuesto}>{r.NombreRepuesto ?? r.Nombre}</option>)}
-                  </select>
+                  <SearchableSelect
+                    options={repuestosFiltrados.map(r => ({ value: String(r.Id_Repuesto), label: r.NombreRepuesto ?? r.Nombre }))}
+                    value={String(item.Id_Repuesto)}
+                    onChange={v => handleItemChange(idx, 'Id_Repuesto', v)}
+                    placeholder="Seleccionar repuesto..."
+                  />
                   <input
                     type="number"
                     min="1"
@@ -368,8 +369,8 @@ export default function ComprasPage() {
         onClose={() => setConfirmAnular(null)}
         onConfirm={handleConfirmAnular}
         title="Anular compra"
-        message={`Â¿EstÃ¡s seguro de anular la compra de "${confirmAnular?.Repuesto || 'este repuesto'}"? El stock se revertirÃ¡ y esta acciÃ³n no se puede deshacer.`}
-        confirmLabel="SÃ­, anular"
+        message={`¿Estás seguro de anular la compra de "${confirmAnular?.Repuesto || 'este repuesto'}"? El stock se revertirá y esta acción no se puede deshacer.`}
+        confirmLabel="Sí, anular"
         danger
         loading={actionLoading}
       />

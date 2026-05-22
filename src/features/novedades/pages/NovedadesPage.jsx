@@ -1,6 +1,7 @@
 ﻿import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { MdAdd, MdVisibility, MdEdit } from 'react-icons/md';
+import SearchableSelect from '../../../shared/components/SearchableSelect/SearchableSelect.jsx';
 import { fetchNovedades, createNovedad, updateNovedad } from '../slices/novedadesSlice.js';
 import Modal from '../../../shared/components/Modal/Modal.jsx';
 import Table from '../../../shared/components/Table/Table.jsx';
@@ -69,9 +70,9 @@ export default function NovedadesPage() {
   const columns = [
     { key: '#', label: '#', width: '50px', render: (_, __, i) => i + 1 },
     { key: 'id_empleado', label: 'Empleado', render: (v, row) => getEmpleadoNombre(v || row.Id_Empleado) },
-    { key: 'Descripcion', label: 'DescripciÃ³n', render: v => <span className="descripcion-cell">{v}</span> },
+    { key: 'Descripcion', label: 'Descripción', render: v => <span className="descripcion-cell">{v}</span> },
     { key: 'Fecha_Novedad',    label: 'Fecha novedad',    render: v => formatDate(v) },
-    { key: 'FechaRealizacion', label: 'Fecha realizaciÃ³n', render: v => formatDate(v) },
+    { key: 'FechaRealizacion', label: 'Fecha realización', render: v => formatDate(v) },
     {
       key: 'acciones', label: 'Acciones', render: (_, row) => (
         <div className="table-actions">
@@ -93,7 +94,7 @@ export default function NovedadesPage() {
           <SearchBar
             value={search}
             onChange={setSearch}
-            placeholder="Buscar por descripciÃ³n..."
+            placeholder="Buscar por descripción..."
             filterSlot={
               <FilterDropdown
                 statusFilter="todos"
@@ -111,8 +112,8 @@ export default function NovedadesPage() {
         {detailItem && <div className="detail-grid">
           <div className="detail-item"><span className="detail-label">Empleado</span><span className="detail-value">{getEmpleadoNombre(detailItem.id_empleado || detailItem.Id_Empleado)}</span></div>
           <div className="detail-item"><span className="detail-label">Fecha novedad</span><span className="detail-value">{formatDate(detailItem.Fecha_Novedad)}</span></div>
-          <div className="detail-item" style={{ gridColumn: 'span 2' }}><span className="detail-label">DescripciÃ³n</span><span className="detail-value">{detailItem.Descripcion}</span></div>
-          <div className="detail-item"><span className="detail-label">Fecha realizaciÃ³n</span><span className="detail-value">{formatDate(detailItem.FechaRealizacion)}</span></div>
+          <div className="detail-item" style={{ gridColumn: 'span 2' }}><span className="detail-label">Descripción</span><span className="detail-value">{detailItem.Descripcion}</span></div>
+          <div className="detail-item"><span className="detail-label">Fecha realización</span><span className="detail-value">{formatDate(detailItem.FechaRealizacion)}</span></div>
         </div>}
       </Modal>
 
@@ -123,13 +124,15 @@ export default function NovedadesPage() {
         <form className="form-grid" onSubmit={handleSubmit} noValidate>
           <div className="form-group span-2">
             <label className="form-label">Empleado <span className="required">*</span></label>
-            <select name="id_empleado" className="form-control" value={formData.id_empleado} onChange={handleChange}>
-              <option value="">Seleccionar empleado...</option>
-              {empleados.map(e => <option key={e.Id_Empleado} value={e.Id_Empleado}>{e.Nombre}</option>)}
-            </select>
+            <SearchableSelect
+              options={empleados.map(e => ({ value: String(e.Id_Empleado), label: e.Nombre }))}
+              value={String(formData.id_empleado)}
+              onChange={v => setFormData(p => ({ ...p, id_empleado: v }))}
+              placeholder="Seleccionar empleado..."
+            />
           </div>
           <div className="form-group span-2">
-            <label className="form-label">DescripciÃ³n <span className="required">*</span></label>
+            <label className="form-label">Descripción <span className="required">*</span></label>
             <textarea name="Descripcion" className="form-control" value={formData.Descripcion} onChange={handleChange} rows={3} placeholder="Describe la novedad..." />
           </div>
           <div className="form-group">
@@ -137,7 +140,7 @@ export default function NovedadesPage() {
             <input name="Fecha_Novedad" type="date" className="form-control" value={formData.Fecha_Novedad} onChange={handleChange} min={TODAY} />
           </div>
           <div className="form-group">
-            <label className="form-label">Fecha de realizaciÃ³n <span className="required">*</span></label>
+            <label className="form-label">Fecha de realización <span className="required">*</span></label>
             <input name="FechaRealizacion" type="date" className="form-control" value={formData.FechaRealizacion} onChange={handleChange} min={TODAY} />
           </div>
         </form>
