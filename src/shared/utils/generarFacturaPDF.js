@@ -40,7 +40,9 @@ function today() {
 }
 
 export function generarFacturaOrden(orden) {
-  const doc = new jsPDF();
+  console.log('[PDF] orden:', JSON.stringify(orden, null, 2));
+
+  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
   const id   = orden.Id_Orden || orden.id || '?';
   const fecha = today();
 
@@ -55,16 +57,16 @@ export function generarFacturaOrden(orden) {
   doc.setFont('helvetica', 'normal');
   y += 6;
   doc.text(`Nombre: ${orden.Cliente || '—'}`, 14, y); y += 5;
-  doc.text(`Documento: ${orden.Documento || '—'}`, 14, y); y += 5;
-  doc.text(`Teléfono: ${orden.Telefono || orden.Contacto || '—'}`, 14, y); y += 5;
+  doc.text(`Documento: ${orden.ClienteDoc || '—'}`, 14, y); y += 5;
+  doc.text(`Teléfono: ${orden.ClienteContacto || '—'}`, 14, y); y += 5;
 
   doc.setFont('helvetica', 'bold');
   doc.text('VEHÍCULO', 110, 36);
   doc.setFont('helvetica', 'normal');
-  doc.text(`Placa: ${orden.Placa || orden.Vehiculo || '—'}`, 110, 42);
+  doc.text(`Placa: ${orden.Vehiculo || '—'}`, 110, 42);
   doc.text(`Marca: ${orden.Marca || '—'}`, 110, 47);
   doc.text(`Modelo: ${orden.Modelo || '—'}`, 110, 52);
-  doc.text(`Año: ${orden.Año || orden.Anio || '—'}`, 110, 57);
+  doc.text(`Año: ${orden.Anio || '—'}`, 110, 57);
 
   y += 6;
 
@@ -76,7 +78,7 @@ export function generarFacturaOrden(orden) {
       startY: y,
       head: [['Servicio', 'Precio unitario', 'Subtotal']],
       body: orden.servicios.map(s => [
-        s.Nombre || s.nombre || '—',
+        s.servicio || s.Nombre || s.nombre || '—',
         fmt(s.precio_unitario ?? s.PrecioUnitario),
         fmt(s.subtotal ?? s.Subtotal),
       ]),
@@ -85,7 +87,7 @@ export function generarFacturaOrden(orden) {
       styles: { fontSize: 9 },
       margin: { left: 14, right: 14 },
     });
-    y = doc.lastAutoTable.finalY + 6;
+    y = doc.lastAutoTable.finalY + 8;
   }
 
   if (orden.repuestos?.length) {
@@ -96,7 +98,7 @@ export function generarFacturaOrden(orden) {
       startY: y,
       head: [['Repuesto', 'Cantidad', 'Precio unit.', 'Subtotal']],
       body: orden.repuestos.map(r => [
-        r.Nombre || r.NombreRepuesto || '—',
+        r.repuesto || r.NombreRepuesto || r.Nombre || '—',
         r.cantidad ?? r.Cantidad ?? 1,
         fmt(r.precio_unitario ?? r.PrecioUnitario),
         fmt(r.subtotal ?? r.Subtotal),
@@ -106,10 +108,10 @@ export function generarFacturaOrden(orden) {
       styles: { fontSize: 9 },
       margin: { left: 14, right: 14 },
     });
-    y = doc.lastAutoTable.finalY + 6;
+    y = doc.lastAutoTable.finalY + 8;
   }
 
-  const manoDeObra = Number(orden.ManoDeObra || orden.mano_de_obra || 0);
+  const manoDeObra    = Number(orden.ManoDeObra ?? orden.mano_de_obra ?? 0);
   const subtotalServ  = (orden.servicios || []).reduce((s, x) => s + Number(x.subtotal ?? x.Subtotal ?? 0), 0);
   const subtotalRep   = (orden.repuestos || []).reduce((s, x) => s + Number(x.subtotal ?? x.Subtotal ?? 0), 0);
   const total = subtotalServ + subtotalRep + manoDeObra;
@@ -132,13 +134,19 @@ export function generarFacturaOrden(orden) {
     },
   });
 
+  // Eliminar pagina en blanco extra si autoTable genero overflow innecesario
+  const pageCount = doc.getNumberOfPages();
+  if (pageCount > 1 && (doc.lastAutoTable?.finalY || 0) < 240) {
+    doc.deletePage(pageCount);
+  }
+
   addFooter(doc);
   const fechaStr = new Date().toISOString().split('T')[0];
   doc.save(`factura-orden-${id}-${fechaStr}.pdf`);
 }
 
 export function generarFacturaCompra(compra) {
-  const doc = new jsPDF();
+  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
   const id  = compra.Id_Compra || compra.id || '?';
   const fecha = today();
 
@@ -173,7 +181,7 @@ export function generarFacturaCompra(compra) {
     margin: { left: 14, right: 14 },
   });
 
-  y = doc.lastAutoTable.finalY + 6;
+  y = doc.lastAutoTable.finalY + 8;
   const total = Number(compra.Total || detalles.reduce((s, d) => s + Number(d.subtotal ?? 0), 0));
   autoTable(doc, {
     startY: y,
@@ -183,6 +191,11 @@ export function generarFacturaCompra(compra) {
     styles: { fontSize: 10, textColor: TEXT_COLOR },
     margin: { left: 14, right: 14 },
   });
+
+  const pageCount = doc.getNumberOfPages();
+  if (pageCount > 1 && (doc.lastAutoTable?.finalY || 0) < 240) {
+    doc.deletePage(pageCount);
+  }
 
   addFooter(doc);
   const fechaStr = new Date().toISOString().split('T')[0];
