@@ -226,12 +226,17 @@ export default function OrdenesPage() {
     { key: 'Kilometraje', label: 'Km', render: v => v ? `${Number(v).toLocaleString('es-CO')} km` : '—' },
     { key: 'Estado', label: 'Estado', render: v => <EstadoBadge estado={v} /> },
     {
-      key: 'acciones', label: 'Acciones', render: (_, row) => (
-        <div className="table-actions">
-          <button className="btn btn--ghost btn--icon btn--sm" title="Ver detalle" onClick={() => setDetailId(row.Id_Orden)}><MdVisibility size={17} /></button>
-          <button className="btn btn--ghost btn--icon btn--sm" title="Editar" onClick={() => openEdit(row)}><MdEdit size={17} /></button>
-        </div>
-      )
+      key: 'acciones', label: 'Acciones', render: (_, row) => {
+        const bloqueada = row.Estado === 3 || row.Estado === 0;
+        return (
+          <div className="table-actions">
+            <button className="btn btn--ghost btn--icon btn--sm" title="Ver detalle" onClick={() => setDetailId(row.Id_Orden)}><MdVisibility size={17} /></button>
+            {!bloqueada && (
+              <button className="btn btn--ghost btn--icon btn--sm" title="Editar" onClick={() => openEdit(row)}><MdEdit size={17} /></button>
+            )}
+          </div>
+        );
+      }
     },
   ];
 
