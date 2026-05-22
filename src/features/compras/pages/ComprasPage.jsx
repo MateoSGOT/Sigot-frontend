@@ -218,7 +218,7 @@ export default function ComprasPage() {
         <Table columns={columns} data={filtered} loading={loading} pageSize={pageSize} emptyMessage="No se encontraron compras" />
       </div>
 
-      {/* Modal de detalle â€” muestra TODOS los productos de esa compra */}
+      {/* Modal de detalle — muestra TODOS los productos de esa compra */}
       <Modal isOpen={!!detailItem} onClose={() => setDetailItem(null)} title="Detalle de la compra" size="lg"
         footer={detailItem ? <button className="btn btn--primary" onClick={() => generarFacturaCompra({ ...detailItem, detalles: detailItems })}>Factura (PDF)</button> : null}
       >

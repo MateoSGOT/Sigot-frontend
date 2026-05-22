@@ -75,7 +75,7 @@
 }
 
 .modal__body {
-  padding: 1.5rem;
+  padding: 1.25rem 1.5rem;
   overflow-y: auto;
   flex: 1;
 }

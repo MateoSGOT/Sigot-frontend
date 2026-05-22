@@ -1,6 +1,7 @@
-﻿import React, { useEffect, useRef, useState } from 'react';
+﻿import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { MdAdd, MdVisibility, MdEdit, MdUploadFile } from 'react-icons/md';
+import { MdAdd, MdVisibility, MdEdit } from 'react-icons/md';
+import ImageUploader from '../../../shared/components/ImageUploader/ImageUploader.jsx';
 import ToggleSwitch from '../../../shared/components/ToggleSwitch/ToggleSwitch.jsx';
 import { fetchClientes, createCliente, updateCliente, toggleClienteEstado } from '../slices/clientesSlice.js';
 import Modal from '../../../shared/components/Modal/Modal.jsx';
@@ -28,7 +29,6 @@ export default function ClientesPage() {
   const [showForm, setShowForm] = useState(false);
   const [formError, setFormError] = useState('');
   const [fotoPreview, setFotoPreview] = useState(null);
-  const fileRef = useRef(null);
 
   useEffect(() => {
     dispatch(fetchClientes());
@@ -62,17 +62,6 @@ export default function ClientesPage() {
   };
 
   const handleFormChange = (e) => setFormData(p => ({ ...p, [e.target.name]: e.target.value }));
-
-  const handleFotoChange = e => {
-    const file = e.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = ev => {
-      setFotoPreview(ev.target.result);
-      setFormData(p => ({ ...p, Foto: ev.target.result }));
-    };
-    reader.readAsDataURL(file);
-  };
 
   const handleFormSubmit = async (e) => {
     e.preventDefault();
@@ -150,9 +139,9 @@ export default function ClientesPage() {
             <div className="detail-item"><span className="detail-label">Nombre</span><span className="detail-value">{detailItem.Nombre}</span></div>
             <div className="detail-item"><span className="detail-label">Tipo de documento</span><span className="detail-value">{detailItem.TipoDoc || detailItem.Id_TipoDoc}</span></div>
             <div className="detail-item"><span className="detail-label">Documento</span><span className="detail-value">{detailItem.Documento}</span></div>
-            <div className="detail-item"><span className="detail-label">Teléfono</span><span className="detail-value">{detailItem.Telefono || 'â€”'}</span></div>
-            <div className="detail-item"><span className="detail-label">Correo</span><span className="detail-value">{detailItem.Correo || 'â€”'}</span></div>
-            <div className="detail-item"><span className="detail-label">Dirección</span><span className="detail-value">{detailItem.Direccion || 'â€”'}</span></div>
+            <div className="detail-item"><span className="detail-label">Teléfono</span><span className="detail-value">{detailItem.Telefono || '—'}</span></div>
+            <div className="detail-item"><span className="detail-label">Correo</span><span className="detail-value">{detailItem.Correo || '—'}</span></div>
+            <div className="detail-item"><span className="detail-label">Dirección</span><span className="detail-value">{detailItem.Direccion || '—'}</span></div>
             <div className="detail-item"><span className="detail-label">Estado</span><span className="detail-value"><StatusBadge estado={detailItem.Estado} /></span></div>
           </div>
         )}
@@ -170,25 +159,26 @@ export default function ClientesPage() {
         {formError && <div className="form-error-box">{formError}</div>}
         <form className="form-grid" onSubmit={handleFormSubmit} noValidate>
 
-          {/* Foto de perfil */}
           <div className="form-group span-2">
-            <label className="form-label">Foto de perfil</label>
-            <div className="file-upload-wrap">
-              {fotoPreview && (
-                <img src={fotoPreview} alt="preview" className="file-upload-preview" />
-              )}
-              <div className="file-upload-area" onClick={() => fileRef.current?.click()}>
-                <MdUploadFile size={22} style={{ color: 'var(--color-text-muted)' }} />
-                <span className="file-upload-label">{fotoPreview ? 'Cambiar foto' : 'Adjuntar foto'}</span>
-                <span className="file-upload-hint">JPG, PNG o WebP · máx. 5 MB</span>
+            <div className="form-avatar-row">
+              <ImageUploader
+                preview={fotoPreview}
+                onChange={file => {
+                  const reader = new FileReader();
+                  reader.onload = ev => {
+                    setFotoPreview(ev.target.result);
+                    setFormData(p => ({ ...p, Foto: ev.target.result }));
+                  };
+                  reader.readAsDataURL(file);
+                }}
+                size={60}
+                initials={formData.Nombre?.charAt(0)?.toUpperCase()}
+              />
+              <div style={{ flex: 1 }}>
+                <label className="form-label">Nombre <span className="required">*</span></label>
+                <input name="Nombre" className="form-control" value={formData.Nombre} onChange={handleFormChange} placeholder="Nombre completo" />
               </div>
-              <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleFotoChange} />
             </div>
-          </div>
-
-          <div className="form-group span-2">
-            <label className="form-label">Nombre <span className="required">*</span></label>
-            <input name="Nombre" className="form-control" value={formData.Nombre} onChange={handleFormChange} placeholder="Nombre completo" />
           </div>
 
           <div className="form-group">

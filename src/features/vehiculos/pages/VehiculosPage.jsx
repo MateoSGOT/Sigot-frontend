@@ -152,11 +152,11 @@ export default function VehiculosPage() {
       <Modal isOpen={!!detailItem} onClose={() => setDetailItem(null)} title="Detalle del vehículo" size="md">
         {detailItem && <div className="detail-grid">
           <div className="detail-item"><span className="detail-label">Placa</span><span className="detail-value">{detailItem.Placa}</span></div>
-          <div className="detail-item"><span className="detail-label">VIN</span><span className="detail-value">{detailItem.VIN || 'â€”'}</span></div>
+          <div className="detail-item"><span className="detail-label">VIN</span><span className="detail-value">{detailItem.VIN || '—'}</span></div>
           <div className="detail-item"><span className="detail-label">Marca</span><span className="detail-value">{detailItem.Marca || detailItem.Id_Marca}</span></div>
           <div className="detail-item"><span className="detail-label">Modelo</span><span className="detail-value">{detailItem.Modelo}</span></div>
           <div className="detail-item"><span className="detail-label">Año</span><span className="detail-value">{detailItem.Anio}</span></div>
-          <div className="detail-item"><span className="detail-label">Color</span><span className="detail-value">{detailItem.Color || 'â€”'}</span></div>
+          <div className="detail-item"><span className="detail-label">Color</span><span className="detail-value">{detailItem.Color || '—'}</span></div>
           <div className="detail-item"><span className="detail-label">Cliente</span><span className="detail-value">{detailItem.Cliente || detailItem.Id_Cliente}</span></div>
           <div className="detail-item"><span className="detail-label">Estado</span><span className="detail-value"><StatusBadge estado={detailItem.Estado} /></span></div>
         </div>}

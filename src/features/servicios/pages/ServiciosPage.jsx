@@ -51,7 +51,7 @@ export default function ServiciosPage() {
   const columns = [
     { key: '#', label: '#', width: '50px', render: (_, __, i) => i + 1 },
     { key: 'Nombre', label: 'Nombre', render: v => <span className="font-medium">{v}</span> },
-    { key: 'Descripcion', label: 'Descripción', render: v => <span className="descripcion-cell">{v || 'â€”'}</span> },
+    { key: 'Descripcion', label: 'Descripción', render: v => <span className="descripcion-cell">{v || '—'}</span> },
     { key: 'Precio', label: 'Precio', render: v => formatCurrency(v) },
     { key: 'Estado', label: 'Estado', render: v => <StatusBadge estado={v} /> },
     {
@@ -93,7 +93,7 @@ export default function ServiciosPage() {
       <Modal isOpen={!!detailItem} onClose={() => setDetailItem(null)} title="Detalle del servicio" size="md">
         {detailItem && <div className="detail-grid">
           <div className="detail-item" style={{ gridColumn: 'span 2' }}><span className="detail-label">Nombre</span><span className="detail-value">{detailItem.Nombre}</span></div>
-          <div className="detail-item" style={{ gridColumn: 'span 2' }}><span className="detail-label">Descripción</span><span className="detail-value">{detailItem.Descripcion || 'â€”'}</span></div>
+          <div className="detail-item" style={{ gridColumn: 'span 2' }}><span className="detail-label">Descripción</span><span className="detail-value">{detailItem.Descripcion || '—'}</span></div>
           <div className="detail-item"><span className="detail-label">Precio</span><span className="detail-value">{formatCurrency(detailItem.Precio)}</span></div>
           <div className="detail-item"><span className="detail-label">Estado</span><span className="detail-value"><StatusBadge estado={detailItem.Estado} /></span></div>
         </div>}

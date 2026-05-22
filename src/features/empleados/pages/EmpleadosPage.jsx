@@ -208,17 +208,18 @@ export default function EmpleadosPage() {
         {formError && <div className="form-error-box">{formError}</div>}
         <form className="form-grid" onSubmit={handleSubmit} noValidate>
 
-          {/* Foto + Nombre inline */}
-          <div className="form-group span-2" style={{ display: 'flex', gap: '1rem', alignItems: 'flex-start' }}>
-            <ImageUploader
-              preview={fotoPreview}
-              onChange={handlePhotoChange}
-              size={80}
-              initials={formData.Nombre?.charAt(0)?.toUpperCase()}
-            />
-            <div style={{ flex: 1 }}>
-              <label className="form-label">Nombre <span className="required">*</span></label>
-              <input name="Nombre" className="form-control" value={formData.Nombre} onChange={handleChange} placeholder="Nombre completo" />
+          <div className="form-group span-2">
+            <div className="form-avatar-row">
+              <ImageUploader
+                preview={fotoPreview}
+                onChange={handlePhotoChange}
+                size={60}
+                initials={formData.Nombre?.charAt(0)?.toUpperCase()}
+              />
+              <div style={{ flex: 1 }}>
+                <label className="form-label">Nombre <span className="required">*</span></label>
+                <input name="Nombre" className="form-control" value={formData.Nombre} onChange={handleChange} placeholder="Nombre completo" />
+              </div>
             </div>
           </div>
 
