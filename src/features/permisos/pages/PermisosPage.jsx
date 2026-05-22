@@ -41,7 +41,7 @@ export default function PermisosPage() {
 
   useEffect(() => {
     const s = {};
-    items.forEach(p => { s[p.Id_Permiso] = p.Estado === 1; });
+    items.forEach(p => { s[p.Id_Permiso] = p.Estado === 1 || p.Estado === true; });
     setLocalState(s);
   }, [items]);
 
@@ -62,7 +62,7 @@ export default function PermisosPage() {
 
   const handleSave = async () => {
     setSaving(true);
-    const changed = items.filter(p => (p.Estado === 1) !== !!localState[p.Id_Permiso]);
+    const changed = items.filter(p => (p.Estado === 1 || p.Estado === true) !== !!localState[p.Id_Permiso]);
     for (const p of changed) {
       await dispatch(updatePermiso({ id: p.Id_Permiso, data: { Estado: localState[p.Id_Permiso] ? 1 : 0 } }));
     }
