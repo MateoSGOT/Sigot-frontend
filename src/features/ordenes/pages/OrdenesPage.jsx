@@ -146,6 +146,9 @@ export default function OrdenesPage() {
   const manoDeObra     = selected?.mano_de_obra ?? null;
   const totalGeneral   = totalServicios + totalRepuestos + (manoDeObra || 0);
 
+  const ordenBloqueada = selected?.EstadoFlujo === 'Realizado' || selected?.Estado === 0;
+  const puedeFacturar  = selected?.EstadoFlujo === 'Realizado';
+
   const openEdit = (item) => {
     setEditForm({
       Diagnostico:  item.Diagnostico  || '',
@@ -236,7 +239,7 @@ export default function OrdenesPage() {
     <div className="page">
       <div className="page__header">
         <div>
-          <h1 className="page__title">Ã“rdenes de trabajo</h1>
+          <h1 className="page__title">Órdenes de trabajo</h1>
           <p className="page__subtitle">{items.length} orden(es) registrada(s)</p>
         </div>
       </div>
@@ -271,7 +274,17 @@ export default function OrdenesPage() {
 
       {/* Detail Modal */}
       <Modal isOpen={!!detailId} onClose={() => setDetailId(null)} title="Orden de trabajo" size="xl"
-        footer={selected ? <button className="btn btn--primary" onClick={() => generarFacturaOrden(selected)}>Facturar (PDF)</button> : null}
+        footer={selected ? (
+          <button
+            className="btn btn--primary"
+            onClick={puedeFacturar ? () => generarFacturaOrden(selected) : undefined}
+            disabled={!puedeFacturar}
+            title={!puedeFacturar ? 'Solo se puede facturar una orden Realizada' : undefined}
+            style={!puedeFacturar ? { opacity: 0.45, cursor: 'not-allowed' } : undefined}
+          >
+            Facturar (PDF)
+          </button>
+        ) : null}
       >
         {detailId && (
           <div>
@@ -296,14 +309,16 @@ export default function OrdenesPage() {
                 </div>
 
                 {/* Visual progress stepper */}
-                <div style={{ marginTop: '1.5rem' }}>
-                  <p className="detail-label" style={{ marginBottom: '0.875rem' }}>Progreso de la orden</p>
-                  <ProgresoEstado
-                    estadoActual={selected.Estado}
-                    onAvanzar={handleAvanzarEstado}
-                    loading={actionLoading}
-                  />
-                </div>
+                {!ordenBloqueada && (
+                  <div style={{ marginTop: '1.5rem' }}>
+                    <p className="detail-label" style={{ marginBottom: '0.875rem' }}>Progreso de la orden</p>
+                    <ProgresoEstado
+                      estadoActual={selected.Estado}
+                      onAvanzar={handleAvanzarEstado}
+                      loading={actionLoading}
+                    />
+                  </div>
+                )}
 
                 {/* Garantías de los repuestos usados */}
                 {selected?.repuestos?.some(r => {
@@ -357,9 +372,11 @@ export default function OrdenesPage() {
                             <div key={i} className="orden-item-row">
                               <span className="orden-item-name">{s.servicio || s.Nombre || s.nombre || `Servicio #${s.Id_Servicio}`}</span>
                               <span className="orden-item-price">{formatCurrency(s.precio_unitario || s.Precio)}</span>
-                              <button className="btn btn--ghost btn--icon btn--sm orden-item-delete" title="Eliminar servicio" onClick={() => handleDeleteServicio(s.Id_Servicio)} disabled={actionLoading}>
-                                <MdDeleteOutline size={16} />
-                              </button>
+                              {!ordenBloqueada && (
+                                <button className="btn btn--ghost btn--icon btn--sm orden-item-delete" title="Eliminar servicio" onClick={() => handleDeleteServicio(s.Id_Servicio)} disabled={actionLoading}>
+                                  <MdDeleteOutline size={16} />
+                                </button>
+                              )}
                             </div>
                           ))
                         ) : <p className="empty-list">No hay servicios agregados.</p>}
@@ -383,11 +400,13 @@ export default function OrdenesPage() {
                   {manoDeObra != null && !editingMano ? (
                     <div className="mano-de-obra-row">
                       <span className="mano-de-obra-value">{formatCurrency(manoDeObra)}</span>
-                      <button className="btn btn--outline btn--sm" onClick={() => { setManoInput(String(manoDeObra)); setEditingMano(true); }}>
-                        <MdEdit size={15} /> Editar
-                      </button>
+                      {!ordenBloqueada && (
+                        <button className="btn btn--outline btn--sm" onClick={() => { setManoInput(String(manoDeObra)); setEditingMano(true); }}>
+                          <MdEdit size={15} /> Editar
+                        </button>
+                      )}
                     </div>
-                  ) : (
+                  ) : !ordenBloqueada ? (
                     <div className="mano-de-obra-form">
                       <input type="number" min="0" className="form-control" placeholder="Valor mano de obra..." value={manoInput} onChange={e => setManoInput(e.target.value)} />
                       <button className="btn btn--primary btn--sm" onClick={handleSetMano} disabled={actionLoading || !manoInput}>
@@ -395,7 +414,7 @@ export default function OrdenesPage() {
                       </button>
                       {editingMano && <button className="btn btn--outline btn--sm" onClick={() => { setEditingMano(false); setManoInput(''); }}>Cancelar</button>}
                     </div>
-                  )}
+                  ) : null}
                 </div>
 
                 <div className="orden-subtotal">
@@ -403,24 +422,26 @@ export default function OrdenesPage() {
                   <span>{formatCurrency(totalServicios + (manoDeObra || 0))}</span>
                 </div>
 
-                <div className="orden-add-form">
-                  <h4>Agregar servicio</h4>
-                  {addServError && <div className="form-error-box" style={{ marginBottom: '0.5rem' }}>{addServError}</div>}
-                  <div className="orden-add-row">
-                    <select className="form-control" value={addServForm.Id_Servicio}
-                      onChange={e => {
-                        const id = e.target.value;
-                        const serv = serviciosOpts.find(s => String(s.Id_Servicio) === String(id));
-                        setAddServForm(p => ({ ...p, Id_Servicio: id, precio_unitario: serv ? String(serv.Precio ?? '') : p.precio_unitario }));
-                      }}>
-                      <option value="">Seleccionar servicio...</option>
-                      {serviciosOpts.map(s => <option key={s.Id_Servicio} value={s.Id_Servicio}>{s.Nombre}</option>)}
-                    </select>
-                    <input type="number" min="0" className="form-control" placeholder="Precio unitario" value={addServForm.precio_unitario} onChange={e => setAddServForm(p => ({ ...p, precio_unitario: e.target.value }))} />
-                    {addServForm.precio_unitario && <span style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)', whiteSpace: 'nowrap' }}>= {formatCurrency(addServForm.precio_unitario)}</span>}
-                    <button className="btn btn--primary btn--sm" onClick={handleAddServicio} disabled={actionLoading}><MdAdd size={16} />Agregar</button>
+                {!ordenBloqueada && (
+                  <div className="orden-add-form">
+                    <h4>Agregar servicio</h4>
+                    {addServError && <div className="form-error-box" style={{ marginBottom: '0.5rem' }}>{addServError}</div>}
+                    <div className="orden-add-row">
+                      <select className="form-control" value={addServForm.Id_Servicio}
+                        onChange={e => {
+                          const id = e.target.value;
+                          const serv = serviciosOpts.find(s => String(s.Id_Servicio) === String(id));
+                          setAddServForm(p => ({ ...p, Id_Servicio: id, precio_unitario: serv ? String(serv.Precio ?? '') : p.precio_unitario }));
+                        }}>
+                        <option value="">Seleccionar servicio...</option>
+                        {serviciosOpts.map(s => <option key={s.Id_Servicio} value={s.Id_Servicio}>{s.Nombre}</option>)}
+                      </select>
+                      <input type="number" min="0" className="form-control" placeholder="Precio unitario" value={addServForm.precio_unitario} onChange={e => setAddServForm(p => ({ ...p, precio_unitario: e.target.value }))} />
+                      {addServForm.precio_unitario && <span style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)', whiteSpace: 'nowrap' }}>= {formatCurrency(addServForm.precio_unitario)}</span>}
+                      <button className="btn btn--primary btn--sm" onClick={handleAddServicio} disabled={actionLoading}><MdAdd size={16} />Agregar</button>
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
             )}
 
@@ -448,9 +469,11 @@ export default function OrdenesPage() {
                                 </div>
                                 <span className="orden-item-qty">x{r.cantidad || r.Cantidad}</span>
                                 <span className="orden-item-price">{formatCurrency((r.precio_unitario || r.PrecioVenta || 0) * (r.cantidad || r.Cantidad || 1))}</span>
-                                <button className="btn btn--ghost btn--icon btn--sm orden-item-delete" title="Eliminar repuesto" onClick={() => handleDeleteRepuesto(r.Id_Repuesto)} disabled={actionLoading}>
-                                  <MdDeleteOutline size={16} />
-                                </button>
+                                {!ordenBloqueada && (
+                                  <button className="btn btn--ghost btn--icon btn--sm orden-item-delete" title="Eliminar repuesto" onClick={() => handleDeleteRepuesto(r.Id_Repuesto)} disabled={actionLoading}>
+                                    <MdDeleteOutline size={16} />
+                                  </button>
+                                )}
                               </div>
                             );
                           })
@@ -472,30 +495,32 @@ export default function OrdenesPage() {
                   <span>{formatCurrency(totalRepuestos)}</span>
                 </div>
 
-                <div className="orden-add-form">
-                  <h4>Agregar repuesto</h4>
-                  {addRepError && <div className="form-error-box" style={{ marginBottom: '0.5rem' }}>{addRepError}</div>}
-                  <div className="orden-add-row">
-                    <select className="form-control" value={addRepForm.Id_Repuesto} onChange={handleRepuestoSelect}>
-                      <option value="">Seleccionar repuesto...</option>
-                      {repuestosOpts.map(r => <option key={r.Id_Repuesto} value={r.Id_Repuesto}>{r.NombreRepuesto ?? r.Nombre}</option>)}
-                    </select>
-                    <input type="number" min="1" className="form-control" placeholder="Cantidad" value={addRepForm.cantidad} onChange={e => setAddRepForm(p => ({ ...p, cantidad: e.target.value }))} />
-                    <input
-                      type="number" min="0" className="form-control"
-                      placeholder="Precio unitario"
-                      value={addRepForm.precio_unitario}
-                      onChange={e => setAddRepForm(p => ({ ...p, precio_unitario: e.target.value }))}
-                      title="Precio por defecto del repuesto, editable para esta orden"
-                    />
-                    <button className="btn btn--primary btn--sm" onClick={handleAddRepuesto} disabled={actionLoading}><MdAdd size={16} />Agregar</button>
+                {!ordenBloqueada && (
+                  <div className="orden-add-form">
+                    <h4>Agregar repuesto</h4>
+                    {addRepError && <div className="form-error-box" style={{ marginBottom: '0.5rem' }}>{addRepError}</div>}
+                    <div className="orden-add-row">
+                      <select className="form-control" value={addRepForm.Id_Repuesto} onChange={handleRepuestoSelect}>
+                        <option value="">Seleccionar repuesto...</option>
+                        {repuestosOpts.map(r => <option key={r.Id_Repuesto} value={r.Id_Repuesto}>{r.NombreRepuesto ?? r.Nombre}</option>)}
+                      </select>
+                      <input type="number" min="1" className="form-control" placeholder="Cantidad" value={addRepForm.cantidad} onChange={e => setAddRepForm(p => ({ ...p, cantidad: e.target.value }))} />
+                      <input
+                        type="number" min="0" className="form-control"
+                        placeholder="Precio unitario"
+                        value={addRepForm.precio_unitario}
+                        onChange={e => setAddRepForm(p => ({ ...p, precio_unitario: e.target.value }))}
+                        title="Precio por defecto del repuesto, editable para esta orden"
+                      />
+                      <button className="btn btn--primary btn--sm" onClick={handleAddRepuesto} disabled={actionLoading}><MdAdd size={16} />Agregar</button>
+                    </div>
+                    {addRepForm.Id_Repuesto && addRepForm.precio_unitario && (
+                      <p style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', marginTop: '0.375rem' }}>
+                        Precio por defecto: {formatCurrency(addRepForm.precio_unitario)} — puedes modificarlo para esta orden.
+                      </p>
+                    )}
                   </div>
-                  {addRepForm.Id_Repuesto && addRepForm.precio_unitario && (
-                    <p style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', marginTop: '0.375rem' }}>
-                      Precio por defecto: {formatCurrency(addRepForm.precio_unitario)} — puedes modificarlo para esta orden.
-                    </p>
-                  )}
-                </div>
+                )}
               </div>
             )}
           </div>

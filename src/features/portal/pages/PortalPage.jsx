@@ -142,10 +142,12 @@ export default function PortalPage() {
   // Citas
   const [citas, setCitas] = useState([]);
   const [showCitaModal, setShowCitaModal] = useState(false);
-  const [citaForm, setCitaForm] = useState({ Id_Vehiculo: '', Fecha: '', Hora: '', Descripcion: '' });
+  const [citaForm, setCitaForm] = useState({ Id_Vehiculo: '', Fecha: '', Hora: '', Descripcion: '', Id_Empleado: '' });
   const [citaError, setCitaError] = useState('');
   const [citaLoading, setCitaLoading] = useState(false);
   const [citaToast, setCitaToast] = useState(false);
+  const [empleadosDisponibles, setEmpleadosDisponibles] = useState([]);
+  const [loadingEmpleados, setLoadingEmpleados] = useState(false);
 
   useEffect(() => {
     const storedToken = localStorage.getItem(PORTAL_KEY);
@@ -222,6 +224,18 @@ export default function PortalPage() {
     } catch { /* silent */ }
   };
 
+  const fetchEmpleadosDisponibles = async (fecha) => {
+    if (!fecha) { setEmpleadosDisponibles([]); return; }
+    setLoadingEmpleados(true);
+    try {
+      const r = await api.get(`/api/portal/empleados-disponibles?fecha=${fecha}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setEmpleadosDisponibles(r.data?.data || []);
+    } catch { setEmpleadosDisponibles([]); }
+    finally { setLoadingEmpleados(false); }
+  };
+
   const handleCrearCita = async e => {
     e.preventDefault();
     setCitaError('');
@@ -232,7 +246,8 @@ export default function PortalPage() {
     try {
       await api.post('/api/portal/citas', citaForm, { headers: { Authorization: `Bearer ${token}` } });
       setShowCitaModal(false);
-      setCitaForm({ Id_Vehiculo: '', Fecha: '', Hora: '', Descripcion: '' });
+      setCitaForm({ Id_Vehiculo: '', Fecha: '', Hora: '', Descripcion: '', Id_Empleado: '' });
+      setEmpleadosDisponibles([]);
       await fetchCitas();
       setCitaToast(true);
       setTimeout(() => setCitaToast(false), 3000);
@@ -446,7 +461,7 @@ export default function PortalPage() {
                 <h2>Mis Citas</h2>
                 <p>Historial y nuevas citas con el taller</p>
               </div>
-              <button className="portal-btn portal-btn--primary" onClick={() => { setCitaForm({ Id_Vehiculo: '', Fecha: '', Hora: '', Descripcion: '' }); setCitaError(''); setShowCitaModal(true); }}>
+              <button className="portal-btn portal-btn--primary" onClick={() => { setCitaForm({ Id_Vehiculo: '', Fecha: '', Hora: '', Descripcion: '', Id_Empleado: '' }); setCitaError(''); setEmpleadosDisponibles([]); setShowCitaModal(true); }}>
                 + Agendar nueva cita
               </button>
             </div>
@@ -467,6 +482,7 @@ export default function PortalPage() {
                       <th>Vehículo</th>
                       <th>Fecha</th>
                       <th>Hora</th>
+                      <th>Técnico</th>
                       <th>Descripción</th>
                       <th>Estado</th>
                     </tr>
@@ -480,6 +496,7 @@ export default function PortalPage() {
                           <td>{c.vehiculo?.Placa || '—'}</td>
                           <td>{fmtDate(c.FechaAgendamiento)}</td>
                           <td>{c.Hora || '—'}</td>
+                          <td>{c.empleado?.Nombre || '—'}</td>
                           <td>{c.Descripcion || '—'}</td>
                           <td><span className={`portal-badge ${badgeCls}`}>{estadoCita}</span></td>
                         </tr>
@@ -519,11 +536,11 @@ export default function PortalPage() {
 
       {/* ── MODAL NUEVA CITA ─────────────────────────────── */}
       {showCitaModal && (
-        <div className="portal-modal-overlay" onClick={() => setShowCitaModal(false)}>
+        <div className="portal-modal-overlay" onClick={() => { setShowCitaModal(false); setEmpleadosDisponibles([]); }}>
           <div className="portal-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '480px' }}>
             <div className="portal-modal__header">
               <h3>Agendar nueva cita</h3>
-              <button className="portal-modal__close" onClick={() => setShowCitaModal(false)}>✕</button>
+              <button className="portal-modal__close" onClick={() => { setShowCitaModal(false); setEmpleadosDisponibles([]); }}>✕</button>
             </div>
             <div className="portal-modal__body">
               <form onSubmit={handleCrearCita}>
@@ -538,7 +555,11 @@ export default function PortalPage() {
                 <div style={{ marginBottom: '0.875rem' }}>
                   <label style={{ display: 'block', fontSize: '0.8rem', color: '#aaa', marginBottom: '0.25rem' }}>Fecha *</label>
                   <input type="date" className="form-control" value={citaForm.Fecha} min={new Date().toISOString().split('T')[0]}
-                    onChange={e => setCitaForm(p => ({ ...p, Fecha: e.target.value }))} required />
+                    onChange={e => {
+                      const f = e.target.value;
+                      setCitaForm(p => ({ ...p, Fecha: f, Id_Empleado: '' }));
+                      fetchEmpleadosDisponibles(f);
+                    }} required />
                 </div>
                 <div style={{ marginBottom: '0.875rem' }}>
                   <label style={{ display: 'block', fontSize: '0.8rem', color: '#aaa', marginBottom: '0.25rem' }}>Hora *</label>
@@ -554,6 +575,25 @@ export default function PortalPage() {
                     })}
                   </select>
                 </div>
+                <div style={{ marginBottom: '0.875rem' }}>
+                  <label style={{ display: 'block', fontSize: '0.8rem', color: '#aaa', marginBottom: '0.25rem' }}>Técnico asignado (opcional)</label>
+                  {!citaForm.Fecha ? (
+                    <p style={{ fontSize: '0.8rem', color: '#888', fontStyle: 'italic', margin: 0 }}>Selecciona una fecha primero</p>
+                  ) : loadingEmpleados ? (
+                    <p style={{ fontSize: '0.8rem', color: '#888', margin: 0 }}>Cargando técnicos...</p>
+                  ) : (
+                    <select className="form-control" value={citaForm.Id_Empleado}
+                      onChange={e => setCitaForm(p => ({ ...p, Id_Empleado: e.target.value }))}>
+                      <option value="">Sin preferencia</option>
+                      {empleadosDisponibles.map(e => (
+                        <option key={e.id_empleado} value={e.id_empleado} disabled={!e.disponible}
+                          style={!e.disponible ? { color: '#888' } : {}}>
+                          {e.Nombre}{!e.disponible ? ' (No disponible)' : ''}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                </div>
                 <div style={{ marginBottom: '1rem' }}>
                   <label style={{ display: 'block', fontSize: '0.8rem', color: '#aaa', marginBottom: '0.25rem' }}>Descripción</label>
                   <textarea className="form-control" value={citaForm.Descripcion} rows={3} maxLength={300}
@@ -561,7 +601,7 @@ export default function PortalPage() {
                     placeholder="Describe brevemente el motivo de la cita..." />
                 </div>
                 <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
-                  <button type="button" className="portal-btn" onClick={() => setShowCitaModal(false)}>Cancelar</button>
+                  <button type="button" className="portal-btn" onClick={() => { setShowCitaModal(false); setEmpleadosDisponibles([]); }}>Cancelar</button>
                   <button type="submit" className="portal-btn portal-btn--primary" disabled={citaLoading}>
                     {citaLoading ? 'Guardando...' : 'Agendar cita'}
                   </button>

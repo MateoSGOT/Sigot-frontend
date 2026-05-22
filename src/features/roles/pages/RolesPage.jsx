@@ -22,7 +22,7 @@ const PRIMARY_ROLES = [
 const matchRol = (a, b) => a?.localeCompare(b, undefined, { sensitivity: 'base' }) === 0;
 const isPrimaryRol = (nombre) => PRIMARY_ROLES.some(pr => matchRol(pr.nombre, nombre));
 const ROLE_COLORS = ['success', 'info', 'warning', 'danger', 'default'];
-const MODULOS = ['Clientes', 'Vehículos', 'Empleados', 'Repuestos', 'Proveedores', 'Compras', 'Servicios', 'Agenda', 'Ã“rdenes', 'Novedades', 'Roles'];
+const MODULOS = ['Clientes', 'Vehículos', 'Empleados', 'Repuestos', 'Proveedores', 'Compras', 'Servicios', 'Agenda', 'Órdenes', 'Novedades', 'Roles'];
 
 const emptyAccesos = () => {
   const a = {};
@@ -262,7 +262,7 @@ export default function RolesPage() {
           <Table columns={columns} data={sortedForTable} loading={loading} pageSize={pageSize} emptyMessage="No se encontraron roles" />
         </div>
 
-        {/* Edit panel â€” module toggle list */}
+        {/* Edit panel â€" module toggle list */}
         {showEdit && (
           <div className="card roles-split__panel">
             <div className="roles-panel-header">
