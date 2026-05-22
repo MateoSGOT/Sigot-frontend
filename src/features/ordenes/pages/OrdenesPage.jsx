@@ -1,9 +1,10 @@
 ﻿import React, { useEffect, useState, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { MdVisibility, MdEdit, MdAdd, MdBuild, MdCheck, MdArrowForward } from 'react-icons/md';
+import { MdVisibility, MdEdit, MdAdd, MdBuild, MdCheck, MdArrowForward, MdDeleteOutline } from 'react-icons/md';
 import {
   fetchOrdenes, fetchOrdenById, updateOrden, toggleOrdenEstado,
-  addServicioToOrden, addRepuestoToOrden, setManoDeObra, clearSelected
+  addServicioToOrden, addRepuestoToOrden, setManoDeObra, clearSelected,
+  deleteServicioFromOrden, deleteRepuestoFromOrden
 } from '../slices/ordenesSlice.js';
 import Modal from '../../../shared/components/Modal/Modal.jsx';
 import Table from '../../../shared/components/Table/Table.jsx';
@@ -84,6 +85,7 @@ function ProgresoEstado({ estadoActual, onAvanzar, loading }) {
 }
 
 const EMPTY_EDIT = { Diagnostico: '', Kilometraje: '', FechaIngreso: '', FechaEntrega: '' };
+const ITEMS_PER_PAGE = 5;
 
 export default function OrdenesPage() {
   const dispatch = useDispatch();
@@ -105,6 +107,8 @@ export default function OrdenesPage() {
   const [addRepError, setAddRepError]     = useState('');
   const [manoInput, setManoInput]         = useState('');
   const [editingMano, setEditingMano]     = useState(false);
+  const [servPage, setServPage]           = useState(0);
+  const [repPage, setRepPage]             = useState(0);
 
   useEffect(() => {
     dispatch(fetchOrdenes());
@@ -118,6 +122,8 @@ export default function OrdenesPage() {
       setActiveTab('info');
       setEditingMano(false);
       setManoInput('');
+      setServPage(0);
+      setRepPage(0);
     } else {
       dispatch(clearSelected());
     }
@@ -195,6 +201,16 @@ export default function OrdenesPage() {
     if (!manoInput || isNaN(valor) || valor < 0) return;
     const result = await dispatch(setManoDeObra({ id: detailId, valor }));
     if (!result.error) { setEditingMano(false); setManoInput(''); }
+  };
+
+  const handleDeleteServicio = async (servicioId) => {
+    await dispatch(deleteServicioFromOrden({ id: detailId, servicioId }));
+    dispatch(fetchOrdenById(detailId));
+  };
+
+  const handleDeleteRepuesto = async (repuestoId) => {
+    await dispatch(deleteRepuestoFromOrden({ id: detailId, repuestoId }));
+    dispatch(fetchOrdenById(detailId));
   };
 
   const columns = [
@@ -329,16 +345,35 @@ export default function OrdenesPage() {
 
             {activeTab === 'servicios' && (
               <div style={{ marginTop: '1rem' }}>
-                <div className="orden-items-list">
-                  {selected?.servicios?.length > 0 ? (
-                    selected.servicios.map((s, i) => (
-                      <div key={i} className="orden-item-row">
-                        <span className="orden-item-name">{s.servicio || s.Nombre || s.nombre || `Servicio #${s.Id_Servicio}`}</span>
-                        <span className="orden-item-price">{formatCurrency(s.precio_unitario || s.Precio)}</span>
+                {(() => {
+                  const servItems = selected?.servicios || [];
+                  const servStart = servPage * ITEMS_PER_PAGE;
+                  const servSlice = servItems.slice(servStart, servStart + ITEMS_PER_PAGE);
+                  return (
+                    <>
+                      <div className="orden-items-list">
+                        {servItems.length > 0 ? (
+                          servSlice.map((s, i) => (
+                            <div key={i} className="orden-item-row">
+                              <span className="orden-item-name">{s.servicio || s.Nombre || s.nombre || `Servicio #${s.Id_Servicio}`}</span>
+                              <span className="orden-item-price">{formatCurrency(s.precio_unitario || s.Precio)}</span>
+                              <button className="btn btn--ghost btn--icon btn--sm orden-item-delete" title="Eliminar servicio" onClick={() => handleDeleteServicio(s.Id_Servicio)} disabled={actionLoading}>
+                                <MdDeleteOutline size={16} />
+                              </button>
+                            </div>
+                          ))
+                        ) : <p className="empty-list">No hay servicios agregados.</p>}
                       </div>
-                    ))
-                  ) : <p className="empty-list">No hay servicios agregados.</p>}
-                </div>
+                      {servItems.length > ITEMS_PER_PAGE && (
+                        <div className="pagination-controls">
+                          <button className="btn btn--outline btn--sm" onClick={() => setServPage(p => p - 1)} disabled={servPage === 0}>Anterior</button>
+                          <span className="pagination-info">Mostrando {servStart + 1}–{Math.min(servStart + ITEMS_PER_PAGE, servItems.length)} de {servItems.length}</span>
+                          <button className="btn btn--outline btn--sm" onClick={() => setServPage(p => p + 1)} disabled={servStart + ITEMS_PER_PAGE >= servItems.length}>Siguiente</button>
+                        </div>
+                      )}
+                    </>
+                  );
+                })()}
 
                 <div className="mano-de-obra-section">
                   <div className="mano-de-obra-header">
@@ -391,27 +426,46 @@ export default function OrdenesPage() {
 
             {activeTab === 'repuestos' && (
               <div style={{ marginTop: '1rem' }}>
-                <div className="orden-items-list">
-                  {selected?.repuestos?.length > 0 ? (
-                    selected.repuestos.map((r, i) => {
-                      const info = repuestoById[String(r.Id_Repuesto)];
-                      const garantia = r.TiempoGarantia ?? info?.TiempoGarantia;
-                      const unidad = r.UnidadGarantia ?? info?.UnidadGarantia ?? 'meses';
-                      return (
-                        <div key={i} className="orden-item-row">
-                          <div className="orden-item-name-group">
-                            <span className="orden-item-name">{r.repuesto || r.Nombre || r.nombre || `Repuesto #${r.Id_Repuesto}`}</span>
-                            {garantia && (
-                              <span className="orden-item-garantia">· Garantía: {garantia} {unidad}</span>
-                            )}
-                          </div>
-                          <span className="orden-item-qty">x{r.cantidad || r.Cantidad}</span>
-                          <span className="orden-item-price">{formatCurrency((r.precio_unitario || r.PrecioVenta || 0) * (r.cantidad || r.Cantidad || 1))}</span>
+                {(() => {
+                  const repItems = selected?.repuestos || [];
+                  const repStart = repPage * ITEMS_PER_PAGE;
+                  const repSlice = repItems.slice(repStart, repStart + ITEMS_PER_PAGE);
+                  return (
+                    <>
+                      <div className="orden-items-list">
+                        {repItems.length > 0 ? (
+                          repSlice.map((r, i) => {
+                            const info = repuestoById[String(r.Id_Repuesto)];
+                            const garantia = r.TiempoGarantia ?? info?.TiempoGarantia;
+                            const unidad = r.UnidadGarantia ?? info?.UnidadGarantia ?? 'meses';
+                            return (
+                              <div key={i} className="orden-item-row">
+                                <div className="orden-item-name-group">
+                                  <span className="orden-item-name">{r.repuesto || r.Nombre || r.nombre || `Repuesto #${r.Id_Repuesto}`}</span>
+                                  {garantia && (
+                                    <span className="orden-item-garantia">· Garantía: {garantia} {unidad}</span>
+                                  )}
+                                </div>
+                                <span className="orden-item-qty">x{r.cantidad || r.Cantidad}</span>
+                                <span className="orden-item-price">{formatCurrency((r.precio_unitario || r.PrecioVenta || 0) * (r.cantidad || r.Cantidad || 1))}</span>
+                                <button className="btn btn--ghost btn--icon btn--sm orden-item-delete" title="Eliminar repuesto" onClick={() => handleDeleteRepuesto(r.Id_Repuesto)} disabled={actionLoading}>
+                                  <MdDeleteOutline size={16} />
+                                </button>
+                              </div>
+                            );
+                          })
+                        ) : <p className="empty-list">No hay repuestos agregados.</p>}
+                      </div>
+                      {repItems.length > ITEMS_PER_PAGE && (
+                        <div className="pagination-controls">
+                          <button className="btn btn--outline btn--sm" onClick={() => setRepPage(p => p - 1)} disabled={repPage === 0}>Anterior</button>
+                          <span className="pagination-info">Mostrando {repStart + 1}–{Math.min(repStart + ITEMS_PER_PAGE, repItems.length)} de {repItems.length}</span>
+                          <button className="btn btn--outline btn--sm" onClick={() => setRepPage(p => p + 1)} disabled={repStart + ITEMS_PER_PAGE >= repItems.length}>Siguiente</button>
                         </div>
-                      );
-                    })
-                  ) : <p className="empty-list">No hay repuestos agregados.</p>}
-                </div>
+                      )}
+                    </>
+                  );
+                })()}
 
                 <div className="orden-subtotal">
                   <span>Total repuestos</span>

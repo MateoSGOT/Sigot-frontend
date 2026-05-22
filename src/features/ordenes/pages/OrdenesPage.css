@@ -386,3 +386,33 @@
   flex: 1;
   max-width: 200px;
 }
+
+.orden-item-name { flex: 1; }
+
+.orden-item-delete {
+  margin-left: auto;
+  color: var(--color-text-muted);
+  opacity: 0.6;
+  transition: opacity 0.15s, color 0.15s;
+  flex-shrink: 0;
+}
+.orden-item-delete:hover:not(:disabled) {
+  opacity: 1;
+  color: #ef4444;
+}
+
+.pagination-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 0.625rem 0;
+  margin-top: 0.5rem;
+}
+
+.pagination-info {
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+  min-width: 160px;
+  text-align: center;
+}

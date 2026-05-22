@@ -29,6 +29,14 @@ export const setManoDeObra = createAsyncThunk('ordenes/setManoDeObra', async ({ 
   try { const r = await ordenesService.setManoDeObra(id, valor); return r.data || r; }
   catch (e) { return rejectWithValue(e?.response?.data?.message || 'Error'); }
 });
+export const deleteServicioFromOrden = createAsyncThunk('ordenes/deleteServicio', async ({ id, servicioId }, { rejectWithValue }) => {
+  try { await ordenesService.deleteServicio(id, servicioId); return { id, servicioId }; }
+  catch (e) { return rejectWithValue(e?.response?.data?.message || 'Error'); }
+});
+export const deleteRepuestoFromOrden = createAsyncThunk('ordenes/deleteRepuesto', async ({ id, repuestoId }, { rejectWithValue }) => {
+  try { await ordenesService.deleteRepuesto(id, repuestoId); return { id, repuestoId }; }
+  catch (e) { return rejectWithValue(e?.response?.data?.message || 'Error'); }
+});
 
 const ordenesSlice = createSlice({
   name: 'ordenes',
@@ -51,7 +59,13 @@ const ordenesSlice = createSlice({
      .addCase(addRepuestoToOrden.rejected, (s,a) => { s.actionLoading=false; s.error=a.payload; })
      .addCase(setManoDeObra.pending, s => { s.actionLoading=true; })
      .addCase(setManoDeObra.fulfilled, (s,a) => { s.actionLoading=false; if(a.payload) s.selected=a.payload; })
-     .addCase(setManoDeObra.rejected, (s,a) => { s.actionLoading=false; s.error=a.payload; });
+     .addCase(setManoDeObra.rejected, (s,a) => { s.actionLoading=false; s.error=a.payload; })
+     .addCase(deleteServicioFromOrden.pending, s => { s.actionLoading=true; })
+     .addCase(deleteServicioFromOrden.fulfilled, s => { s.actionLoading=false; })
+     .addCase(deleteServicioFromOrden.rejected, (s,a) => { s.actionLoading=false; s.error=a.payload; })
+     .addCase(deleteRepuestoFromOrden.pending, s => { s.actionLoading=true; })
+     .addCase(deleteRepuestoFromOrden.fulfilled, s => { s.actionLoading=false; })
+     .addCase(deleteRepuestoFromOrden.rejected, (s,a) => { s.actionLoading=false; s.error=a.payload; });
   },
 });
 export const { clearError, clearSelected } = ordenesSlice.actions;
