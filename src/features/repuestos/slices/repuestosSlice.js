@@ -1,11 +1,12 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import { repuestosService } from '../services/repuestosService.js';
 
+const normEstado = (v) => v === true ? 1 : v === false ? 0 : Number(v);
 const norm = (r) => ({
   ...r,
   Nombre: r.NombreRepuesto ?? r.Nombre,
   Id_Categoria: r.Id_categoria ?? r.Id_Categoria,
-  Estado: r.Estado === true ? 1 : r.Estado === false ? 0 : r.Estado,
+  Estado: normEstado(r.Estado),
 });
 
 export const fetchRepuestos = createAsyncThunk('repuestos/fetchAll', async (_, { rejectWithValue }) => {
@@ -38,7 +39,7 @@ const repuestosSlice = createSlice({
      .addCase(updateRepuesto.pending, s => { s.actionLoading=true; })
      .addCase(updateRepuesto.fulfilled, (s,a) => { s.actionLoading=false; const n=norm(a.payload||{}); const idx=s.items.findIndex(i=>i.Id_Repuesto===n.Id_Repuesto); if(idx>=0) s.items[idx]=n; })
      .addCase(updateRepuesto.rejected, (s,a) => { s.actionLoading=false; s.error=a.payload; })
-     .addCase(toggleRepuestoEstado.fulfilled, (s,a) => { const item=s.items.find(i=>i.Id_Repuesto===a.payload.id); if(item) item.Estado=a.payload.Estado; });
+     .addCase(toggleRepuestoEstado.fulfilled, (s,a) => { const item=s.items.find(i=>i.Id_Repuesto===a.payload.id); if(item) item.Estado=normEstado(a.payload.Estado); });
   },
 });
 export const { clearError } = repuestosSlice.actions;

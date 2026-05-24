@@ -1,13 +1,14 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import { proveedoresService } from '../services/proveedoresService.js';
 
+const normEstado = (v) => v === true ? 1 : v === false ? 0 : Number(v);
 const norm = (p) => ({
   ...p,
   Id_Proveedor: p.id_proveedor ?? p.Id_Proveedor,
   Nombre: p.nombre ?? p.Nombre,
   Correo: p.correo ?? p.Correo,
   Contacto: p.contacto ?? p.Contacto,
-  Estado: p.Estado === true ? 1 : p.Estado === false ? 0 : p.Estado,
+  Estado: normEstado(p.Estado),
 });
 
 export const fetchProveedores = createAsyncThunk('proveedores/fetchAll', async (_, { rejectWithValue }) => {
@@ -40,7 +41,7 @@ const proveedoresSlice = createSlice({
      .addCase(updateProveedor.pending, s => { s.actionLoading=true; })
      .addCase(updateProveedor.fulfilled, (s,a) => { s.actionLoading=false; const n=norm(a.payload||{}); const idx=s.items.findIndex(i=>i.Id_Proveedor===n.Id_Proveedor); if(idx>=0) s.items[idx]=n; })
      .addCase(updateProveedor.rejected, (s,a) => { s.actionLoading=false; s.error=a.payload; })
-     .addCase(toggleProveedorEstado.fulfilled, (s,a) => { const item=s.items.find(i=>i.Id_Proveedor===a.payload.id); if(item) item.Estado=a.payload.Estado; });
+     .addCase(toggleProveedorEstado.fulfilled, (s,a) => { const item=s.items.find(i=>i.Id_Proveedor===a.payload.id); if(item) item.Estado=normEstado(a.payload.Estado); });
   },
 });
 export const { clearError } = proveedoresSlice.actions;
