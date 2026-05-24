@@ -110,7 +110,7 @@ export default function EmpleadosPage() {
   const tiposDocOpts = tiposDoc.map(t => ({ value: String(t.Id_TipoDoc), label: t.Nombre }));
   const rolesOpts    = roles.map(r => ({ value: String(r.Id_Rol), label: r.Nombre }));
 
-  const esAdminSistema = (emp) => emp.EsSistema === true;
+  const esAdminSistema = (emp) => emp.Rol === 'Administrador';
 
   const columns = [
     { key: '#', label: '#', width: '50px', render: (_, __, i) => i + 1 },
@@ -238,7 +238,7 @@ export default function EmpleadosPage() {
               value={String(formData.Id_Rol)}
               onChange={v => setFormData(p => ({ ...p, Id_Rol: v }))}
               placeholder="Seleccionar rol..."
-              disabled={!!(editingId && items.find(e => e.Id_Empleado === editingId)?.EsSistema)}
+              disabled={!!(editingId && items.find(e => e.Id_Empleado === editingId)?.Rol === 'Administrador')}
             />
           </div>
 
