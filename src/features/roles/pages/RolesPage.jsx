@@ -1,80 +1,91 @@
-import React, { useEffect, useCallback, useRef, useState } from 'react';
+﻿import React, { useEffect, useCallback, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import {
-  MdAdd, MdEdit, MdSave, MdCheck, MdClose, MdPeople,
-  MdSecurity, MdDashboard, MdPeopleAlt, MdDirectionsCar,
-  MdBuild, MdCategory, MdLocalShipping, MdShoppingCart,
-  MdMiscellaneousServices, MdEventNote, MdAssignment,
-  MdNewReleases, MdPerson,
+  MdAdd, MdEdit, MdSave, MdCheck, MdClose, MdPeople, MdSecurity,
+  MdDashboard, MdPeopleAlt, MdDirectionsCar, MdBuild, MdCategory,
+  MdLocalShipping, MdShoppingCart, MdMiscellaneousServices,
+  MdEventNote, MdAssignment, MdNewReleases, MdPerson,
 } from 'react-icons/md';
 import ToggleSwitch from '../../../shared/components/ToggleSwitch/ToggleSwitch.jsx';
 import { fetchRoles, createRol, updateRol, toggleRolEstado } from '../slices/rolesSlice.js';
 import Modal from '../../../shared/components/Modal/Modal.jsx';
+import Table from '../../../shared/components/Table/Table.jsx';
+import SearchBar from '../../../shared/components/SearchBar/SearchBar.jsx';
+import FilterDropdown from '../../../shared/components/FilterDropdown/FilterDropdown.jsx';
 import Badge from '../../../shared/components/Badge/Badge.jsx';
 import { filterItems } from '../../../shared/utils/helpers.js';
 import api from '../../../shared/services/api.js';
 import './RolesPage.css';
+
+/* ── Constants ─────────────────────────────────────────────────── */
+
+const PRIMARY_ROLES = [
+  { nombre: 'Administrador', color: 'success' },
+  { nombre: 'Secretario',    color: 'info'    },
+  { nombre: 'Bodeguero',     color: 'warning' },
+  { nombre: 'Técnico',  color: 'danger'  }, // Técnico — explicit Unicode escape to avoid encoding issues
+];
+
+const ROLE_COLORS = ['success', 'info', 'warning', 'danger', 'default'];
+
+const matchRol     = (a, b) => a?.localeCompare(b, undefined, { sensitivity: 'base' }) === 0;
+const isPrimaryRol = (nombre) => PRIMARY_ROLES.some(pr => matchRol(pr.nombre, nombre));
 
 const ACTIONS = ['Ver', 'Crear', 'Editar', 'Eliminar'];
 
 const MODULE_META = {
   'Dashboard':   { icon: MdDashboard,             label: 'Dashboard',          color: '#6366f1' },
   'Clientes':    { icon: MdPerson,                label: 'Clientes',           color: '#0ea5e9' },
-  'Vehículos':   { icon: MdDirectionsCar,         label: 'Vehículos',          color: '#14b8a6' },
+  'Vehículos':{ icon: MdDirectionsCar,         label: 'Vehículos',     color: '#14b8a6' },
   'Empleados':   { icon: MdPeopleAlt,             label: 'Empleados',          color: '#8b5cf6' },
   'Repuestos':   { icon: MdBuild,                 label: 'Repuestos',          color: '#f59e0b' },
-  'Categorías':  { icon: MdCategory,              label: 'Categorías',         color: '#10b981' },
+  'Categorías': { icon: MdCategory,          label: 'Categorías',    color: '#10b981' },
   'Proveedores': { icon: MdLocalShipping,         label: 'Proveedores',        color: '#f97316' },
   'Compras':     { icon: MdShoppingCart,          label: 'Compras',            color: '#ef4444' },
   'Servicios':   { icon: MdMiscellaneousServices, label: 'Servicios',          color: '#a855f7' },
   'Agenda':      { icon: MdEventNote,             label: 'Agenda',             color: '#22c55e' },
-  'Órdenes':     { icon: MdAssignment,            label: 'Órdenes de Trabajo', color: '#eab308' },
+  'Órdenes':{ icon: MdAssignment,            label: 'Órdenes de Trabajo', color: '#eab308' },
   'Novedades':   { icon: MdNewReleases,           label: 'Novedades',          color: '#ec4899' },
   'Roles':       { icon: MdSecurity,              label: 'Roles',              color: '#b5f23d' },
 };
 
 const MODULES_ORDER = [
-  'Dashboard','Clientes','Vehículos','Empleados','Repuestos',
-  'Categorías','Proveedores','Compras','Servicios','Agenda',
-  'Órdenes','Novedades','Roles',
-];
-
-const ROLE_PALETTE = [
-  { bg: 'rgba(99,102,241,0.12)',  fg: '#6366f1' },
-  { bg: 'rgba(14,165,233,0.12)',  fg: '#0ea5e9' },
-  { bg: 'rgba(245,158,11,0.12)',  fg: '#f59e0b' },
-  { bg: 'rgba(239,68,68,0.12)',   fg: '#ef4444' },
-  { bg: 'rgba(168,85,247,0.12)',  fg: '#a855f7' },
-  { bg: 'rgba(16,185,129,0.12)',  fg: '#10b981' },
-  { bg: 'rgba(249,115,22,0.12)',  fg: '#f97316' },
+  'Dashboard', 'Clientes', 'Vehículos', 'Empleados', 'Repuestos',
+  'Categorías', 'Proveedores', 'Compras', 'Servicios', 'Agenda',
+  'Órdenes', 'Novedades', 'Roles',
 ];
 
 const emptyMatrix = () =>
   MODULES_ORDER.map(mod => ({ Modulo: mod, Ver: 0, Crear: 0, Editar: 0, Eliminar: 0 }));
 
+/* ── Component ─────────────────────────────────────────────────── */
+
 export default function RolesPage() {
   const dispatch = useDispatch();
   const { items, loading, actionLoading } = useSelector(s => s.roles);
-  const [empleados, setEmpleados] = useState([]);
-  const [search, setSearch] = useState('');
+  const [empleados, setEmpleados]       = useState([]);
+  const [search, setSearch]             = useState('');
+  const [statusFilter, setStatusFilter] = useState('todos');
+  const [pageSize, setPageSize]         = useState(5);
 
   // Create modal
-  const [showCreate, setShowCreate] = useState(false);
-  const [createNombre, setCreateNombre] = useState('');
-  const [createError, setCreateError] = useState('');
+  const [showCreate, setShowCreate]       = useState(false);
+  const [createNombre, setCreateNombre]   = useState('');
+  const [createError, setCreateError]     = useState('');
 
-  // Edit modal
-  const [showEdit, setShowEdit] = useState(false);
+  // Edit modal (RBAC matrix)
+  const [showEdit, setShowEdit]     = useState(false);
   const [editingRol, setEditingRol] = useState(null);
   const [formNombre, setFormNombre] = useState('');
-  const [matrix, setMatrix] = useState([]);
+  const [matrix, setMatrix]         = useState([]);
   const [matLoading, setMatLoading] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [formError, setFormError] = useState('');
+  const [saving, setSaving]         = useState(false);
+  const [formError, setFormError]   = useState('');
 
   // Toast
-  const [toast, setToast] = useState(null);
+  const [toast, setToast]   = useState(null);
   const toastTimer = useRef(null);
+  const ensuredRef = useRef(false);
 
   const showToast = useCallback((type, msg) => {
     setToast({ type, msg });
@@ -82,13 +93,79 @@ export default function RolesPage() {
     toastTimer.current = setTimeout(() => setToast(null), 3500);
   }, []);
 
+  /* Fix corrupted "TÃ©cnico"-style names that may exist in the DB */
+  const fixEncoding = (nombre) => {
+    try {
+      return decodeURIComponent(escape(nombre));
+    } catch {
+      return nombre;
+    }
+  };
+
+  const ensurePrimaryRoles = async (fetchedItems) => {
+    let changed = false;
+    for (const pr of PRIMARY_ROLES) {
+      // Look for exact match OR mojibake variant (e.g. "TÃ©cnico" → "Técnico")
+      const found = fetchedItems.find(i =>
+        matchRol(i.Nombre, pr.nombre) || matchRol(fixEncoding(i.Nombre), pr.nombre)
+      );
+      if (!found) {
+        await dispatch(createRol({ Nombre: pr.nombre }));
+        changed = true;
+      } else {
+        if (found.Nombre !== pr.nombre) {
+          // Fix corrupted/mojibake name stored in DB
+          await dispatch(updateRol({ id: found.Id_Rol, data: { Nombre: pr.nombre } }));
+          changed = true;
+        }
+        if (found.Estado === 0 && found.Id_Rol !== 1) {
+          await dispatch(toggleRolEstado(found.Id_Rol));
+          changed = true;
+        }
+      }
+    }
+    if (changed) dispatch(fetchRoles());
+  };
+
   useEffect(() => {
-    dispatch(fetchRoles());
+    dispatch(fetchRoles()).then(action => {
+      if (!action.error && !ensuredRef.current) {
+        ensuredRef.current = true;
+        ensurePrimaryRoles(Array.isArray(action.payload) ? action.payload : []);
+      }
+    });
     api.get('/api/empleados').then(r => setEmpleados(r.data?.data || r.data || [])).catch(() => {});
     return () => clearTimeout(toastTimer.current);
   }, [dispatch]);
 
-  const getEmployeeCount = (rolId) => empleados.filter(e => e.Id_Rol == rolId).length;
+  const getCount = (rolId) => empleados.filter(e => e.Id_Rol == rolId).length;
+
+  const primaryCards = PRIMARY_ROLES.map(pr => {
+    const found = items.find(i => matchRol(i.Nombre, pr.nombre));
+    return { ...pr, item: found, count: found ? getCount(found.Id_Rol) : 0 };
+  });
+  const otrosRoles = items.filter(i => !isPrimaryRol(i.Nombre));
+  const otrosCount = otrosRoles.reduce((sum, r) => sum + getCount(r.Id_Rol), 0);
+
+  const filteredForTable = (() => {
+    const after = filterItems(items, search, ['Nombre']);
+    return statusFilter === 'activos'   ? after.filter(r => r.Estado === 1)
+         : statusFilter === 'inactivos' ? after.filter(r => r.Estado === 0)
+         : after;
+  })();
+
+  const sortedForTable = (() => {
+    const primaries = filteredForTable.filter(r => isPrimaryRol(r.Nombre));
+    const others    = filteredForTable.filter(r => !isPrimaryRol(r.Nombre));
+    if (others.length === 0) return primaries;
+    return [
+      ...primaries,
+      { _separator: true, _label: 'Roles secundarios', Id_Rol: '_sep' },
+      ...others,
+    ];
+  })();
+
+  /* ── Handlers ── */
 
   const openCreate = () => { setCreateNombre(''); setCreateError(''); setShowCreate(true); };
 
@@ -161,90 +238,132 @@ export default function RolesPage() {
 
   const handleToggle = (rol) => {
     if (rol.Id_Rol === 1) return;
-    dispatch(toggleRolEstado(rol.Id_Rol)).then(() => dispatch(fetchRoles()));
+    dispatch(toggleRolEstado(rol.Id_Rol));
   };
 
-  const filtered = filterItems(items, search, ['Nombre']);
+  /* ── Table columns ── */
+
+  const columns = [
+    {
+      key: 'Nombre',
+      label: 'Rol',
+      render: (v, row, i) => (
+        <div className="role-name-cell">
+          <div className={`role-icon role-icon--${ROLE_COLORS[i % ROLE_COLORS.length]}`}>
+            <MdSecurity size={15} />
+          </div>
+          <span className="font-medium">{v}</span>
+          {row.Id_Rol === 1 && (
+            <Badge variant="success" style={{ marginLeft: '0.5rem', fontSize: '0.7rem' }}>Sistema</Badge>
+          )}
+        </div>
+      ),
+    },
+    {
+      key: 'Estado',
+      label: 'Estado',
+      render: (_, row) =>
+        row.Id_Rol === 1
+          ? <Badge variant="success">Activo</Badge>
+          : <Badge variant={row.Estado === 1 ? 'success' : 'gray'}>{row.Estado === 1 ? 'Activo' : 'Inactivo'}</Badge>,
+    },
+    {
+      key: 'acciones',
+      label: 'Acciones',
+      render: (_, row) => (
+        <div className="table-actions">
+          {row.Id_Rol !== 1 && (
+            <>
+              <button
+                className="btn btn--ghost btn--icon btn--sm"
+                title="Editar permisos"
+                onClick={() => openEdit(row)}
+              >
+                <MdEdit size={17} />
+              </button>
+              <ToggleSwitch checked={row.Estado === 1} onChange={() => handleToggle(row)} />
+            </>
+          )}
+        </div>
+      ),
+    },
+  ];
+
+  /* ── Render ── */
 
   return (
     <div className="page">
       <div className="page__header">
         <div>
-          <h1 className="page__title">Roles del sistema</h1>
-          <p className="page__subtitle">Administra roles y sus permisos por módulo</p>
+          <h1 className="page__title">Roles</h1>
+          <p className="page__subtitle">{items.length} rol(es) configurado(s)</p>
         </div>
         <button className="btn btn--primary" onClick={openCreate}>
           <MdAdd size={18} /> Nuevo rol
         </button>
       </div>
 
-      {/* Search */}
-      <div className="roles-search-row">
-        <input
-          className="form-control roles-search"
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          placeholder="Buscar rol..."
-        />
-      </div>
-
-      {/* Roles Grid */}
-      <div className="roles-grid">
-        {loading ? (
-          Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="role-card role-card--skel" />
-          ))
-        ) : filtered.length === 0 ? (
-          <div className="roles-empty">No se encontraron roles</div>
-        ) : (
-          filtered.map((rol, idx) => {
-            const palette = ROLE_PALETTE[idx % ROLE_PALETTE.length];
-            const empCount = getEmployeeCount(rol.Id_Rol);
-            const isSystem = rol.Id_Rol === 1;
-            return (
-              <div key={rol.Id_Rol} className="role-card">
-                <div className="role-card__top">
-                  <div className="role-card__icon" style={{ background: palette.bg, color: palette.fg }}>
-                    <MdSecurity size={22} />
-                  </div>
-                  <div className="role-card__badges">
-                    {isSystem && <Badge variant="info">Sistema</Badge>}
-                    <Badge variant={rol.Estado === 1 ? 'success' : 'gray'}>
-                      {rol.Estado === 1 ? 'Activo' : 'Inactivo'}
-                    </Badge>
-                  </div>
-                </div>
-
-                <div className="role-card__body">
-                  <div className="role-card__name">{rol.Nombre}</div>
-                  <div className="role-card__meta">
-                    <MdPeople size={13} />
-                    <span>{empCount} empleado{empCount !== 1 ? 's' : ''}</span>
-                  </div>
-                </div>
-
-                <div className="role-card__actions">
-                  {!isSystem ? (
-                    <>
-                      <button
-                        className="btn btn--ghost btn--sm role-card__edit-btn"
-                        onClick={() => openEdit(rol)}
-                      >
-                        <MdEdit size={14} /> Editar permisos
-                      </button>
-                      <ToggleSwitch checked={rol.Estado === 1} onChange={() => handleToggle(rol)} />
-                    </>
-                  ) : (
-                    <span className="role-card__system-note">Rol protegido del sistema</span>
-                  )}
-                </div>
-              </div>
-            );
-          })
+      {/* ── Primary role summary cards ── */}
+      <div className="roles-primary-cards">
+        {primaryCards.map(card => (
+          <div key={card.nombre} className={`roles-primary-card roles-primary-card--${card.color}`}>
+            <div className={`roles-primary-icon role-icon--${card.color}`}>
+              <MdSecurity size={22} />
+            </div>
+            <div className="roles-primary-info">
+              <span className="roles-primary-name">{card.nombre}</span>
+              <span className="roles-primary-count">
+                <MdPeople size={13} style={{ marginRight: '3px' }} />
+                {card.count} persona(s)
+              </span>
+            </div>
+          </div>
+        ))}
+        {otrosRoles.length > 0 && (
+          <div className="roles-primary-card roles-primary-card--default">
+            <div className="roles-primary-icon role-icon--default">
+              <MdSecurity size={22} />
+            </div>
+            <div className="roles-primary-info">
+              <span className="roles-primary-name">Otros</span>
+              <span className="roles-primary-count">
+                <MdPeople size={13} style={{ marginRight: '3px' }} />
+                {otrosCount} persona(s)
+              </span>
+            </div>
+          </div>
         )}
       </div>
 
-      {/* ── Create Modal ── */}
+      {/* ── Roles table ── */}
+      <div className="roles-split">
+        <div className="card roles-split__table">
+          <div className="card__header">
+            <SearchBar
+              value={search}
+              onChange={setSearch}
+              placeholder="Buscar rol..."
+              filterSlot={
+                <FilterDropdown
+                  statusFilter={statusFilter}
+                  onStatusChange={setStatusFilter}
+                  pageSize={pageSize}
+                  onPageSizeChange={setPageSize}
+                />
+              }
+            />
+          </div>
+          <Table
+            columns={columns}
+            data={sortedForTable}
+            loading={loading}
+            pageSize={pageSize}
+            emptyMessage="No se encontraron roles"
+          />
+        </div>
+      </div>
+
+      {/* ── Create modal ── */}
       <Modal
         isOpen={showCreate}
         onClose={() => setShowCreate(false)}
@@ -254,7 +373,7 @@ export default function RolesPage() {
           <>
             <button className="btn btn--outline" onClick={() => setShowCreate(false)}>Cancelar</button>
             <button className="btn btn--primary" onClick={handleCreate} disabled={actionLoading}>
-              {actionLoading ? 'Creando...' : 'Crear rol'}
+              {actionLoading ? 'Guardando...' : 'Crear'}
             </button>
           </>
         }
@@ -273,7 +392,7 @@ export default function RolesPage() {
         </div>
       </Modal>
 
-      {/* ── Edit Modal — full RBAC matrix ── */}
+      {/* ── Edit modal — full RBAC matrix ── */}
       <Modal
         isOpen={showEdit}
         onClose={() => setShowEdit(false)}
@@ -354,7 +473,7 @@ export default function RolesPage() {
                 {matrix.map((row, idx) => {
                   const meta = MODULE_META[row.Modulo];
                   const Icon = meta?.icon;
-                  const allOn = ACTIONS.every(a => row[a] === 1);
+                  const allOn  = ACTIONS.every(a => row[a] === 1);
                   const someOn = ACTIONS.some(a => row[a] === 1);
                   return (
                     <tr
@@ -364,10 +483,7 @@ export default function RolesPage() {
                       <td className="rol-mat-td rol-mat-td--mod">
                         <div className="rol-mat-mod-cell">
                           {Icon && (
-                            <span
-                              className="rol-mat-mod-icon"
-                              style={{ color: meta?.color || '#b5f23d' }}
-                            >
+                            <span className="rol-mat-mod-icon" style={{ color: meta?.color || '#b5f23d' }}>
                               <Icon size={15} />
                             </span>
                           )}
