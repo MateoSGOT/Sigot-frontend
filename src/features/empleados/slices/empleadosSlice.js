@@ -1,8 +1,8 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import { empleadosService } from '../services/empleadosService.js';
 
-// Normaliza id_empleado (API oficial) → Id_Empleado (campo usado en el frontend)
-const norm = (e) => ({ ...e, Id_Empleado: e.id_empleado ?? e.Id_Empleado, Estado: e.Estado === true ? 1 : e.Estado === false ? 0 : e.Estado });
+const normEstado = (v) => v === true ? 1 : v === false ? 0 : Number(v);
+const norm = (e) => ({ ...e, Id_Empleado: e.id_empleado ?? e.Id_Empleado, Estado: normEstado(e.Estado) });
 
 export const fetchEmpleados = createAsyncThunk('empleados/fetchAll', async (_, { rejectWithValue }) => {
   try { const r = await empleadosService.getAll(); return r.data || r; }
@@ -34,7 +34,7 @@ const empleadosSlice = createSlice({
      .addCase(updateEmpleado.pending, s => { s.actionLoading=true; })
      .addCase(updateEmpleado.fulfilled, (s,a) => { s.actionLoading=false; const n=norm(a.payload||{}); const idx=s.items.findIndex(i=>i.Id_Empleado===n.Id_Empleado); if(idx>=0) s.items[idx]=n; })
      .addCase(updateEmpleado.rejected, (s,a) => { s.actionLoading=false; s.error=a.payload; })
-     .addCase(toggleEmpleadoEstado.fulfilled, (s,a) => { const item=s.items.find(i=>i.Id_Empleado===a.payload.id); if(item) item.Estado=a.payload.Estado; });
+     .addCase(toggleEmpleadoEstado.fulfilled, (s,a) => { const item=s.items.find(i=>i.Id_Empleado===a.payload.id); if(item) item.Estado=normEstado(a.payload.Estado); });
   },
 });
 export const { clearError } = empleadosSlice.actions;

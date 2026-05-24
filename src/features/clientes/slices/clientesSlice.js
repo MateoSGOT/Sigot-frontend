@@ -1,7 +1,8 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import { clientesService } from '../services/clientesService.js';
 
-const norm = (c) => ({ ...c, Estado: c.Estado === true ? 1 : c.Estado === false ? 0 : c.Estado });
+const normEstado = (v) => v === true ? 1 : v === false ? 0 : Number(v);
+const norm = (c) => ({ ...c, Estado: normEstado(c.Estado) });
 
 export const fetchClientes = createAsyncThunk('clientes/fetchAll', async (_, { rejectWithValue }) => {
   try { const r = await clientesService.getAll(); return r.data || r; }
@@ -34,7 +35,7 @@ const clientesSlice = createSlice({
      .addCase(updateCliente.pending, (s) => { s.actionLoading = true; })
      .addCase(updateCliente.fulfilled, (s, a) => { s.actionLoading = false; const n = norm(a.payload || {}); const idx = s.items.findIndex(i => i.Id_Cliente === n.Id_Cliente); if(idx>=0) s.items[idx] = n; })
      .addCase(updateCliente.rejected, (s, a) => { s.actionLoading = false; s.error = a.payload; })
-     .addCase(toggleClienteEstado.fulfilled, (s, a) => { const item = s.items.find(i => i.Id_Cliente === a.payload.id); if(item) item.Estado = a.payload.Estado; });
+     .addCase(toggleClienteEstado.fulfilled, (s, a) => { const item = s.items.find(i => i.Id_Cliente === a.payload.id); if(item) item.Estado = normEstado(a.payload.Estado); });
   },
 });
 export const { clearError } = clientesSlice.actions;

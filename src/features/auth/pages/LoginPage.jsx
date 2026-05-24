@@ -1,27 +1,28 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { loginThunk, clearError } from '../slices/authSlice.js';
 import { authService } from '../services/authService.js';
 import api from '../../../shared/services/api.js';
-import { MdLock, MdEmail, MdVisibility, MdVisibilityOff, MdClose, MdSearch, MdBuild, MdAssignment, MdEventNote, MdFlashOn } from 'react-icons/md';
+import { MdLock, MdEmail, MdVisibility, MdVisibilityOff, MdClose, MdBuild, MdAssignment, MdEventNote, MdFlashOn, MdSend } from 'react-icons/md';
 import './LoginPage.css';
 
-// Claves de localStorage que usa el PortalPage
 const PORTAL_KEY = 'sigot_portal_token';
 const PORTAL_CLIENT_KEY = 'sigot_portal_cliente';
 
 const FEATURES = [
-  { icon: MdBuild, title: 'Gestión de taller', desc: 'Ordenes de trabajo, servicios y repuestos en un solo lugar.' },
-  { icon: MdEventNote, title: 'Agenda inteligente', desc: 'Programa citas y genera órdenes automáticamente.' },
-  { icon: MdAssignment, title: 'Control total', desc: 'Empleados, clientes, vehículos e inventario centralizado.' },
+  { icon: MdBuild,      title: 'Gestión de taller',  desc: 'Ordenes de trabajo, servicios y repuestos en un solo lugar.' },
+  { icon: MdEventNote,  title: 'Agenda inteligente', desc: 'Programa citas y genera órdenes automáticamente.' },
+  { icon: MdAssignment, title: 'Control total',       desc: 'Empleados, clientes, vehículos e inventario centralizado.' },
 ];
 
 const DEMO_ACCOUNTS = [
-  { label: 'Administrador', correo: 'admin@sigot.com', pwd: 'admin123', color: 'success' },
-  { label: 'Empleado', correo: 'tecnico@sigot.com', pwd: 'tecnico123', color: 'info' },
-  { label: 'Cliente', correo: 'cliente@sigot.com', pwd: 'cliente123', color: 'purple' },
+  { label: 'Administrador', correo: 'admin@sigot.com',    pwd: 'admin123',    color: 'success' },
+  { label: 'Empleado',      correo: 'tecnico@sigot.com',  pwd: 'tecnico123',  color: 'info'    },
+  { label: 'Cliente',       correo: 'cliente@sigot.com',  pwd: 'cliente123',  color: 'purple'  },
 ];
+
+const RESEND_COOLDOWN = 60;
 
 export default function LoginPage() {
   const dispatch = useDispatch();
@@ -31,19 +32,34 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [clienteLoading, setClienteLoading] = useState(false);
 
-  // Password recovery modal
+  // Recovery modal state
   const [showRecovery, setShowRecovery] = useState(false);
+  const [recoveryStep, setRecoveryStep] = useState(1); // 1 = form, 2 = confirmation
   const [recoveryEmail, setRecoveryEmail] = useState('');
   const [recoveryLoading, setRecoveryLoading] = useState(false);
-  const [recoveryResult, setRecoveryResult] = useState(null); // true when email sent
   const [recoveryError, setRecoveryError] = useState('');
+  const [resendCountdown, setResendCountdown] = useState(0);
+  const countdownRef = useRef(null);
 
   useEffect(() => {
-    return () => { dispatch(clearError()); };
+    return () => {
+      dispatch(clearError());
+      if (countdownRef.current) clearInterval(countdownRef.current);
+    };
   }, [dispatch]);
 
+  const startCountdown = () => {
+    setResendCountdown(RESEND_COOLDOWN);
+    countdownRef.current = setInterval(() => {
+      setResendCountdown(prev => {
+        if (prev <= 1) { clearInterval(countdownRef.current); return 0; }
+        return prev - 1;
+      });
+    }, 1000);
+  };
+
   const handleChange = (e) => {
-    setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+    setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
     if (error) dispatch(clearError());
   };
 
@@ -55,33 +71,42 @@ export default function LoginPage() {
 
   const openRecovery = () => {
     setShowRecovery(true);
+    setRecoveryStep(1);
     setRecoveryEmail('');
-    setRecoveryResult(null);
     setRecoveryError('');
+    setResendCountdown(0);
+    if (countdownRef.current) clearInterval(countdownRef.current);
   };
 
   const closeRecovery = () => {
     setShowRecovery(false);
+    if (countdownRef.current) clearInterval(countdownRef.current);
   };
 
-  const handleRecovery = async (e) => {
-    e.preventDefault();
-    if (!recoveryEmail.trim()) return;
+  const sendRecovery = async (email) => {
     setRecoveryLoading(true);
     setRecoveryError('');
-    setRecoveryResult(null);
     try {
-      await authService.solicitarRecuperacion(recoveryEmail.trim());
-      setRecoveryResult(true);
+      await authService.solicitarRecuperacion(email.trim());
+      setRecoveryStep(2);
+      startCountdown();
     } catch (err) {
-      setRecoveryError(
-        err?.response?.data?.message || 'Ocurrió un error. Intenta de nuevo.'
-      );
+      setRecoveryError(err?.response?.data?.message || 'Ocurrió un error. Intenta de nuevo.');
     } finally {
       setRecoveryLoading(false);
     }
   };
 
+  const handleRecoverySubmit = (e) => {
+    e.preventDefault();
+    if (!recoveryEmail.trim()) return;
+    sendRecovery(recoveryEmail);
+  };
+
+  const handleResend = () => {
+    if (resendCountdown > 0) return;
+    sendRecovery(recoveryEmail);
+  };
 
   return (
     <div className="login-page">
@@ -94,18 +119,14 @@ export default function LoginPage() {
         </div>
 
         <div className="login-left__content">
-          <div className="login-left__logo">
-            <span>S</span>
-          </div>
+          <div className="login-left__logo"><span>S</span></div>
           <h1 className="login-left__title">Bienvenido<br />de nuevo</h1>
           <p className="login-left__subtitle">Sistema de Gestión de Órdenes y Taller</p>
 
           <div className="login-left__cards">
             {FEATURES.map(({ icon: Icon, title, desc }) => (
               <div key={title} className="login-feature-card">
-                <div className="login-feature-card__icon">
-                  <Icon size={18} />
-                </div>
+                <div className="login-feature-card__icon"><Icon size={18} /></div>
                 <div>
                   <p className="login-feature-card__title">{title}</p>
                   <p className="login-feature-card__desc">{desc}</p>
@@ -127,8 +148,7 @@ export default function LoginPage() {
           <form className="login-form" onSubmit={handleSubmit} noValidate>
             {error && (
               <div className="login-form__error">
-                <MdLock size={16} />
-                {error}
+                <MdLock size={16} />{error}
               </div>
             )}
 
@@ -137,14 +157,9 @@ export default function LoginPage() {
               <div className="login-form__field">
                 <MdEmail className="login-form__field-icon" size={18} />
                 <input
-                  type="email"
-                  name="Correo"
-                  className="login-form__input"
-                  placeholder="correo@empresa.com"
-                  value={form.Correo}
-                  onChange={handleChange}
-                  autoComplete="email"
-                  required
+                  type="email" name="Correo" className="login-form__input"
+                  placeholder="correo@empresa.com" value={form.Correo}
+                  onChange={handleChange} autoComplete="email" required
                 />
               </div>
             </div>
@@ -154,54 +169,33 @@ export default function LoginPage() {
               <div className="login-form__field">
                 <MdLock className="login-form__field-icon" size={18} />
                 <input
-                  type={showPassword ? 'text' : 'password'}
-                  name="Password"
+                  type={showPassword ? 'text' : 'password'} name="Password"
                   className="login-form__input login-form__input--has-toggle"
-                  placeholder="••••••••"
-                  value={form.Password}
-                  onChange={handleChange}
-                  autoComplete="current-password"
-                  required
+                  placeholder="••••••••" value={form.Password}
+                  onChange={handleChange} autoComplete="current-password" required
                 />
-                <button
-                  type="button"
-                  className="login-form__toggle"
-                  onClick={() => setShowPassword(!showPassword)}
-                  tabIndex={-1}
-                >
+                <button type="button" className="login-form__toggle"
+                  onClick={() => setShowPassword(!showPassword)} tabIndex={-1}>
                   {showPassword ? <MdVisibilityOff size={18} /> : <MdVisibility size={18} />}
                 </button>
               </div>
             </div>
 
             <button type="submit" className="login-form__submit" disabled={loading}>
-              {loading ? (
-                <>
-                  <span className="login-form__spinner" />
-                  Iniciando sesión...
-                </>
-              ) : (
-                'Ingresar'
-              )}
+              {loading ? <><span className="login-form__spinner" />Iniciando sesión...</> : 'Ingresar'}
             </button>
           </form>
 
           {/* Demo quick access */}
           <div className="login-demo-section">
-            <div className="login-demo-title">
-              <MdFlashOn size={14} />
-              Acceso rápido demo
-            </div>
+            <div className="login-demo-title"><MdFlashOn size={14} />Acceso rápido demo</div>
             <div className="login-demo-grid">
               {DEMO_ACCOUNTS.map(acc => (
-                <button
-                  key={acc.correo}
-                  type="button"
+                <button key={acc.correo} type="button"
                   className={`login-demo-btn login-demo-btn--${acc.color}`}
                   disabled={clienteLoading}
                   onClick={async () => {
                     if (acc.color === 'purple') {
-                      // Clientes van al portal usando su propio endpoint
                       setClienteLoading(true);
                       try {
                         const res = await api.post('/api/auth/cliente-login', { Correo: acc.correo });
@@ -209,11 +203,8 @@ export default function LoginPage() {
                         localStorage.setItem(PORTAL_KEY, token);
                         localStorage.setItem(PORTAL_CLIENT_KEY, JSON.stringify(cliente));
                         navigate('/portal');
-                      } catch {
-                        navigate('/portal');
-                      } finally {
-                        setClienteLoading(false);
-                      }
+                      } catch { navigate('/portal'); }
+                      finally { setClienteLoading(false); }
                     } else {
                       if (error) dispatch(clearError());
                       dispatch(loginThunk({ Correo: acc.correo, Password: acc.pwd }));
@@ -240,55 +231,85 @@ export default function LoginPage() {
       {/* ── Recovery Modal ── */}
       {showRecovery && (
         <div className="login-modal-overlay" onClick={closeRecovery}>
-          <div className="login-modal" onClick={(e) => e.stopPropagation()}>
+          <div className="login-modal" onClick={e => e.stopPropagation()}>
             <div className="login-modal__header">
-              <h3 className="login-modal__title">Recuperar contraseña</h3>
+              <h3 className="login-modal__title">
+                {recoveryStep === 1 ? '¿Olvidaste tu contraseña?' : 'Revisa tu correo'}
+              </h3>
               <button className="login-modal__close" onClick={closeRecovery}>
                 <MdClose size={18} />
               </button>
             </div>
 
             <div className="login-modal__body">
-              <p className="login-modal__desc">
-                Ingresa el correo registrado para consultar tu contraseña.
-              </p>
-
-              <form className="login-recovery-form" onSubmit={handleRecovery}>
-                <div className="login-form__group">
-                  <label className="login-form__label" style={{ color: '#374151' }}>Correo electrónico</label>
-                  <div className="login-form__field login-form__field--light">
-                    <MdEmail className="login-form__field-icon login-form__field-icon--light" size={18} />
-                    <input
-                      type="email"
-                      className="login-form__input login-form__input--light"
-                      placeholder="correo@empresa.com"
-                      value={recoveryEmail}
-                      onChange={(e) => { setRecoveryEmail(e.target.value); setRecoveryError(''); setRecoveryResult(null); }}
-                      required
-                    />
-                  </div>
-                </div>
-
-                <button type="submit" className="login-recovery-form__btn" disabled={recoveryLoading}>
-                  {recoveryLoading ? (
-                    <><span className="login-form__spinner login-form__spinner--green" />Buscando...</>
-                  ) : (
-                    <><MdSearch size={18} />Buscar</>
-                  )}
-                </button>
-              </form>
-
-              {recoveryError && (
-                <div className="login-recovery__error">
-                  {recoveryError}
-                </div>
-              )}
-
-              {recoveryResult && (
-                <div className="login-recovery__result">
-                  <p className="login-recovery__result-label">
-                    Si el correo está registrado, recibirás instrucciones para recuperar tu contraseña.
+              {recoveryStep === 1 ? (
+                <>
+                  <p className="login-modal__desc">
+                    Ingresa tu correo y te enviaremos un enlace para crear una nueva contraseña.
                   </p>
+
+                  <form className="login-recovery-form" onSubmit={handleRecoverySubmit}>
+                    <div className="login-form__group">
+                      <label className="login-form__label" style={{ color: '#374151' }}>
+                        Correo electrónico
+                      </label>
+                      <div className="login-form__field login-form__field--light">
+                        <MdEmail className="login-form__field-icon login-form__field-icon--light" size={18} />
+                        <input
+                          type="email"
+                          className="login-form__input login-form__input--light"
+                          placeholder="correo@empresa.com"
+                          value={recoveryEmail}
+                          onChange={e => { setRecoveryEmail(e.target.value); setRecoveryError(''); }}
+                          autoFocus
+                          required
+                        />
+                      </div>
+                    </div>
+
+                    {recoveryError && (
+                      <div className="login-recovery__error">{recoveryError}</div>
+                    )}
+
+                    <button type="submit" className="login-recovery-form__btn" disabled={recoveryLoading}>
+                      {recoveryLoading
+                        ? <><span className="login-form__spinner login-form__spinner--green" />Enviando...</>
+                        : <><MdSend size={16} />Enviar enlace de recuperación</>
+                      }
+                    </button>
+                  </form>
+                </>
+              ) : (
+                <div className="login-recovery__confirm">
+                  <div className="login-recovery__confirm-icon">📧</div>
+                  <p className="login-recovery__confirm-title">Enlace enviado</p>
+                  <p className="login-recovery__confirm-msg">
+                    Si el correo <strong>{recoveryEmail}</strong> está registrado en SIGOT,
+                    recibirás un enlace en los próximos minutos.
+                    <br />El enlace expirará en <strong>15 minutos</strong>.
+                  </p>
+                  <p className="login-recovery__confirm-hint">
+                    ¿No lo ves? Revisa tu carpeta de spam.
+                  </p>
+
+                  <div className="login-recovery__confirm-actions">
+                    <button
+                      type="button"
+                      className="login-recovery__resend-btn"
+                      onClick={handleResend}
+                      disabled={resendCountdown > 0 || recoveryLoading}
+                    >
+                      {recoveryLoading
+                        ? <><span className="login-form__spinner login-form__spinner--green" />Reenviando...</>
+                        : resendCountdown > 0
+                          ? `Reenviar en ${resendCountdown}s`
+                          : 'Reenviar'
+                      }
+                    </button>
+                    <button type="button" className="login-recovery-form__btn" onClick={closeRecovery}>
+                      Entendido
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
