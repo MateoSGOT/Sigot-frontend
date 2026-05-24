@@ -110,6 +110,8 @@ export default function EmpleadosPage() {
   const tiposDocOpts = tiposDoc.map(t => ({ value: String(t.Id_TipoDoc), label: t.Nombre }));
   const rolesOpts    = roles.map(r => ({ value: String(r.Id_Rol), label: r.Nombre }));
 
+  const esAdminSistema = (emp) => emp.EsSistema === true;
+
   const columns = [
     { key: '#', label: '#', width: '50px', render: (_, __, i) => i + 1 },
     {
@@ -120,6 +122,9 @@ export default function EmpleadosPage() {
             : <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'rgba(181,242,61,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', fontWeight: 700, color: '#b5f23d', flexShrink: 0 }}>{v?.charAt(0)}</div>
           }
           <span className="font-medium">{v}</span>
+          {esAdminSistema(row) && (
+            <Badge variant="gray" style={{ marginLeft: '0.375rem', fontSize: '0.68rem' }}>Sistema</Badge>
+          )}
         </div>
       )
     },
@@ -134,14 +139,16 @@ export default function EmpleadosPage() {
           : <span className="text-muted" style={{ fontSize: '0.8rem' }}>Sin novedades</span>;
       }
     },
-    { key: 'Estado', label: 'Estado', render: v => <StatusBadge estado={v} /> },
+    { key: 'Estado', label: 'Estado', render: (v, row) => esAdminSistema(row) ? <Badge variant="gray">Sistema</Badge> : <StatusBadge estado={v} /> },
     {
       key: 'acciones', label: 'Acciones', render: (_, row) => (
         <div className="table-actions">
           <button className="btn btn--ghost btn--icon btn--sm" onClick={() => setDetailItem(row)}><MdVisibility size={17} /></button>
-          <button className="btn btn--ghost btn--icon btn--sm" disabled={!puedeEditar} onClick={() => openEdit(row)}><MdEdit size={17} /></button>
-          {row.Id_Rol !== 1 && (
-            <ToggleSwitch checked={row.Estado === 1} onChange={() => dispatch(toggleEmpleadoEstado({ id: row.Id_Empleado, Estado: row.Estado === 1 ? 0 : 1 }))} disabled={!puedeToggle} />
+          {!esAdminSistema(row) && (
+            <>
+              <button className="btn btn--ghost btn--icon btn--sm" disabled={!puedeEditar} onClick={() => openEdit(row)}><MdEdit size={17} /></button>
+              <ToggleSwitch checked={row.Estado === 1} onChange={() => dispatch(toggleEmpleadoEstado({ id: row.Id_Empleado, Estado: row.Estado === 1 ? 0 : 1 }))} disabled={!puedeToggle} />
+            </>
           )}
         </div>
       )
@@ -234,7 +241,7 @@ export default function EmpleadosPage() {
               value={String(formData.Id_Rol)}
               onChange={v => setFormData(p => ({ ...p, Id_Rol: v }))}
               placeholder="Seleccionar rol..."
-              disabled={!!(editingId && formData.Id_Rol == 1)}
+              disabled={!!(editingId && items.find(e => e.Id_Empleado === editingId)?.EsSistema)}
             />
           </div>
 

@@ -260,7 +260,7 @@ export default function RolesPage() {
           </div>
           <span className="font-medium">{v}</span>
           {isSistema(row) && (
-            <Badge variant="success" style={{ marginLeft: '0.5rem', fontSize: '0.7rem' }}>Sistema</Badge>
+            <Badge variant="gray" style={{ marginLeft: '0.5rem', fontSize: '0.7rem' }}>Sistema</Badge>
           )}
         </div>
       ),
@@ -270,7 +270,7 @@ export default function RolesPage() {
       label: 'Estado',
       render: (_, row) =>
         isSistema(row)
-          ? <Badge variant="success">Activo</Badge>
+          ? <Badge variant="gray">Sistema</Badge>
           : <Badge variant={row.Estado === 1 ? 'success' : 'gray'}>{row.Estado === 1 ? 'Activo' : 'Inactivo'}</Badge>,
     },
     {
