@@ -12,7 +12,9 @@ export const fetchUserPermisos = createAsyncThunk('auth/fetchPermisos', async (i
   }
 });
 
+const TIPO_KEY = 'sigot_tipo';
 const storedToken = localStorage.getItem(TOKEN_KEY);
+const storedTipo  = localStorage.getItem(TIPO_KEY);
 
 export const loginThunk = createAsyncThunk('auth/login', async ({ Correo, Password }, { rejectWithValue }) => {
   try {
@@ -40,7 +42,7 @@ const authSlice = createSlice({
     token: storedToken || null,
     empleado: null,
     cliente: null,
-    tipo: null,
+    tipo: storedTipo || null,
     permisos: null,  // null = no cargado, [] = cargado sin permisos, [...] = lista de nombres
     loading: false,
     restoring: !!storedToken,
@@ -55,6 +57,7 @@ const authSlice = createSlice({
       state.permisos = null;
       state.restoring = false;
       localStorage.removeItem(TOKEN_KEY);
+      localStorage.removeItem(TIPO_KEY);
       authService.logout().catch(() => {});
     },
     clearError(state) {
@@ -77,6 +80,7 @@ const authSlice = createSlice({
         state.cliente = payload.cliente || null;
         state.restoring = false;
         localStorage.setItem(TOKEN_KEY, payload.token);
+        if (payload.tipo) localStorage.setItem(TIPO_KEY, payload.tipo);
       })
       .addCase(loginThunk.rejected, (state, action) => {
         state.loading = false;
@@ -84,10 +88,16 @@ const authSlice = createSlice({
       })
       // Restore session
       .addCase(restoreSession.fulfilled, (state, action) => {
-        const empleado = action.payload.data || action.payload;
-        state.empleado = empleado;
-        state.tipo = 'empleado';
+        const payload = action.payload;
+        const tipo = payload.tipo || 'empleado';
+        state.tipo = tipo;
         state.restoring = false;
+        if (tipo === 'cliente') {
+          state.cliente = payload.data || null;
+        } else {
+          state.empleado = payload.data || payload;
+        }
+        localStorage.setItem(TIPO_KEY, tipo);
       })
       .addCase(restoreSession.rejected, (state) => {
         state.token = null;
@@ -97,6 +107,7 @@ const authSlice = createSlice({
         state.permisos = null;
         state.restoring = false;
         localStorage.removeItem(TOKEN_KEY);
+        localStorage.removeItem(TIPO_KEY);
       })
       // Permisos del usuario logueado
       .addCase(fetchUserPermisos.fulfilled, (state, action) => {

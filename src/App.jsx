@@ -33,7 +33,7 @@ function App() {
   const { token, empleado, tipo, restoring } = useSelector((state) => state.auth);
 
   useEffect(() => {
-    if (token && !empleado && tipo !== 'cliente') {
+    if (token && !empleado && !cliente) {
       dispatch(restoreSession());
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
