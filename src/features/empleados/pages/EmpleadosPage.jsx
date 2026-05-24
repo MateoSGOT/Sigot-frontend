@@ -122,9 +122,6 @@ export default function EmpleadosPage() {
             : <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'rgba(181,242,61,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', fontWeight: 700, color: '#b5f23d', flexShrink: 0 }}>{v?.charAt(0)}</div>
           }
           <span className="font-medium">{v}</span>
-          {esAdminSistema(row) && (
-            <Badge variant="gray" style={{ marginLeft: '0.375rem', fontSize: '0.68rem' }}>Sistema</Badge>
-          )}
         </div>
       )
     },
