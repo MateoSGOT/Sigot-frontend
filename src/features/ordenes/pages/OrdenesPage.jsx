@@ -1,6 +1,7 @@
 ﻿import React, { useEffect, useState, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { MdVisibility, MdEdit, MdAdd, MdBuild, MdCheck, MdArrowForward, MdDeleteOutline } from 'react-icons/md';
+import { usePermiso } from '../../../shared/hooks/usePermiso.js';
 import {
   fetchOrdenes, fetchOrdenById, updateOrden, toggleOrdenEstado,
   addServicioToOrden, addRepuestoToOrden, setManoDeObra, clearSelected,
@@ -34,7 +35,7 @@ function EstadoBadge({ estado }) {
   return <Badge variant={cfg.variant}>{cfg.label}</Badge>;
 }
 
-function ProgresoEstado({ estadoActual, onAvanzar, loading }) {
+function ProgresoEstado({ estadoActual, onAvanzar, loading, disabled }) {
   const estadoNum = estadoActual ?? 0;
   const siguienteEstado = estadoNum < 3 ? estadoNum + 1 : null;
 
@@ -62,12 +63,12 @@ function ProgresoEstado({ estadoActual, onAvanzar, loading }) {
 
       <div className="progreso-actions">
         {estadoNum === 0 && (
-          <button className="btn btn--primary btn--sm progreso-btn" onClick={() => onAvanzar(1)} disabled={loading}>
+          <button className="btn btn--primary btn--sm progreso-btn" onClick={() => onAvanzar(1)} disabled={loading || disabled}>
             <MdArrowForward size={15} /> Activar orden
           </button>
         )}
         {siguienteEstado && estadoNum >= 1 && (
-          <button className="btn btn--primary btn--sm progreso-btn" onClick={() => onAvanzar(siguienteEstado)} disabled={loading}>
+          <button className="btn btn--primary btn--sm progreso-btn" onClick={() => onAvanzar(siguienteEstado)} disabled={loading || disabled}>
             <MdArrowForward size={15} /> Avanzar a: {PASOS.find(p => p.estado === siguienteEstado)?.label}
           </button>
         )}
@@ -75,7 +76,7 @@ function ProgresoEstado({ estadoActual, onAvanzar, loading }) {
           <p className="progreso-done">✓ Orden completada</p>
         )}
         {estadoNum !== 0 && (
-          <button className="btn btn--sm progreso-btn--inactivo" onClick={() => onAvanzar(0)} disabled={loading} title="Marcar como inactiva">
+          <button className="btn btn--sm progreso-btn--inactivo" onClick={() => onAvanzar(0)} disabled={loading || disabled} title="Marcar como inactiva">
             Poner como Inactivo
           </button>
         )}
@@ -90,6 +91,8 @@ const ITEMS_PER_PAGE = 5;
 export default function OrdenesPage() {
   const dispatch = useDispatch();
   const { items, selected, loading, actionLoading } = useSelector(s => s.ordenes);
+  const puedeEditar  = usePermiso('ORDENES.EDITAR');
+  const puedeToggle  = usePermiso('ORDENES.CAMBIAR_ESTADO');
   const [serviciosOpts, setServiciosOpts] = useState([]);
   const [repuestosOpts, setRepuestosOpts] = useState([]);
   const [search, setSearch]               = useState('');
@@ -232,7 +235,7 @@ export default function OrdenesPage() {
           <div className="table-actions">
             <button className="btn btn--ghost btn--icon btn--sm" title="Ver detalle" onClick={() => setDetailId(row.Id_Orden)}><MdVisibility size={17} /></button>
             {!bloqueada && (
-              <button className="btn btn--ghost btn--icon btn--sm" title="Editar" onClick={() => openEdit(row)}><MdEdit size={17} /></button>
+              <button className="btn btn--ghost btn--icon btn--sm" title="Editar" disabled={!puedeEditar} onClick={() => openEdit(row)}><MdEdit size={17} /></button>
             )}
           </div>
         );
@@ -321,6 +324,7 @@ export default function OrdenesPage() {
                       estadoActual={selected.Estado}
                       onAvanzar={handleAvanzarEstado}
                       loading={actionLoading}
+                      disabled={!puedeToggle}
                     />
                   </div>
                 )}

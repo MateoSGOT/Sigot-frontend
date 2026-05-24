@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { MdAdd, MdVisibility, MdEdit, MdWarning, MdVisibilityOff } from 'react-icons/md';
+import { usePermiso } from '../../../shared/hooks/usePermiso.js';
 import ToggleSwitch from '../../../shared/components/ToggleSwitch/ToggleSwitch.jsx';
 import { fetchEmpleados, createEmpleado, updateEmpleado, toggleEmpleadoEstado } from '../slices/empleadosSlice.js';
 import Modal from '../../../shared/components/Modal/Modal.jsx';
@@ -20,6 +21,9 @@ const EMPTY = { Nombre: '', Id_TipoDoc: '', Documento: '', Id_Rol: '', Correo: '
 export default function EmpleadosPage() {
   const dispatch = useDispatch();
   const { items, loading, actionLoading } = useSelector(s => s.empleados);
+  const puedeCrear   = usePermiso('EMPLEADOS.REGISTRAR');
+  const puedeEditar  = usePermiso('EMPLEADOS.EDITAR');
+  const puedeToggle  = usePermiso('EMPLEADOS.CAMBIAR_ESTADO');
   const [tiposDoc, setTiposDoc] = useState([]);
   const [roles, setRoles] = useState([]);
   const [novedades, setNovedades] = useState([]);
@@ -135,9 +139,9 @@ export default function EmpleadosPage() {
       key: 'acciones', label: 'Acciones', render: (_, row) => (
         <div className="table-actions">
           <button className="btn btn--ghost btn--icon btn--sm" onClick={() => setDetailItem(row)}><MdVisibility size={17} /></button>
-          <button className="btn btn--ghost btn--icon btn--sm" onClick={() => openEdit(row)}><MdEdit size={17} /></button>
+          <button className="btn btn--ghost btn--icon btn--sm" disabled={!puedeEditar} onClick={() => openEdit(row)}><MdEdit size={17} /></button>
           {row.Id_Rol !== 1 && (
-            <ToggleSwitch checked={row.Estado === 1} onChange={() => dispatch(toggleEmpleadoEstado({ id: row.Id_Empleado, Estado: row.Estado === 1 ? 0 : 1 }))} />
+            <ToggleSwitch checked={row.Estado === 1} onChange={() => dispatch(toggleEmpleadoEstado({ id: row.Id_Empleado, Estado: row.Estado === 1 ? 0 : 1 }))} disabled={!puedeToggle} />
           )}
         </div>
       )
@@ -153,7 +157,7 @@ export default function EmpleadosPage() {
           <h1 className="page__title">Empleados</h1>
           <p className="page__subtitle">{items.length} empleado(s) registrado(s)</p>
         </div>
-        <button className="btn btn--primary" onClick={openCreate}><MdAdd size={18} />Nuevo empleado</button>
+        <button className="btn btn--primary" onClick={openCreate} disabled={!puedeCrear}><MdAdd size={18} />Nuevo empleado</button>
       </div>
 
       {savedOk && (

@@ -30,10 +30,10 @@ function ProtectedRoute({ children }) {
 
 function App() {
   const dispatch = useDispatch();
-  const { token, empleado, restoring } = useSelector((state) => state.auth);
+  const { token, empleado, tipo, restoring } = useSelector((state) => state.auth);
 
   useEffect(() => {
-    if (token && !empleado) {
+    if (token && !empleado && tipo !== 'cliente') {
       dispatch(restoreSession());
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -47,6 +47,8 @@ function App() {
 
   if (restoring) return null;
 
+  const loginRedirect = tipo === 'cliente' ? '/portal' : '/dashboard';
+
   return (
     <Routes>
       {/* Public routes */}
@@ -55,7 +57,7 @@ function App() {
       <Route path="/reset-password" element={<ResetPasswordPage />} />
       <Route
         path="/login"
-        element={token ? <Navigate to="/dashboard" replace /> : <LoginPage />}
+        element={token ? <Navigate to={loginRedirect} replace /> : <LoginPage />}
       />
 
       {/* Protected admin/employee routes */}

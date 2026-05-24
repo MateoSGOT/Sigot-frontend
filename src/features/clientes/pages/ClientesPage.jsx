@@ -1,6 +1,7 @@
 ﻿import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { MdAdd, MdVisibility, MdEdit, MdVisibilityOff } from 'react-icons/md';
+import { usePermiso } from '../../../shared/hooks/usePermiso.js';
 import ImageUploader from '../../../shared/components/ImageUploader/ImageUploader.jsx';
 import ToggleSwitch from '../../../shared/components/ToggleSwitch/ToggleSwitch.jsx';
 import { fetchClientes, createCliente, updateCliente, toggleClienteEstado } from '../slices/clientesSlice.js';
@@ -19,6 +20,9 @@ const EMPTY_FORM = { Nombre: '', Id_TipoDoc: '', Documento: '', Telefono: '', Co
 export default function ClientesPage() {
   const dispatch = useDispatch();
   const { items, loading, actionLoading, error } = useSelector((s) => s.clientes);
+  const puedeCrear   = usePermiso('CLIENTES.REGISTRAR');
+  const puedeEditar  = usePermiso('CLIENTES.EDITAR');
+  const puedeToggle  = usePermiso('CLIENTES.CAMBIAR_ESTADO');
   const [tiposDoc, setTiposDoc] = useState([]);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('todos');
@@ -101,8 +105,8 @@ export default function ClientesPage() {
       key: 'acciones', label: 'Acciones', render: (_, row) => (
         <div className="table-actions">
           <button className="btn btn--ghost btn--icon btn--sm" title="Ver detalle" onClick={() => setDetailItem(row)}><MdVisibility size={17} /></button>
-          <button className="btn btn--ghost btn--icon btn--sm" title="Editar" onClick={() => openEdit(row)}><MdEdit size={17} /></button>
-          <ToggleSwitch checked={row.Estado === 1} onChange={() => handleToggle(row)} />
+          <button className="btn btn--ghost btn--icon btn--sm" title="Editar" disabled={!puedeEditar} onClick={() => openEdit(row)}><MdEdit size={17} /></button>
+          <ToggleSwitch checked={row.Estado === 1} onChange={() => handleToggle(row)} disabled={!puedeToggle} />
         </div>
       )
     },
@@ -115,7 +119,7 @@ export default function ClientesPage() {
           <h1 className="page__title">Clientes</h1>
           <p className="page__subtitle">{items.length} cliente(s) registrado(s)</p>
         </div>
-        <button className="btn btn--primary" onClick={openCreate}><MdAdd size={18} />Nuevo cliente</button>
+        <button className="btn btn--primary" onClick={openCreate} disabled={!puedeCrear}><MdAdd size={18} />Nuevo cliente</button>
       </div>
 
       <div className="card">

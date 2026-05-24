@@ -1,6 +1,7 @@
 ﻿import React, { useEffect, useMemo, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { MdAdd, MdVisibility, MdEdit, MdAssignment } from 'react-icons/md';
+import { usePermiso } from '../../../shared/hooks/usePermiso.js';
 import SearchableSelect from '../../../shared/components/SearchableSelect/SearchableSelect.jsx';
 import ToggleSwitch from '../../../shared/components/ToggleSwitch/ToggleSwitch.jsx';
 import { fetchAgenda, createCita, updateCita, toggleCitaEstado, generarOrdenDeCita } from '../slices/agendaSlice.js';
@@ -19,6 +20,9 @@ const EMPTY_ORDEN = { FechaIngreso: '', FechaEntrega: '', Diagnostico: '', Kilom
 export default function AgendaPage() {
   const dispatch = useDispatch();
   const { items, loading, actionLoading } = useSelector(s => s.agenda);
+  const puedeCrear   = usePermiso('AGENDA.REGISTRAR');
+  const puedeEditar  = usePermiso('AGENDA.EDITAR');
+  const puedeToggle  = usePermiso('AGENDA.CAMBIAR_ESTADO');
   const [clientes, setClientes]   = useState([]);
   const [vehiculos, setVehiculos] = useState([]);
   const [empleados, setEmpleados] = useState([]);
@@ -146,9 +150,9 @@ export default function AgendaPage() {
       key: 'acciones', label: 'Acciones', render: (_, row) => (
         <div className="table-actions">
           <button className="btn btn--ghost btn--icon btn--sm" title="Ver detalle" onClick={() => setDetailItem(row)}><MdVisibility size={17} /></button>
-          <button className="btn btn--ghost btn--icon btn--sm" title="Editar" onClick={() => openEdit(row)}><MdEdit size={17} /></button>
+          <button className="btn btn--ghost btn--icon btn--sm" title="Editar" disabled={!puedeEditar} onClick={() => openEdit(row)}><MdEdit size={17} /></button>
           <button className="btn btn--ghost btn--icon btn--sm agenda-order-btn" title="Generar orden" onClick={() => openGenerarOrden(row)}><MdAssignment size={17} /></button>
-          <ToggleSwitch checked={row.Estado === 1} onChange={() => dispatch(toggleCitaEstado({ id: row.Id_Agenda || row.id, Estado: row.Estado === 1 ? 0 : 1 }))} />
+          <ToggleSwitch checked={row.Estado === 1} onChange={() => dispatch(toggleCitaEstado({ id: row.Id_Agenda || row.id, Estado: row.Estado === 1 ? 0 : 1 }))} disabled={!puedeToggle} />
         </div>
       )
     },
@@ -158,7 +162,7 @@ export default function AgendaPage() {
     <div className="page">
       <div className="page__header">
         <div><h1 className="page__title">Agenda</h1><p className="page__subtitle">{items.length} cita(s) registrada(s)</p></div>
-        <button className="btn btn--primary" onClick={openCreate}><MdAdd size={18} />Nueva cita</button>
+        <button className="btn btn--primary" onClick={openCreate} disabled={!puedeCrear}><MdAdd size={18} />Nueva cita</button>
       </div>
       <div className="card">
         <div className="card__header">

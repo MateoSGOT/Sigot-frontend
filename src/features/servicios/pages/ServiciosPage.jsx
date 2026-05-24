@@ -1,6 +1,7 @@
 ﻿import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { MdAdd, MdVisibility, MdEdit } from 'react-icons/md';
+import { usePermiso } from '../../../shared/hooks/usePermiso.js';
 import ToggleSwitch from '../../../shared/components/ToggleSwitch/ToggleSwitch.jsx';
 import { fetchServicios, createServicio, updateServicio, toggleServicioEstado } from '../slices/serviciosSlice.js';
 import Modal from '../../../shared/components/Modal/Modal.jsx';
@@ -16,6 +17,9 @@ const EMPTY = { Nombre: '', Descripcion: '', Precio: '' };
 export default function ServiciosPage() {
   const dispatch = useDispatch();
   const { items, loading, actionLoading } = useSelector(s => s.servicios);
+  const puedeCrear   = usePermiso('SERVICIOS.REGISTRAR');
+  const puedeEditar  = usePermiso('SERVICIOS.EDITAR');
+  const puedeToggle  = usePermiso('SERVICIOS.CAMBIAR_ESTADO');
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('todos');
   const [pageSize, setPageSize] = useState(5);
@@ -58,8 +62,8 @@ export default function ServiciosPage() {
       key: 'acciones', label: 'Acciones', render: (_, row) => (
         <div className="table-actions">
           <button className="btn btn--ghost btn--icon btn--sm" onClick={() => setDetailItem(row)}><MdVisibility size={17} /></button>
-          <button className="btn btn--ghost btn--icon btn--sm" onClick={() => openEdit(row)}><MdEdit size={17} /></button>
-          <ToggleSwitch checked={row.Estado === 1} onChange={() => dispatch(toggleServicioEstado({ id: row.Id_Servicio, Estado: row.Estado === 1 ? 0 : 1 }))} />
+          <button className="btn btn--ghost btn--icon btn--sm" disabled={!puedeEditar} onClick={() => openEdit(row)}><MdEdit size={17} /></button>
+          <ToggleSwitch checked={row.Estado === 1} onChange={() => dispatch(toggleServicioEstado({ id: row.Id_Servicio, Estado: row.Estado === 1 ? 0 : 1 }))} disabled={!puedeToggle} />
         </div>
       )
     },
@@ -69,7 +73,7 @@ export default function ServiciosPage() {
     <div className="page">
       <div className="page__header">
         <div><h1 className="page__title">Servicios</h1><p className="page__subtitle">{items.length} servicio(s) disponible(s)</p></div>
-        <button className="btn btn--primary" onClick={openCreate}><MdAdd size={18} />Nuevo servicio</button>
+        <button className="btn btn--primary" onClick={openCreate} disabled={!puedeCrear}><MdAdd size={18} />Nuevo servicio</button>
       </div>
       <div className="card">
         <div className="card__header">

@@ -1,6 +1,7 @@
 ﻿import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { MdAdd, MdVisibility, MdEdit } from 'react-icons/md';
+import { usePermiso } from '../../../shared/hooks/usePermiso.js';
 import SearchableSelect from '../../../shared/components/SearchableSelect/SearchableSelect.jsx';
 import ToggleSwitch from '../../../shared/components/ToggleSwitch/ToggleSwitch.jsx';
 import { fetchVehiculos, createVehiculo, updateVehiculo, toggleVehiculoEstado } from '../slices/vehiculosSlice.js';
@@ -35,6 +36,9 @@ const EMPTY = { Placa: '', VIN: '', Id_Marca: '', Modelo: '', Anio: '', Color: '
 export default function VehiculosPage() {
   const dispatch = useDispatch();
   const { items, loading, actionLoading } = useSelector(s => s.vehiculos);
+  const puedeCrear   = usePermiso('VEHICULOS.REGISTRAR');
+  const puedeEditar  = usePermiso('VEHICULOS.EDITAR');
+  const puedeToggle  = usePermiso('VEHICULOS.CAMBIAR_ESTADO');
   const [marcas, setMarcas] = useState([]);
   const [clientes, setClientes] = useState([]);
   const [search, setSearch] = useState('');
@@ -111,8 +115,8 @@ export default function VehiculosPage() {
       key: 'acciones', label: 'Acciones', render: (_, row) => (
         <div className="table-actions">
           <button className="btn btn--ghost btn--icon btn--sm" onClick={() => setDetailItem(row)}><MdVisibility size={17} /></button>
-          <button className="btn btn--ghost btn--icon btn--sm" onClick={() => openEdit(row)}><MdEdit size={17} /></button>
-          <ToggleSwitch checked={row.Estado === 1} onChange={() => dispatch(toggleVehiculoEstado({ id: row.Id_Vehiculo, Estado: row.Estado === 1 ? 0 : 1 }))} />
+          <button className="btn btn--ghost btn--icon btn--sm" disabled={!puedeEditar} onClick={() => openEdit(row)}><MdEdit size={17} /></button>
+          <ToggleSwitch checked={row.Estado === 1} onChange={() => dispatch(toggleVehiculoEstado({ id: row.Id_Vehiculo, Estado: row.Estado === 1 ? 0 : 1 }))} disabled={!puedeToggle} />
         </div>
       )
     },
@@ -122,7 +126,7 @@ export default function VehiculosPage() {
     <div className="page">
       <div className="page__header">
         <div><h1 className="page__title">Vehículos</h1><p className="page__subtitle">{items.length} vehículo(s) registrado(s)</p></div>
-        <button className="btn btn--primary" onClick={openCreate}><MdAdd size={18} />Nuevo vehículo</button>
+        <button className="btn btn--primary" onClick={openCreate} disabled={!puedeCrear}><MdAdd size={18} />Nuevo vehículo</button>
       </div>
       <div className="card">
         <div className="card__header">

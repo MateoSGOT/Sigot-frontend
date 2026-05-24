@@ -1,6 +1,7 @@
 ﻿import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { MdAdd, MdVisibility, MdEdit } from 'react-icons/md';
+import { usePermiso } from '../../../shared/hooks/usePermiso.js';
 import SearchableSelect from '../../../shared/components/SearchableSelect/SearchableSelect.jsx';
 import { fetchNovedades, createNovedad, updateNovedad } from '../slices/novedadesSlice.js';
 import Modal from '../../../shared/components/Modal/Modal.jsx';
@@ -17,6 +18,8 @@ const TODAY = new Date().toISOString().split('T')[0];
 export default function NovedadesPage() {
   const dispatch = useDispatch();
   const { items, loading, actionLoading } = useSelector(s => s.novedades);
+  const puedeCrear   = usePermiso('NOVEDADES.REGISTRAR');
+  const puedeEditar  = usePermiso('NOVEDADES.EDITAR');
   const [empleados, setEmpleados] = useState([]);
   const [search, setSearch]       = useState('');
   const [pageSize, setPageSize]   = useState(5);
@@ -77,7 +80,7 @@ export default function NovedadesPage() {
       key: 'acciones', label: 'Acciones', render: (_, row) => (
         <div className="table-actions">
           <button className="btn btn--ghost btn--icon btn--sm" onClick={() => setDetailItem(row)}><MdVisibility size={17} /></button>
-          <button className="btn btn--ghost btn--icon btn--sm" onClick={() => openEdit(row)}><MdEdit size={17} /></button>
+          <button className="btn btn--ghost btn--icon btn--sm" disabled={!puedeEditar} onClick={() => openEdit(row)}><MdEdit size={17} /></button>
         </div>
       )
     },
@@ -87,7 +90,7 @@ export default function NovedadesPage() {
     <div className="page">
       <div className="page__header">
         <div><h1 className="page__title">Novedades</h1><p className="page__subtitle">{items.length} novedad(es) registrada(s)</p></div>
-        <button className="btn btn--primary" onClick={openCreate}><MdAdd size={18} />Nueva novedad</button>
+        <button className="btn btn--primary" onClick={openCreate} disabled={!puedeCrear}><MdAdd size={18} />Nueva novedad</button>
       </div>
       <div className="card">
         <div className="card__header">

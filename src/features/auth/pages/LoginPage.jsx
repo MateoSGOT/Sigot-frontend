@@ -3,12 +3,8 @@ import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { loginThunk, clearError } from '../slices/authSlice.js';
 import { authService } from '../services/authService.js';
-import api from '../../../shared/services/api.js';
-import { MdLock, MdEmail, MdVisibility, MdVisibilityOff, MdClose, MdBuild, MdAssignment, MdEventNote, MdFlashOn, MdSend } from 'react-icons/md';
+import { MdLock, MdEmail, MdVisibility, MdVisibilityOff, MdClose, MdBuild, MdAssignment, MdEventNote, MdSend } from 'react-icons/md';
 import './LoginPage.css';
-
-const PORTAL_KEY = 'sigot_portal_token';
-const PORTAL_CLIENT_KEY = 'sigot_portal_cliente';
 
 const FEATURES = [
   { icon: MdBuild,      title: 'Gestión de taller',  desc: 'Ordenes de trabajo, servicios y repuestos en un solo lugar.' },
@@ -16,21 +12,14 @@ const FEATURES = [
   { icon: MdAssignment, title: 'Control total',       desc: 'Empleados, clientes, vehículos e inventario centralizado.' },
 ];
 
-const DEMO_ACCOUNTS = [
-  { label: 'Administrador', correo: 'admin@sigot.com',    pwd: 'admin123',    color: 'success' },
-  { label: 'Empleado',      correo: 'tecnico@sigot.com',  pwd: 'tecnico123',  color: 'info'    },
-  { label: 'Cliente',       correo: 'cliente@sigot.com',  pwd: 'cliente123',  color: 'purple'  },
-];
-
 const RESEND_COOLDOWN = 60;
 
 export default function LoginPage() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const { loading, error } = useSelector((state) => state.auth);
+  const { loading, error, tipo } = useSelector((state) => state.auth);
   const [form, setForm] = useState({ Correo: '', Password: '' });
   const [showPassword, setShowPassword] = useState(false);
-  const [clienteLoading, setClienteLoading] = useState(false);
 
   // Recovery modal state
   const [showRecovery, setShowRecovery] = useState(false);
@@ -63,10 +52,18 @@ export default function LoginPage() {
     if (error) dispatch(clearError());
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!form.Correo || !form.Password) return;
-    dispatch(loginThunk(form));
+    const result = await dispatch(loginThunk(form));
+    if (!result.error) {
+      const payload = result.payload?.data || result.payload;
+      if (payload?.tipo === 'cliente') {
+        navigate('/portal');
+      } else {
+        navigate('/dashboard');
+      }
+    }
   };
 
   const openRecovery = () => {
@@ -185,40 +182,6 @@ export default function LoginPage() {
               {loading ? <><span className="login-form__spinner" />Iniciando sesión...</> : 'Ingresar'}
             </button>
           </form>
-
-          {/* Demo quick access */}
-          <div className="login-demo-section">
-            <div className="login-demo-title"><MdFlashOn size={14} />Acceso rápido demo</div>
-            <div className="login-demo-grid">
-              {DEMO_ACCOUNTS.map(acc => (
-                <button key={acc.correo} type="button"
-                  className={`login-demo-btn login-demo-btn--${acc.color}`}
-                  disabled={clienteLoading}
-                  onClick={async () => {
-                    if (acc.color === 'purple') {
-                      setClienteLoading(true);
-                      try {
-                        const res = await api.post('/api/auth/cliente-login', { Correo: acc.correo });
-                        const { token, cliente } = res.data?.data || {};
-                        localStorage.setItem(PORTAL_KEY, token);
-                        localStorage.setItem(PORTAL_CLIENT_KEY, JSON.stringify(cliente));
-                        navigate('/portal');
-                      } catch { navigate('/portal'); }
-                      finally { setClienteLoading(false); }
-                    } else {
-                      if (error) dispatch(clearError());
-                      dispatch(loginThunk({ Correo: acc.correo, Password: acc.pwd }));
-                    }
-                  }}
-                >
-                  <span className="login-demo-btn__label">
-                    {acc.color === 'purple' && clienteLoading ? 'Ingresando...' : acc.label}
-                  </span>
-                  <span className="login-demo-btn__cred">{acc.correo}</span>
-                </button>
-              ))}
-            </div>
-          </div>
 
           <div className="login-form-links">
             <button className="login-recovery-link" onClick={openRecovery}>

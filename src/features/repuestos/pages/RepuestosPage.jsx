@@ -1,6 +1,7 @@
 ﻿import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { MdAdd, MdVisibility, MdEdit, MdWarning, MdTableChart } from 'react-icons/md';
+import { usePermiso } from '../../../shared/hooks/usePermiso.js';
 import * as XLSX from 'xlsx';
 import ToggleSwitch from '../../../shared/components/ToggleSwitch/ToggleSwitch.jsx';
 import { fetchRepuestos, createRepuesto, updateRepuesto, toggleRepuestoEstado } from '../slices/repuestosSlice.js';
@@ -18,6 +19,9 @@ const EMPTY = { NombreRepuesto: '', Stock: '', Precio: '', Id_categoria: '' };
 export default function RepuestosPage() {
   const dispatch = useDispatch();
   const { items, loading, actionLoading } = useSelector(s => s.repuestos);
+  const puedeCrear   = usePermiso('REPUESTOS.REGISTRAR');
+  const puedeEditar  = usePermiso('REPUESTOS.EDITAR');
+  const puedeToggle  = usePermiso('REPUESTOS.CAMBIAR_ESTADO');
   const [categorias, setCategorias]       = useState([]);
   const [search, setSearch]               = useState('');
   const [statusFilter, setStatusFilter]   = useState('todos');
@@ -111,8 +115,8 @@ export default function RepuestosPage() {
       key: 'acciones', label: 'Acciones', render: (_, row) => (
         <div className="table-actions">
           <button className="btn btn--ghost btn--icon btn--sm" onClick={() => setDetailItem(row)}><MdVisibility size={17} /></button>
-          <button className="btn btn--ghost btn--icon btn--sm" onClick={() => openEdit(row)}><MdEdit size={17} /></button>
-          <ToggleSwitch checked={row.Estado === 1} onChange={() => dispatch(toggleRepuestoEstado({ id: row.Id_Repuesto, Estado: row.Estado === 1 ? 0 : 1 }))} />
+          <button className="btn btn--ghost btn--icon btn--sm" disabled={!puedeEditar} onClick={() => openEdit(row)}><MdEdit size={17} /></button>
+          <ToggleSwitch checked={row.Estado === 1} onChange={() => dispatch(toggleRepuestoEstado({ id: row.Id_Repuesto, Estado: row.Estado === 1 ? 0 : 1 }))} disabled={!puedeToggle} />
         </div>
       )
     },
@@ -124,7 +128,7 @@ export default function RepuestosPage() {
         <div><h1 className="page__title">Repuestos</h1><p className="page__subtitle">{items.length} repuesto(s) en inventario</p></div>
         <div style={{ display: 'flex', gap: '0.5rem' }}>
           <button className="btn btn--outline" onClick={exportarExcel} style={{ color: '#16a34a', borderColor: '#16a34a' }}><MdTableChart size={17} />Exportar Excel</button>
-          <button className="btn btn--primary" onClick={openCreate}><MdAdd size={18} />Nuevo repuesto</button>
+          <button className="btn btn--primary" onClick={openCreate} disabled={!puedeCrear}><MdAdd size={18} />Nuevo repuesto</button>
         </div>
       </div>
       <div className="card">

@@ -39,6 +39,8 @@ const authSlice = createSlice({
   initialState: {
     token: storedToken || null,
     empleado: null,
+    cliente: null,
+    tipo: null,
     permisos: null,  // null = no cargado, [] = cargado sin permisos, [...] = lista de nombres
     loading: false,
     restoring: !!storedToken,
@@ -48,6 +50,8 @@ const authSlice = createSlice({
     logout(state) {
       state.token = null;
       state.empleado = null;
+      state.cliente = null;
+      state.tipo = null;
       state.permisos = null;
       state.restoring = false;
       localStorage.removeItem(TOKEN_KEY);
@@ -66,11 +70,13 @@ const authSlice = createSlice({
       })
       .addCase(loginThunk.fulfilled, (state, action) => {
         state.loading = false;
-        const { token, empleado } = action.payload.data || action.payload;
-        state.token = token;
-        state.empleado = empleado;
+        const payload = action.payload.data || action.payload;
+        state.token = payload.token;
+        state.tipo = payload.tipo;
+        state.empleado = payload.empleado || null;
+        state.cliente = payload.cliente || null;
         state.restoring = false;
-        localStorage.setItem(TOKEN_KEY, token);
+        localStorage.setItem(TOKEN_KEY, payload.token);
       })
       .addCase(loginThunk.rejected, (state, action) => {
         state.loading = false;
@@ -80,11 +86,14 @@ const authSlice = createSlice({
       .addCase(restoreSession.fulfilled, (state, action) => {
         const empleado = action.payload.data || action.payload;
         state.empleado = empleado;
+        state.tipo = 'empleado';
         state.restoring = false;
       })
       .addCase(restoreSession.rejected, (state) => {
         state.token = null;
         state.empleado = null;
+        state.cliente = null;
+        state.tipo = null;
         state.permisos = null;
         state.restoring = false;
         localStorage.removeItem(TOKEN_KEY);

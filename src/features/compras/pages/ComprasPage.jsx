@@ -1,6 +1,7 @@
 ﻿import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { MdAdd, MdVisibility, MdBlock, MdDeleteOutline, MdWarning } from 'react-icons/md';
+import { usePermiso } from '../../../shared/hooks/usePermiso.js';
 import SearchableSelect from '../../../shared/components/SearchableSelect/SearchableSelect.jsx';
 import { fetchCompras, createCompra, anularCompra } from '../slices/comprasSlice.js';
 import Modal from '../../../shared/components/Modal/Modal.jsx';
@@ -20,6 +21,8 @@ const newForm = () => ({ Id_Proveedor: '', Fecha: new Date().toISOString().split
 export default function ComprasPage() {
   const dispatch = useDispatch();
   const { items, loading, actionLoading } = useSelector(s => s.compras);
+  const puedeCrear  = usePermiso('COMPRAS.REGISTRAR');
+  const puedeAnular = usePermiso('COMPRAS.ANULAR');
   const [proveedores, setProveedores] = useState([]);
   const [repuestos, setRepuestos] = useState([]);
   const [search, setSearch] = useState('');
@@ -175,7 +178,7 @@ export default function ComprasPage() {
             <MdVisibility size={17} />
           </button>
           {!row.Anulada && (
-            <button className="btn btn--ghost btn--icon btn--sm compra-anular-btn" title="Anular compra" onClick={() => setConfirmAnular(row)}>
+            <button className="btn btn--ghost btn--icon btn--sm compra-anular-btn" title="Anular compra" disabled={!puedeAnular} onClick={() => setConfirmAnular(row)}>
               <MdBlock size={17} />
             </button>
           )}
@@ -191,7 +194,7 @@ export default function ComprasPage() {
           <h1 className="page__title">Compras</h1>
           <p className="page__subtitle">{items.length} compra(s) registrada(s)</p>
         </div>
-        <button className="btn btn--primary" onClick={openCreate}><MdAdd size={18} />Registrar compra</button>
+        <button className="btn btn--primary" onClick={openCreate} disabled={!puedeCrear}><MdAdd size={18} />Registrar compra</button>
       </div>
 
       <div className="card">

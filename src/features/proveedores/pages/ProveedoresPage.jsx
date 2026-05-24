@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { MdAdd, MdVisibility, MdEdit } from 'react-icons/md';
+import { usePermiso } from '../../../shared/hooks/usePermiso.js';
 import ToggleSwitch from '../../../shared/components/ToggleSwitch/ToggleSwitch.jsx';
 import { fetchProveedores, createProveedor, updateProveedor, toggleProveedorEstado } from '../slices/proveedoresSlice.js';
 import Modal from '../../../shared/components/Modal/Modal.jsx';
@@ -20,6 +21,9 @@ const EMPTY = { TipoProveedor: '', Documento: '', nombre: '', correo: '', contac
 export default function ProveedoresPage() {
   const dispatch = useDispatch();
   const { items, loading, actionLoading } = useSelector(s => s.proveedores);
+  const puedeCrear   = usePermiso('PROVEEDORES.REGISTRAR');
+  const puedeEditar  = usePermiso('PROVEEDORES.EDITAR');
+  const puedeToggle  = usePermiso('PROVEEDORES.CAMBIAR_ESTADO');
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('todos');
   const [pageSize, setPageSize] = useState(5);
@@ -83,8 +87,8 @@ export default function ProveedoresPage() {
       key: 'acciones', label: 'Acciones', render: (_, row) => (
         <div className="table-actions">
           <button className="btn btn--ghost btn--icon btn--sm" onClick={() => setDetailItem(row)}><MdVisibility size={17} /></button>
-          <button className="btn btn--ghost btn--icon btn--sm" onClick={() => openEdit(row)}><MdEdit size={17} /></button>
-          <ToggleSwitch checked={row.Estado === 1} onChange={() => dispatch(toggleProveedorEstado({ id: row.Id_Proveedor, Estado: row.Estado === 1 ? 0 : 1 }))} />
+          <button className="btn btn--ghost btn--icon btn--sm" disabled={!puedeEditar} onClick={() => openEdit(row)}><MdEdit size={17} /></button>
+          <ToggleSwitch checked={row.Estado === 1} onChange={() => dispatch(toggleProveedorEstado({ id: row.Id_Proveedor, Estado: row.Estado === 1 ? 0 : 1 }))} disabled={!puedeToggle} />
         </div>
       )
     },
@@ -94,7 +98,7 @@ export default function ProveedoresPage() {
     <div className="page">
       <div className="page__header">
         <div><h1 className="page__title">Proveedores</h1><p className="page__subtitle">{items.length} proveedor(es) registrado(s)</p></div>
-        <button className="btn btn--primary" onClick={openCreate}><MdAdd size={18} />Nuevo proveedor</button>
+        <button className="btn btn--primary" onClick={openCreate} disabled={!puedeCrear}><MdAdd size={18} />Nuevo proveedor</button>
       </div>
       <div className="card">
         <div className="card__header">

@@ -1,5 +1,6 @@
 ﻿import React, { useEffect, useCallback, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
+import { usePermiso } from '../../../shared/hooks/usePermiso.js';
 import {
   MdAdd, MdEdit, MdSave, MdCheck, MdClose, MdPeople, MdSecurity,
   MdDashboard, MdPeopleAlt, MdDirectionsCar, MdBuild, MdCategory,
@@ -63,6 +64,9 @@ const emptyMatrix = () =>
 export default function RolesPage() {
   const dispatch = useDispatch();
   const { items, loading, actionLoading } = useSelector(s => s.roles);
+  const puedeCrear   = usePermiso('ROLES.REGISTRAR');
+  const puedeEditar  = usePermiso('ROLES.EDITAR');
+  const puedeToggle  = usePermiso('ROLES.CAMBIAR_ESTADO');
   const [empleados, setEmpleados]       = useState([]);
   const [search, setSearch]             = useState('');
   const [statusFilter, setStatusFilter] = useState('todos');
@@ -277,11 +281,12 @@ export default function RolesPage() {
               <button
                 className="btn btn--ghost btn--icon btn--sm"
                 title="Editar permisos"
+                disabled={!puedeEditar}
                 onClick={() => openEdit(row)}
               >
                 <MdEdit size={17} />
               </button>
-              <ToggleSwitch checked={row.Estado === 1} onChange={() => handleToggle(row)} />
+              <ToggleSwitch checked={row.Estado === 1} onChange={() => handleToggle(row)} disabled={!puedeToggle} />
             </>
           )}
         </div>
@@ -298,7 +303,7 @@ export default function RolesPage() {
           <h1 className="page__title">Roles</h1>
           <p className="page__subtitle">{items.length} rol(es) configurado(s)</p>
         </div>
-        <button className="btn btn--primary" onClick={openCreate}>
+        <button className="btn btn--primary" onClick={openCreate} disabled={!puedeCrear}>
           <MdAdd size={18} /> Nuevo rol
         </button>
       </div>

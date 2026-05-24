@@ -1,6 +1,7 @@
 ﻿import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { MdAdd, MdEdit } from 'react-icons/md';
+import { usePermiso } from '../../../shared/hooks/usePermiso.js';
 import ToggleSwitch from '../../../shared/components/ToggleSwitch/ToggleSwitch.jsx';
 import { fetchCategorias, createCategoria, updateCategoria, toggleCategoriaEstado } from '../slices/categoriasSlice.js';
 import Modal from '../../../shared/components/Modal/Modal.jsx';
@@ -16,6 +17,9 @@ const EMPTY = { Nombre: '' };
 export default function CategoriasPage() {
   const dispatch = useDispatch();
   const { items, loading, actionLoading } = useSelector(s => s.categorias);
+  const puedeCrear   = usePermiso('CATEGORIAS.REGISTRAR');
+  const puedeEditar  = usePermiso('CATEGORIAS.EDITAR');
+  const puedeToggle  = usePermiso('CATEGORIAS.CAMBIAR_ESTADO');
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('todos');
   const [pageSize, setPageSize] = useState(5);
@@ -54,8 +58,8 @@ export default function CategoriasPage() {
     {
       key: 'acciones', label: 'Acciones', render: (_, row) => (
         <div className="table-actions">
-          <button className="btn btn--ghost btn--icon btn--sm" onClick={() => openEdit(row)}><MdEdit size={17} /></button>
-          <ToggleSwitch checked={row.Estado === 1} onChange={() => dispatch(toggleCategoriaEstado({ id: row.Id_Categoria, Estado: row.Estado === 1 ? 0 : 1 }))} />
+          <button className="btn btn--ghost btn--icon btn--sm" disabled={!puedeEditar} onClick={() => openEdit(row)}><MdEdit size={17} /></button>
+          <ToggleSwitch checked={row.Estado === 1} onChange={() => dispatch(toggleCategoriaEstado({ id: row.Id_Categoria, Estado: row.Estado === 1 ? 0 : 1 }))} disabled={!puedeToggle} />
         </div>
       )
     },
@@ -65,7 +69,7 @@ export default function CategoriasPage() {
     <div className="page">
       <div className="page__header">
         <div><h1 className="page__title">Categorías de repuesto</h1><p className="page__subtitle">{items.length} categoría(s) registrada(s)</p></div>
-        <button className="btn btn--primary" onClick={openCreate}><MdAdd size={18} />Nueva categoría</button>
+        <button className="btn btn--primary" onClick={openCreate} disabled={!puedeCrear}><MdAdd size={18} />Nueva categoría</button>
       </div>
       <div className="card">
         <div className="card__header">
