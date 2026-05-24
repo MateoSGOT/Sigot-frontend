@@ -30,7 +30,7 @@ function ProtectedRoute({ children }) {
 
 function App() {
   const dispatch = useDispatch();
-  const { token, empleado, tipo, restoring } = useSelector((state) => state.auth);
+  const { token, empleado, cliente, tipo, restoring } = useSelector((state) => state.auth);
 
   useEffect(() => {
     if (token && !empleado && !cliente) {
