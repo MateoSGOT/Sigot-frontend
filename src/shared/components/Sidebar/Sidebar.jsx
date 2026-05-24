@@ -36,9 +36,8 @@ const NAV_STRUCTURE = [
   { type: 'link', to: '/compras',    icon: MdShoppingCart,  label: 'Compras',         permiso: 'COMPRAS'     },
   { type: 'link', to: '/novedades',  icon: MdNewReleases,   label: 'Novedades',       permiso: 'NOVEDADES'   },
   { type: 'section', label: 'Configuración' },
-  { type: 'link', to: '/roles',       icon: MdSecurity,            label: 'Roles',       permiso: 'ROLES'    },
-  { type: 'link', to: '/permisos',    icon: MdSecurity,            label: 'Permisos',    permiso: 'PERMISOS' },
-  { type: 'link', to: '/privilegios', icon: MdAdminPanelSettings,  label: 'Privilegios', permiso: 'ROLES'    },
+  { type: 'link', to: '/roles',       icon: MdSecurity,           label: 'Roles',       permiso: 'ROLES'    },
+  { type: 'link', to: '/privilegios', icon: MdAdminPanelSettings, label: 'Privilegios', permiso: 'PERMISOS' },
 ];
 
 function buildVisibleNav(nav, permisos) {

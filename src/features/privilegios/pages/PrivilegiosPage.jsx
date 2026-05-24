@@ -1,44 +1,91 @@
-import React, { useEffect, useState, useCallback } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
-import { MdAdd, MdSave, MdCheck } from 'react-icons/md';
-import { fetchRoles, createRol } from '../../roles/slices/rolesSlice.js';
-import { permisosService } from '../../permisos/services/permisosService.js';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
+import {
+  MdAdd, MdSave, MdCheck, MdClose,
+  MdPeople, MdDirectionsCar, MdPeopleAlt, MdBuild,
+  MdCategory, MdLocalShipping, MdShoppingCart,
+  MdMiscellaneousServices, MdEventNote, MdAssignment,
+  MdNewReleases, MdDashboard, MdSecurity, MdAdminPanelSettings,
+} from 'react-icons/md';
+import ToggleSwitch from '../../../shared/components/ToggleSwitch/ToggleSwitch.jsx';
 import Modal from '../../../shared/components/Modal/Modal.jsx';
+import api from '../../../shared/services/api.js';
 import './PrivilegiosPage.css';
 
 const ACTIONS = ['Ver', 'Crear', 'Editar', 'Eliminar'];
 
-export default function PrivilegiosPage() {
-  const dispatch = useDispatch();
-  const { items: roles, loading: rolesLoading } = useSelector(s => s.roles);
+const MODULE_META = {
+  'Clientes':    { icon: MdPeople,                label: 'Clientes'    },
+  'Vehículos':   { icon: MdDirectionsCar,         label: 'Vehículos'   },
+  'Empleados':   { icon: MdPeopleAlt,             label: 'Empleados'   },
+  'Repuestos':   { icon: MdBuild,                 label: 'Repuestos'   },
+  'Categorías':  { icon: MdCategory,              label: 'Categorías'  },
+  'Proveedores': { icon: MdLocalShipping,         label: 'Proveedores' },
+  'Compras':     { icon: MdShoppingCart,          label: 'Compras'     },
+  'Servicios':   { icon: MdMiscellaneousServices, label: 'Servicios'   },
+  'Agenda':      { icon: MdEventNote,             label: 'Agenda'      },
+  'Órdenes':     { icon: MdAssignment,            label: 'Órdenes'     },
+  'Novedades':   { icon: MdNewReleases,           label: 'Novedades'   },
+  'Dashboard':   { icon: MdDashboard,             label: 'Dashboard'   },
+  'Roles':       { icon: MdSecurity,              label: 'Roles'       },
+  'Permisos':    { icon: MdAdminPanelSettings,    label: 'Permisos'    },
+};
 
-  const [activeRolId, setActiveRolId] = useState(null);
-  const [matrix, setMatrix] = useState([]);
-  const [matrixLoading, setMatrixLoading] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [saveMsg, setSaveMsg] = useState('');
+const hasAcceso = (row) => !!(row.Ver || row.Crear || row.Editar || row.Eliminar);
+
+export default function PrivilegiosPage() {
+  const [roles,        setRoles]        = useState([]);
+  const [rolesLoading, setRolesLoading] = useState(true);
+  const [activeRolId,  setActiveRolId]  = useState(null);
+  const [matrix,       setMatrix]       = useState([]);
+  const [matLoading,   setMatLoading]   = useState(false);
+  const [saving,       setSaving]       = useState(false);
+  const [toast,        setToast]        = useState(null);
 
   const [showNuevoRol, setShowNuevoRol] = useState(false);
-  const [newRolForm, setNewRolForm] = useState({ Nombre: '', Descripcion: '' });
-  const [newRolError, setNewRolError] = useState('');
-  const [creatingRol, setCreatingRol] = useState(false);
+  const [newRolNombre, setNewRolNombre] = useState('');
+  const [newRolError,  setNewRolError]  = useState('');
+  const [creatingRol,  setCreatingRol]  = useState(false);
 
-  useEffect(() => { dispatch(fetchRoles()); }, [dispatch]);
+  const toastTimer = useRef(null);
+
+  const showToast = useCallback((type, msg) => {
+    setToast({ type, msg });
+    clearTimeout(toastTimer.current);
+    toastTimer.current = setTimeout(() => setToast(null), 3500);
+  }, []);
+
+  const loadRoles = useCallback(async () => {
+    setRolesLoading(true);
+    try {
+      const r = await api.get('/api/roles');
+      const list = r.data?.data || r.data || [];
+      setRoles(list);
+      return list;
+    } catch {
+      setRoles([]);
+      return [];
+    } finally {
+      setRolesLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
-    if (roles.length > 0 && !activeRolId) setActiveRolId(roles[0].Id_Rol);
-  }, [roles, activeRolId]);
+    loadRoles().then(list => {
+      if (list.length > 0) setActiveRolId(list[0].Id_Rol);
+    });
+    return () => clearTimeout(toastTimer.current);
+  }, [loadRoles]);
 
   const loadMatrix = useCallback(async (id_rol) => {
-    setMatrixLoading(true);
-    setSaveMsg('');
+    setMatLoading(true);
     try {
-      const data = await permisosService.getByRol(id_rol);
-      setMatrix(Array.isArray(data) ? data : []);
+      const r = await api.get(`/api/permisos/rol/${id_rol}`);
+      const data = r.data?.data || r.data || [];
+      setMatrix(data.map(row => ({ ...row })));
     } catch {
       setMatrix([]);
     } finally {
-      setMatrixLoading(false);
+      setMatLoading(false);
     }
   }, []);
 
@@ -46,37 +93,45 @@ export default function PrivilegiosPage() {
     if (activeRolId) loadMatrix(activeRolId);
   }, [activeRolId, loadMatrix]);
 
-  const toggle = (modulo, action) => {
+  const toggleAcceso = (modulo) => {
+    setMatrix(prev => prev.map(row => {
+      if (row.Modulo !== modulo) return row;
+      if (hasAcceso(row)) return { ...row, Ver: 0, Crear: 0, Editar: 0, Eliminar: 0 };
+      return { ...row, Ver: 1, Crear: 1, Editar: 0, Eliminar: 0 };
+    }));
+  };
+
+  const toggleCell = (modulo, action) => {
     setMatrix(prev => prev.map(row =>
       row.Modulo === modulo ? { ...row, [action]: row[action] ? 0 : 1 } : row
     ));
-    setSaveMsg('');
   };
 
   const toggleRow = (modulo) => {
     const row = matrix.find(r => r.Modulo === modulo);
+    if (!row || !hasAcceso(row)) return;
     const allOn = ACTIONS.every(a => row[a] === 1);
+    const val = allOn ? 0 : 1;
     setMatrix(prev => prev.map(r =>
-      r.Modulo === modulo ? { ...r, ...Object.fromEntries(ACTIONS.map(a => [a, allOn ? 0 : 1])) } : r
+      r.Modulo === modulo ? { ...r, Ver: val, Crear: val, Editar: val, Eliminar: val } : r
     ));
-    setSaveMsg('');
   };
 
   const toggleCol = (action) => {
-    const allOn = matrix.every(r => r[action] === 1);
-    setMatrix(prev => prev.map(r => ({ ...r, [action]: allOn ? 0 : 1 })));
-    setSaveMsg('');
+    const enabled = matrix.filter(r => hasAcceso(r));
+    const allOn = enabled.length > 0 && enabled.every(r => r[action] === 1);
+    setMatrix(prev => prev.map(r => hasAcceso(r) ? { ...r, [action]: allOn ? 0 : 1 } : r));
   };
 
   const handleSave = async () => {
     if (!activeRolId) return;
     setSaving(true);
-    setSaveMsg('');
     try {
-      await permisosService.saveByRol(activeRolId, matrix);
-      setSaveMsg('Cambios guardados correctamente.');
+      await api.put(`/api/permisos/rol/${activeRolId}`, matrix);
+      const rolName = roles.find(r => r.Id_Rol === activeRolId)?.Nombre || '';
+      showToast('success', `Permisos de ${rolName} actualizados`);
     } catch {
-      setSaveMsg('Error al guardar. Intenta de nuevo.');
+      showToast('error', 'Error al guardar. Intenta de nuevo.');
     } finally {
       setSaving(false);
     }
@@ -84,98 +139,139 @@ export default function PrivilegiosPage() {
 
   const handleNuevoRol = async (e) => {
     e.preventDefault();
-    if (!newRolForm.Nombre.trim()) { setNewRolError('El nombre es obligatorio.'); return; }
+    if (!newRolNombre.trim()) { setNewRolError('El nombre es obligatorio.'); return; }
     setCreatingRol(true);
     setNewRolError('');
-    const result = await dispatch(createRol({ Nombre: newRolForm.Nombre.trim(), Descripcion: newRolForm.Descripcion.trim() || undefined }));
-    setCreatingRol(false);
-    if (!result.error) {
+    try {
+      const r = await api.post('/api/roles', { Nombre: newRolNombre.trim() });
+      const created = r.data?.data || r.data;
       setShowNuevoRol(false);
-      setNewRolForm({ Nombre: '', Descripcion: '' });
-      const created = result.payload;
-      if (created?.Id_Rol) setActiveRolId(created.Id_Rol);
-    } else {
-      setNewRolError(result.payload || 'Error al crear el rol.');
+      setNewRolNombre('');
+      const list = await loadRoles();
+      const newId = created?.Id_Rol;
+      if (newId) setActiveRolId(newId);
+      else if (list.length > 0) setActiveRolId(list[list.length - 1].Id_Rol);
+    } catch (err) {
+      setNewRolError(err?.response?.data?.message || 'Error al crear el rol.');
+    } finally {
+      setCreatingRol(false);
     }
   };
 
-  const activeRol = roles.find(r => r.Id_Rol === activeRolId);
+  const activeRol   = roles.find(r => r.Id_Rol === activeRolId);
+  const enabledRows = matrix.filter(r => hasAcceso(r));
 
   return (
     <div className="page">
       <div className="page__header">
         <div>
-          <h1 className="page__title">Privilegios</h1>
-          <p className="page__subtitle">Asigna permisos por módulo para cada rol</p>
+          <h1 className="page__title">Privilegios del sistema</h1>
+          <p className="page__subtitle">Gestiona el acceso y los permisos por rol</p>
         </div>
-        <button className="btn btn--primary" onClick={() => { setNewRolForm({ Nombre: '', Descripcion: '' }); setNewRolError(''); setShowNuevoRol(true); }}>
+        <button className="btn btn--primary" onClick={() => { setNewRolNombre(''); setNewRolError(''); setShowNuevoRol(true); }}>
           <MdAdd size={18} /> Nuevo rol
         </button>
       </div>
 
-      {rolesLoading ? (
-        <div className="priv-loading">Cargando roles...</div>
-      ) : (
-        <div className="card">
-          {/* Tabs */}
+      <div className="card priv-card">
+        {/* ── Tabs ── */}
+        {rolesLoading ? (
+          <div className="priv-tabs priv-tabs--loading">
+            {[90, 100, 80, 110].map(w => (
+              <div key={w} className="priv-tab-skel" style={{ width: w }} />
+            ))}
+          </div>
+        ) : (
           <div className="priv-tabs">
             {roles.map(rol => (
               <button
                 key={rol.Id_Rol}
-                className={`priv-tab${activeRolId === rol.Id_Rol ? ' priv-tab--active' : ''}${!rol.Estado ? ' priv-tab--inactive' : ''}`}
+                className={`priv-tab${activeRolId === rol.Id_Rol ? ' priv-tab--active' : ''}`}
                 onClick={() => setActiveRolId(rol.Id_Rol)}
               >
                 {rol.Nombre}
+                {(rol.Estado === 0 || rol.Estado === false) && (
+                  <span className="priv-tab-badge">Inactivo</span>
+                )}
               </button>
             ))}
           </div>
+        )}
 
-          {/* Matrix */}
-          <div className="priv-matrix-wrap">
-            {matrixLoading ? (
-              <div className="priv-loading">Cargando permisos...</div>
-            ) : matrix.length === 0 ? (
-              <div className="priv-loading">Sin módulos configurados.</div>
-            ) : (
-              <>
+        {/* ── Matrix ── */}
+        <div className="priv-body">
+          {matLoading ? (
+            <div className="priv-skeleton">
+              {Array.from({ length: 9 }).map((_, i) => (
+                <div key={i} className="priv-skel-row" style={{ animationDelay: `${i * 60}ms` }}>
+                  <div className="priv-skel-cell priv-skel-cell--module" />
+                  <div className="priv-skel-cell priv-skel-cell--toggle" />
+                  {[0,1,2,3,4].map(j => (
+                    <div key={j} className="priv-skel-cell priv-skel-cell--check" />
+                  ))}
+                </div>
+              ))}
+            </div>
+          ) : matrix.length === 0 ? (
+            <div className="priv-empty">Sin módulos configurados para este rol.</div>
+          ) : (
+            <>
+              <div className="priv-table-wrap">
                 <table className="priv-table">
                   <thead>
-                    <tr>
+                    <tr className="priv-thead-row">
                       <th className="priv-th priv-th--module">Módulo</th>
+                      <th className="priv-th priv-th--toggle">Acceso</th>
                       {ACTIONS.map(action => (
                         <th key={action} className="priv-th priv-th--action">
-                          <div className="priv-th-action-wrap">
+                          <div className="priv-th-inner">
                             <span>{action}</span>
                             <input
                               type="checkbox"
-                              className="priv-check"
-                              title={`Todo: ${action}`}
-                              checked={matrix.length > 0 && matrix.every(r => r[action] === 1)}
+                              className="priv-check priv-check--header"
+                              title={`Marcar/desmarcar columna "${action}"`}
+                              checked={enabledRows.length > 0 && enabledRows.every(r => r[action] === 1)}
                               onChange={() => toggleCol(action)}
                             />
                           </div>
                         </th>
                       ))}
                       <th className="priv-th priv-th--action">
-                        <div className="priv-th-action-wrap">
-                          <span>Todo</span>
-                        </div>
+                        <span className="priv-th-todo">Todo</span>
                       </th>
                     </tr>
                   </thead>
                   <tbody>
-                    {matrix.map(row => {
-                      const allOn = ACTIONS.every(a => row[a] === 1);
+                    {matrix.map((row, idx) => {
+                      const acceso = hasAcceso(row);
+                      const allOn  = ACTIONS.every(a => row[a] === 1);
+                      const meta   = MODULE_META[row.Modulo];
+                      const Icon   = meta?.icon;
                       return (
-                        <tr key={row.Modulo} className="priv-row">
-                          <td className="priv-td priv-td--module">{row.Modulo}</td>
+                        <tr
+                          key={row.Modulo}
+                          className={`priv-row${idx % 2 !== 0 ? ' priv-row--alt' : ''}${!acceso ? ' priv-row--off' : ''}`}
+                        >
+                          <td className="priv-td priv-td--module">
+                            <div className="priv-module-cell">
+                              {Icon && <Icon size={16} className="priv-module-icon" />}
+                              <span>{meta?.label || row.Modulo}</span>
+                            </div>
+                          </td>
+                          <td className="priv-td priv-td--toggle">
+                            <ToggleSwitch
+                              checked={acceso}
+                              onChange={() => toggleAcceso(row.Modulo)}
+                            />
+                          </td>
                           {ACTIONS.map(action => (
                             <td key={action} className="priv-td priv-td--check">
                               <input
                                 type="checkbox"
                                 className="priv-check"
                                 checked={row[action] === 1}
-                                onChange={() => toggle(row.Modulo, action)}
+                                disabled={!acceso}
+                                onChange={() => toggleCell(row.Modulo, action)}
                               />
                             </td>
                           ))}
@@ -183,8 +279,9 @@ export default function PrivilegiosPage() {
                             <input
                               type="checkbox"
                               className="priv-check"
-                              title="Activar/desactivar todos"
-                              checked={allOn}
+                              title="Marcar/desmarcar toda la fila"
+                              checked={acceso && allOn}
+                              disabled={!acceso}
                               onChange={() => toggleRow(row.Modulo)}
                             />
                           </td>
@@ -193,24 +290,40 @@ export default function PrivilegiosPage() {
                     })}
                   </tbody>
                 </table>
+              </div>
 
-                <div className="priv-footer">
-                  {saveMsg && (
-                    <span className={`priv-save-msg${saveMsg.startsWith('Error') ? ' priv-save-msg--error' : ''}`}>
-                      {!saveMsg.startsWith('Error') && <MdCheck size={16} />} {saveMsg}
-                    </span>
+              {/* ── Footer ── */}
+              <div className="priv-footer">
+                <p className="priv-footer-hint">Los cambios se aplican inmediatamente al guardar</p>
+                <button
+                  className="btn btn--primary priv-save-btn"
+                  onClick={handleSave}
+                  disabled={saving}
+                >
+                  {saving ? (
+                    <><span className="priv-spinner" /> Guardando...</>
+                  ) : (
+                    <><MdSave size={17} /> Guardar cambios para {activeRol?.Nombre || ''}</>
                   )}
-                  <button className="btn btn--primary" onClick={handleSave} disabled={saving}>
-                    <MdSave size={17} /> {saving ? 'Guardando...' : `Guardar — ${activeRol?.Nombre || ''}`}
-                  </button>
-                </div>
-              </>
-            )}
-          </div>
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* ── Toast ── */}
+      {toast && (
+        <div className={`priv-toast priv-toast--${toast.type}`}>
+          {toast.type === 'success'
+            ? <MdCheck size={18} />
+            : <MdClose size={18} />
+          }
+          <span>{toast.msg}</span>
         </div>
       )}
 
-      {/* Nuevo rol modal */}
+      {/* ── Nuevo Rol Modal ── */}
       <Modal
         isOpen={showNuevoRol}
         onClose={() => setShowNuevoRol(false)}
@@ -226,16 +339,17 @@ export default function PrivilegiosPage() {
         }
       >
         {newRolError && <div className="form-error-box">{newRolError}</div>}
-        <form className="form-grid" onSubmit={handleNuevoRol} noValidate>
-          <div className="form-group span-2">
-            <label className="form-label">Nombre <span className="required">*</span></label>
-            <input className="form-control" value={newRolForm.Nombre} onChange={e => setNewRolForm(p => ({ ...p, Nombre: e.target.value }))} placeholder="Nombre del rol" />
-          </div>
-          <div className="form-group span-2">
-            <label className="form-label">Descripción</label>
-            <input className="form-control" value={newRolForm.Descripcion} onChange={e => setNewRolForm(p => ({ ...p, Descripcion: e.target.value }))} placeholder="Descripción (opcional)" />
-          </div>
-        </form>
+        <div className="form-group">
+          <label className="form-label">Nombre del rol <span className="required">*</span></label>
+          <input
+            className="form-control"
+            value={newRolNombre}
+            onChange={e => setNewRolNombre(e.target.value)}
+            placeholder="Ej: Recepcionista"
+            onKeyDown={e => e.key === 'Enter' && handleNuevoRol(e)}
+            autoFocus
+          />
+        </div>
       </Modal>
     </div>
   );
