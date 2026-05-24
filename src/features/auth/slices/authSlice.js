@@ -49,6 +49,9 @@ const authSlice = createSlice({
     error: null,
   },
   reducers: {
+    updateCliente(state, action) {
+      state.cliente = { ...state.cliente, ...action.payload };
+    },
     logout(state) {
       state.token = null;
       state.empleado = null;
@@ -116,5 +119,5 @@ const authSlice = createSlice({
   },
 });
 
-export const { logout, clearError } = authSlice.actions;
+export const { logout, clearError, updateCliente } = authSlice.actions;
 export default authSlice.reducer;

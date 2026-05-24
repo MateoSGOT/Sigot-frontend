@@ -240,8 +240,10 @@ export default function RolesPage() {
     }
   };
 
+  const isSistema = (row) => row.EsSistema || row.Nombre === 'Administrador';
+
   const handleToggle = (rol) => {
-    if (rol.Id_Rol === 1) return;
+    if (isSistema(rol)) return;
     dispatch(toggleRolEstado(rol.Id_Rol));
   };
 
@@ -257,7 +259,7 @@ export default function RolesPage() {
             <MdSecurity size={15} />
           </div>
           <span className="font-medium">{v}</span>
-          {row.Id_Rol === 1 && (
+          {isSistema(row) && (
             <Badge variant="success" style={{ marginLeft: '0.5rem', fontSize: '0.7rem' }}>Sistema</Badge>
           )}
         </div>
@@ -267,7 +269,7 @@ export default function RolesPage() {
       key: 'Estado',
       label: 'Estado',
       render: (_, row) =>
-        row.Id_Rol === 1
+        isSistema(row)
           ? <Badge variant="success">Activo</Badge>
           : <Badge variant={row.Estado === 1 ? 'success' : 'gray'}>{row.Estado === 1 ? 'Activo' : 'Inactivo'}</Badge>,
     },
@@ -276,7 +278,7 @@ export default function RolesPage() {
       label: 'Acciones',
       render: (_, row) => (
         <div className="table-actions">
-          {row.Id_Rol !== 1 && (
+          {!isSistema(row) && (
             <>
               <button
                 className="btn btn--ghost btn--icon btn--sm"

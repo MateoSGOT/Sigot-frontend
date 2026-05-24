@@ -1,10 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useDispatch, useSelector } from 'react-redux';
+import { loginThunk, logout, updateCliente } from '../../auth/slices/authSlice.js';
 import api from '../../../shared/services/api.js';
 import './PortalPage.css';
-
-const PORTAL_KEY = 'sigot_portal_token';
-const PORTAL_CLIENT_KEY = 'sigot_portal_cliente';
 
 /* ── helpers ─────────────────────────────────────────────── */
 const fmtCurrency = v => v != null ? `$${Number(v).toLocaleString('es-CO')}` : '—';
@@ -28,28 +27,32 @@ function StateBadge({ estado }) {
 }
 
 /* ── Login panel ─────────────────────────────────────────── */
-function PortalLogin({ onLogin }) {
+function PortalLogin() {
+  const dispatch = useDispatch();
   const navigate = useNavigate();
-  const [form, setForm] = useState({ Correo: '', Documento: '' });
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
-
-  const fillDemo = (correo, doc) => setForm({ Correo: correo, Documento: doc });
+  const { loading, error } = useSelector(s => s.auth);
+  const [form, setForm] = useState({ Correo: '', Password: '' });
+  const [showPass, setShowPass] = useState(false);
+  const [localError, setLocalError] = useState('');
 
   const handleSubmit = async e => {
     e.preventDefault();
-    if (!form.Correo || !form.Documento) { setError('Ingresa tu correo y número de documento.'); return; }
-    setLoading(true); setError('');
-    try {
-      const res = await api.post('/api/auth/cliente-login', { Correo: form.Correo, Documento: form.Documento });
-      const { token, cliente } = res.data?.data || {};
-      localStorage.setItem(PORTAL_KEY, token);
-      localStorage.setItem(PORTAL_CLIENT_KEY, JSON.stringify(cliente));
-      onLogin(cliente, token);
-    } catch (err) {
-      setError(err?.response?.data?.message || 'Credenciales inválidas');
-    } finally { setLoading(false); }
+    if (!form.Correo || !form.Password) { setLocalError('Ingresa tu correo y contraseña.'); return; }
+    setLocalError('');
+    const result = await dispatch(loginThunk({ Correo: form.Correo, Password: form.Password }));
+    if (result.error) {
+      setLocalError(result.payload || 'Credenciales inválidas');
+    } else {
+      const payload = result.payload?.data || result.payload;
+      if (payload?.tipo !== 'cliente') {
+        dispatch(logout());
+        setLocalError('Este acceso es exclusivo para clientes. Usa el ingreso de empleados.');
+      }
+      // Si tipo === 'cliente', Redux ya tiene el estado; el componente padre re-renderiza
+    }
   };
+
+  const displayError = localError || (error || '');
 
   return (
     <div className="portal-login-wrap">
@@ -67,44 +70,36 @@ function PortalLogin({ onLogin }) {
           </div>
         </div>
 
-        {error && <div className="portal-error">{error}</div>}
+        {displayError && <div className="portal-error">{displayError}</div>}
 
         <form onSubmit={handleSubmit} noValidate>
           <div className="portal-form-group">
             <label>Correo electrónico</label>
             <input
               type="email" value={form.Correo} placeholder="tu@correo.com"
-              onChange={e => { setForm(p => ({ ...p, Correo: e.target.value })); setError(''); }}
+              onChange={e => { setForm(p => ({ ...p, Correo: e.target.value })); setLocalError(''); }}
               required
             />
           </div>
           <div className="portal-form-group">
-            <label>Número de documento</label>
-            <input
-              type="text" value={form.Documento} placeholder="Ej: 1234567890"
-              onChange={e => { setForm(p => ({ ...p, Documento: e.target.value })); setError(''); }}
-              required
-            />
+            <label>Contraseña</label>
+            <div style={{ position: 'relative' }}>
+              <input
+                type={showPass ? 'text' : 'password'} value={form.Password} placeholder="••••••••"
+                onChange={e => { setForm(p => ({ ...p, Password: e.target.value })); setLocalError(''); }}
+                style={{ width: '100%', paddingRight: '2.5rem', boxSizing: 'border-box' }}
+                required
+              />
+              <button type="button" onClick={() => setShowPass(p => !p)}
+                style={{ position: 'absolute', right: '0.75rem', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#888', padding: 0 }}>
+                {showPass ? '🙈' : '👁'}
+              </button>
+            </div>
           </div>
           <button type="submit" className="portal-btn portal-btn--primary portal-btn--full" disabled={loading}>
             {loading ? 'Ingresando...' : 'Ingresar'}
           </button>
         </form>
-
-        {/* Demo credentials */}
-        <div className="portal-demo">
-          <p className="portal-demo__title">Acceso rápido demo</p>
-          <div className="portal-demo__grid">
-            {[
-              { label: 'Cliente Demo', correo: 'cliente@sigot.com', doc: '1234567890' },
-            ].map(d => (
-              <button key={d.correo} className="portal-demo__btn" type="button" onClick={() => fillDemo(d.correo, d.doc)}>
-                <span className="portal-demo__name">{d.label}</span>
-                <span className="portal-demo__cred">{d.correo}</span>
-              </button>
-            ))}
-          </div>
-        </div>
 
         <div className="portal-login-footer">
           <button className="portal-link" onClick={() => navigate('/')}>← Volver al inicio</button>
@@ -117,15 +112,14 @@ function PortalLogin({ onLogin }) {
 
 /* ── Main portal ─────────────────────────────────────────── */
 export default function PortalPage() {
+  const dispatch = useDispatch();
   const navigate = useNavigate();
-  const [cliente, setCliente] = useState(null);
-  const [token, setToken] = useState(null);
-  const [tab, setTab] = useState('cuenta'); // cuenta | vehiculos | ordenes
+  const { cliente, token, tipo } = useSelector(s => s.auth);
+
+  const [tab, setTab] = useState('cuenta');
   const [vehiculos, setVehiculos] = useState([]);
   const [ordenes, setOrdenes] = useState([]);
   const [loading, setLoading] = useState(false);
-  // Evita redirigir antes de que el useEffect lea el localStorage
-  const [initialized, setInitialized] = useState(false);
 
   // Account edit state
   const [editData, setEditData] = useState({});
@@ -149,21 +143,17 @@ export default function PortalPage() {
   const [empleadosDisponibles, setEmpleadosDisponibles] = useState([]);
   const [loadingEmpleados, setLoadingEmpleados] = useState(false);
 
+  // Initialize edit data from Redux cliente
   useEffect(() => {
-    const storedToken = localStorage.getItem(PORTAL_KEY);
-    const storedCliente = localStorage.getItem(PORTAL_CLIENT_KEY);
-    if (storedToken && storedCliente) {
-      const c = JSON.parse(storedCliente);
-      setCliente(c);
-      setToken(storedToken);
-      setEditData({ Correo: c.Correo || '', Telefono: c.Telefono || '', Direccion: c.Direccion || '' });
-      setFotoPreview(c.Foto || null);
+    if (cliente) {
+      setEditData({ Correo: cliente.Correo || '', Telefono: cliente.Telefono || cliente.Contacto || '' });
+      setFotoPreview(cliente.Foto || null);
     }
-    setInitialized(true);
-  }, []);
+  }, [cliente?.Id_Cliente]);
 
+  // Load portal data when authenticated
   useEffect(() => {
-    if (!cliente || !token) return;
+    if (!cliente || !token || tipo !== 'cliente') return;
     setLoading(true);
     const headers = { Authorization: `Bearer ${token}` };
     Promise.all([
@@ -175,20 +165,10 @@ export default function PortalPage() {
       setOrdenes(oRes.data?.data || []);
       setCitas(cRes.data?.data || []);
     }).catch(() => {}).finally(() => setLoading(false));
-  }, [cliente, token]);
-
-  const handleLogin = (c, t) => {
-    setCliente(c);
-    setToken(t);
-    setEditData({ Correo: c.Correo || '', Telefono: c.Telefono || '', Direccion: c.Direccion || '' });
-    setFotoPreview(c.Foto || null);
-  };
+  }, [cliente?.Id_Cliente, token]);
 
   const handleLogout = () => {
-    localStorage.removeItem(PORTAL_KEY);
-    localStorage.removeItem(PORTAL_CLIENT_KEY);
-    setCliente(null);
-    setToken(null);
+    dispatch(logout());
   };
 
   const handleFotoChange = e => {
@@ -203,17 +183,16 @@ export default function PortalPage() {
     e.preventDefault();
     setSaving(true);
     try {
-      await api.put('/api/portal/perfil', {
+      const res = await api.put('/api/portal/perfil', {
         Correo:   editData.Correo,
         Contacto: editData.Telefono,
       }, { headers: { Authorization: `Bearer ${token}` } });
-      const updated = { ...cliente, ...editData, Foto: fotoPreview };
-      setCliente(updated);
-      localStorage.setItem(PORTAL_CLIENT_KEY, JSON.stringify(updated));
+      const updated = res.data?.data || {};
+      dispatch(updateCliente({ ...updated, Foto: fotoPreview }));
       setSaveOk(true);
       setTimeout(() => setSaveOk(false), 3000);
     } catch {
-      // silently fail demo
+      // silent
     } finally { setSaving(false); }
   };
 
@@ -268,10 +247,8 @@ export default function PortalPage() {
     finally { setLoadingOrden(false); }
   };
 
-  // Espera a que el useEffect lea localStorage antes de decidir
-  if (!initialized) return null;
-  // Sin sesión → muestra el formulario de login del portal
-  if (!cliente) return <PortalLogin onLogin={handleLogin} />;
+  // Show login form if not authenticated as client
+  if (!cliente || tipo !== 'cliente') return <PortalLogin />;
 
   const BRAND_COLORS = ['#16a34a','#2563eb','#9333ea','#ea580c','#0891b2'];
   const brandColor = (name) => BRAND_COLORS[name?.charCodeAt(0) % BRAND_COLORS.length] || '#16a34a';
@@ -341,7 +318,6 @@ export default function PortalPage() {
                     ['Nombre completo', cliente.Nombre],
                     ['Tipo de documento', cliente.TipoDocumento],
                     ['Número de documento', cliente.Documento],
-                    ['Fecha de registro', fmtDate(cliente.FechaRegistro || cliente.createdAt)],
                   ].map(([lbl, val]) => (
                     <div key={lbl} className="portal-readonly-item">
                       <span className="portal-readonly-label">{lbl}</span>
@@ -359,10 +335,6 @@ export default function PortalPage() {
                   <div className="portal-form-group">
                     <label>Teléfono</label>
                     <input value={editData.Telefono} onChange={e => setEditData(p => ({...p, Telefono: e.target.value}))} />
-                  </div>
-                  <div className="portal-form-group portal-form-group--full">
-                    <label>Dirección</label>
-                    <input value={editData.Direccion} onChange={e => setEditData(p => ({...p, Direccion: e.target.value}))} />
                   </div>
                 </div>
 
