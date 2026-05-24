@@ -20,8 +20,6 @@ import AgendaPage from './features/agenda/pages/AgendaPage.jsx';
 import OrdenesPage from './features/ordenes/pages/OrdenesPage.jsx';
 import NovedadesPage from './features/novedades/pages/NovedadesPage.jsx';
 import RolesPage from './features/roles/pages/RolesPage.jsx';
-import PermisosPage from './features/permisos/pages/PermisosPage.jsx';
-import PrivilegiosPage from './features/privilegios/pages/PrivilegiosPage.jsx';
 
 function ProtectedRoute({ children }) {
   const { token, restoring } = useSelector((state) => state.auth);
@@ -92,9 +90,7 @@ function App() {
         <Route path="agenda"      element={<AgendaPage />} />
         <Route path="ordenes"     element={<OrdenesPage />} />
         <Route path="novedades"   element={<NovedadesPage />} />
-        <Route path="roles"        element={<RolesPage />} />
-        <Route path="permisos"     element={<PermisosPage />} />
-        <Route path="privilegios"  element={<PrivilegiosPage />} />
+        <Route path="roles"  element={<RolesPage />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />

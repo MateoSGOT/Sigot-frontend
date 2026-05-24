@@ -6,7 +6,7 @@ import {
   MdMiscellaneousServices, MdAssignment, MdEventNote,
   MdNewReleases, MdSecurity, MdCategory, MdLocalShipping,
   MdLogout, MdPerson,
-  MdPeopleAlt, MdStorage, MdChevronRight, MdAdminPanelSettings,
+  MdPeopleAlt, MdStorage, MdChevronRight,
 } from 'react-icons/md';
 import { logout } from '../../../features/auth/slices/authSlice';
 import './Sidebar.css';
@@ -36,8 +36,7 @@ const NAV_STRUCTURE = [
   { type: 'link', to: '/compras',    icon: MdShoppingCart,  label: 'Compras',         permiso: 'COMPRAS'     },
   { type: 'link', to: '/novedades',  icon: MdNewReleases,   label: 'Novedades',       permiso: 'NOVEDADES'   },
   { type: 'section', label: 'Configuración' },
-  { type: 'link', to: '/roles',       icon: MdSecurity,           label: 'Roles',       permiso: 'ROLES'    },
-  { type: 'link', to: '/privilegios', icon: MdAdminPanelSettings, label: 'Privilegios', permiso: 'PERMISOS' },
+  { type: 'link', to: '/roles', icon: MdSecurity, label: 'Roles', permiso: 'ROLES' },
 ];
 
 function buildVisibleNav(nav, permisos) {

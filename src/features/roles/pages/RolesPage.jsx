@@ -1,308 +1,250 @@
-﻿import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useCallback, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { MdAdd, MdEdit, MdSecurity, MdClose, MdPeople } from 'react-icons/md';
+import {
+  MdAdd, MdEdit, MdSave, MdCheck, MdClose, MdPeople,
+  MdSecurity, MdDashboard, MdPeopleAlt, MdDirectionsCar,
+  MdBuild, MdCategory, MdLocalShipping, MdShoppingCart,
+  MdMiscellaneousServices, MdEventNote, MdAssignment,
+  MdNewReleases, MdPerson,
+} from 'react-icons/md';
 import ToggleSwitch from '../../../shared/components/ToggleSwitch/ToggleSwitch.jsx';
 import { fetchRoles, createRol, updateRol, toggleRolEstado } from '../slices/rolesSlice.js';
-import { permisosService } from '../../permisos/services/permisosService.js';
 import Modal from '../../../shared/components/Modal/Modal.jsx';
-import Table from '../../../shared/components/Table/Table.jsx';
-import SearchBar from '../../../shared/components/SearchBar/SearchBar.jsx';
-import FilterDropdown from '../../../shared/components/FilterDropdown/FilterDropdown.jsx';
 import Badge from '../../../shared/components/Badge/Badge.jsx';
 import { filterItems } from '../../../shared/utils/helpers.js';
 import api from '../../../shared/services/api.js';
 import './RolesPage.css';
 
-const PRIMARY_ROLES = [
-  { nombre: 'Administrador', color: 'success' },
-  { nombre: 'Secretario',    color: 'info'    },
-  { nombre: 'Bodeguero',     color: 'warning' },
-  { nombre: 'Técnico',       color: 'danger'  },
-];
-const matchRol = (a, b) => a?.localeCompare(b, undefined, { sensitivity: 'base' }) === 0;
-const isPrimaryRol = (nombre) => PRIMARY_ROLES.some(pr => matchRol(pr.nombre, nombre));
-const ROLE_COLORS = ['success', 'info', 'warning', 'danger', 'default'];
-const MODULOS = ['Clientes', 'Vehículos', 'Empleados', 'Repuestos', 'Proveedores', 'Compras', 'Servicios', 'Agenda', 'Órdenes', 'Novedades', 'Roles'];
+const ACTIONS = ['Ver', 'Crear', 'Editar', 'Eliminar'];
 
-const emptyAccesos = () => {
-  const a = {};
-  MODULOS.forEach(m => { a[m] = 0; });
-  return a;
+const MODULE_META = {
+  'Dashboard':   { icon: MdDashboard,             label: 'Dashboard',          color: '#6366f1' },
+  'Clientes':    { icon: MdPerson,                label: 'Clientes',           color: '#0ea5e9' },
+  'Vehículos':   { icon: MdDirectionsCar,         label: 'Vehículos',          color: '#14b8a6' },
+  'Empleados':   { icon: MdPeopleAlt,             label: 'Empleados',          color: '#8b5cf6' },
+  'Repuestos':   { icon: MdBuild,                 label: 'Repuestos',          color: '#f59e0b' },
+  'Categorías':  { icon: MdCategory,              label: 'Categorías',         color: '#10b981' },
+  'Proveedores': { icon: MdLocalShipping,         label: 'Proveedores',        color: '#f97316' },
+  'Compras':     { icon: MdShoppingCart,          label: 'Compras',            color: '#ef4444' },
+  'Servicios':   { icon: MdMiscellaneousServices, label: 'Servicios',          color: '#a855f7' },
+  'Agenda':      { icon: MdEventNote,             label: 'Agenda',             color: '#22c55e' },
+  'Órdenes':     { icon: MdAssignment,            label: 'Órdenes de Trabajo', color: '#eab308' },
+  'Novedades':   { icon: MdNewReleases,           label: 'Novedades',          color: '#ec4899' },
+  'Roles':       { icon: MdSecurity,              label: 'Roles',              color: '#b5f23d' },
 };
+
+const MODULES_ORDER = [
+  'Dashboard','Clientes','Vehículos','Empleados','Repuestos',
+  'Categorías','Proveedores','Compras','Servicios','Agenda',
+  'Órdenes','Novedades','Roles',
+];
+
+const ROLE_PALETTE = [
+  { bg: 'rgba(99,102,241,0.12)',  fg: '#6366f1' },
+  { bg: 'rgba(14,165,233,0.12)',  fg: '#0ea5e9' },
+  { bg: 'rgba(245,158,11,0.12)',  fg: '#f59e0b' },
+  { bg: 'rgba(239,68,68,0.12)',   fg: '#ef4444' },
+  { bg: 'rgba(168,85,247,0.12)',  fg: '#a855f7' },
+  { bg: 'rgba(16,185,129,0.12)',  fg: '#10b981' },
+  { bg: 'rgba(249,115,22,0.12)',  fg: '#f97316' },
+];
+
+const emptyMatrix = () =>
+  MODULES_ORDER.map(mod => ({ Modulo: mod, Ver: 0, Crear: 0, Editar: 0, Eliminar: 0 }));
 
 export default function RolesPage() {
   const dispatch = useDispatch();
   const { items, loading, actionLoading } = useSelector(s => s.roles);
   const [empleados, setEmpleados] = useState([]);
-  const [search, setSearch]             = useState('');
-  const [statusFilter, setStatusFilter] = useState('todos');
-  const [pageSize, setPageSize]         = useState(5);
+  const [search, setSearch] = useState('');
 
   // Create modal
-  const [showCreate, setShowCreate]   = useState(false);
+  const [showCreate, setShowCreate] = useState(false);
   const [createNombre, setCreateNombre] = useState('');
-  const [createError, setCreateError]   = useState('');
+  const [createError, setCreateError] = useState('');
 
-  // Inline edit panel
-  const [showEdit, setShowEdit]       = useState(false);
-  const [editingId, setEditingId]     = useState(null);
-  const [formNombre, setFormNombre]   = useState('');
-  const [formAccesos, setFormAccesos] = useState(emptyAccesos());
-  const [permsLoading, setPermsLoading] = useState(false);
-  const [formError, setFormError]     = useState('');
-  const [saving, setSaving]           = useState(false);
+  // Edit modal
+  const [showEdit, setShowEdit] = useState(false);
+  const [editingRol, setEditingRol] = useState(null);
+  const [formNombre, setFormNombre] = useState('');
+  const [matrix, setMatrix] = useState([]);
+  const [matLoading, setMatLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [formError, setFormError] = useState('');
 
-  const ensuredRef = useRef(false);
+  // Toast
+  const [toast, setToast] = useState(null);
+  const toastTimer = useRef(null);
 
-  const ensurePrimaryRoles = async (fetchedItems) => {
-    let changed = false;
-    for (const pr of PRIMARY_ROLES) {
-      const found = fetchedItems.find(i => matchRol(i.Nombre, pr.nombre));
-      if (!found) {
-        await dispatch(createRol({ Nombre: pr.nombre }));
-        changed = true;
-      } else if (found.Estado === 0 && found.Id_Rol !== 1) {
-        await dispatch(toggleRolEstado(found.Id_Rol));
-        changed = true;
-      }
-    }
-    if (changed) dispatch(fetchRoles());
-  };
+  const showToast = useCallback((type, msg) => {
+    setToast({ type, msg });
+    clearTimeout(toastTimer.current);
+    toastTimer.current = setTimeout(() => setToast(null), 3500);
+  }, []);
 
   useEffect(() => {
-    dispatch(fetchRoles()).then(action => {
-      if (!action.error && !ensuredRef.current) {
-        ensuredRef.current = true;
-        ensurePrimaryRoles(Array.isArray(action.payload) ? action.payload : []);
-      }
-    });
+    dispatch(fetchRoles());
     api.get('/api/empleados').then(r => setEmpleados(r.data?.data || r.data || [])).catch(() => {});
+    return () => clearTimeout(toastTimer.current);
   }, [dispatch]);
 
-  const getCount = (rolId) => empleados.filter(e => e.Id_Rol == rolId).length;
-
-  const primaryCards = PRIMARY_ROLES.map(pr => {
-    const found = items.find(i => matchRol(i.Nombre, pr.nombre));
-    return { ...pr, item: found, count: found ? getCount(found.Id_Rol) : 0 };
-  });
-  const otrosRoles = items.filter(i => !isPrimaryRol(i.Nombre));
-  const otrosCount = otrosRoles.reduce((sum, r) => sum + getCount(r.Id_Rol), 0);
-
-  const filteredForTable = (() => {
-    const after = filterItems(items, search, ['Nombre']);
-    return statusFilter === 'activos' ? after.filter(r => r.Estado === 1)
-      : statusFilter === 'inactivos' ? after.filter(r => r.Estado === 0) : after;
-  })();
-
-  const sortedForTable = (() => {
-    const primaries = filteredForTable.filter(r => isPrimaryRol(r.Nombre));
-    const others    = filteredForTable.filter(r => !isPrimaryRol(r.Nombre));
-    if (others.length === 0) return primaries;
-    return [...primaries, { _separator: true, _label: 'Roles secundarios', Id_Rol: '_sep' }, ...others];
-  })();
+  const getEmployeeCount = (rolId) => empleados.filter(e => e.Id_Rol == rolId).length;
 
   const openCreate = () => { setCreateNombre(''); setCreateError(''); setShowCreate(true); };
 
   const openEdit = async (rol) => {
-    if (rol.Id_Rol === 1) return;
-    setEditingId(rol.Id_Rol);
+    setEditingRol(rol);
     setFormNombre(rol.Nombre);
     setFormError('');
-    setFormAccesos(emptyAccesos());
+    setMatrix(emptyMatrix());
     setShowEdit(true);
-    setPermsLoading(true);
+    setMatLoading(true);
     try {
       const r = await api.get(`/api/permisos/rol/${rol.Id_Rol}`);
-      const list = r.data?.data || r.data || [];
-      const accesos = emptyAccesos();
-      list.forEach(p => {
-        if (accesos.hasOwnProperty(p.Modulo)) {
-          accesos[p.Modulo] = (p.Ver || p.Crear || p.Editar || p.Eliminar || p['Cambiar estado']) ? 1 : 0;
-        }
-      });
-      setFormAccesos(accesos);
-    } catch { } finally { setPermsLoading(false); }
+      const data = r.data?.data || r.data || [];
+      setMatrix(emptyMatrix().map(row => {
+        const found = data.find(d => d.Modulo === row.Modulo);
+        return found ? { ...row, ...found } : row;
+      }));
+    } catch {} finally { setMatLoading(false); }
   };
 
-  const toggleAcceso = (mod) => {
-    setFormAccesos(prev => ({ ...prev, [mod]: prev[mod] ? 0 : 1 }));
+  const toggleCell = (modulo, action) => {
+    setMatrix(prev => prev.map(r =>
+      r.Modulo === modulo ? { ...r, [action]: r[action] ? 0 : 1 } : r
+    ));
+  };
+
+  const toggleRow = (modulo) => {
+    const row = matrix.find(r => r.Modulo === modulo);
+    if (!row) return;
+    const allOn = ACTIONS.every(a => row[a] === 1);
+    const val = allOn ? 0 : 1;
+    setMatrix(prev => prev.map(r =>
+      r.Modulo === modulo ? { ...r, Ver: val, Crear: val, Editar: val, Eliminar: val } : r
+    ));
+  };
+
+  const toggleCol = (action) => {
+    const allOn = matrix.every(r => r[action] === 1);
+    setMatrix(prev => prev.map(r => ({ ...r, [action]: allOn ? 0 : 1 })));
   };
 
   const handleCreate = async (e) => {
     e.preventDefault();
     if (!createNombre.trim()) { setCreateError('El nombre es obligatorio.'); return; }
     const result = await dispatch(createRol({ Nombre: createNombre.trim() }));
-    if (!result.error) { setShowCreate(false); dispatch(fetchRoles()); }
-    else setCreateError(result.payload || 'Error al guardar.');
+    if (!result.error) {
+      setShowCreate(false);
+      dispatch(fetchRoles());
+      showToast('success', `Rol "${createNombre.trim()}" creado`);
+    } else {
+      setCreateError(result.payload || 'Error al crear.');
+    }
   };
 
-  const handleEditSave = async (e) => {
-    e.preventDefault();
+  const handleEditSave = async () => {
     if (!formNombre.trim()) { setFormError('El nombre es obligatorio.'); return; }
     setSaving(true);
     try {
-      await dispatch(updateRol({ id: editingId, data: { Nombre: formNombre.trim() } }));
-      const permsArray = MODULOS.map(mod => ({
-        Modulo: mod,
-        Ver: formAccesos[mod],
-        Crear: formAccesos[mod],
-        Editar: formAccesos[mod],
-        Eliminar: formAccesos[mod],
-      }));
-      await permisosService.saveByRol(editingId, permsArray);
+      await dispatch(updateRol({ id: editingRol.Id_Rol, data: { Nombre: formNombre.trim() } }));
+      await api.put(`/api/permisos/rol/${editingRol.Id_Rol}`, matrix);
       setShowEdit(false);
       dispatch(fetchRoles());
-    } catch { setFormError('Error al guardar los cambios.'); } finally { setSaving(false); }
+      showToast('success', `Rol "${formNombre.trim()}" actualizado`);
+    } catch {
+      setFormError('Error al guardar los cambios.');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleToggle = (rol) => {
     if (rol.Id_Rol === 1) return;
-    dispatch(toggleRolEstado(rol.Id_Rol));
+    dispatch(toggleRolEstado(rol.Id_Rol)).then(() => dispatch(fetchRoles()));
   };
 
-  const columns = [
-    {
-      key: 'Nombre',
-      label: 'Rol',
-      render: (v, row, i) => (
-        <div className="role-name-cell">
-          <div className={`role-icon role-icon--${ROLE_COLORS[i % ROLE_COLORS.length]}`}>
-            <MdSecurity size={15} />
-          </div>
-          <span className="font-medium">{v}</span>
-          {row.Id_Rol === 1 && <Badge variant="success" style={{ marginLeft: '0.5rem', fontSize: '0.7rem' }}>Sistema</Badge>}
-        </div>
-      )
-    },
-    {
-      key: 'Estado', label: 'Estado', render: (_, row) =>
-        row.Id_Rol === 1
-          ? <Badge variant="success">Activo</Badge>
-          : <Badge variant={row.Estado === 1 ? 'success' : 'gray'}>{row.Estado === 1 ? 'Activo' : 'Inactivo'}</Badge>
-    },
-    {
-      key: 'acciones', label: 'Acciones', render: (_, row) => (
-        <div className="table-actions">
-          {row.Id_Rol !== 1 && (
-            <>
-              <button className="btn btn--ghost btn--icon btn--sm" title="Editar permisos" onClick={() => openEdit(row)}>
-                <MdEdit size={17} />
-              </button>
-              <ToggleSwitch
-                checked={row.Estado === 1}
-                onChange={() => handleToggle(row)}
-              />
-            </>
-          )}
-        </div>
-      )
-    },
-  ];
+  const filtered = filterItems(items, search, ['Nombre']);
 
   return (
     <div className="page">
       <div className="page__header">
         <div>
-          <h1 className="page__title">Roles</h1>
-          <p className="page__subtitle">{items.length} rol(es) configurado(s)</p>
+          <h1 className="page__title">Roles del sistema</h1>
+          <p className="page__subtitle">Administra roles y sus permisos por módulo</p>
         </div>
-        <button className="btn btn--primary" onClick={openCreate}><MdAdd size={18} />Nuevo rol</button>
+        <button className="btn btn--primary" onClick={openCreate}>
+          <MdAdd size={18} /> Nuevo rol
+        </button>
       </div>
 
-      {/* Primary role cards */}
-      <div className="roles-primary-cards">
-        {primaryCards.map(card => (
-          <div key={card.nombre} className={`roles-primary-card roles-primary-card--${card.color}`}>
-            <div className={`roles-primary-icon role-icon--${card.color}`}>
-              <MdSecurity size={22} />
-            </div>
-            <div className="roles-primary-info">
-              <span className="roles-primary-name">{card.nombre}</span>
-              <span className="roles-primary-count">
-                <MdPeople size={13} style={{ marginRight: '3px' }} />
-                {card.count} persona(s)
-              </span>
-            </div>
-          </div>
-        ))}
-        {otrosRoles.length > 0 && (
-          <div className="roles-primary-card roles-primary-card--default">
-            <div className="roles-primary-icon role-icon--default">
-              <MdSecurity size={22} />
-            </div>
-            <div className="roles-primary-info">
-              <span className="roles-primary-name">Otros</span>
-              <span className="roles-primary-count">
-                <MdPeople size={13} style={{ marginRight: '3px' }} />
-                {otrosCount} persona(s)
-              </span>
-            </div>
-          </div>
-        )}
+      {/* Search */}
+      <div className="roles-search-row">
+        <input
+          className="form-control roles-search"
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          placeholder="Buscar rol..."
+        />
       </div>
 
-      {/* Split layout */}
-      <div className={`roles-split${showEdit ? ' roles-split--active' : ''}`}>
-        <div className="card roles-split__table">
-          <div className="card__header">
-            <SearchBar
-              value={search}
-              onChange={setSearch}
-              placeholder="Buscar rol..."
-              filterSlot={
-                <FilterDropdown
-                  statusFilter={statusFilter}
-                  onStatusChange={setStatusFilter}
-                  pageSize={pageSize}
-                  onPageSizeChange={setPageSize}
-                />
-              }
-            />
-          </div>
-          <Table columns={columns} data={sortedForTable} loading={loading} pageSize={pageSize} emptyMessage="No se encontraron roles" />
-        </div>
-
-        {/* Edit panel â€" module toggle list */}
-        {showEdit && (
-          <div className="card roles-split__panel">
-            <div className="roles-panel-header">
-              <h3 className="roles-panel-title">Editar rol</h3>
-              <button className="btn btn--ghost btn--icon btn--sm" onClick={() => setShowEdit(false)}><MdClose size={18} /></button>
-            </div>
-            <div className="roles-panel-body">
-              {formError && <div className="form-error-box" style={{ marginBottom: '1rem' }}>{formError}</div>}
-              <div className="form-group" style={{ marginBottom: '1.5rem' }}>
-                <label className="form-label">Nombre del rol <span className="required">*</span></label>
-                <input className="form-control" value={formNombre} onChange={e => setFormNombre(e.target.value)} placeholder="Nombre del rol" />
-              </div>
-              <p className="form-label" style={{ marginBottom: '0.75rem' }}>Acceso por módulo</p>
-              {permsLoading ? (
-                <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--color-text-muted)' }}>Cargando...</div>
-              ) : (
-                <div className="modulos-list">
-                  {MODULOS.map(mod => (
-                    <div key={mod} className="modulo-row">
-                      <span className="modulo-row__name">{mod}</span>
-                      <ToggleSwitch
-                        checked={!!formAccesos[mod]}
-                        onChange={() => toggleAcceso(mod)}
-                      />
-                    </div>
-                  ))}
+      {/* Roles Grid */}
+      <div className="roles-grid">
+        {loading ? (
+          Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="role-card role-card--skel" />
+          ))
+        ) : filtered.length === 0 ? (
+          <div className="roles-empty">No se encontraron roles</div>
+        ) : (
+          filtered.map((rol, idx) => {
+            const palette = ROLE_PALETTE[idx % ROLE_PALETTE.length];
+            const empCount = getEmployeeCount(rol.Id_Rol);
+            const isSystem = rol.Id_Rol === 1;
+            return (
+              <div key={rol.Id_Rol} className="role-card">
+                <div className="role-card__top">
+                  <div className="role-card__icon" style={{ background: palette.bg, color: palette.fg }}>
+                    <MdSecurity size={22} />
+                  </div>
+                  <div className="role-card__badges">
+                    {isSystem && <Badge variant="info">Sistema</Badge>}
+                    <Badge variant={rol.Estado === 1 ? 'success' : 'gray'}>
+                      {rol.Estado === 1 ? 'Activo' : 'Inactivo'}
+                    </Badge>
+                  </div>
                 </div>
-              )}
-              <div className="roles-panel-footer">
-                <button className="btn btn--outline" onClick={() => setShowEdit(false)}>Cancelar</button>
-                <button className="btn btn--primary" onClick={handleEditSave} disabled={saving || permsLoading}>
-                  {saving ? 'Guardando...' : 'Guardar cambios'}
-                </button>
+
+                <div className="role-card__body">
+                  <div className="role-card__name">{rol.Nombre}</div>
+                  <div className="role-card__meta">
+                    <MdPeople size={13} />
+                    <span>{empCount} empleado{empCount !== 1 ? 's' : ''}</span>
+                  </div>
+                </div>
+
+                <div className="role-card__actions">
+                  {!isSystem ? (
+                    <>
+                      <button
+                        className="btn btn--ghost btn--sm role-card__edit-btn"
+                        onClick={() => openEdit(rol)}
+                      >
+                        <MdEdit size={14} /> Editar permisos
+                      </button>
+                      <ToggleSwitch checked={rol.Estado === 1} onChange={() => handleToggle(rol)} />
+                    </>
+                  ) : (
+                    <span className="role-card__system-note">Rol protegido del sistema</span>
+                  )}
+                </div>
               </div>
-            </div>
-          </div>
+            );
+          })
         )}
       </div>
 
-      {/* Create modal */}
+      {/* ── Create Modal ── */}
       <Modal
         isOpen={showCreate}
         onClose={() => setShowCreate(false)}
@@ -312,7 +254,7 @@ export default function RolesPage() {
           <>
             <button className="btn btn--outline" onClick={() => setShowCreate(false)}>Cancelar</button>
             <button className="btn btn--primary" onClick={handleCreate} disabled={actionLoading}>
-              {actionLoading ? 'Guardando...' : 'Crear'}
+              {actionLoading ? 'Creando...' : 'Crear rol'}
             </button>
           </>
         }
@@ -330,7 +272,143 @@ export default function RolesPage() {
           />
         </div>
       </Modal>
+
+      {/* ── Edit Modal — full RBAC matrix ── */}
+      <Modal
+        isOpen={showEdit}
+        onClose={() => setShowEdit(false)}
+        title={`Editar rol — ${editingRol?.Nombre || ''}`}
+        size="xl"
+        footer={
+          <>
+            <button className="btn btn--outline" onClick={() => setShowEdit(false)}>Cancelar</button>
+            <button
+              className="btn btn--primary"
+              onClick={handleEditSave}
+              disabled={saving || matLoading}
+            >
+              {saving
+                ? <><span className="rol-spinner" /> Guardando...</>
+                : <><MdSave size={16} /> Guardar cambios</>
+              }
+            </button>
+          </>
+        }
+      >
+        {formError && <div className="form-error-box">{formError}</div>}
+
+        <div className="form-group" style={{ marginBottom: '1.25rem' }}>
+          <label className="form-label">Nombre del rol <span className="required">*</span></label>
+          <input
+            className="form-control"
+            style={{ maxWidth: 320 }}
+            value={formNombre}
+            onChange={e => setFormNombre(e.target.value)}
+            placeholder="Nombre del rol"
+          />
+        </div>
+
+        <div className="rol-section-divider" />
+        <p className="rol-section-title">Permisos por módulo</p>
+        <p className="rol-section-hint">
+          Activa o desactiva permisos individuales. La columna "Todo" marca/desmarca toda la fila.
+        </p>
+
+        {matLoading ? (
+          <div className="rol-mat-skeleton">
+            {Array.from({ length: 8 }).map((_, i) => (
+              <div key={i} className="rol-skel-row" style={{ animationDelay: `${i * 50}ms` }}>
+                <div className="rol-skel-cell rol-skel-cell--mod" />
+                {[0, 1, 2, 3, 4].map(j => (
+                  <div key={j} className="rol-skel-cell rol-skel-cell--chk" />
+                ))}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="rol-mat-wrap">
+            <table className="rol-mat-table">
+              <thead>
+                <tr>
+                  <th className="rol-mat-th rol-mat-th--mod">Módulo</th>
+                  {ACTIONS.map(action => (
+                    <th key={action} className="rol-mat-th rol-mat-th--act">
+                      <div className="rol-mat-th-inner">
+                        <span>{action}</span>
+                        <input
+                          type="checkbox"
+                          className="rol-mat-chk"
+                          title={`Seleccionar columna "${action}"`}
+                          checked={matrix.length > 0 && matrix.every(r => r[action] === 1)}
+                          onChange={() => toggleCol(action)}
+                        />
+                      </div>
+                    </th>
+                  ))}
+                  <th className="rol-mat-th rol-mat-th--act">
+                    <span className="rol-mat-th-todo">Todo</span>
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {matrix.map((row, idx) => {
+                  const meta = MODULE_META[row.Modulo];
+                  const Icon = meta?.icon;
+                  const allOn = ACTIONS.every(a => row[a] === 1);
+                  const someOn = ACTIONS.some(a => row[a] === 1);
+                  return (
+                    <tr
+                      key={row.Modulo}
+                      className={`rol-mat-row${idx % 2 !== 0 ? ' rol-mat-row--alt' : ''}${someOn ? ' rol-mat-row--on' : ''}`}
+                    >
+                      <td className="rol-mat-td rol-mat-td--mod">
+                        <div className="rol-mat-mod-cell">
+                          {Icon && (
+                            <span
+                              className="rol-mat-mod-icon"
+                              style={{ color: meta?.color || '#b5f23d' }}
+                            >
+                              <Icon size={15} />
+                            </span>
+                          )}
+                          <span>{meta?.label || row.Modulo}</span>
+                        </div>
+                      </td>
+                      {ACTIONS.map(action => (
+                        <td key={action} className="rol-mat-td rol-mat-td--chk">
+                          <input
+                            type="checkbox"
+                            className="rol-mat-chk"
+                            checked={row[action] === 1}
+                            onChange={() => toggleCell(row.Modulo, action)}
+                          />
+                        </td>
+                      ))}
+                      <td className="rol-mat-td rol-mat-td--chk">
+                        <input
+                          type="checkbox"
+                          className="rol-mat-chk"
+                          title="Marcar / desmarcar toda la fila"
+                          checked={allOn}
+                          onChange={() => toggleRow(row.Modulo)}
+                        />
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </Modal>
+
+      {/* ── Toast ── */}
+      {toast && (
+        <div className={`rol-toast rol-toast--${toast.type}`}>
+          {toast.type === 'success' ? <MdCheck size={17} /> : <MdClose size={17} />}
+          <span>{toast.msg}</span>
+        </div>
+      )}
     </div>
   );
 }
-
