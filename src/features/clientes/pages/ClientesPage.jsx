@@ -1,6 +1,6 @@
 ﻿import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { MdAdd, MdVisibility, MdEdit } from 'react-icons/md';
+import { MdAdd, MdVisibility, MdEdit, MdVisibilityOff } from 'react-icons/md';
 import ImageUploader from '../../../shared/components/ImageUploader/ImageUploader.jsx';
 import ToggleSwitch from '../../../shared/components/ToggleSwitch/ToggleSwitch.jsx';
 import { fetchClientes, createCliente, updateCliente, toggleClienteEstado } from '../slices/clientesSlice.js';
@@ -14,7 +14,7 @@ import { sortByStatus, filterItems, formatDate } from '../../../shared/utils/hel
 import api from '../../../shared/services/api.js';
 import './ClientesPage.css';
 
-const EMPTY_FORM = { Nombre: '', Id_TipoDoc: '', Documento: '', Telefono: '', Correo: '', Direccion: '', Foto: '' };
+const EMPTY_FORM = { Nombre: '', Id_TipoDoc: '', Documento: '', Telefono: '', Correo: '', Direccion: '', Foto: '', Password: '' };
 
 export default function ClientesPage() {
   const dispatch = useDispatch();
@@ -29,6 +29,7 @@ export default function ClientesPage() {
   const [showForm, setShowForm] = useState(false);
   const [formError, setFormError] = useState('');
   const [fotoPreview, setFotoPreview] = useState(null);
+  const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
     dispatch(fetchClientes());
@@ -47,7 +48,7 @@ export default function ClientesPage() {
 
   const openCreate = () => {
     setFormData(EMPTY_FORM); setEditingId(null); setFormError('');
-    setFotoPreview(null); setShowForm(true);
+    setFotoPreview(null); setShowPassword(false); setShowForm(true);
   };
 
   const openEdit = (item) => {
@@ -55,9 +56,10 @@ export default function ClientesPage() {
       Nombre: item.Nombre || '', Id_TipoDoc: item.Id_TipoDoc || '',
       Documento: item.Documento || '', Telefono: item.Telefono || '',
       Correo: item.Correo || '', Direccion: item.Direccion || '',
-      Foto: item.Foto || '',
+      Foto: item.Foto || '', Password: '',
     });
     setFotoPreview(item.Foto || null);
+    setShowPassword(false);
     setEditingId(item.Id_Cliente); setFormError(''); setShowForm(true);
   };
 
@@ -207,6 +209,28 @@ export default function ClientesPage() {
           <div className="form-group span-2">
             <label className="form-label">Dirección</label>
             <input name="Direccion" className="form-control" value={formData.Direccion} onChange={handleFormChange} placeholder="Dirección" />
+          </div>
+
+          <div className="form-group span-2">
+            <label className="form-label">Contraseña portal{editingId && <span style={{ color: '#9ca3af', fontWeight: 400, marginLeft: 6 }}>(dejar vacío para no cambiar)</span>}</label>
+            <div style={{ position: 'relative' }}>
+              <input
+                name="Password"
+                type={showPassword ? 'text' : 'password'}
+                className="form-control"
+                value={formData.Password}
+                onChange={handleFormChange}
+                placeholder={editingId ? 'Nueva contraseña (opcional)' : 'Contraseña para acceso al portal'}
+                style={{ paddingRight: '2.5rem' }}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(v => !v)}
+                style={{ position: 'absolute', right: '0.75rem', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#6b7280', padding: 0 }}
+              >
+                {showPassword ? <MdVisibilityOff size={18} /> : <MdVisibility size={18} />}
+              </button>
+            </div>
           </div>
         </form>
       </Modal>
