@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import {
   MdPerson, MdDirectionsCar, MdAssignment, MdCalendarMonth,
-  MdCameraAlt, MdLogout, MdClose, MdAdd, MdCheck,
+  MdCameraAlt, MdClose, MdAdd, MdCheck,
   MdCalendarToday, MdAccessTime, MdFlag, MdChevronRight,
 } from 'react-icons/md';
 import { logout, updateCliente } from '../../auth/slices/authSlice.js';
+import PortalSidebar from '../components/PortalSidebar.jsx';
 import api from '../../../shared/services/api.js';
 import './PortalPage.css';
 
@@ -34,17 +34,9 @@ function StateBadge({ estado }) {
 const BRAND_COLORS = ['#16a34a','#2563eb','#9333ea','#ea580c','#0891b2'];
 const brandColor = name => BRAND_COLORS[name?.charCodeAt(0) % BRAND_COLORS.length] || '#16a34a';
 
-const TABS = [
-  { key: 'cuenta',    Icon: MdPerson,        label: 'Mi Cuenta'     },
-  { key: 'vehiculos', Icon: MdDirectionsCar, label: 'Mis Vehículos' },
-  { key: 'ordenes',   Icon: MdAssignment,    label: 'Mis Órdenes'   },
-  { key: 'citas',     Icon: MdCalendarMonth, label: 'Mis Citas'     },
-];
-
 /* ── Main portal ─────────────────────────────────────────── */
 export default function PortalPage() {
   const dispatch = useDispatch();
-  const navigate = useNavigate();
   const { cliente, token, tipo } = useSelector(s => s.auth);
 
   const [tab, setTab] = useState('cuenta');
@@ -92,8 +84,6 @@ export default function PortalPage() {
       setCitas(cRes.data?.data     || []);
     }).catch(() => {}).finally(() => setLoading(false));
   }, [cliente?.Id_Cliente, token]);
-
-  const handleLogout = () => dispatch(logout());
 
   const handleFotoChange = e => {
     const file = e.target.files[0];
@@ -168,50 +158,19 @@ export default function PortalPage() {
   };
 
   return (
-    <div className="portal">
+    <div className="portal-layout">
+      <PortalSidebar activeTab={tab} onTabChange={setTab} />
 
-      {/* ── HEADER ─────────────────────────────────────────── */}
-      <header className="portal-header">
-        <div className="portal-header__inner">
-          <div className="portal-header__brand" onClick={() => navigate('/')} style={{ cursor: 'pointer' }}>
-            <div className="portal-header__logo">S</div>
-            <div>
-              <span className="portal-header__name">SIGOT</span>
-              <span className="portal-header__sub">Portal del Cliente</span>
-            </div>
-          </div>
-
-          <nav className="portal-header__nav">
-            {TABS.map(({ key, Icon, label }) => (
-              <button key={key} className={`portal-tab${tab === key ? ' portal-tab--active' : ''}`} onClick={() => setTab(key)}>
-                <Icon size={16} />
-                {label}
-              </button>
-            ))}
-          </nav>
-
-          <div className="portal-header__user">
-            {fotoPreview
-              ? <img src={fotoPreview} alt="" className="portal-header__avatar" />
-              : <div className="portal-header__avatar portal-header__avatar--init">{cliente?.Nombre?.charAt(0)}</div>
-            }
-            <span className="portal-header__username">{cliente?.Nombre?.split(' ')[0]}</span>
-            <button className="portal-header__logout" onClick={handleLogout}>
-              <MdLogout size={15} /> Salir
-            </button>
-          </div>
-        </div>
-      </header>
-
-      {/* ── MAIN ───────────────────────────────────────────── */}
-      <main className="portal-main">
+      <main className="portal-layout__main">
 
         {/* ── MI CUENTA ─────────────────────────────────── */}
         {tab === 'cuenta' && (
-          <div className="portal-section">
-            <div className="portal-section__header">
-              <h2>Mi Cuenta</h2>
-              <p>Gestiona tu información personal</p>
+          <div className="page">
+            <div className="page__header">
+              <div>
+                <h1 className="page__title">Mi Cuenta</h1>
+                <p className="page__subtitle">Gestiona tu información personal</p>
+              </div>
             </div>
             <div className="portal-account-grid">
               <div className="portal-avatar-card">
@@ -269,10 +228,12 @@ export default function PortalPage() {
 
         {/* ── MIS VEHÍCULOS ──────────────────────────────── */}
         {tab === 'vehiculos' && (
-          <div className="portal-section">
-            <div className="portal-section__header">
-              <h2>Mis Vehículos</h2>
-              <p>{vehiculos.length} vehículo(s) registrado(s)</p>
+          <div className="page">
+            <div className="page__header">
+              <div>
+                <h1 className="page__title">Mis Vehículos</h1>
+                <p className="page__subtitle">{vehiculos.length} vehículo(s) registrado(s)</p>
+              </div>
             </div>
             {loading ? (
               <div className="portal-loading">Cargando...</div>
@@ -313,10 +274,12 @@ export default function PortalPage() {
 
         {/* ── MIS ÓRDENES ─────────────────────────────────── */}
         {tab === 'ordenes' && (
-          <div className="portal-section">
-            <div className="portal-section__header">
-              <h2>Mis Órdenes de Trabajo</h2>
-              <p>{ordenes.length} orden(es) registrada(s)</p>
+          <div className="page">
+            <div className="page__header">
+              <div>
+                <h1 className="page__title">Mis Órdenes de Trabajo</h1>
+                <p className="page__subtitle">{ordenes.length} orden(es) registrada(s)</p>
+              </div>
             </div>
             {loading ? (
               <div className="portal-loading">Cargando...</div>
@@ -357,11 +320,11 @@ export default function PortalPage() {
 
         {/* ── MIS CITAS ───────────────────────────────────── */}
         {tab === 'citas' && (
-          <div className="portal-section">
-            <div className="portal-section__header portal-section__header--row">
+          <div className="page">
+            <div className="page__header">
               <div>
-                <h2>Mis Citas</h2>
-                <p>Historial y nuevas citas con el taller</p>
+                <h1 className="page__title">Mis Citas</h1>
+                <p className="page__subtitle">Historial y nuevas citas con el taller</p>
               </div>
               <button className="portal-btn portal-btn--primary" onClick={() => {
                 setCitaForm({ Id_Vehiculo: '', Fecha: '', Hora: '', Descripcion: '', Id_Empleado: '' });
@@ -422,16 +385,6 @@ export default function PortalPage() {
         )}
 
       </main>
-
-      {/* ── MOBILE BOTTOM NAV ──────────────────────────────── */}
-      <nav className="portal-mobile-nav">
-        {TABS.map(({ key, Icon, label }) => (
-          <button key={key} className={`portal-mobile-tab${tab === key ? ' portal-mobile-tab--active' : ''}`} onClick={() => setTab(key)}>
-            <Icon size={22} />
-            <span>{label.replace('Mis ', '').replace('Mi ', '')}</span>
-          </button>
-        ))}
-      </nav>
 
       {/* ── VEHICLE DETAIL MODAL ─────────────────────────── */}
       {detailVeh && (
