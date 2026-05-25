@@ -28,6 +28,14 @@ function ProtectedRoute({ children }) {
   return children;
 }
 
+function PortalRoute({ children }) {
+  const { token, tipo, restoring } = useSelector((state) => state.auth);
+  if (restoring) return null;
+  if (!token) return <Navigate to="/login" replace />;
+  if (tipo === 'empleado') return <Navigate to="/dashboard" replace />;
+  return children;
+}
+
 function App() {
   const dispatch = useDispatch();
   const { token, empleado, cliente, tipo, restoring } = useSelector((state) => state.auth);
@@ -53,7 +61,7 @@ function App() {
     <Routes>
       {/* Public routes */}
       <Route path="/" element={<LandingPage />} />
-      <Route path="/portal" element={<PortalPage />} />
+      <Route path="/portal" element={<PortalRoute><PortalPage /></PortalRoute>} />
       <Route path="/reset-password" element={<ResetPasswordPage />} />
       <Route
         path="/login"

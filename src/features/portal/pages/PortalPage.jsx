@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
-import { loginThunk, logout, updateCliente } from '../../auth/slices/authSlice.js';
+import { logout, updateCliente } from '../../auth/slices/authSlice.js';
 import api from '../../../shared/services/api.js';
 import './PortalPage.css';
 
@@ -24,90 +24,6 @@ const STATE_BADGE = {
 function StateBadge({ estado }) {
   const info = STATE_BADGE[estado] || { label: `Estado ${estado}`, cls: 'badge--gray' };
   return <span className={`portal-badge ${info.cls}`}>{info.label}</span>;
-}
-
-/* ── Login panel ─────────────────────────────────────────── */
-function PortalLogin() {
-  const dispatch = useDispatch();
-  const navigate = useNavigate();
-  const { loading, error } = useSelector(s => s.auth);
-  const [form, setForm] = useState({ Correo: '', Password: '' });
-  const [showPass, setShowPass] = useState(false);
-  const [localError, setLocalError] = useState('');
-
-  const handleSubmit = async e => {
-    e.preventDefault();
-    if (!form.Correo || !form.Password) { setLocalError('Ingresa tu correo y contraseña.'); return; }
-    setLocalError('');
-    const result = await dispatch(loginThunk({ Correo: form.Correo, Password: form.Password }));
-    if (result.error) {
-      setLocalError(result.payload || 'Credenciales inválidas');
-    } else {
-      const payload = result.payload?.data || result.payload;
-      if (payload?.tipo !== 'cliente') {
-        dispatch(logout());
-        setLocalError('Este acceso es exclusivo para clientes. Usa el ingreso de empleados.');
-      }
-      // Si tipo === 'cliente', Redux ya tiene el estado; el componente padre re-renderiza
-    }
-  };
-
-  const displayError = localError || (error || '');
-
-  return (
-    <div className="portal-login-wrap">
-      <div className="portal-login-blobs">
-        <div className="portal-blob portal-blob--1" />
-        <div className="portal-blob portal-blob--2" />
-      </div>
-
-      <div className="portal-login-card">
-        <div className="portal-login-logo">
-          <div className="portal-login-logo__icon">S</div>
-          <div>
-            <h1 className="portal-login-logo__title">SIGOT</h1>
-            <p className="portal-login-logo__sub">Portal del Cliente</p>
-          </div>
-        </div>
-
-        {displayError && <div className="portal-error">{displayError}</div>}
-
-        <form onSubmit={handleSubmit} noValidate>
-          <div className="portal-form-group">
-            <label>Correo electrónico</label>
-            <input
-              type="email" value={form.Correo} placeholder="tu@correo.com"
-              onChange={e => { setForm(p => ({ ...p, Correo: e.target.value })); setLocalError(''); }}
-              required
-            />
-          </div>
-          <div className="portal-form-group">
-            <label>Contraseña</label>
-            <div style={{ position: 'relative' }}>
-              <input
-                type={showPass ? 'text' : 'password'} value={form.Password} placeholder="••••••••"
-                onChange={e => { setForm(p => ({ ...p, Password: e.target.value })); setLocalError(''); }}
-                style={{ width: '100%', paddingRight: '2.5rem', boxSizing: 'border-box' }}
-                required
-              />
-              <button type="button" onClick={() => setShowPass(p => !p)}
-                style={{ position: 'absolute', right: '0.75rem', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#888', padding: 0 }}>
-                {showPass ? '🙈' : '👁'}
-              </button>
-            </div>
-          </div>
-          <button type="submit" className="portal-btn portal-btn--primary portal-btn--full" disabled={loading}>
-            {loading ? 'Ingresando...' : 'Ingresar'}
-          </button>
-        </form>
-
-        <div className="portal-login-footer">
-          <button className="portal-link" onClick={() => navigate('/')}>← Volver al inicio</button>
-          <button className="portal-link" onClick={() => navigate('/login')}>Soy empleado →</button>
-        </div>
-      </div>
-    </div>
-  );
 }
 
 /* ── Main portal ─────────────────────────────────────────── */
@@ -246,9 +162,6 @@ export default function PortalPage() {
     } catch { setDetailOrden(orden); }
     finally { setLoadingOrden(false); }
   };
-
-  // Show login form if not authenticated as client
-  if (!cliente || tipo !== 'cliente') return <PortalLogin />;
 
   const BRAND_COLORS = ['#16a34a','#2563eb','#9333ea','#ea580c','#0891b2'];
   const brandColor = (name) => BRAND_COLORS[name?.charCodeAt(0) % BRAND_COLORS.length] || '#16a34a';
