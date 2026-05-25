@@ -263,56 +263,82 @@ export default function PortalPage() {
               </div>
             </div>
 
-            <div className="portal-account-grid">
-              <div className="portal-avatar-card">
-                <div className="portal-avatar-wrap">
-                  {fotoPreview
-                    ? <img src={fotoPreview} alt="avatar" className="portal-avatar-img" />
-                    : <div className="portal-avatar-placeholder">{cliente?.Nombre?.charAt(0)}</div>
-                  }
-                  <button className="portal-avatar-btn" onClick={() => fileRef.current?.click()}>
-                    <MdCameraAlt size={15} /> Cambiar foto
-                  </button>
-                  <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleFotoChange} />
+            <div className="portal-profile-wrap">
+              {saveOk && (
+                <div className="portal-toast">
+                  <MdCheck size={16} /> Datos actualizados correctamente
                 </div>
-                <div className="portal-avatar-name">{cliente?.Nombre}</div>
-                <div className="portal-avatar-doc">{cliente?.TipoDocumento} · {cliente?.Documento}</div>
+              )}
+
+              {/* Card 1: avatar + nombre + doc + botón cambiar foto */}
+              <div className="portal-profile-card portal-profile-header-card">
+                {fotoPreview
+                  ? <img src={fotoPreview} alt="avatar" className="portal-profile-avatar" />
+                  : <div className="portal-profile-avatar portal-profile-avatar--init">{cliente?.Nombre?.charAt(0)?.toUpperCase()}</div>
+                }
+                <div className="portal-profile-user-info">
+                  <span className="portal-profile-user-name">{cliente?.Nombre}</span>
+                  <span className="portal-profile-user-subdoc">{cliente?.TipoDocumento}</span>
+                  <span className="portal-profile-user-doc">{cliente?.Documento}</span>
+                </div>
+                <button className="btn btn--outline btn--sm" onClick={() => fileRef.current?.click()}>
+                  <MdCameraAlt size={15} /> Cambiar foto
+                </button>
+                <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleFotoChange} />
               </div>
 
-              <form className="portal-account-form" onSubmit={handleSave}>
-                {saveOk && (
-                  <div className="portal-success" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <MdCheck size={16} /> Datos actualizados correctamente
-                  </div>
-                )}
-                <div className="portal-form-section-title">Datos de solo lectura</div>
-                <div className="portal-readonly-grid">
+              {/* Card 2: información personal (solo lectura) */}
+              <div className="portal-profile-card">
+                <div className="portal-profile-card-title">Información personal</div>
+                <div className="portal-profile-fields">
                   {[
-                    ['Nombre completo',    cliente?.Nombre],
-                    ['Tipo de documento',  cliente?.TipoDocumento],
-                    ['Número de documento',cliente?.Documento],
-                  ].map(([lbl, val]) => (
-                    <div key={lbl} className="portal-readonly-item">
-                      <span className="portal-readonly-label">{lbl}</span>
-                      <span className="portal-readonly-value">{val || '—'}</span>
+                    ['Nombre completo',     cliente?.Nombre],
+                    ['Tipo de documento',   cliente?.TipoDocumento],
+                    ['Número de documento', cliente?.Documento],
+                  ].map(([label, value]) => (
+                    <div key={label} className="portal-profile-field">
+                      <span className="portal-profile-field-label">{label}</span>
+                      <input
+                        className="portal-profile-field-input portal-profile-field-input--readonly"
+                        value={value || '—'}
+                        disabled
+                        readOnly
+                      />
                     </div>
                   ))}
                 </div>
-                <div className="portal-form-section-title">Datos editables</div>
-                <div className="portal-editable-grid">
-                  <div className="portal-form-group">
-                    <label>Correo electrónico</label>
-                    <input value={editData.Correo} onChange={e => setEditData(p => ({ ...p, Correo: e.target.value }))} type="email" />
+              </div>
+
+              {/* Card 3: datos de contacto (editables) */}
+              <form onSubmit={handleSave}>
+                <div className="portal-profile-card">
+                  <div className="portal-profile-card-title">Datos de contacto</div>
+                  <div className="portal-profile-fields">
+                    <div className="portal-profile-field">
+                      <span className="portal-profile-field-label">Correo electrónico</span>
+                      <input
+                        type="email"
+                        className="portal-profile-field-input"
+                        value={editData.Correo}
+                        onChange={e => setEditData(p => ({ ...p, Correo: e.target.value }))}
+                        placeholder="correo@ejemplo.com"
+                      />
+                    </div>
+                    <div className="portal-profile-field">
+                      <span className="portal-profile-field-label">Teléfono</span>
+                      <input
+                        className="portal-profile-field-input"
+                        value={editData.Telefono}
+                        onChange={e => setEditData(p => ({ ...p, Telefono: e.target.value }))}
+                        placeholder="Número de teléfono"
+                      />
+                    </div>
                   </div>
-                  <div className="portal-form-group">
-                    <label>Teléfono</label>
-                    <input value={editData.Telefono} onChange={e => setEditData(p => ({ ...p, Telefono: e.target.value }))} />
+                  <div className="portal-profile-card-footer">
+                    <button type="submit" className="btn btn--primary" disabled={saving}>
+                      {saving ? 'Guardando...' : 'Guardar cambios'}
+                    </button>
                   </div>
-                </div>
-                <div>
-                  <button type="submit" className="btn btn--primary" disabled={saving}>
-                    {saving ? 'Guardando...' : 'Guardar cambios'}
-                  </button>
                 </div>
               </form>
             </div>

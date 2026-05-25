@@ -112,114 +112,135 @@
   white-space: nowrap;
 }
 
-/* ── Mi Cuenta — avatar card ────────────────────────────────*/
-.portal-account-grid {
-  display: grid;
-  grid-template-columns: 260px 1fr;
-  gap: 2rem;
-  align-items: start;
+/* ── Mi Cuenta — 3-card layout ──────────────────────────────*/
+.portal-profile-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  max-width: 720px;
 }
 
-.portal-avatar-card {
+.portal-profile-card {
   background: var(--color-surface, #fff);
   border: 1px solid var(--color-border, rgba(0,0,0,0.08));
-  border-radius: var(--radius-lg, 14px);
-  padding: 2rem 1.5rem;
-  text-align: center;
+  border-radius: 12px;
+  padding: 1.25rem 1.5rem;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+}
+
+/* Card 1: avatar row */
+.portal-profile-header-card {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 0.75rem;
-  box-shadow: var(--shadow-sm, 0 2px 8px rgba(0,0,0,0.05));
-}
-
-.portal-avatar-wrap {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.875rem;
-}
-
-.portal-avatar-img {
-  width: 96px; height: 96px; border-radius: 50%;
-  object-fit: cover;
-  border: 3px solid #16a34a;
-}
-
-.portal-avatar-placeholder {
-  width: 96px; height: 96px; border-radius: 50%;
-  background: linear-gradient(135deg, #16a34a, #86efac);
-  color: #fff;
-  font-size: 2.25rem; font-weight: 800;
-  display: flex; align-items: center; justify-content: center;
-}
-
-.portal-avatar-btn {
-  display: inline-flex; align-items: center; gap: 0.4rem;
-  background: #dcfce7; color: #16a34a;
-  border: 1px solid rgba(22,163,74,0.3);
-  border-radius: 8px; padding: 0.5rem 0.875rem;
-  font-size: 0.8125rem; font-weight: 600;
-  cursor: pointer; transition: background 0.18s;
-  font-family: inherit;
-}
-.portal-avatar-btn:hover { background: rgba(22,163,74,0.15); }
-
-.portal-avatar-name { font-size: 1rem; font-weight: 700; color: var(--color-text, #111827); }
-.portal-avatar-doc  { font-size: 0.8125rem; color: var(--color-text-muted, #6b7280); }
-
-/* ── Mi Cuenta — form card ──────────────────────────────────*/
-.portal-account-form {
-  background: var(--color-surface, #fff);
-  border: 1px solid var(--color-border, rgba(0,0,0,0.08));
-  border-radius: var(--radius-lg, 14px);
-  padding: 2rem;
-  box-shadow: var(--shadow-sm, 0 2px 8px rgba(0,0,0,0.05));
-  display: flex;
-  flex-direction: column;
   gap: 1.25rem;
 }
 
-.portal-form-section-title {
-  font-size: 0.75rem; font-weight: 700;
-  text-transform: uppercase; letter-spacing: 0.06em;
-  color: var(--color-text-muted, #6b7280);
-  padding-bottom: 0.5rem;
-  border-bottom: 1px solid var(--color-border, rgba(0,0,0,0.08));
+.portal-profile-avatar {
+  width: 80px; height: 80px; border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid #16a34a;
+  flex-shrink: 0;
 }
 
-.portal-readonly-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
-.portal-readonly-item { display: flex; flex-direction: column; gap: 0.25rem; }
-.portal-readonly-label {
-  font-size: 0.75rem; font-weight: 600;
-  color: var(--color-text-muted, #6b7280);
-  text-transform: uppercase; letter-spacing: 0.04em;
+.portal-profile-avatar--init {
+  background: linear-gradient(135deg, #16a34a, #86efac);
+  color: #fff;
+  font-size: 2rem; font-weight: 800;
+  display: flex; align-items: center; justify-content: center;
 }
-.portal-readonly-value {
-  font-size: 0.9375rem; font-weight: 500;
+
+.portal-profile-user-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.portal-profile-user-name {
+  font-size: 1.0625rem;
+  font-weight: 700;
   color: var(--color-text, #111827);
-  background: var(--color-bg, #f3f4f6);
-  border-radius: 8px; padding: 0.5rem 0.75rem;
+  line-height: 1.3;
 }
-.portal-editable-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
 
-.portal-form-group { display: flex; flex-direction: column; gap: 0.5rem; }
-.portal-form-group label { font-size: 0.875rem; font-weight: 600; color: var(--color-text, #111827); }
-.portal-form-group input,
-.portal-form-group textarea {
+.portal-profile-user-subdoc {
+  font-size: 0.8125rem;
+  color: var(--color-text-muted, #6b7280);
+}
+
+.portal-profile-user-doc {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--color-text, #374151);
+}
+
+/* Card title */
+.portal-profile-card-title {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--color-text-muted, #6b7280);
+  margin-bottom: 1rem;
+  padding-bottom: 0.625rem;
+  border-bottom: 1px solid var(--color-border, #e5e7eb);
+}
+
+/* Field rows: label | input in a row */
+.portal-profile-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+}
+
+.portal-profile-field {
+  display: grid;
+  grid-template-columns: 195px 1fr;
+  align-items: center;
+  gap: 1rem;
+}
+
+.portal-profile-field-label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-text, #374151);
+  flex-shrink: 0;
+}
+
+.portal-profile-field-input {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
   border: 1.5px solid var(--color-border, #e5e7eb);
-  border-radius: 10px;
-  padding: 0.75rem 1rem; font-size: 0.9375rem;
+  border-radius: 8px;
+  font-size: 0.9375rem;
   color: var(--color-text, #111827);
-  background: var(--color-bg, #f9fafb);
-  outline: none; width: 100%; font-family: inherit;
+  background: #fff;
+  font-family: inherit;
+  outline: none;
   transition: border-color 0.18s, box-shadow 0.18s;
 }
-.portal-form-group input:focus,
-.portal-form-group textarea:focus {
+
+.portal-profile-field-input:focus {
   border-color: #16a34a;
   box-shadow: 0 0 0 3px rgba(22,163,74,0.12);
-  background: #fff;
+}
+
+.portal-profile-field-input--readonly {
+  background: var(--color-bg, #f9fafb);
+  color: var(--color-text-muted, #6b7280);
+  border-color: transparent;
+  cursor: default;
+}
+.portal-profile-field-input--readonly:disabled { opacity: 1; }
+
+/* Card footer with save button */
+.portal-profile-card-footer {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--color-border, #e5e7eb);
 }
 
 /* ── Order detail — tabs & items (copied from OrdenesPage.css) ── */
@@ -318,11 +339,10 @@
   }
 
   .portal-sidebar-close { display: flex; }
-
-  .portal-account-grid { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 640px) {
-  .portal-readonly-grid { grid-template-columns: 1fr; }
-  .portal-editable-grid { grid-template-columns: 1fr; }
+  .portal-profile-header-card { flex-wrap: wrap; gap: 1rem; }
+  .portal-profile-field { grid-template-columns: 1fr; gap: 0.25rem; }
+  .portal-profile-field-label { font-size: 0.75rem; }
 }
