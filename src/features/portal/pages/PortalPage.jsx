@@ -1,68 +1,73 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import {
-  MdPerson, MdDirectionsCar, MdAssignment, MdCalendarMonth,
-  MdCameraAlt, MdClose, MdAdd, MdCheck,
-  MdCalendarToday, MdAccessTime, MdFlag, MdChevronRight,
-} from 'react-icons/md';
+import { MdAdd, MdVisibility, MdCheck, MdCameraAlt, MdDirectionsCar } from 'react-icons/md';
 import { logout, updateCliente } from '../../auth/slices/authSlice.js';
 import PortalSidebar from '../components/PortalSidebar.jsx';
+import Modal from '../../../shared/components/Modal/Modal.jsx';
+import Table from '../../../shared/components/Table/Table.jsx';
+import SearchBar from '../../../shared/components/SearchBar/SearchBar.jsx';
+import FilterDropdown from '../../../shared/components/FilterDropdown/FilterDropdown.jsx';
+import Badge from '../../../shared/components/Badge/Badge.jsx';
+import { StatusBadge } from '../../../shared/components/Badge/Badge.jsx';
+import { filterItems, formatDate, formatCurrency } from '../../../shared/utils/helpers.js';
 import api from '../../../shared/services/api.js';
 import './PortalPage.css';
 
-/* ── helpers ─────────────────────────────────────────────── */
-const fmtCurrency = v => v != null ? `$${Number(v).toLocaleString('es-CO')}` : '—';
-const fmtDate = v => {
-  if (!v) return '—';
-  try { return new Date(v).toLocaleDateString('es-CO', { day: '2-digit', month: 'long', year: 'numeric' }); }
-  catch { return v; }
+const ORDEN_ESTADO = {
+  0: { label: 'Inactivo',   variant: 'gray'    },
+  1: { label: 'Pendiente',  variant: 'warning' },
+  2: { label: 'En proceso', variant: 'info'    },
+  3: { label: 'Realizado',  variant: 'success' },
 };
-
-const STATE_BADGE = {
-  1: { label: 'Activa',     cls: 'badge--success', border: '#16a34a' },
-  0: { label: 'Completada', cls: 'badge--green',   border: '#6b7280' },
-  2: { label: 'Pendiente',  cls: 'badge--yellow',  border: '#ca8a04' },
-  3: { label: 'En proceso', cls: 'badge--blue',    border: '#1d4ed8' },
-  4: { label: 'Cancelada',  cls: 'badge--red',     border: '#dc2626' },
-};
-
-function StateBadge({ estado }) {
-  const info = STATE_BADGE[estado] || { label: `Estado ${estado}`, cls: 'badge--gray', border: '#6b7280' };
-  return <span className={`portal-badge ${info.cls}`}>{info.label}</span>;
+function OrdenEstadoBadge({ estado }) {
+  const cfg = ORDEN_ESTADO[estado] ?? ORDEN_ESTADO[1];
+  return <Badge variant={cfg.variant}>{cfg.label}</Badge>;
 }
 
-const BRAND_COLORS = ['#16a34a','#2563eb','#9333ea','#ea580c','#0891b2'];
-const brandColor = name => BRAND_COLORS[name?.charCodeAt(0) % BRAND_COLORS.length] || '#16a34a';
-
-/* ── Main portal ─────────────────────────────────────────── */
 export default function PortalPage() {
   const dispatch = useDispatch();
   const { cliente, token, tipo } = useSelector(s => s.auth);
 
   const [tab, setTab] = useState('cuenta');
   const [vehiculos, setVehiculos] = useState([]);
-  const [ordenes, setOrdenes] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [ordenes, setOrdenes]     = useState([]);
+  const [citas, setCitas]         = useState([]);
+  const [loading, setLoading]     = useState(false);
 
-  const [editData, setEditData] = useState({});
+  /* ── MI CUENTA ───────────────────────────────────────────── */
+  const [editData,    setEditData]    = useState({});
   const [fotoPreview, setFotoPreview] = useState(null);
-  const [saving, setSaving] = useState(false);
-  const [saveOk, setSaveOk] = useState(false);
+  const [saving,      setSaving]      = useState(false);
+  const [saveOk,      setSaveOk]      = useState(false);
   const fileRef = useRef(null);
 
-  const [detailVeh, setDetailVeh] = useState(null);
-  const [detailOrden, setDetailOrden] = useState(null);
-  const [loadingOrden, setLoadingOrden] = useState(false);
+  /* ── MIS VEHÍCULOS ───────────────────────────────────────── */
+  const [vehSearch,   setVehSearch]   = useState('');
+  const [vehPageSize, setVehPageSize] = useState(5);
+  const [vehDetail,   setVehDetail]   = useState(null);
 
-  const [citas, setCitas] = useState([]);
+  /* ── MIS ÓRDENES ─────────────────────────────────────────── */
+  const [ordSearch,    setOrdSearch]    = useState('');
+  const [ordEstado,    setOrdEstado]    = useState('todos');
+  const [ordPageSize,  setOrdPageSize]  = useState(5);
+  const [ordDetail,    setOrdDetail]    = useState(null);
+  const [ordLoading,   setOrdLoading]   = useState(false);
+  const [ordTab,       setOrdTab]       = useState('info');
+  const [ordVehFilter, setOrdVehFilter] = useState('');
+
+  /* ── MIS CITAS ───────────────────────────────────────────── */
+  const [citaSearch,    setCitaSearch]    = useState('');
+  const [citaEstado,    setCitaEstado]    = useState('todos');
+  const [citaPageSize,  setCitaPageSize]  = useState(5);
   const [showCitaModal, setShowCitaModal] = useState(false);
-  const [citaForm, setCitaForm] = useState({ Id_Vehiculo: '', Fecha: '', Hora: '', Descripcion: '', Id_Empleado: '' });
-  const [citaError, setCitaError] = useState('');
-  const [citaLoading, setCitaLoading] = useState(false);
-  const [citaToast, setCitaToast] = useState(false);
-  const [empleadosDisponibles, setEmpleadosDisponibles] = useState([]);
-  const [loadingEmpleados, setLoadingEmpleados] = useState(false);
+  const [citaForm,      setCitaForm]      = useState({ Id_Vehiculo: '', Fecha: '', Hora: '', Descripcion: '', Id_Empleado: '' });
+  const [citaError,     setCitaError]     = useState('');
+  const [citaLoading,   setCitaLoading]   = useState(false);
+  const [citaToast,     setCitaToast]     = useState(false);
+  const [empleadosDisp, setEmpleadosDisp] = useState([]);
+  const [loadingEmpl,   setLoadingEmpl]   = useState(false);
 
+  /* ── Fetch inicial ───────────────────────────────────────── */
   useEffect(() => {
     if (cliente) {
       setEditData({ Correo: cliente.Correo || '', Telefono: cliente.Telefono || cliente.Contacto || '' });
@@ -73,18 +78,25 @@ export default function PortalPage() {
   useEffect(() => {
     if (!cliente || !token || tipo !== 'cliente') return;
     setLoading(true);
-    const headers = { Authorization: `Bearer ${token}` };
+    const h = { Authorization: `Bearer ${token}` };
     Promise.all([
-      api.get('/api/portal/vehiculos', { headers }),
-      api.get('/api/portal/ordenes',   { headers }),
-      api.get('/api/portal/citas',     { headers }),
+      api.get('/api/portal/vehiculos', { headers: h }),
+      api.get('/api/portal/ordenes',   { headers: h }),
+      api.get('/api/portal/citas',     { headers: h }),
     ]).then(([vRes, oRes, cRes]) => {
       setVehiculos(vRes.data?.data || []);
-      setOrdenes(oRes.data?.data   || []);
-      setCitas(cRes.data?.data     || []);
+      setOrdenes(oRes.data?.data || []);
+      setCitas(flattenCitas(cRes.data?.data || []));
     }).catch(() => {}).finally(() => setLoading(false));
   }, [cliente?.Id_Cliente, token]);
 
+  const flattenCitas = list => list.map(c => ({
+    ...c,
+    VehiculoPlaca:  c.vehiculo?.Placa || '',
+    EmpleadoNombre: c.empleado?.Nombre || 'Sin asignar',
+  }));
+
+  /* ── Mi Cuenta ───────────────────────────────────────────── */
   const handleFotoChange = e => {
     const file = e.target.files[0];
     if (!file) return;
@@ -103,26 +115,41 @@ export default function PortalPage() {
       dispatch(updateCliente({ ...(res.data?.data || {}), Foto: fotoPreview }));
       setSaveOk(true);
       setTimeout(() => setSaveOk(false), 3000);
-    } catch { /* silent */ } finally { setSaving(false); }
+    } catch { } finally { setSaving(false); }
   };
 
-  const fetchCitas = async () => {
+  /* ── Orden detail ────────────────────────────────────────── */
+  const openOrden = async orden => {
+    setOrdDetail(null);
+    setOrdTab('info');
+    setOrdLoading(true);
+    try {
+      const r = await api.get(`/api/portal/ordenes/${orden.Id_Orden}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setOrdDetail(r.data?.data || orden);
+    } catch { setOrdDetail(orden); }
+    finally { setOrdLoading(false); }
+  };
+
+  /* ── Citas ───────────────────────────────────────────────── */
+  const refetchCitas = async () => {
     try {
       const r = await api.get('/api/portal/citas', { headers: { Authorization: `Bearer ${token}` } });
-      setCitas(r.data?.data || []);
-    } catch { /* silent */ }
+      setCitas(flattenCitas(r.data?.data || []));
+    } catch { }
   };
 
-  const fetchEmpleadosDisponibles = async fecha => {
-    if (!fecha) { setEmpleadosDisponibles([]); return; }
-    setLoadingEmpleados(true);
+  const fetchEmpleadosDisp = async fecha => {
+    if (!fecha) { setEmpleadosDisp([]); return; }
+    setLoadingEmpl(true);
     try {
       const r = await api.get(`/api/portal/empleados-disponibles?fecha=${fecha}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      setEmpleadosDisponibles(r.data?.data || []);
-    } catch { setEmpleadosDisponibles([]); }
-    finally { setLoadingEmpleados(false); }
+      setEmpleadosDisp(r.data?.data || []);
+    } catch { setEmpleadosDisp([]); }
+    finally { setLoadingEmpl(false); }
   };
 
   const handleCrearCita = async e => {
@@ -136,8 +163,8 @@ export default function PortalPage() {
       await api.post('/api/portal/citas', citaForm, { headers: { Authorization: `Bearer ${token}` } });
       setShowCitaModal(false);
       setCitaForm({ Id_Vehiculo: '', Fecha: '', Hora: '', Descripcion: '', Id_Empleado: '' });
-      setEmpleadosDisponibles([]);
-      await fetchCitas();
+      setEmpleadosDisp([]);
+      await refetchCitas();
       setCitaToast(true);
       setTimeout(() => setCitaToast(false), 3000);
     } catch (err) {
@@ -145,25 +172,88 @@ export default function PortalPage() {
     } finally { setCitaLoading(false); }
   };
 
-  const openOrden = async orden => {
-    setDetailOrden(null);
-    setLoadingOrden(true);
-    try {
-      const r = await api.get(`/api/portal/ordenes/${orden.Id_Orden}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setDetailOrden(r.data?.data || orden);
-    } catch { setDetailOrden(orden); }
-    finally { setLoadingOrden(false); }
-  };
+  /* ── Filtered lists ──────────────────────────────────────── */
+  const filteredVehiculos = filterItems(vehiculos, vehSearch, ['Placa', 'Marca', 'Modelo', 'Color']);
 
+  const filteredOrdenes = (() => {
+    let list = ordenes;
+    if (ordVehFilter) list = list.filter(o => String(o.Id_Vehiculo) === ordVehFilter);
+    if (ordEstado !== 'todos') list = list.filter(o => String(o.Estado) === ordEstado);
+    return filterItems(list, ordSearch, ['Vehiculo', 'vehiculo', 'Diagnostico', 'Cliente', 'cliente']);
+  })();
+
+  const filteredCitas = (() => {
+    let list = citas;
+    if (citaEstado === 'activos')   list = list.filter(c => c.Estado !== 0);
+    if (citaEstado === 'inactivos') list = list.filter(c => c.Estado === 0);
+    return filterItems(list, citaSearch, ['VehiculoPlaca', 'EmpleadoNombre', 'Descripcion']);
+  })();
+
+  /* ── Orden totals ────────────────────────────────────────── */
+  const totalServ = (ordDetail?.servicios || []).reduce((s, x) => s + Number(x.precio_unitario || 0), 0);
+  const totalRep  = (ordDetail?.repuestos  || []).reduce((s, x) => s + Number(x.cantidad || 1) * Number(x.precio_unitario || 0), 0);
+  const manoObra  = ordDetail?.mano_de_obra ?? null;
+  const total     = totalServ + totalRep + (manoObra || 0);
+
+  /* ── Column definitions ──────────────────────────────────── */
+  const vehiculosColumns = [
+    { key: '#',      label: '#',      width: '50px', render: (_, __, i) => i + 1 },
+    { key: 'Placa',  label: 'Placa',  render: v => <span className="font-medium">{v}</span> },
+    { key: 'Marca',  label: 'Marca'  },
+    { key: 'Modelo', label: 'Modelo' },
+    { key: 'Anio',   label: 'Año'    },
+    { key: 'Color',  label: 'Color',  render: v => v || '—' },
+    {
+      key: 'acciones', label: 'Acciones', render: (_, row) => (
+        <div className="table-actions">
+          <button className="btn btn--ghost btn--icon btn--sm" title="Ver detalle" onClick={() => setVehDetail(row)}>
+            <MdVisibility size={17} />
+          </button>
+          <button className="btn btn--ghost btn--sm portal-btn-ordenes" title="Ver órdenes de este vehículo"
+            onClick={() => { setOrdVehFilter(String(row.Id_Vehiculo)); setTab('ordenes'); }}>
+            <MdDirectionsCar size={15} /> Ver órdenes
+          </button>
+        </div>
+      ),
+    },
+  ];
+
+  const ordenesColumns = [
+    { key: '#',          label: '#',          width: '50px', render: (_, __, i) => i + 1 },
+    { key: 'Vehiculo',   label: 'Vehículo',   render: (v, row) => <span className="font-medium">{v || row.vehiculo || `#${row.Id_Vehiculo}`}</span> },
+    { key: 'Diagnostico',label: 'Diagnóstico', render: v => <span className="diag-cell">{v || '—'}</span> },
+    { key: 'FechaIngreso',label: 'Ingreso',   render: v => formatDate(v) },
+    { key: 'FechaEntrega',label: 'Entrega',   render: v => formatDate(v) },
+    { key: 'Estado',     label: 'Estado',     render: v => <OrdenEstadoBadge estado={v} /> },
+    {
+      key: 'acciones', label: 'Acciones', render: (_, row) => (
+        <div className="table-actions">
+          <button className="btn btn--ghost btn--icon btn--sm" title="Ver detalle" onClick={() => openOrden(row)}>
+            <MdVisibility size={17} />
+          </button>
+        </div>
+      ),
+    },
+  ];
+
+  const citasColumns = [
+    { key: '#',                label: '#',         width: '50px', render: (_, __, i) => i + 1 },
+    { key: 'FechaAgendamiento',label: 'Fecha',     render: v => formatDate(v) },
+    { key: 'Hora',             label: 'Hora',      render: v => v || '—' },
+    { key: 'VehiculoPlaca',    label: 'Vehículo',  render: v => v || '—' },
+    { key: 'EmpleadoNombre',   label: 'Técnico',   render: v => v || 'Sin asignar' },
+    { key: 'Descripcion',      label: 'Descripción', render: v => v ? <span className="diag-cell">{v}</span> : '—' },
+    { key: 'Estado',           label: 'Estado',    render: v => <StatusBadge estado={v} /> },
+  ];
+
+  /* ── Render ──────────────────────────────────────────────── */
   return (
     <div className="portal-layout">
       <PortalSidebar activeTab={tab} onTabChange={setTab} />
 
       <main className="portal-layout__main">
 
-        {/* ── MI CUENTA ─────────────────────────────────── */}
+        {/* ════════════════════ MI CUENTA ════════════════════ */}
         {tab === 'cuenta' && (
           <div className="page">
             <div className="page__header">
@@ -172,6 +262,7 @@ export default function PortalPage() {
                 <p className="page__subtitle">Gestiona tu información personal</p>
               </div>
             </div>
+
             <div className="portal-account-grid">
               <div className="portal-avatar-card">
                 <div className="portal-avatar-wrap">
@@ -197,9 +288,9 @@ export default function PortalPage() {
                 <div className="portal-form-section-title">Datos de solo lectura</div>
                 <div className="portal-readonly-grid">
                   {[
-                    ['Nombre completo', cliente?.Nombre],
-                    ['Tipo de documento', cliente?.TipoDocumento],
-                    ['Número de documento', cliente?.Documento],
+                    ['Nombre completo',    cliente?.Nombre],
+                    ['Tipo de documento',  cliente?.TipoDocumento],
+                    ['Número de documento',cliente?.Documento],
                   ].map(([lbl, val]) => (
                     <div key={lbl} className="portal-readonly-item">
                       <span className="portal-readonly-label">{lbl}</span>
@@ -218,15 +309,17 @@ export default function PortalPage() {
                     <input value={editData.Telefono} onChange={e => setEditData(p => ({ ...p, Telefono: e.target.value }))} />
                   </div>
                 </div>
-                <button type="submit" className="portal-btn portal-btn--primary" disabled={saving}>
-                  {saving ? 'Guardando...' : 'Guardar cambios'}
-                </button>
+                <div>
+                  <button type="submit" className="btn btn--primary" disabled={saving}>
+                    {saving ? 'Guardando...' : 'Guardar cambios'}
+                  </button>
+                </div>
               </form>
             </div>
           </div>
         )}
 
-        {/* ── MIS VEHÍCULOS ──────────────────────────────── */}
+        {/* ═══════════════ MIS VEHÍCULOS ═════════════════════ */}
         {tab === 'vehiculos' && (
           <div className="page">
             <div className="page__header">
@@ -235,44 +328,34 @@ export default function PortalPage() {
                 <p className="page__subtitle">{vehiculos.length} vehículo(s) registrado(s)</p>
               </div>
             </div>
-            {loading ? (
-              <div className="portal-loading">Cargando...</div>
-            ) : vehiculos.length === 0 ? (
-              <div className="portal-empty">
-                <MdDirectionsCar size={44} className="portal-empty__icon" />
-                <p>No tienes vehículos registrados aún.</p>
+            <div className="card">
+              <div className="card__header">
+                <SearchBar
+                  value={vehSearch}
+                  onChange={setVehSearch}
+                  placeholder="Buscar por placa, marca, modelo, color..."
+                  filterSlot={
+                    <FilterDropdown
+                      statusFilter="todos"
+                      onStatusChange={() => {}}
+                      pageSize={vehPageSize}
+                      onPageSizeChange={setVehPageSize}
+                    />
+                  }
+                />
               </div>
-            ) : (
-              <div className="portal-vehicles-grid">
-                {vehiculos.map(v => (
-                  <div key={v.Id_Vehiculo} className="portal-vehicle-card">
-                    <div className="portal-vehicle-card__icon" style={{ background: brandColor(v.Marca) }}>
-                      <MdDirectionsCar size={28} color="#fff" />
-                    </div>
-                    <div className="portal-vehicle-card__info">
-                      <h3 className="portal-vehicle-card__name">{v.Marca} {v.Modelo}</h3>
-                      <div className="portal-vehicle-card__placa">{v.Placa}</div>
-                      <div className="portal-vehicle-card__meta">
-                        <span><MdCalendarToday size={12} style={{ marginRight: '3px', verticalAlign: 'middle' }} />{v.Anio}</span>
-                        {v.Color && <span style={{ textTransform: 'capitalize' }}>{v.Color}</span>}
-                      </div>
-                    </div>
-                    <div className="portal-vehicle-card__actions">
-                      <button className="portal-btn portal-btn--outline portal-btn--sm" onClick={() => setDetailVeh(v)}>
-                        Ver detalles
-                      </button>
-                      <button className="portal-btn portal-btn--ghost portal-btn--sm" onClick={() => setTab('ordenes')}>
-                        Mis órdenes
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
+              <Table
+                columns={vehiculosColumns}
+                data={filteredVehiculos}
+                loading={loading}
+                pageSize={vehPageSize}
+                emptyMessage="No tienes vehículos registrados"
+              />
+            </div>
           </div>
         )}
 
-        {/* ── MIS ÓRDENES ─────────────────────────────────── */}
+        {/* ═══════════════ MIS ÓRDENES ═══════════════════════ */}
         {tab === 'ordenes' && (
           <div className="page">
             <div className="page__header">
@@ -280,55 +363,59 @@ export default function PortalPage() {
                 <h1 className="page__title">Mis Órdenes de Trabajo</h1>
                 <p className="page__subtitle">{ordenes.length} orden(es) registrada(s)</p>
               </div>
+              {ordVehFilter && (
+                <button className="btn btn--outline btn--sm" onClick={() => setOrdVehFilter('')}>
+                  Quitar filtro de vehículo
+                </button>
+              )}
             </div>
-            {loading ? (
-              <div className="portal-loading">Cargando...</div>
-            ) : ordenes.length === 0 ? (
-              <div className="portal-empty">
-                <MdAssignment size={44} className="portal-empty__icon" />
-                <p>No tienes órdenes registradas aún.</p>
+            <div className="card">
+              <div className="card__header">
+                <SearchBar
+                  value={ordSearch}
+                  onChange={setOrdSearch}
+                  placeholder="Buscar por vehículo, diagnóstico..."
+                  filterSlot={
+                    <>
+                      <select className="filter-select" value={ordEstado} onChange={e => setOrdEstado(e.target.value)}>
+                        <option value="todos">Todos los estados</option>
+                        <option value="1">Pendiente</option>
+                        <option value="2">En proceso</option>
+                        <option value="3">Realizado</option>
+                        <option value="0">Inactivo</option>
+                      </select>
+                      <FilterDropdown
+                        statusFilter="todos"
+                        onStatusChange={() => {}}
+                        pageSize={ordPageSize}
+                        onPageSizeChange={setOrdPageSize}
+                      />
+                    </>
+                  }
+                />
               </div>
-            ) : (
-              <div className="portal-orders-list">
-                {ordenes.map(o => {
-                  const veh = vehiculos.find(v => v.Id_Vehiculo == o.Id_Vehiculo);
-                  const borderColor = STATE_BADGE[o.Estado]?.border || '#6b7280';
-                  return (
-                    <div key={o.Id_Orden} className="portal-order-card" style={{ borderLeft: `3px solid ${borderColor}` }} onClick={() => openOrden(o)}>
-                      <div className="portal-order-card__top">
-                        <div className="portal-order-card__num">Orden #{o.Id_Orden}</div>
-                        <StateBadge estado={o.Estado} />
-                      </div>
-                      <div className="portal-order-card__vehicle">
-                        <MdDirectionsCar size={14} style={{ marginRight: '4px', flexShrink: 0, verticalAlign: 'middle' }} />
-                        {veh ? `${veh.Marca} ${veh.Modelo} · ${veh.Placa}` : o.Vehiculo || `Vehículo #${o.Id_Vehiculo}`}
-                      </div>
-                      <div className="portal-order-card__dates">
-                        <span><MdCalendarToday size={12} style={{ marginRight: '3px', verticalAlign: 'middle' }} />Ingreso: {fmtDate(o.FechaIngreso)}</span>
-                        {o.FechaEntrega && <span><MdFlag size={12} style={{ marginRight: '3px', verticalAlign: 'middle' }} />Entrega: {fmtDate(o.FechaEntrega)}</span>}
-                      </div>
-                      <div className="portal-order-card__cta">
-                        Ver detalle completo <MdChevronRight size={15} style={{ verticalAlign: 'middle' }} />
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
+              <Table
+                columns={ordenesColumns}
+                data={filteredOrdenes}
+                loading={loading}
+                pageSize={ordPageSize}
+                emptyMessage="No tienes órdenes registradas"
+              />
+            </div>
           </div>
         )}
 
-        {/* ── MIS CITAS ───────────────────────────────────── */}
+        {/* ═══════════════ MIS CITAS ═════════════════════════ */}
         {tab === 'citas' && (
           <div className="page">
             <div className="page__header">
               <div>
                 <h1 className="page__title">Mis Citas</h1>
-                <p className="page__subtitle">Historial y nuevas citas con el taller</p>
+                <p className="page__subtitle">{citas.length} cita(s) registrada(s)</p>
               </div>
-              <button className="portal-btn portal-btn--primary" onClick={() => {
+              <button className="btn btn--primary" onClick={() => {
                 setCitaForm({ Id_Vehiculo: '', Fecha: '', Hora: '', Descripcion: '', Id_Empleado: '' });
-                setCitaError(''); setEmpleadosDisponibles([]); setShowCitaModal(true);
+                setCitaError(''); setEmpleadosDisp([]); setShowCitaModal(true);
               }}>
                 <MdAdd size={18} /> Agendar cita
               </button>
@@ -340,243 +427,209 @@ export default function PortalPage() {
               </div>
             )}
 
-            {citas.length === 0 ? (
-              <div className="portal-empty">
-                <MdCalendarMonth size={44} className="portal-empty__icon" />
-                <p>No tienes citas registradas.</p>
+            <div className="card">
+              <div className="card__header">
+                <SearchBar
+                  value={citaSearch}
+                  onChange={setCitaSearch}
+                  placeholder="Buscar por vehículo, técnico, descripción..."
+                  filterSlot={
+                    <FilterDropdown
+                      statusFilter={citaEstado}
+                      onStatusChange={setCitaEstado}
+                      pageSize={citaPageSize}
+                      onPageSizeChange={setCitaPageSize}
+                    />
+                  }
+                />
               </div>
-            ) : (
-              <div className="portal-citas-list">
-                {citas.map(c => {
-                  const isPending = c.Estado;
-                  return (
-                    <div key={c.Id_Agenda} className={`portal-cita-card${isPending ? '' : ' portal-cita-card--done'}`}>
-                      <div className="portal-cita-card__date-col">
-                        <div className="portal-cita-card__date">
-                          <MdCalendarMonth size={16} />
-                          <span>{fmtDate(c.FechaAgendamiento)}</span>
-                        </div>
-                        <div className="portal-cita-card__time">
-                          <MdAccessTime size={14} />
-                          <span>{c.Hora || '—'}</span>
-                        </div>
-                      </div>
-                      <div className="portal-cita-card__info">
-                        <div className="portal-cita-card__vehiculo">
-                          <MdDirectionsCar size={14} style={{ marginRight: '4px', verticalAlign: 'middle' }} />
-                          {c.vehiculo?.Placa || '—'}
-                        </div>
-                        <div className="portal-cita-card__tecnico">
-                          {c.empleado?.Nombre || 'Sin técnico asignado'}
-                        </div>
-                        {c.Descripcion && <div className="portal-cita-card__desc">{c.Descripcion}</div>}
-                      </div>
-                      <div className="portal-cita-card__status">
-                        <span className={`portal-badge ${isPending ? 'badge--yellow' : 'badge--green'}`}>
-                          {isPending ? 'Pendiente' : 'Completada'}
-                        </span>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
+              <Table
+                columns={citasColumns}
+                data={filteredCitas}
+                loading={loading}
+                pageSize={citaPageSize}
+                emptyMessage="No tienes citas registradas"
+              />
+            </div>
           </div>
         )}
 
       </main>
 
-      {/* ── VEHICLE DETAIL MODAL ─────────────────────────── */}
-      {detailVeh && (
-        <div className="portal-modal-overlay" onClick={() => setDetailVeh(null)}>
-          <div className="portal-modal" onClick={e => e.stopPropagation()}>
-            <div className="portal-modal__header">
-              <h3>Detalle del vehículo</h3>
-              <button className="portal-modal__close" onClick={() => setDetailVeh(null)}><MdClose size={18} /></button>
-            </div>
-            <div className="portal-modal__body">
-              <div className="portal-detail-grid">
-                {[['Placa', detailVeh.Placa], ['VIN', detailVeh.VIN || '—'], ['Marca', detailVeh.Marca],
-                  ['Modelo', detailVeh.Modelo], ['Año', detailVeh.Anio], ['Color', detailVeh.Color || '—'],
-                  ['Estado', detailVeh.Estado === 1 ? 'Activo' : 'Inactivo']].map(([l, v]) => (
-                  <div key={l} className="portal-detail-item">
-                    <span className="portal-detail-label">{l}</span>
-                    <span className="portal-detail-value">{v}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
+      {/* ══════════════ MODAL: Detalle vehículo ══════════════ */}
+      <Modal isOpen={!!vehDetail} onClose={() => setVehDetail(null)} title="Detalle del vehículo" size="md">
+        {vehDetail && (
+          <div className="detail-grid">
+            <div className="detail-item"><span className="detail-label">Placa</span><span className="detail-value">{vehDetail.Placa}</span></div>
+            <div className="detail-item"><span className="detail-label">VIN</span><span className="detail-value">{vehDetail.VIN || '—'}</span></div>
+            <div className="detail-item"><span className="detail-label">Marca</span><span className="detail-value">{vehDetail.Marca || '—'}</span></div>
+            <div className="detail-item"><span className="detail-label">Modelo</span><span className="detail-value">{vehDetail.Modelo}</span></div>
+            <div className="detail-item"><span className="detail-label">Año</span><span className="detail-value">{vehDetail.Anio}</span></div>
+            <div className="detail-item"><span className="detail-label">Color</span><span className="detail-value">{vehDetail.Color || '—'}</span></div>
           </div>
-        </div>
-      )}
+        )}
+      </Modal>
 
-      {/* ── NUEVA CITA MODAL ─────────────────────────────── */}
-      {showCitaModal && (
-        <div className="portal-modal-overlay" onClick={() => { setShowCitaModal(false); setEmpleadosDisponibles([]); }}>
-          <div className="portal-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '480px' }}>
-            <div className="portal-modal__header">
-              <h3>Agendar nueva cita</h3>
-              <button className="portal-modal__close" onClick={() => { setShowCitaModal(false); setEmpleadosDisponibles([]); }}><MdClose size={18} /></button>
+      {/* ══════════════ MODAL: Detalle orden ═════════════════ */}
+      <Modal
+        isOpen={!!(ordDetail || ordLoading)}
+        onClose={() => { setOrdDetail(null); }}
+        title={ordDetail ? `Orden de trabajo #${ordDetail.Id_Orden}` : 'Orden de trabajo'}
+        size="xl"
+      >
+        {ordLoading && !ordDetail ? (
+          <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--color-text-muted)' }}>Cargando detalle...</div>
+        ) : ordDetail ? (
+          <div>
+            <div className="orden-tabs">
+              {[['info', 'Información general'], ['servicios', 'Servicios'], ['repuestos', 'Repuestos']].map(([key, label]) => (
+                <button key={key} className={`orden-tab${ordTab === key ? ' orden-tab--active' : ''}`} onClick={() => setOrdTab(key)}>
+                  {label}
+                </button>
+              ))}
             </div>
-            <div className="portal-modal__body">
-              <form onSubmit={handleCrearCita}>
-                {citaError && <div style={{ color: '#f87171', marginBottom: '0.75rem', fontSize: '0.85rem' }}>{citaError}</div>}
-                <div style={{ marginBottom: '0.875rem' }}>
-                  <label style={{ display: 'block', fontSize: '0.8rem', color: '#aaa', marginBottom: '0.25rem' }}>Vehículo *</label>
-                  <select className="form-control" value={citaForm.Id_Vehiculo} onChange={e => setCitaForm(p => ({ ...p, Id_Vehiculo: e.target.value }))} required>
-                    <option value="">Seleccionar vehículo...</option>
-                    {vehiculos.map(v => <option key={v.Id_Vehiculo} value={v.Id_Vehiculo}>{v.Placa} — {v.Marca || ''}</option>)}
-                  </select>
-                </div>
-                <div style={{ marginBottom: '0.875rem' }}>
-                  <label style={{ display: 'block', fontSize: '0.8rem', color: '#aaa', marginBottom: '0.25rem' }}>Fecha *</label>
-                  <input type="date" className="form-control" value={citaForm.Fecha} min={new Date().toISOString().split('T')[0]}
-                    onChange={e => {
-                      const f = e.target.value;
-                      setCitaForm(p => ({ ...p, Fecha: f, Id_Empleado: '' }));
-                      fetchEmpleadosDisponibles(f);
-                    }} required />
-                </div>
-                <div style={{ marginBottom: '0.875rem' }}>
-                  <label style={{ display: 'block', fontSize: '0.8rem', color: '#aaa', marginBottom: '0.25rem' }}>Hora *</label>
-                  <select className="form-control" value={citaForm.Hora} onChange={e => setCitaForm(p => ({ ...p, Hora: e.target.value }))} required>
-                    <option value="">Seleccionar hora...</option>
-                    {Array.from({ length: 21 }, (_, i) => {
-                      const totalMins = 480 + i * 30;
-                      const h = Math.floor(totalMins / 60);
-                      const m = totalMins % 60;
-                      const label = `${h > 12 ? h - 12 : h}:${m.toString().padStart(2, '0')} ${h >= 12 ? 'PM' : 'AM'}`;
-                      const value = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
-                      return <option key={value} value={value}>{label}</option>;
-                    })}
-                  </select>
-                </div>
-                <div style={{ marginBottom: '0.875rem' }}>
-                  <label style={{ display: 'block', fontSize: '0.8rem', color: '#aaa', marginBottom: '0.25rem' }}>Técnico asignado (opcional)</label>
-                  {!citaForm.Fecha ? (
-                    <p style={{ fontSize: '0.8rem', color: '#888', fontStyle: 'italic', margin: 0 }}>Selecciona una fecha primero</p>
-                  ) : loadingEmpleados ? (
-                    <p style={{ fontSize: '0.8rem', color: '#888', margin: 0 }}>Cargando técnicos...</p>
-                  ) : (
-                    <select className="form-control" value={citaForm.Id_Empleado} onChange={e => setCitaForm(p => ({ ...p, Id_Empleado: e.target.value }))}>
-                      <option value="">Sin preferencia</option>
-                      {empleadosDisponibles.map(e => (
-                        <option key={e.id_empleado} value={e.id_empleado} disabled={!e.disponible} style={!e.disponible ? { color: '#888' } : {}}>
-                          {e.Nombre}{!e.disponible ? ' (No disponible)' : ''}
-                        </option>
-                      ))}
-                    </select>
-                  )}
-                </div>
-                <div style={{ marginBottom: '1rem' }}>
-                  <label style={{ display: 'block', fontSize: '0.8rem', color: '#aaa', marginBottom: '0.25rem' }}>Descripción</label>
-                  <textarea className="form-control" value={citaForm.Descripcion} rows={3} maxLength={300}
-                    onChange={e => setCitaForm(p => ({ ...p, Descripcion: e.target.value }))}
-                    placeholder="Describe brevemente el motivo de la cita..." />
-                </div>
-                <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
-                  <button type="button" className="portal-btn" onClick={() => { setShowCitaModal(false); setEmpleadosDisponibles([]); }}>Cancelar</button>
-                  <button type="submit" className="portal-btn portal-btn--primary" disabled={citaLoading}>
-                    {citaLoading ? 'Guardando...' : 'Agendar cita'}
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        </div>
-      )}
 
-      {/* ── ORDER DETAIL MODAL ──────────────────────────── */}
-      {(detailOrden || loadingOrden) && (
-        <div className="portal-modal-overlay" onClick={() => { setDetailOrden(null); }}>
-          <div className="portal-modal portal-modal--lg" onClick={e => e.stopPropagation()}>
-            <div className="portal-modal__header">
-              <h3>Detalle de la orden {detailOrden ? `#${detailOrden.Id_Orden}` : ''}</h3>
-              <button className="portal-modal__close" onClick={() => setDetailOrden(null)}><MdClose size={18} /></button>
-            </div>
-            <div className="portal-modal__body">
-              {loadingOrden && !detailOrden ? (
-                <div className="portal-loading">Cargando detalle...</div>
-              ) : detailOrden ? (
-                <div>
-                  <div className="portal-detail-grid" style={{ marginBottom: '1.5rem' }}>
-                    {[['Número', `#${detailOrden.Id_Orden}`],
-                      ['Estado', '—'],
-                      ['Vehículo', detailOrden.Vehiculo || `#${detailOrden.Id_Vehiculo}`],
-                      ['Diagnóstico', detailOrden.Diagnostico || '—'],
-                      ['Kilometraje', detailOrden.Kilometraje ? `${detailOrden.Kilometraje.toLocaleString()} km` : '—'],
-                      ['Fecha ingreso', fmtDate(detailOrden.FechaIngreso)],
-                      ['Fecha entrega', fmtDate(detailOrden.FechaEntrega)],
-                    ].map(([l, v], i) => (
-                      <div key={l} className="portal-detail-item">
-                        <span className="portal-detail-label">{l}</span>
-                        {i === 1
-                          ? <StateBadge estado={detailOrden.Estado} />
-                          : <span className="portal-detail-value">{v}</span>
-                        }
-                      </div>
-                    ))}
+            {ordTab === 'info' && (
+              <div style={{ marginTop: '1rem' }}>
+                <div className="detail-grid">
+                  <div className="detail-item"><span className="detail-label">Vehículo</span><span className="detail-value">{ordDetail.Vehiculo || ordDetail.vehiculo || `#${ordDetail.Id_Vehiculo}`}</span></div>
+                  <div className="detail-item"><span className="detail-label">Estado</span><span className="detail-value"><OrdenEstadoBadge estado={ordDetail.Estado} /></span></div>
+                  <div className="detail-item"><span className="detail-label">Fecha ingreso</span><span className="detail-value">{formatDate(ordDetail.FechaIngreso)}</span></div>
+                  <div className="detail-item"><span className="detail-label">Fecha entrega</span><span className="detail-value">{formatDate(ordDetail.FechaEntrega)}</span></div>
+                  <div className="detail-item"><span className="detail-label">Kilometraje</span><span className="detail-value">{ordDetail.Kilometraje ? `${Number(ordDetail.Kilometraje).toLocaleString('es-CO')} km` : '—'}</span></div>
+                  <div className="detail-item" style={{ gridColumn: 'span 2' }}><span className="detail-label">Diagnóstico</span><span className="detail-value">{ordDetail.Diagnostico || '—'}</span></div>
+                </div>
+                <div className="orden-total-card">
+                  <div className="orden-total-breakdown">
+                    <div className="orden-total-row"><span>Servicios</span><span>{formatCurrency(totalServ)}</span></div>
+                    <div className="orden-total-row"><span>Repuestos</span><span>{formatCurrency(totalRep)}</span></div>
+                    <div className="orden-total-row"><span>Mano de obra</span><span>{manoObra != null ? formatCurrency(manoObra) : '—'}</span></div>
                   </div>
-
-                  {detailOrden.servicios?.length > 0 && (
-                    <div className="portal-order-section">
-                      <h4 className="portal-order-section__title">Servicios</h4>
-                      <table className="portal-order-table">
-                        <thead><tr><th>Servicio</th><th>Precio unitario</th></tr></thead>
-                        <tbody>
-                          {detailOrden.servicios.map((s, i) => (
-                            <tr key={i}>
-                              <td>{s.servicio || s.Nombre || `Servicio #${s.Id_Servicio}`}</td>
-                              <td>{fmtCurrency(s.precio_unitario)}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
-
-                  {detailOrden.repuestos?.length > 0 && (
-                    <div className="portal-order-section">
-                      <h4 className="portal-order-section__title">Repuestos utilizados</h4>
-                      <table className="portal-order-table">
-                        <thead><tr><th>Repuesto</th><th>Cantidad</th><th>Precio unit.</th><th>Subtotal</th></tr></thead>
-                        <tbody>
-                          {detailOrden.repuestos.map((r, i) => (
-                            <tr key={i}>
-                              <td>{r.repuesto || r.Nombre || `Repuesto #${r.Id_Repuesto}`}</td>
-                              <td>{r.cantidad}</td>
-                              <td>{fmtCurrency(r.precio_unitario)}</td>
-                              <td>{fmtCurrency(Number(r.cantidad || 0) * Number(r.precio_unitario || 0))}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
-
-                  {detailOrden.mano_de_obra != null && (
-                    <div className="portal-order-total-row">
-                      <span>Mano de obra</span>
-                      <span>{fmtCurrency(detailOrden.mano_de_obra)}</span>
-                    </div>
-                  )}
-
-                  <div className="portal-order-grand-total">
+                  <div className="orden-total-final">
                     <span>Total estimado</span>
-                    <span>
-                      {fmtCurrency(
-                        (detailOrden.servicios || []).reduce((s, x) => s + Number(x.precio_unitario || 0), 0) +
-                        (detailOrden.repuestos || []).reduce((s, x) => s + Number(x.cantidad || 0) * Number(x.precio_unitario || 0), 0) +
-                        Number(detailOrden.mano_de_obra || 0)
-                      )}
-                    </span>
+                    <span>{formatCurrency(total)}</span>
                   </div>
                 </div>
-              ) : null}
-            </div>
+              </div>
+            )}
+
+            {ordTab === 'servicios' && (
+              <div style={{ marginTop: '1rem' }}>
+                <div className="orden-items-list">
+                  {(ordDetail.servicios || []).length > 0
+                    ? (ordDetail.servicios || []).map((s, i) => (
+                      <div key={i} className="orden-item-row">
+                        <span className="orden-item-name" style={{ flex: 1 }}>{s.servicio || s.Nombre || `Servicio #${s.Id_Servicio}`}</span>
+                        <span className="orden-item-price">{formatCurrency(s.precio_unitario)}</span>
+                      </div>
+                    ))
+                    : <p className="empty-list">No hay servicios registrados en esta orden.</p>
+                  }
+                </div>
+                <div className="orden-subtotal">
+                  <span>Subtotal servicios</span>
+                  <span>{formatCurrency(totalServ)}</span>
+                </div>
+              </div>
+            )}
+
+            {ordTab === 'repuestos' && (
+              <div style={{ marginTop: '1rem' }}>
+                <div className="orden-items-list">
+                  {(ordDetail.repuestos || []).length > 0
+                    ? (ordDetail.repuestos || []).map((r, i) => (
+                      <div key={i} className="orden-item-row">
+                        <span className="orden-item-name" style={{ flex: 1 }}>{r.repuesto || r.Nombre || `Repuesto #${r.Id_Repuesto}`}</span>
+                        <span className="orden-item-qty">x{r.cantidad || r.Cantidad}</span>
+                        <span className="orden-item-price">{formatCurrency(Number(r.cantidad || 1) * Number(r.precio_unitario || 0))}</span>
+                      </div>
+                    ))
+                    : <p className="empty-list">No hay repuestos registrados en esta orden.</p>
+                  }
+                </div>
+                <div className="orden-subtotal">
+                  <span>Total repuestos</span>
+                  <span>{formatCurrency(totalRep)}</span>
+                </div>
+              </div>
+            )}
           </div>
-        </div>
-      )}
+        ) : null}
+      </Modal>
+
+      {/* ══════════════ MODAL: Nueva cita ════════════════════ */}
+      <Modal
+        isOpen={showCitaModal}
+        onClose={() => { setShowCitaModal(false); setEmpleadosDisp([]); }}
+        title="Agendar nueva cita"
+        size="md"
+        footer={
+          <>
+            <button className="btn btn--outline" onClick={() => { setShowCitaModal(false); setEmpleadosDisp([]); }}>Cancelar</button>
+            <button className="btn btn--primary" onClick={handleCrearCita} disabled={citaLoading}>
+              {citaLoading ? 'Guardando...' : 'Agendar cita'}
+            </button>
+          </>
+        }
+      >
+        {citaError && <div className="form-error-box">{citaError}</div>}
+        <form className="form-grid" onSubmit={handleCrearCita} noValidate>
+          <div className="form-group">
+            <label className="form-label">Vehículo <span className="required">*</span></label>
+            <select className="form-control" value={citaForm.Id_Vehiculo} onChange={e => setCitaForm(p => ({ ...p, Id_Vehiculo: e.target.value }))} required>
+              <option value="">Seleccionar vehículo...</option>
+              {vehiculos.map(v => <option key={v.Id_Vehiculo} value={v.Id_Vehiculo}>{v.Placa} — {v.Marca || ''}</option>)}
+            </select>
+          </div>
+          <div className="form-group">
+            <label className="form-label">Fecha <span className="required">*</span></label>
+            <input type="date" className="form-control" value={citaForm.Fecha}
+              min={new Date().toISOString().split('T')[0]}
+              onChange={e => {
+                const f = e.target.value;
+                setCitaForm(p => ({ ...p, Fecha: f, Id_Empleado: '' }));
+                fetchEmpleadosDisp(f);
+              }} required />
+          </div>
+          <div className="form-group">
+            <label className="form-label">Hora <span className="required">*</span></label>
+            <select className="form-control" value={citaForm.Hora} onChange={e => setCitaForm(p => ({ ...p, Hora: e.target.value }))} required>
+              <option value="">Seleccionar hora...</option>
+              {Array.from({ length: 21 }, (_, i) => {
+                const mins  = 480 + i * 30;
+                const h     = Math.floor(mins / 60);
+                const m     = mins % 60;
+                const label = `${h > 12 ? h - 12 : h}:${String(m).padStart(2, '0')} ${h >= 12 ? 'PM' : 'AM'}`;
+                const value = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+                return <option key={value} value={value}>{label}</option>;
+              })}
+            </select>
+          </div>
+          <div className="form-group">
+            <label className="form-label">Técnico asignado <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>(opcional)</span></label>
+            {!citaForm.Fecha ? (
+              <p style={{ fontSize: '0.8125rem', color: 'var(--color-text-muted)', margin: 0 }}>Selecciona una fecha primero</p>
+            ) : loadingEmpl ? (
+              <p style={{ fontSize: '0.8125rem', color: 'var(--color-text-muted)', margin: 0 }}>Cargando técnicos...</p>
+            ) : (
+              <select className="form-control" value={citaForm.Id_Empleado} onChange={e => setCitaForm(p => ({ ...p, Id_Empleado: e.target.value }))}>
+                <option value="">Sin preferencia</option>
+                {empleadosDisp.map(e => (
+                  <option key={e.id_empleado} value={e.id_empleado} disabled={!e.disponible}>
+                    {e.Nombre}{!e.disponible ? ' (No disponible)' : ''}
+                  </option>
+                ))}
+              </select>
+            )}
+          </div>
+          <div className="form-group span-2">
+            <label className="form-label">Descripción</label>
+            <textarea className="form-control" value={citaForm.Descripcion} rows={3} maxLength={300}
+              onChange={e => setCitaForm(p => ({ ...p, Descripcion: e.target.value }))}
+              placeholder="Describe brevemente el motivo de la cita..." />
+          </div>
+        </form>
+      </Modal>
 
     </div>
   );
