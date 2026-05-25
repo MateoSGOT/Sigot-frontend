@@ -656,7 +656,8 @@
   padding: 0.5rem 0;
 }
 .login-recovery__confirm-icon {
-  font-size: 3rem;
+  display: flex; align-items: center; justify-content: center;
+  color: #16a34a;
   margin-bottom: 1rem;
 }
 .login-recovery__confirm-title {

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate, Link } from 'react-router-dom';
-import { MdLock, MdVisibility, MdVisibilityOff, MdCheckCircle, MdArrowBack } from 'react-icons/md';
+import { MdLock, MdVisibility, MdVisibilityOff, MdCheckCircle, MdArrowBack, MdWarning } from 'react-icons/md';
 import api from '../../../shared/services/api.js';
 import './ResetPasswordPage.css';
 
@@ -73,7 +73,7 @@ export default function ResetPasswordPage() {
             <span className="rsp-logo-text">SIGOT</span>
           </div>
           <div className="rsp-error-state">
-            <div className="rsp-error-icon">⚠️</div>
+            <div className="rsp-error-icon"><MdWarning size={48} /></div>
             <h2 className="rsp-error-title">Enlace inválido</h2>
             <p className="rsp-error-desc">
               Este enlace de recuperación no es válido o ya expiró.

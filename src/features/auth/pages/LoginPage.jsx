@@ -244,7 +244,7 @@ export default function LoginPage() {
                 </>
               ) : (
                 <div className="login-recovery__confirm">
-                  <div className="login-recovery__confirm-icon">📧</div>
+                  <div className="login-recovery__confirm-icon"><MdEmail size={52} /></div>
                   <p className="login-recovery__confirm-title">Enlace enviado</p>
                   <p className="login-recovery__confirm-msg">
                     Si el correo <strong>{recoveryEmail}</strong> está registrado en SIGOT,

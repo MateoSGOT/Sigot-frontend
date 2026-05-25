@@ -342,7 +342,6 @@
 .landing-about__check {
   width: 22px; height: 22px; border-radius: 50%;
   background: var(--lnd-green); color: #fff;
-  font-size: 0.75rem; font-weight: 700;
   display: flex; align-items: center; justify-content: center;
   flex-shrink: 0;
 }
@@ -357,7 +356,7 @@
   box-shadow: 0 24px 48px rgba(22,163,74,0.15);
   border: 1px solid rgba(22,163,74,0.2);
 }
-.landing-about__img-icon { font-size: 4rem; }
+.landing-about__img-icon { display: flex; align-items: center; justify-content: center; color: var(--lnd-green); }
 .landing-about__img-placeholder p { color: var(--lnd-green); font-weight: 600; font-size: 0.9375rem; }
 .landing-about__badge-float {
   position: absolute; bottom: -20px; left: -20px;
@@ -394,8 +393,10 @@
   transform: translateY(-4px);
 }
 .landing-service-card__icon {
-  font-size: 2.25rem; margin-bottom: 1rem;
-  display: block;
+  width: 52px; height: 52px; border-radius: 14px;
+  background: var(--lnd-green-pale); color: var(--lnd-green);
+  display: flex; align-items: center; justify-content: center;
+  margin-bottom: 1.25rem; flex-shrink: 0;
 }
 .landing-service-card__title {
   font-size: 1.0625rem; font-weight: 700;
@@ -489,7 +490,10 @@
   display: flex; gap: 1rem; align-items: flex-start;
 }
 .landing-location__icon {
-  font-size: 1.375rem; flex-shrink: 0;
+  width: 40px; height: 40px; border-radius: 10px;
+  background: var(--lnd-green-pale); color: var(--lnd-green);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
 }
 .landing-location__detail strong {
   display: block; font-size: 0.875rem; font-weight: 700;
@@ -517,7 +521,7 @@
   box-shadow: 0 8px 24px rgba(0,0,0,0.15);
   pointer-events: none;
 }
-.landing-map__pin-icon { font-size: 1.5rem; }
+.landing-map__pin-icon { color: var(--lnd-green); display: flex; align-items: center; justify-content: center; }
 .landing-map__pin-label { font-size: 0.75rem; font-weight: 700; color: var(--lnd-green); }
 
 /* ── CONTACT ────────────────────────────────────────────────── */
@@ -560,7 +564,6 @@
 .landing-contact__success-icon {
   width: 56px; height: 56px; border-radius: 50%;
   background: var(--lnd-green); color: #fff;
-  font-size: 1.5rem; font-weight: 800;
   display: flex; align-items: center; justify-content: center;
 }
 .landing-contact__success h3 { font-size: 1.25rem; font-weight: 700; }

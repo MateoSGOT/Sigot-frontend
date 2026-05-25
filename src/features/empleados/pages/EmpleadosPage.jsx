@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { MdAdd, MdVisibility, MdEdit, MdWarning, MdVisibilityOff } from 'react-icons/md';
+import { MdAdd, MdVisibility, MdEdit, MdWarning, MdVisibilityOff, MdCheck } from 'react-icons/md';
 import { usePermiso } from '../../../shared/hooks/usePermiso.js';
 import ToggleSwitch from '../../../shared/components/ToggleSwitch/ToggleSwitch.jsx';
 import { fetchEmpleados, createEmpleado, updateEmpleado, toggleEmpleadoEstado } from '../slices/empleadosSlice.js';
@@ -166,7 +166,7 @@ export default function EmpleadosPage() {
 
       {savedOk && (
         <div style={{ margin: '0.75rem 2rem 0', padding: '0.75rem 1rem', background: 'rgba(181,242,61,0.12)', border: '1px solid rgba(181,242,61,0.3)', borderRadius: '8px', color: '#b5f23d', fontSize: '0.875rem' }}>
-          ✓ Empleado guardado correctamente.
+          <MdCheck size={16} style={{marginRight:'4px',verticalAlign:'middle'}} /> Empleado guardado correctamente.
         </div>
       )}
 

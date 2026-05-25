@@ -1,5 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import {
+  MdBuild, MdSearch, MdRotateRight, MdElectricBolt, MdDoNotDisturb, MdInvertColors,
+  MdDirectionsCar, MdCheck, MdLocationOn, MdAccessTime, MdPhone, MdEmail,
+} from 'react-icons/md';
+import { FiFacebook, FiInstagram, FiMessageSquare } from 'react-icons/fi';
 import './LandingPage.css';
 
 /* ─── Data ─────────────────────────────────────────────────── */
@@ -11,12 +16,12 @@ const STATS = [
 ];
 
 const SERVICES = [
-  { icon: '🔧', title: 'Mantenimiento preventivo', desc: 'Revisión completa de 60 puntos para mantener tu vehículo en óptimas condiciones.' },
-  { icon: '🔍', title: 'Diagnóstico computarizado', desc: 'Escáner OBD2 profesional para detectar fallas con precisión milimétrica.' },
-  { icon: '🛞', title: 'Alineación y balanceo', desc: 'Corregimos la geometría de dirección y balanceo de llantas con tecnología 3D.' },
-  { icon: '⚡', title: 'Sistema eléctrico', desc: 'Diagnóstico y reparación de baterías, alternadores, sensores y cableado.' },
-  { icon: '🛑', title: 'Sistema de frenos', desc: 'Inspección, ajuste y cambio de pastillas, discos y líquido de frenos.' },
-  { icon: '🔩', title: 'Cambio de aceite y filtros', desc: 'Cambio con aceites certificados y filtros originales para mayor durabilidad del motor.' },
+  { Icon: MdBuild,          title: 'Mantenimiento preventivo', desc: 'Revisión completa de 60 puntos para mantener tu vehículo en óptimas condiciones.' },
+  { Icon: MdSearch,         title: 'Diagnóstico computarizado', desc: 'Escáner OBD2 profesional para detectar fallas con precisión milimétrica.' },
+  { Icon: MdRotateRight,    title: 'Alineación y balanceo', desc: 'Corregimos la geometría de dirección y balanceo de llantas con tecnología 3D.' },
+  { Icon: MdElectricBolt,   title: 'Sistema eléctrico', desc: 'Diagnóstico y reparación de baterías, alternadores, sensores y cableado.' },
+  { Icon: MdDoNotDisturb,   title: 'Sistema de frenos', desc: 'Inspección, ajuste y cambio de pastillas, discos y líquido de frenos.' },
+  { Icon: MdInvertColors,   title: 'Cambio de aceite y filtros', desc: 'Cambio con aceites certificados y filtros originales para mayor durabilidad del motor.' },
 ];
 
 const REASONS = [
@@ -206,7 +211,7 @@ export default function LandingPage() {
             <ul className="landing-about__list">
               {['Diagnóstico certificado con scanner OBD2 profesional','Repuestos originales y de primera calidad','Historial completo de cada vehículo','Garantía por escrito en todos los servicios'].map(item => (
                 <li key={item} className="landing-about__list-item">
-                  <span className="landing-about__check">✓</span>
+                  <span className="landing-about__check"><MdCheck size={13} /></span>
                   {item}
                 </li>
               ))}
@@ -218,7 +223,7 @@ export default function LandingPage() {
           <AnimSection className="landing-about__visual" delay={150}>
             <div className="landing-about__img-wrap">
               <div className="landing-about__img-placeholder">
-                <div className="landing-about__img-icon">🏎</div>
+                <div className="landing-about__img-icon"><MdDirectionsCar size={64} /></div>
                 <p>Taller SIGOT · Copacabana</p>
               </div>
               <div className="landing-about__badge-float">
@@ -244,7 +249,7 @@ export default function LandingPage() {
             {SERVICES.map((s, i) => (
               <AnimSection key={s.title} delay={i * 60}>
                 <div className="landing-service-card">
-                  <div className="landing-service-card__icon">{s.icon}</div>
+                  <div className="landing-service-card__icon"><s.Icon size={26} /></div>
                   <h3 className="landing-service-card__title">{s.title}</h3>
                   <p className="landing-service-card__desc">{s.desc}</p>
                 </div>
@@ -311,14 +316,14 @@ export default function LandingPage() {
           <div className="landing-location__inner">
             <AnimSection className="landing-location__info">
               <div className="landing-location__detail">
-                <div className="landing-location__icon">📍</div>
+                <div className="landing-location__icon"><MdLocationOn size={20} /></div>
                 <div>
                   <strong>Dirección</strong>
                   <p>La Balladera, Copacabana, Antioquia</p>
                 </div>
               </div>
               <div className="landing-location__detail">
-                <div className="landing-location__icon">🕐</div>
+                <div className="landing-location__icon"><MdAccessTime size={20} /></div>
                 <div>
                   <strong>Horario de atención</strong>
                   <p>Lunes a Viernes: 7:00 AM – 6:00 PM</p>
@@ -326,14 +331,14 @@ export default function LandingPage() {
                 </div>
               </div>
               <div className="landing-location__detail">
-                <div className="landing-location__icon">📞</div>
+                <div className="landing-location__icon"><MdPhone size={20} /></div>
                 <div>
                   <strong>Teléfono</strong>
                   <p>+57 300 123 4567</p>
                 </div>
               </div>
               <div className="landing-location__detail">
-                <div className="landing-location__icon">✉️</div>
+                <div className="landing-location__icon"><MdEmail size={20} /></div>
                 <div>
                   <strong>Correo</strong>
                   <p>sigot@taller.com</p>
@@ -353,7 +358,7 @@ export default function LandingPage() {
                   referrerPolicy="no-referrer-when-downgrade"
                 />
                 <div className="landing-map__pin">
-                  <div className="landing-map__pin-icon">📍</div>
+                  <div className="landing-map__pin-icon"><MdLocationOn size={22} /></div>
                   <div className="landing-map__pin-label">SIGOT Taller Automotriz</div>
                 </div>
               </div>
@@ -374,7 +379,7 @@ export default function LandingPage() {
             <div className="landing-contact__card">
               {formSent ? (
                 <div className="landing-contact__success">
-                  <div className="landing-contact__success-icon">✓</div>
+                  <div className="landing-contact__success-icon"><MdCheck size={28} /></div>
                   <h3>¡Mensaje enviado!</h3>
                   <p>Nos pondremos en contacto contigo pronto.</p>
                 </div>
@@ -438,9 +443,9 @@ export default function LandingPage() {
           <div className="landing-footer__bottom">
             <span>© 2026 SIGOT Taller Automotriz. Todos los derechos reservados.</span>
             <div className="landing-footer__socials">
-              <span>📱 WhatsApp</span>
-              <span>📘 Facebook</span>
-              <span>📸 Instagram</span>
+              <span style={{display:'inline-flex',alignItems:'center',gap:'0.375rem'}}><FiMessageSquare size={14} /> WhatsApp</span>
+              <span style={{display:'inline-flex',alignItems:'center',gap:'0.375rem'}}><FiFacebook size={14} /> Facebook</span>
+              <span style={{display:'inline-flex',alignItems:'center',gap:'0.375rem'}}><FiInstagram size={14} /> Instagram</span>
             </div>
           </div>
         </div>
