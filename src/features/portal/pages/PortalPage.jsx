@@ -272,8 +272,8 @@ export default function PortalPage() {
 
               {/* Card 1: avatar + nombre + doc + botón cambiar foto */}
               <div className="portal-profile-card portal-profile-header-card">
-                {fotoPreview
-                  ? <img src={fotoPreview} alt="avatar" className="portal-profile-avatar" />
+                {(cliente?.Foto_url && cliente.Foto_url.startsWith('http'))
+                  ? <img src={cliente.Foto_url} alt="avatar" className="portal-profile-avatar" />
                   : <div className="portal-profile-avatar portal-profile-avatar--init">{cliente?.Nombre?.charAt(0)?.toUpperCase()}</div>
                 }
                 <div className="portal-profile-user-info">
