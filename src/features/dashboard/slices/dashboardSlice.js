@@ -7,13 +7,14 @@ const safeGet = async (fn) => {
 };
 
 export const fetchDashboard = createAsyncThunk('dashboard/fetchAll', async () => {
-  const [repuestos, compras, servicios, empleados] = await Promise.all([
+  const [repuestos, compras, servicios, empleados, stockBajo] = await Promise.all([
     safeGet(dashboardService.getRepuestos),
     safeGet(dashboardService.getCompras),
     safeGet(dashboardService.getServicios),
     safeGet(dashboardService.getEmpleados),
+    safeGet(dashboardService.getStockBajo),
   ]);
-  return { repuestos, compras, servicios, empleados };
+  return { repuestos, compras, servicios, empleados, stockBajo };
 });
 
 const dashboardSlice = createSlice({
@@ -23,6 +24,7 @@ const dashboardSlice = createSlice({
     compras: null,
     servicios: null,
     empleados: null,
+    stockBajo: null,
     loading: false,
     error: null,
   },
@@ -36,6 +38,7 @@ const dashboardSlice = createSlice({
         state.compras = action.payload.compras;
         state.servicios = action.payload.servicios;
         state.empleados = action.payload.empleados;
+        state.stockBajo = action.payload.stockBajo;
       })
       .addCase(fetchDashboard.rejected, (state, action) => {
         state.loading = false;

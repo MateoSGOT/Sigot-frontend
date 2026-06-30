@@ -35,7 +35,7 @@ export default function NovedadesPage() {
   }, [dispatch]);
 
   const getEmpleadoNombre = (id) => {
-    const e = empleados.find(e => e.Id_Empleado === id);
+    const e = empleados.find(e => String(e.Id_Empleado) === String(id));
     return e?.Nombre || `Empleado #${id}`;
   };
 
@@ -55,14 +55,16 @@ export default function NovedadesPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!formData.id_empleado || !formData.Descripcion || !formData.Fecha_Novedad || !formData.FechaRealizacion) {
-      setFormError('Completa los campos obligatorios.'); return;
+    if (!formData.id_empleado || !formData.Descripcion || !formData.Fecha_Novedad) {
+      setFormError('Completa empleado, descripción y fecha de novedad.'); return;
     }
     const payload = {
-      ...formData,
-      id_empleado:     Number(formData.id_empleado),
-      Fecha_Novedad:   new Date(formData.Fecha_Novedad).toISOString(),
-      FechaRealizacion: new Date(formData.FechaRealizacion).toISOString(),
+      id_empleado:   Number(formData.id_empleado),
+      Descripcion:   formData.Descripcion,
+      Fecha_Novedad: new Date(formData.Fecha_Novedad).toISOString(),
+      ...(formData.FechaRealizacion
+        ? { FechaRealizacion: new Date(formData.FechaRealizacion).toISOString() }
+        : {}),
     };
     const action = editingId ? updateNovedad({ id: editingId, data: payload }) : createNovedad(payload);
     const result = await dispatch(action);
@@ -143,7 +145,7 @@ export default function NovedadesPage() {
             <input name="Fecha_Novedad" type="date" className="form-control" value={formData.Fecha_Novedad} onChange={handleChange} min={TODAY} />
           </div>
           <div className="form-group">
-            <label className="form-label">Fecha de realización <span className="required">*</span></label>
+            <label className="form-label">Fecha de realización</label>
             <input name="FechaRealizacion" type="date" className="form-control" value={formData.FechaRealizacion} onChange={handleChange} min={TODAY} />
           </div>
         </form>

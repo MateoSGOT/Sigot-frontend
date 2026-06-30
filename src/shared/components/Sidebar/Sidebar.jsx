@@ -9,6 +9,7 @@ import {
   MdPeopleAlt, MdStorage, MdChevronRight,
 } from 'react-icons/md';
 import { logout } from '../../../features/auth/slices/authSlice';
+import StockAlertBell from '../StockAlertBell/StockAlertBell.jsx';
 import './Sidebar.css';
 
 const NAV_STRUCTURE = [
@@ -111,6 +112,7 @@ export default function Sidebar() {
           <div className="sidebar__logo-icon">S</div>
           <span className="sidebar__logo-text">SIGOT</span>
         </div>
+        <StockAlertBell />
       </div>
 
       {/* Navigation */}

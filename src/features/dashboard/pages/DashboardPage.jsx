@@ -1,9 +1,10 @@
 import React, { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
+import { useNavigate } from 'react-router-dom';
 import { fetchDashboard } from '../slices/dashboardSlice.js';
 import {
   MdBuild, MdShoppingCart, MdMiscellaneousServices, MdPeople,
-  MdInventory, MdRefresh
+  MdInventory, MdRefresh, MdWarning
 } from 'react-icons/md';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -70,7 +71,8 @@ function StatCard({ icon: Icon, label, value, sub, color = 'green', loading }) {
 
 export default function DashboardPage() {
   const dispatch = useDispatch();
-  const { repuestos, compras, servicios, empleados, loading, error } = useSelector((s) => s.dashboard);
+  const navigate = useNavigate();
+  const { repuestos, compras, servicios, empleados, stockBajo, loading, error } = useSelector((s) => s.dashboard);
 
   useEffect(() => {
     dispatch(fetchDashboard());
@@ -79,12 +81,13 @@ export default function DashboardPage() {
   const handleRefresh = () => dispatch(fetchDashboard());
 
   // Safely extract stats
-  const totalRepuestos = repuestos?.total ?? repuestos?.totalRepuestos ?? (Array.isArray(repuestos) ? repuestos.length : '—');
-  const totalCompras   = compras?.total ?? compras?.totalCompras ?? (Array.isArray(compras) ? compras.length : '—');
-  const totalServicios = servicios?.total ?? servicios?.totalServicios ?? (Array.isArray(servicios) ? servicios.length : '—');
-  const totalEmpleados = empleados?.total ?? empleados?.totalEmpleados ?? (Array.isArray(empleados) ? empleados.length : '—');
-  const stockBajo      = repuestos?.stockBajo ?? repuestos?.sinStock ?? 0;
-  const montoCompras   = compras?.montoTotal ?? compras?.totalMonto ?? 0;
+  const totalRepuestos  = repuestos?.total ?? repuestos?.totalRepuestos ?? (Array.isArray(repuestos) ? repuestos.length : '—');
+  const totalCompras    = compras?.total ?? compras?.totalCompras ?? (Array.isArray(compras) ? compras.length : '—');
+  const totalServicios  = servicios?.total ?? servicios?.totalServicios ?? (Array.isArray(servicios) ? servicios.length : '—');
+  const totalEmpleados  = empleados?.total ?? empleados?.totalEmpleados ?? (Array.isArray(empleados) ? empleados.length : '—');
+  const stockBajoTotal  = stockBajo?.data?.total ?? stockBajo?.total ?? 0;
+  const stockBajoCrit   = stockBajo?.data?.criticos ?? stockBajo?.criticos ?? 0;
+  const montoCompras    = compras?.montoTotal ?? compras?.totalMonto ?? 0;
 
   // Chart data — fall back to placeholder when API returns nothing
   const repuestosChartData = Array.isArray(repuestos?.porCategoria)
@@ -136,11 +139,26 @@ export default function DashboardPage() {
 
       {/* Stats */}
       <div className="stats-grid">
-        <StatCard icon={MdInventory}             label="Repuestos" value={totalRepuestos} sub={stockBajo ? `${stockBajo} con stock bajo` : 'En inventario'} color="green"  loading={loading} />
-        <StatCard icon={MdShoppingCart}          label="Compras"   value={totalCompras}   sub={montoCompras ? `$${Number(montoCompras).toLocaleString('es-CO')} total` : 'Registradas'}        color="blue"   loading={loading} />
-        <StatCard icon={MdMiscellaneousServices} label="Servicios" value={totalServicios} sub="Disponibles"   color="amber"  loading={loading} />
-        <StatCard icon={MdPeople}                label="Empleados" value={totalEmpleados} sub="En el sistema" color="purple" loading={loading} />
+        <StatCard icon={MdInventory}             label="Repuestos"  value={totalRepuestos} sub="En inventario"   color="green"  loading={loading} />
+        <StatCard icon={MdShoppingCart}          label="Compras"    value={totalCompras}   sub={montoCompras ? `$${Number(montoCompras).toLocaleString('es-CO')} total` : 'Registradas'} color="blue"   loading={loading} />
+        <StatCard icon={MdMiscellaneousServices} label="Servicios"  value={totalServicios} sub="Disponibles"    color="amber"  loading={loading} />
+        <StatCard icon={MdPeople}                label="Empleados"  value={totalEmpleados} sub="En el sistema"  color="purple" loading={loading} />
       </div>
+      {(stockBajoTotal > 0 || loading) && (
+        <div
+          className={`dashboard-stock-alerta ${stockBajoCrit > 0 ? 'dashboard-stock-alerta--critico' : 'dashboard-stock-alerta--bajo'}`}
+          style={{ cursor: 'pointer' }}
+          onClick={() => navigate('/repuestos')}
+          title="Ir a Repuestos"
+        >
+          <MdWarning size={22} />
+          <div>
+            <strong>{stockBajoTotal} repuesto(s) con stock bajo</strong>
+            {stockBajoCrit > 0 && <span style={{ marginLeft: 8 }}>· {stockBajoCrit} agotado(s)</span>}
+          </div>
+          <span style={{ marginLeft: 'auto', fontSize: '0.8rem', opacity: 0.7 }}>Ver repuestos →</span>
+        </div>
+      )}
 
       {/* Charts */}
       <div className="dashboard-charts">

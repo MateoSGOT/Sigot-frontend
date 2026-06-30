@@ -14,7 +14,7 @@ import { sortByStatus, filterItems, formatCurrency } from '../../../shared/utils
 import api from '../../../shared/services/api.js';
 import './RepuestosPage.css';
 
-const EMPTY = { NombreRepuesto: '', Stock: '', Precio: '', Id_categoria: '' };
+const EMPTY = { NombreRepuesto: '', Stock: '', StockMinimo: '5', Precio: '', Id_categoria: '' };
 
 export default function RepuestosPage() {
   const dispatch = useDispatch();
@@ -27,6 +27,7 @@ export default function RepuestosPage() {
   const [statusFilter, setStatusFilter]   = useState('todos');
   const [categoriaFilter, setCategoriaFilter] = useState('');
   const [pageSize, setPageSize]           = useState(5);
+  const [stockBajoFilter, setStockBajoFilter] = useState(false);
   const [detailItem, setDetailItem]       = useState(null);
   const [formData, setFormData]           = useState(EMPTY);
   const [editingId, setEditingId]         = useState(null);
@@ -38,11 +39,13 @@ export default function RepuestosPage() {
     api.get('/api/categoria-repuestos').then(r => setCategorias(r.data?.data || r.data || [])).catch(() => {});
   }, [dispatch]);
 
+  const itemsConStockBajo = items.filter(i => i.Estado !== 0 && Number(i.Stock) <= Number(i.StockMinimo ?? 5));
   const filtered = (() => {
     let list = items;
     if (statusFilter === 'activos') list = list.filter(i => i.Estado !== 0);
     else if (statusFilter === 'inactivos') list = list.filter(i => i.Estado === 0);
     if (categoriaFilter) list = list.filter(i => String(i.Id_Categoria ?? i.Id_categoria) === categoriaFilter);
+    if (stockBajoFilter) list = list.filter(i => i.Estado !== 0 && Number(i.Stock) <= Number(i.StockMinimo ?? 5));
     list = filterItems(list, search, ['Nombre', 'NombreRepuesto']);
     return sortByStatus(list);
   })();
@@ -73,7 +76,8 @@ export default function RepuestosPage() {
   const openEdit = (item) => {
     setFormData({
       NombreRepuesto: item.NombreRepuesto || item.Nombre || '',
-      Stock: item.Stock || '',
+      Stock: item.Stock ?? '',
+      StockMinimo: item.StockMinimo ?? 5,
       Precio: item.Precio || '',
       Id_categoria: item.Id_categoria ?? item.Id_Categoria ?? '',
     });
@@ -89,6 +93,7 @@ export default function RepuestosPage() {
     const payload = {
       NombreRepuesto: formData.NombreRepuesto,
       Stock: Number(formData.Stock),
+      StockMinimo: Number(formData.StockMinimo ?? 5),
       Precio: Number(formData.Precio),
       Id_categoria: Number(formData.Id_categoria),
     };
@@ -103,12 +108,22 @@ export default function RepuestosPage() {
     { key: 'Nombre', label: 'Nombre', render: v => <span className="font-medium">{v}</span> },
     { key: 'Categoria', label: 'Categoría' },
     {
-      key: 'Stock', label: 'Stock', render: v => (
-        <span className={`stock-cell ${Number(v) < 5 ? 'stock-cell--low' : ''}`}>
-          {Number(v) < 5 && <MdWarning size={14} style={{ marginRight: '3px' }} />}{v}
-        </span>
-      )
+      key: 'Stock', label: 'Stock', render: (v, row) => {
+        const min = Number(row.StockMinimo ?? 5);
+        const stock = Number(v);
+        const agotado = stock === 0;
+        const bajo = stock <= min;
+        return (
+          <span className={`stock-cell ${agotado ? 'stock-cell--agotado' : bajo ? 'stock-cell--low' : ''}`}>
+            {bajo && <MdWarning size={14} style={{ marginRight: '3px' }} />}
+            {v}
+            {agotado && <span className="stock-badge stock-badge--agotado">AGOTADO</span>}
+            {!agotado && bajo && <span className="stock-badge stock-badge--bajo">STOCK BAJO</span>}
+          </span>
+        );
+      }
     },
+    { key: 'StockMinimo', label: 'Stock mín.', render: v => v ?? 5 },
     { key: 'Precio', label: 'Precio', render: v => formatCurrency(v) },
     { key: 'Estado', label: 'Estado', render: v => <StatusBadge estado={v} /> },
     {
@@ -131,6 +146,19 @@ export default function RepuestosPage() {
           <button className="btn btn--primary" onClick={openCreate} disabled={!puedeCrear}><MdAdd size={18} />Nuevo repuesto</button>
         </div>
       </div>
+      {itemsConStockBajo.length > 0 && (
+        <div className={`stock-alerta-banner ${itemsConStockBajo.some(i => i.Stock === 0) ? 'stock-alerta-banner--critico' : 'stock-alerta-banner--bajo'}`}>
+          <MdWarning size={18} />
+          <span><strong>{itemsConStockBajo.length}</strong> repuesto(s) necesitan reabastecimiento</span>
+          <button
+            className="btn btn--sm btn--outline"
+            style={{ marginLeft: 'auto' }}
+            onClick={() => setStockBajoFilter(v => !v)}
+          >
+            {stockBajoFilter ? 'Ver todos' : 'Ver solo stock bajo'}
+          </button>
+        </div>
+      )}
       <div className="card">
         <div className="card__header">
           <SearchBar
@@ -185,6 +213,10 @@ export default function RepuestosPage() {
           <div className="form-group">
             <label className="form-label">Stock <span className="required">*</span></label>
             <input name="Stock" type="number" min="0" className="form-control" value={formData.Stock} onChange={handleChange} placeholder="0" />
+          </div>
+          <div className="form-group">
+            <label className="form-label">Stock mínimo</label>
+            <input name="StockMinimo" type="number" min="0" className="form-control" value={formData.StockMinimo} onChange={handleChange} placeholder="5" />
           </div>
           <div className="form-group">
             <label className="form-label">Precio <span className="required">*</span></label>

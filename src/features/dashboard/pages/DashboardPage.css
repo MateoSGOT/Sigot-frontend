@@ -21,8 +21,23 @@
   grid-template-columns: repeat(4, 1fr);
   gap: 1.25rem;
   padding: 1.5rem 2rem 0;
-  margin-bottom: 1.5rem;
+  margin-bottom: 1rem;
 }
+
+.dashboard-stock-alerta {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.875rem 1.5rem;
+  margin: 0 2rem 1.5rem;
+  border-radius: 10px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: opacity 0.15s;
+}
+.dashboard-stock-alerta:hover { opacity: 0.85; }
+.dashboard-stock-alerta--bajo { background: #fef9c3; color: #92400e; border: 1px solid #fde68a; }
+.dashboard-stock-alerta--critico { background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
 
 /* Stat cards — glassmorphism */
 .stat-card {
