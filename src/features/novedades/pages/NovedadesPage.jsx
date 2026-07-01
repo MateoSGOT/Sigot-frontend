@@ -35,7 +35,7 @@ export default function NovedadesPage() {
   }, [dispatch]);
 
   const getEmpleadoNombre = (id) => {
-    const e = empleados.find(e => String(e.Id_Empleado) === String(id));
+    const e = empleados.find(e => String(e.id_empleado ?? e.Id_Empleado) === String(id));
     return e?.Nombre || `Empleado #${id}`;
   };
 
@@ -130,7 +130,7 @@ export default function NovedadesPage() {
           <div className="form-group span-2">
             <label className="form-label">Empleado <span className="required">*</span></label>
             <SearchableSelect
-              options={empleados.map(e => ({ value: String(e.Id_Empleado), label: e.Nombre }))}
+              options={empleados.map(e => ({ value: String(e.id_empleado ?? e.Id_Empleado), label: e.Nombre }))}
               value={String(formData.id_empleado)}
               onChange={v => setFormData(p => ({ ...p, id_empleado: v }))}
               placeholder="Seleccionar empleado..."
