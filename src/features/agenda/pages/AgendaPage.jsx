@@ -16,6 +16,7 @@ import './AgendaPage.css';
 
 const EMPTY_CITA  = { Id_Cliente: '', Id_Vehiculo: '', id_empleado: '', FechaAgendamiento: '', Hora: '' };
 const EMPTY_ORDEN = { FechaIngreso: '', FechaEntrega: '', Diagnostico: '', Kilometraje: '' };
+const TODAY = new Date().toISOString().split('T')[0];
 
 export default function AgendaPage() {
   const dispatch = useDispatch();
@@ -220,7 +221,7 @@ export default function AgendaPage() {
               <p className="novedad-warning">⚠ Este empleado tiene una novedad activa y no puede ser asignado.</p>
             )}
           </div>
-          <div className="form-group"><label className="form-label">Fecha de agendamiento <span className="required">*</span></label><input name="FechaAgendamiento" type="date" className="form-control" value={formData.FechaAgendamiento} onChange={handleChange} /></div>
+          <div className="form-group"><label className="form-label">Fecha de agendamiento <span className="required">*</span></label><input name="FechaAgendamiento" type="date" className="form-control" value={formData.FechaAgendamiento} onChange={handleChange} min={TODAY} /></div>
           <div className="form-group"><label className="form-label">Hora <span className="required">*</span></label><input name="Hora" type="time" className="form-control" value={formData.Hora} onChange={handleChange} /></div>
         </form>
       </Modal>
@@ -230,8 +231,8 @@ export default function AgendaPage() {
       >
         {ordenError && <div className="form-error-box">{ordenError}</div>}
         <form className="form-grid" onSubmit={handleOrdenSubmit} noValidate>
-          <div className="form-group"><label className="form-label">Fecha de ingreso <span className="required">*</span></label><input name="FechaIngreso" type="date" className="form-control" value={ordenData.FechaIngreso} onChange={handleOrdenChange} /></div>
-          <div className="form-group"><label className="form-label">Fecha de entrega <span className="required">*</span></label><input name="FechaEntrega" type="date" className="form-control" value={ordenData.FechaEntrega} onChange={handleOrdenChange} /></div>
+          <div className="form-group"><label className="form-label">Fecha de ingreso <span className="required">*</span></label><input name="FechaIngreso" type="date" className="form-control" value={ordenData.FechaIngreso} onChange={handleOrdenChange} min={TODAY} /></div>
+          <div className="form-group"><label className="form-label">Fecha de entrega <span className="required">*</span></label><input name="FechaEntrega" type="date" className="form-control" value={ordenData.FechaEntrega} onChange={handleOrdenChange} min={ordenData.FechaIngreso || TODAY} /></div>
           <div className="form-group span-2"><label className="form-label">Diagnóstico <span className="required">*</span></label><textarea name="Diagnostico" className="form-control" value={ordenData.Diagnostico} onChange={handleOrdenChange} rows={3} placeholder="Describe el diagnóstico..." /></div>
           <div className="form-group span-2"><label className="form-label">Kilometraje <span className="required">*</span></label><input name="Kilometraje" type="number" min="0" className="form-control" value={ordenData.Kilometraje} onChange={handleOrdenChange} placeholder="km actuales del vehículo" /></div>
         </form>

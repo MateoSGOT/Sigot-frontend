@@ -149,7 +149,9 @@ export default function OrdenesPage() {
   const manoDeObra     = selected?.mano_de_obra ?? null;
   const totalGeneral   = totalServicios + totalRepuestos + (manoDeObra || 0);
 
-  const ordenBloqueada = selected?.EstadoFlujo === 'Realizado' || selected?.Estado === 0;
+  // Bloquea SOLO la edición de contenido (servicios, repuestos, mano de obra).
+  // El toggle de estado (activar/inactivar) permanece siempre disponible.
+  const contenidoBloqueado = selected?.EstadoFlujo === 'Realizado' || selected?.Estado === 0;
   const puedeFacturar  = selected?.EstadoFlujo === 'Realizado';
 
   const openEdit = (item) => {
@@ -172,11 +174,13 @@ export default function OrdenesPage() {
     else setEditError(result.payload || 'Error al actualizar.');
   };
 
-  const handleAvanzarEstado = (newEstado) => {
+  const handleAvanzarEstado = async (newEstado) => {
     if (!detailId) return;
-    dispatch(toggleOrdenEstado({ id: detailId, Estado: newEstado }));
-    dispatch(fetchOrdenById(detailId));
-    dispatch(fetchOrdenes());
+    const result = await dispatch(toggleOrdenEstado({ id: detailId, Estado: newEstado }));
+    if (!result.error) {
+      dispatch(fetchOrdenById(detailId));
+      dispatch(fetchOrdenes());
+    }
   };
 
   const handleAddServicio = async (e) => {
@@ -230,12 +234,14 @@ export default function OrdenesPage() {
     { key: 'Estado', label: 'Estado', render: v => <EstadoBadge estado={v} /> },
     {
       key: 'acciones', label: 'Acciones', render: (_, row) => {
-        const bloqueada = row.Estado === 3 || row.Estado === 0;
+        // Editable = Pendiente/En proceso y con permiso. Realizado/Inactivo -> solo lectura.
+        const editable = (row.Estado === 1 || row.Estado === 2) && puedeEditar;
         return (
           <div className="table-actions">
-            <button className="btn btn--ghost btn--icon btn--sm" title="Ver detalle" onClick={() => setDetailId(row.Id_Orden)}><MdVisibility size={17} /></button>
-            {!bloqueada && (
-              <button className="btn btn--ghost btn--icon btn--sm" title="Editar" disabled={!puedeEditar} onClick={() => openEdit(row)}><MdEdit size={17} /></button>
+            {editable ? (
+              <button className="btn btn--ghost btn--icon btn--sm" title="Editar" onClick={() => setDetailId(row.Id_Orden)}><MdEdit size={17} /></button>
+            ) : (
+              <button className="btn btn--ghost btn--icon btn--sm" title="Ver" onClick={() => setDetailId(row.Id_Orden)}><MdVisibility size={17} /></button>
             )}
           </div>
         );
@@ -316,16 +322,31 @@ export default function OrdenesPage() {
                   <div className="detail-item" style={{ gridColumn: 'span 2' }}><span className="detail-label">Diagnóstico</span><span className="detail-value">{selected.Diagnostico || '—'}</span></div>
                 </div>
 
-                {/* Visual progress stepper */}
-                {!ordenBloqueada && (
-                  <div style={{ marginTop: '1.5rem' }}>
-                    <p className="detail-label" style={{ marginBottom: '0.875rem' }}>Progreso de la orden</p>
-                    <ProgresoEstado
-                      estadoActual={selected.Estado}
-                      onAvanzar={handleAvanzarEstado}
-                      loading={actionLoading}
-                      disabled={!puedeToggle}
-                    />
+                {/* Estado de la orden — siempre visible para poder activar/inactivar
+                    o avanzar el flujo, incluso si el contenido está bloqueado. */}
+                <div style={{ marginTop: '1.5rem' }}>
+                  <p className="detail-label" style={{ marginBottom: '0.875rem' }}>
+                    {selected.Estado === 0 ? 'Estado de la orden' : 'Progreso de la orden'}
+                  </p>
+                  {selected.Estado === 0 && (
+                    <p className="novedad-warning" style={{ marginBottom: '0.75rem' }}>
+                      Esta orden está inactiva. Actívala para poder editar su contenido.
+                    </p>
+                  )}
+                  <ProgresoEstado
+                    estadoActual={selected.Estado}
+                    onAvanzar={handleAvanzarEstado}
+                    loading={actionLoading}
+                    disabled={!puedeToggle}
+                  />
+                </div>
+
+                {/* Editar datos básicos (diagnóstico, km, fechas) — solo si editable */}
+                {!contenidoBloqueado && puedeEditar && (
+                  <div style={{ marginTop: '1.25rem' }}>
+                    <button className="btn btn--outline btn--sm" onClick={() => { openEdit(selected); setDetailId(null); }}>
+                      <MdEdit size={15} /> Editar datos (diagnóstico, km, fechas)
+                    </button>
                   </div>
                 )}
 
@@ -381,7 +402,7 @@ export default function OrdenesPage() {
                             <div key={i} className="orden-item-row">
                               <span className="orden-item-name">{s.servicio || s.Nombre || s.nombre || `Servicio #${s.Id_Servicio}`}</span>
                               <span className="orden-item-price">{formatCurrency(s.precio_unitario || s.Precio)}</span>
-                              {!ordenBloqueada && (
+                              {!contenidoBloqueado && (
                                 <button className="btn btn--ghost btn--icon btn--sm orden-item-delete" title="Eliminar servicio" onClick={() => handleDeleteServicio(s.Id_Servicio)} disabled={actionLoading}>
                                   <MdDeleteOutline size={16} />
                                 </button>
@@ -409,13 +430,13 @@ export default function OrdenesPage() {
                   {manoDeObra != null && !editingMano ? (
                     <div className="mano-de-obra-row">
                       <span className="mano-de-obra-value">{formatCurrency(manoDeObra)}</span>
-                      {!ordenBloqueada && (
+                      {!contenidoBloqueado && (
                         <button className="btn btn--outline btn--sm" onClick={() => { setManoInput(String(manoDeObra)); setEditingMano(true); }}>
                           <MdEdit size={15} /> Editar
                         </button>
                       )}
                     </div>
-                  ) : !ordenBloqueada ? (
+                  ) : !contenidoBloqueado ? (
                     <div className="mano-de-obra-form">
                       <input type="number" min="0" className="form-control" placeholder="Valor mano de obra..." value={manoInput} onChange={e => setManoInput(e.target.value)} />
                       <button className="btn btn--primary btn--sm" onClick={handleSetMano} disabled={actionLoading || !manoInput}>
@@ -431,7 +452,7 @@ export default function OrdenesPage() {
                   <span>{formatCurrency(totalServicios + (manoDeObra || 0))}</span>
                 </div>
 
-                {!ordenBloqueada && (
+                {!contenidoBloqueado && (
                   <div className="orden-add-form">
                     <h4>Agregar servicio</h4>
                     {addServError && <div className="form-error-box" style={{ marginBottom: '0.5rem' }}>{addServError}</div>}
@@ -478,7 +499,7 @@ export default function OrdenesPage() {
                                 </div>
                                 <span className="orden-item-qty">x{r.cantidad || r.Cantidad}</span>
                                 <span className="orden-item-price">{formatCurrency((r.precio_unitario || r.PrecioVenta || 0) * (r.cantidad || r.Cantidad || 1))}</span>
-                                {!ordenBloqueada && (
+                                {!contenidoBloqueado && (
                                   <button className="btn btn--ghost btn--icon btn--sm orden-item-delete" title="Eliminar repuesto" onClick={() => handleDeleteRepuesto(r.Id_Repuesto)} disabled={actionLoading}>
                                     <MdDeleteOutline size={16} />
                                   </button>
@@ -504,7 +525,7 @@ export default function OrdenesPage() {
                   <span>{formatCurrency(totalRepuestos)}</span>
                 </div>
 
-                {!ordenBloqueada && (
+                {!contenidoBloqueado && (
                   <div className="orden-add-form">
                     <h4>Agregar repuesto</h4>
                     {addRepError && <div className="form-error-box" style={{ marginBottom: '0.5rem' }}>{addRepError}</div>}

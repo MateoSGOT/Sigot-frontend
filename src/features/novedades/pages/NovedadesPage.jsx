@@ -3,7 +3,8 @@ import { useDispatch, useSelector } from 'react-redux';
 import { MdAdd, MdVisibility, MdEdit } from 'react-icons/md';
 import { usePermiso } from '../../../shared/hooks/usePermiso.js';
 import SearchableSelect from '../../../shared/components/SearchableSelect/SearchableSelect.jsx';
-import { fetchNovedades, createNovedad, updateNovedad } from '../slices/novedadesSlice.js';
+import ToggleSwitch from '../../../shared/components/ToggleSwitch/ToggleSwitch.jsx';
+import { fetchNovedades, createNovedad, updateNovedad, toggleNovedadEstado } from '../slices/novedadesSlice.js';
 import Modal from '../../../shared/components/Modal/Modal.jsx';
 import Table from '../../../shared/components/Table/Table.jsx';
 import SearchBar from '../../../shared/components/SearchBar/SearchBar.jsx';
@@ -20,6 +21,7 @@ export default function NovedadesPage() {
   const { items, loading, actionLoading } = useSelector(s => s.novedades);
   const puedeCrear   = usePermiso('NOVEDADES.REGISTRAR');
   const puedeEditar  = usePermiso('NOVEDADES.EDITAR');
+  const puedeToggle  = usePermiso('NOVEDADES.CAMBIAR_ESTADO');
   const [empleados, setEmpleados] = useState([]);
   const [search, setSearch]       = useState('');
   const [pageSize, setPageSize]   = useState(5);
@@ -78,6 +80,15 @@ export default function NovedadesPage() {
     { key: 'Descripcion', label: 'Descripción', render: v => <span className="descripcion-cell">{v}</span> },
     { key: 'Fecha_Novedad',    label: 'Fecha novedad',    render: v => formatDate(v) },
     { key: 'FechaRealizacion', label: 'Fecha realización', render: v => formatDate(v) },
+    {
+      key: 'Estado', label: 'Estado', render: (_, row) => (
+        <ToggleSwitch
+          checked={row.Estado === 1}
+          onChange={() => dispatch(toggleNovedadEstado({ id: row.Id_Novedad || row.id, Estado: row.Estado === 1 ? 0 : 1 }))}
+          disabled={!puedeToggle}
+        />
+      )
+    },
     {
       key: 'acciones', label: 'Acciones', render: (_, row) => (
         <div className="table-actions">
