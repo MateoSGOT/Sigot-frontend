@@ -60,18 +60,53 @@
   --shadow-green: 0 8px 24px rgba(181, 242, 61, 0.20);
   --shadow-green-sm: 0 4px 12px rgba(181, 242, 61, 0.15);
 
-  /* === Border Radius === */
-  --radius-sm: 6px;
-  --radius: 8px;
-  --radius-md: 10px;
-  --radius-lg: 14px;
-  --radius-xl: 20px;
-  --radius-2xl: 24px;
-  --radius-full: 9999px;
+  /* ============================================================
+     SISTEMA DE TOKENS SIGOT (fuente única de verdad)
+     Añadido en el refactor de diseño. Los tokens legacy de más
+     abajo se migran a estos durante el refactor de componentes.
+     ============================================================ */
 
-  /* === Transitions === */
-  --transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  --transition-slow: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  /* === Espaciado — escala base 4px (única permitida) === */
+  --space-xs:  4px;
+  --space-sm:  8px;
+  --space-md:  12px;
+  --space-lg:  16px;
+  --space-xl:  24px;
+  --space-2xl: 32px;
+  --space-3xl: 48px;
+
+  /* === Tipografía — jerarquía real (size / weight) === */
+  --text-display: 2rem;      /* 32px */
+  --text-h1:      1.5rem;    /* 24px */
+  --text-h2:      1.25rem;   /* 20px */
+  --text-h3:      1rem;      /* 16px */
+  --text-body:    0.875rem;  /* 14px */
+  --text-small:   0.8125rem; /* 13px */
+  --text-caption: 0.75rem;   /* 12px */
+
+  --weight-regular:  400;
+  --weight-medium:   500;
+  --weight-semibold: 600;
+  --weight-bold:     700;
+
+  --leading-tight:  1.25;
+  --leading-normal: 1.5;
+
+  /* === Radios canónicos: sm/md/lg/full ya existen arriba con estos valores.
+     Canon: input=sm(6) · card/botón/modal=md(10) · feature=lg(14) · badge/pill=full.
+     Legacy a retirar en el refactor: --radius(8), --radius-xl(20), --radius-2xl(24). */
+
+  /* === Motion (escala nueva; --transition/--transition-slow legacy siguen abajo) === */
+  --ease:            cubic-bezier(0.4, 0, 0.2, 1);
+  --duration-fast:   150ms;
+  --duration-base:   200ms;
+  --duration-slow:   300ms;
+  --transition-fast: all 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-base: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* NOTA: la consolidación de sombras a 3 niveles (sm reposo / md hover / lg modal)
+     se aplica en el refactor de componentes, no aquí, para no cambiar el aspecto
+     antes de tu revisión. Valores objetivo en la tabla de equivalencia. */
 
   /* === Backdrop Blur === */
   --blur-sm: blur(8px);
