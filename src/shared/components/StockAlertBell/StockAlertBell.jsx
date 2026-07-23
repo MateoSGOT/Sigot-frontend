@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MdNotifications, MdWarning } from 'react-icons/md';
 import api from '../../services/api.js';
+import Skeleton from '../Skeleton/Skeleton.jsx';
 import './StockAlertBell.css';
 
 export default function StockAlertBell() {
@@ -47,7 +48,16 @@ export default function StockAlertBell() {
             <MdWarning size={16} />
             <span>Stock bajo ({count})</span>
           </div>
-          {loading && <div className="stock-bell__empty">Cargando...</div>}
+          {loading && (
+            <div className="stock-bell__loading">
+              {[0, 1, 2].map(i => (
+                <div key={i} className="stock-bell__skeleton-row">
+                  <Skeleton width="55%" height={11} />
+                  <Skeleton width={64} height={16} radius="var(--radius-full)" />
+                </div>
+              ))}
+            </div>
+          )}
           {!loading && count === 0 && <div className="stock-bell__empty">Sin alertas de stock</div>}
           {!loading && items.map(item => (
             <div

@@ -1,0 +1,39 @@
+.skeleton {
+  display: inline-block;
+  background-color: rgba(0, 0, 0, 0.06);
+  background-image: linear-gradient(
+    90deg,
+    rgba(0, 0, 0, 0) 0%,
+    rgba(0, 0, 0, 0.045) 50%,
+    rgba(0, 0, 0, 0) 100%
+  );
+  background-size: 200% 100%;
+  background-repeat: no-repeat;
+  background-position: -100% 0;
+  animation: skeletonShimmer 1.4s ease-in-out infinite;
+}
+
+@keyframes skeletonShimmer {
+  to { background-position: 200% 0; }
+}
+
+/* No animar la fila entera; el shimmer vive en cada bloque */
+.table__row--skeleton {
+  animation: none;
+  cursor: default;
+}
+.table__row--skeleton:hover {
+  background: transparent;
+}
+
+/* Movimiento reducido: pulso muy sutil en vez de shimmer */
+@media (prefers-reduced-motion: reduce) {
+  .skeleton {
+    animation: skeletonPulse 1.6s ease-in-out infinite;
+    background-image: none;
+  }
+  @keyframes skeletonPulse {
+    0%, 100% { opacity: 1; }
+    50%      { opacity: 0.55; }
+  }
+}

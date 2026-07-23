@@ -119,3 +119,7 @@
   transition: background 0.1s;
 }
 .stock-bell__ver-todos:hover { background: #f0fdf4; }
+
+/* Skeleton de carga (reemplaza el texto "Cargando...") */
+.stock-bell__loading { display: flex; flex-direction: column; gap: var(--space-sm); padding: var(--space-md) var(--space-lg); }
+.stock-bell__skeleton-row { display: flex; align-items: center; justify-content: space-between; gap: var(--space-md); }
