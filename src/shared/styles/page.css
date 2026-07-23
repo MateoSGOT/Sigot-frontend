@@ -55,21 +55,28 @@
   gap: 0.75rem;
 }
 
-/* === Card — glassmorphism === */
+/* === Card — superficie sólida, definición nítida (border hairline + shadow-sm) === */
 .card {
-  background: rgba(255, 255, 255, 0.80);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border-radius: var(--radius-lg);
-  box-shadow: 0 2px 16px rgba(0,0,0,0.07), 0 1px 0 rgba(255,255,255,0.80) inset;
-  border: 1px solid rgba(255, 255, 255, 0.55);
-  transition: box-shadow 0.25s ease, background 0.25s ease;
+  background: var(--color-surface);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  border: var(--card-border);
+  transition: box-shadow var(--duration-base) var(--ease),
+              transform var(--duration-base) var(--ease);
   color: var(--color-text);
 }
 
-.card:hover {
-  box-shadow: 0 6px 24px rgba(0,0,0,0.10), 0 1px 0 rgba(255,255,255,0.85) inset;
-  background: rgba(255, 255, 255, 0.90);
+/* Solo las cards clicables se elevan en hover (microinteracción) */
+.card--interactive {
+  cursor: pointer;
+}
+.card--interactive:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card--interactive:hover { transform: none; }
 }
 
 .card__header {

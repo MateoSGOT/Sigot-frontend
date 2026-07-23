@@ -1,27 +1,59 @@
 :root {
-  /* === Neon Green Accent (Dark Mode Primary) === */
-  --color-primary: #b5f23d;
-  --color-primary-hover: #c8f55a;
-  --color-primary-light: #d4f87a;
-  --color-primary-dark: #8bc82a;
-  --color-primary-50: rgba(181, 242, 61, 0.06);
-  --color-primary-100: rgba(181, 242, 61, 0.12);
-  --color-primary-200: rgba(181, 242, 61, 0.22);
-  --color-primary-500: #b5f23d;
-  --color-primary-600: #b5f23d;
-  --color-primary-700: #8bc82a;
-  --color-primary-800: #6fa020;
-  --color-primary-900: #517815;
+  /* ============================================================
+     ROLES DE COLOR — cada color con su foreground OBLIGATORIO.
+     Regla dura: nunca uses un color de fondo sin su `-on` encima.
+       Esmeralda #16a34a → primary / éxito / "Realizado" / superficies con TEXTO BLANCO
+       Lima     #b5f23d → acento de marca / sidebar activo / highlights / TEXTO OSCURO
+     ============================================================ */
 
-  /* === Support Colors === */
-  --color-info: #4e9af1;
-  --color-info-light: rgba(78, 154, 241, 0.15);
-  --color-warning: #f5a623;
-  --color-warning-light: rgba(245, 166, 35, 0.15);
-  --color-danger: #f14e4e;
-  --color-danger-light: rgba(241, 78, 78, 0.15);
-  --color-success: #b5f23d;
-  --color-success-light: rgba(181, 242, 61, 0.15);
+  /* Primary (Esmeralda) — foreground BLANCO */
+  --color-primary:         #16a34a;
+  --color-primary-hover:   #15803d;
+  --color-primary-active:  #166534;
+  --color-primary-on:      #ffffff;               /* texto/icono sobre esmeralda sólida */
+  --color-primary-soft:    rgba(22, 163, 74, 0.12); /* fondo tenue */
+  --color-primary-soft-on: #15803d;                 /* texto sobre fondo tenue */
+
+  /* Accent (Lima) — foreground OSCURO (lima es de alta luminosidad) */
+  --color-accent:          #b5f23d;
+  --color-accent-hover:    #c8f55a;
+  --color-accent-on:       #111827;               /* texto/icono sobre lima sólida */
+  --color-accent-soft:     rgba(181, 242, 61, 0.14);
+  --color-accent-soft-on:  #4d7c0f;
+
+  /* Semántica (cada una con foreground sólido y tenue) */
+  --color-success:         #16a34a; --color-success-on: #ffffff;
+  --color-success-soft:    rgba(22, 163, 74, 0.12); --color-success-soft-on: #136a32;
+  --color-info:            #3b82f6; --color-info-on: #ffffff;
+  --color-info-soft:       rgba(59, 130, 246, 0.12); --color-info-soft-on: #1d4ed8;
+  --color-warning:         #f59e0b; --color-warning-on: #111827;
+  --color-warning-soft:    rgba(245, 158, 11, 0.14); --color-warning-soft-on: #b45309;
+  --color-danger:          #ef4444; --color-danger-on: #ffffff;
+  --color-danger-soft:     rgba(239, 68, 68, 0.10); --color-danger-soft-on: #b91c1c;
+  --color-neutral:         #6b7280; --color-neutral-on: #ffffff;
+  --color-neutral-soft:    rgba(0, 0, 0, 0.06); --color-neutral-soft-on: #4b5563;
+
+  /* Foco funcional — esmeralda (lima no alcanza 3:1 sobre blanco) */
+  --color-focus:           #16a34a;
+  --color-focus-ring:      rgba(22, 163, 74, 0.35);
+
+  /* Escala primary (tints esmeralda) — compat con nombres existentes */
+  --color-primary-50:  rgba(22, 163, 74, 0.06);
+  --color-primary-100: rgba(22, 163, 74, 0.12);
+  --color-primary-200: rgba(22, 163, 74, 0.22);
+  --color-primary-500: #16a34a;
+  --color-primary-600: #15803d;
+  --color-primary-700: #166534;
+  --color-primary-800: #14532d;
+  --color-primary-900: #0f3d21;
+  --color-primary-light: #22c55e;
+  --color-primary-dark:  #15803d;
+
+  /* Aliases legacy (se retiran al migrar páginas) */
+  --color-info-light:    rgba(59, 130, 246, 0.12);
+  --color-warning-light: rgba(245, 158, 11, 0.14);
+  --color-danger-light:  rgba(239, 68, 68, 0.10);
+  --color-success-light: rgba(22, 163, 74, 0.12);
 
   /* === Sidebar (Deep Forest Green) === */
   --sidebar-bg: #0d1f0d;
@@ -50,15 +82,20 @@
   --color-text-light: #9ca3af;
   --color-text-disabled: #d1d5db;
 
-  /* === Shadows (Soft for Light Mode) === */
-  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.06);
-  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.08);
-  --shadow: 0 4px 16px rgba(0, 0, 0, 0.10), 0 1px 4px rgba(0, 0, 0, 0.06);
-  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.08);
-  --shadow-lg: 0 16px 40px rgba(0, 0, 0, 0.14), 0 4px 12px rgba(0, 0, 0, 0.08);
-  --shadow-xl: 0 24px 64px rgba(0, 0, 0, 0.16), 0 8px 24px rgba(0, 0, 0, 0.10);
-  --shadow-green: 0 8px 24px rgba(181, 242, 61, 0.20);
-  --shadow-green-sm: 0 4px 12px rgba(181, 242, 61, 0.15);
+  /* === Sombras — 3 niveles con propósito ===
+     Las cards combinan --shadow-sm CON --card-border para definición nítida
+     sin efecto flotante (no dependen solo de la sombra). */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.06), 0 1px 3px rgba(0, 0, 0, 0.10);   /* reposo */
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.10), 0 2px 4px rgba(0, 0, 0, 0.06);  /* hover */
+  --shadow-lg: 0 16px 40px rgba(0, 0, 0, 0.16), 0 4px 12px rgba(0, 0, 0, 0.08); /* modales */
+  --card-border: 1px solid rgba(0, 0, 0, 0.06);
+
+  /* Aliases legacy de sombra (se retiran al migrar) */
+  --shadow-xs: var(--shadow-sm);
+  --shadow: var(--shadow-md);
+  --shadow-xl: var(--shadow-lg);
+  --shadow-green: 0 4px 12px rgba(22, 163, 74, 0.20);
+  --shadow-green-sm: 0 2px 8px rgba(22, 163, 74, 0.15);
 
   /* ============================================================
      SISTEMA DE TOKENS SIGOT (fuente única de verdad)

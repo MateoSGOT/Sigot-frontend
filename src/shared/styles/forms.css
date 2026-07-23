@@ -20,21 +20,31 @@
   width: 100%;
   padding: 0.5625rem 0.875rem;
   border: 1.5px solid var(--color-border);
-  border-radius: var(--radius-md);
-  font-size: 0.875rem;
+  border-radius: var(--radius-sm);
+  font-size: var(--text-body);
   color: var(--color-text);
   background: var(--color-input-bg);
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
-  outline: none !important;
+  transition: border-color var(--duration-base) var(--ease), box-shadow var(--duration-base) var(--ease);
+  outline: none;
   font-family: inherit;
   -webkit-appearance: none;
   appearance: none;
 }
 
 .form-control:focus {
-  border-color: var(--color-primary);
+  border-color: var(--color-focus);
   background: var(--color-input-bg);
-  box-shadow: 0 0 0 3px rgba(181, 242, 61, 0.15);
+  box-shadow: 0 0 0 3px var(--color-focus-ring);
+}
+
+/* Input en error: borde rojo (2.5 — errores donde ocurren) */
+.form-control.is-error,
+.form-control[aria-invalid="true"] {
+  border-color: var(--color-danger);
+}
+.form-control.is-error:focus,
+.form-control[aria-invalid="true"]:focus {
+  box-shadow: 0 0 0 3px var(--color-danger-soft);
 }
 
 .form-control::placeholder {
@@ -140,9 +150,16 @@ textarea.form-control {
   color: var(--color-text);
 }
 
-/* Global override for any native focus ring */
-*:focus {
-  outline: none !important;
+/* Estado de foco visible global (accesibilidad) — anillo esmeralda 2px con offset.
+   Solo con teclado (:focus-visible), no en click de ratón. */
+:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+/* Los inputs usan su propio anillo (box-shadow), sin doble outline */
+.form-control:focus-visible {
+  outline: none;
 }
 
 @media (max-width: 640px) {
