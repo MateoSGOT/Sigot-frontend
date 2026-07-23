@@ -29,21 +29,23 @@
   cursor: not-allowed;
 }
 
-/* === Primary (Esmeralda, foreground blanco) === */
+/* === Primary (Esmeralda sólida + texto blanco) ===
+   Usa -strong (#15803d, 5.02:1 con blanco) porque el texto del botón es 14px
+   (no "grande"); la base #16a34a solo cumple 3:1 y sería sub-AA aquí. */
 .btn--primary {
-  background: var(--color-primary);
+  background: var(--color-primary-strong);
   color: var(--color-primary-on);
   border-color: transparent;
   font-weight: var(--weight-bold);
 }
 
 .btn--primary:hover:not(:disabled) {
-  background: var(--color-primary-hover);
-  box-shadow: 0 4px 16px rgba(22, 163, 74, 0.28);
+  background: var(--color-primary-strong-hover);
+  box-shadow: 0 4px 16px rgba(21, 128, 61, 0.28);
 }
 
 .btn--primary:active:not(:disabled) {
-  background: var(--color-primary-active);
+  background: var(--color-primary-strong-hover);
   box-shadow: none;
 }
 

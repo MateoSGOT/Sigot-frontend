@@ -6,13 +6,17 @@
        Lima     #b5f23d → acento de marca / sidebar activo / highlights / TEXTO OSCURO
      ============================================================ */
 
-  /* Primary (Esmeralda) — foreground BLANCO */
-  --color-primary:         #16a34a;
-  --color-primary-hover:   #15803d;
-  --color-primary-active:  #166534;
-  --color-primary-on:      #ffffff;               /* texto/icono sobre esmeralda sólida */
-  --color-primary-soft:    rgba(22, 163, 74, 0.12); /* fondo tenue */
-  --color-primary-soft-on: #15803d;                 /* texto sobre fondo tenue */
+  /* Primary (Esmeralda)
+     - base: bordes, iconos, focus ring, texto sobre fondo claro (NO como fondo con texto blanco <24px)
+     - strong: superficies sólidas con texto blanco <24px (cumple AA-normal 4.5:1) */
+  --color-primary:              #16a34a;               /* base — 3.30:1 con blanco (solo UI/large) */
+  --color-primary-strong:       #15803d;               /* fondo sólido + texto blanco — 5.02:1 (AA-normal) */
+  --color-primary-strong-hover: #166534;               /* hover del sólido — 7.13:1 */
+  --color-primary-hover:        #15803d;
+  --color-primary-active:       #166534;
+  --color-primary-on:           #ffffff;               /* foreground sobre -strong */
+  --color-primary-soft:         rgba(22, 163, 74, 0.12);
+  --color-primary-soft-on:      #136a32;               /* texto sobre fondo tenue — 5.86:1 */
 
   /* Accent (Lima) — foreground OSCURO (lima es de alta luminosidad) */
   --color-accent:          #b5f23d;
@@ -22,15 +26,20 @@
   --color-accent-soft-on:  #4d7c0f;
 
   /* Semántica (cada una con foreground sólido y tenue) */
-  --color-success:         #16a34a; --color-success-on: #ffffff;
+  /* success = esmeralda (mismo -strong que primary) */
+  --color-success:         #16a34a; --color-success-strong: #15803d; --color-success-on: #ffffff;
   --color-success-soft:    rgba(22, 163, 74, 0.12); --color-success-soft-on: #136a32;
-  --color-info:            #3b82f6; --color-info-on: #ffffff;
+  /* info: base #3b82f6 (borde/icono); strong #2563eb para fondo sólido + blanco (5.17:1) */
+  --color-info:            #3b82f6; --color-info-strong: #2563eb; --color-info-on: #ffffff;
   --color-info-soft:       rgba(59, 130, 246, 0.12); --color-info-soft-on: #1d4ed8;
+  /* warning usa foreground OSCURO (8.26:1), no requiere -strong */
   --color-warning:         #f59e0b; --color-warning-on: #111827;
   --color-warning-soft:    rgba(245, 158, 11, 0.14); --color-warning-soft-on: #b45309;
-  --color-danger:          #ef4444; --color-danger-on: #ffffff;
+  /* danger: base #ef4444 (borde/icono); strong #dc2626 para fondo sólido + blanco (4.83:1) */
+  --color-danger:          #ef4444; --color-danger-strong: #dc2626; --color-danger-on: #ffffff;
   --color-danger-soft:     rgba(239, 68, 68, 0.10); --color-danger-soft-on: #b91c1c;
-  --color-neutral:         #6b7280; --color-neutral-on: #ffffff;
+  /* neutral #6b7280 sólido + blanco ya cumple 4.83:1; strong para superficies más grandes */
+  --color-neutral:         #6b7280; --color-neutral-strong: #4b5563; --color-neutral-on: #ffffff;
   --color-neutral-soft:    rgba(0, 0, 0, 0.06); --color-neutral-soft-on: #4b5563;
 
   /* Foco funcional — esmeralda (lima no alcanza 3:1 sobre blanco) */
