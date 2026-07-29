@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { MdAdd, MdVisibility, MdEdit, MdVisibilityOff } from 'react-icons/md';
 import { usePermiso } from '../../../shared/hooks/usePermiso.js';
@@ -11,15 +11,16 @@ import SearchBar from '../../../shared/components/SearchBar/SearchBar.jsx';
 import FilterDropdown from '../../../shared/components/FilterDropdown/FilterDropdown.jsx';
 import { StatusBadge } from '../../../shared/components/Badge/Badge.jsx';
 import SearchableSelect from '../../../shared/components/SearchableSelect/SearchableSelect.jsx';
-import { sortByStatus, filterItems, formatDate } from '../../../shared/utils/helpers.js';
+import { sortByStatus, filterItems } from '../../../shared/utils/helpers.js';
+import * as V from '../../../shared/utils/validators.js';
 import api from '../../../shared/services/api.js';
 import './ClientesPage.css';
 
-const EMPTY_FORM = { Nombre: '', Id_TipoDoc: '', Documento: '', Telefono: '', Correo: '', Direccion: '', Foto: '', Password: '' };
+const EMPTY_FORM = { Nombre: '', Id_TipoDoc: '', Documento: '', Telefono: '', Correo: '', Foto: '', Password: '', ConfirmPassword: '' };
 
 export default function ClientesPage() {
   const dispatch = useDispatch();
-  const { items, loading, actionLoading, error } = useSelector((s) => s.clientes);
+  const { items, loading, actionLoading } = useSelector((s) => s.clientes);
   const puedeCrear   = usePermiso('CLIENTES.REGISTRAR');
   const puedeEditar  = usePermiso('CLIENTES.EDITAR');
   const puedeToggle  = usePermiso('CLIENTES.CAMBIAR_ESTADO');
@@ -28,12 +29,15 @@ export default function ClientesPage() {
   const [statusFilter, setStatusFilter] = useState('todos');
   const [pageSize, setPageSize] = useState(5);
   const [detailItem, setDetailItem] = useState(null);
+  const [showForm, setShowForm] = useState(false);
   const [formData, setFormData] = useState(EMPTY_FORM);
   const [editingId, setEditingId] = useState(null);
-  const [showForm, setShowForm] = useState(false);
   const [formError, setFormError] = useState('');
+  const [errors, setErrors] = useState({});
+  const [touched, setTouched] = useState({});
   const [fotoPreview, setFotoPreview] = useState(null);
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
 
   useEffect(() => {
     dispatch(fetchClientes());
@@ -50,49 +54,98 @@ export default function ClientesPage() {
 
   const tiposDocOpts = tiposDoc.map(t => ({ value: String(t.Id_TipoDoc), label: t.Nombre }));
 
+  // Reglas de validación (las de contraseña solo aplican al crear).
+  const rules = useMemo(() => {
+    const r = {
+      Id_TipoDoc: (v) => V.requiredSelect(v, 'El tipo de documento'),
+      Documento:  V.documento,
+      Nombre:     (v) => V.nombre(v, 3),
+      Telefono:   (v) => V.telefono(v, false),
+      Correo:     (v) => V.correo(v, true),
+    };
+    if (!editingId) {
+      r.Password = V.passwordFuerte;
+      r.ConfirmPassword = (v, all) => V.confirmarPassword(v, all.Password);
+    }
+    return r;
+  }, [editingId]);
+
+  const formInvalid = V.hasErrors(V.validateForm(formData, rules));
+
+  const resetForm = () => { setErrors({}); setTouched({}); setFormError(''); setShowPassword(false); setShowConfirm(false); };
+
   const openCreate = () => {
-    setFormData(EMPTY_FORM); setEditingId(null); setFormError('');
-    setFotoPreview(null); setShowPassword(false); setShowForm(true);
+    setFormData(EMPTY_FORM); setEditingId(null); setFotoPreview(null); resetForm();
+    setShowForm(true);
   };
 
   const openEdit = (item) => {
     setFormData({
-      Nombre: item.Nombre || '', Id_TipoDoc: item.Id_TipoDoc || '',
+      Nombre: item.Nombre || '', Id_TipoDoc: String(item.Id_TipoDoc || ''),
       Documento: item.Documento || '', Telefono: item.Telefono || '',
-      Correo: item.Correo || '', Direccion: item.Direccion || '',
-      Foto: item.Foto || '', Password: '',
+      Correo: item.Correo || '', Foto: item.Foto || '', Password: '', ConfirmPassword: '',
     });
     setFotoPreview(item.Foto || null);
-    setShowPassword(false);
-    setEditingId(item.Id_Cliente); setFormError(''); setShowForm(true);
+    setEditingId(item.Id_Cliente); resetForm(); setShowForm(true);
   };
 
-  const handleFormChange = (e) => setFormData(p => ({ ...p, [e.target.name]: e.target.value }));
+  const runValidation = (data) => setErrors(V.validateForm(data, rules));
+
+  const setField = (name, value) => {
+    const next = { ...formData, [name]: value };
+    setFormData(next);
+    if (touched[name] || errors[name] || name === 'ConfirmPassword' || name === 'Password') {
+      setErrors(V.validateForm(next, rules));
+    }
+  };
+
+  const handleFormChange = (e) => setField(e.target.name, e.target.value);
+  const handleBlur = (e) => {
+    const { name } = e.target;
+    setTouched(t => ({ ...t, [name]: true }));
+    runValidation(formData);
+  };
 
   const handleFormSubmit = async (e) => {
     e.preventDefault();
-    if (!formData.Nombre || !formData.Documento || !formData.Id_TipoDoc) {
-      setFormError('Completa los campos obligatorios.'); return;
-    }
-    const action = editingId ? updateCliente({ id: editingId, data: formData }) : createCliente(formData);
+    const errs = V.validateForm(formData, rules);
+    setErrors(errs);
+    setTouched(Object.keys(rules).reduce((a, k) => ({ ...a, [k]: true }), {}));
+    if (V.hasErrors(errs)) { setFormError('Corrige los campos marcados antes de guardar.'); return; }
+    setFormError('');
+
+    // Payload: sin ConfirmPassword ni Direccion. En edición NO se envía Password.
+    const payload = {
+      Id_TipoDoc: formData.Id_TipoDoc,
+      Documento:  formData.Documento.trim(),
+      Nombre:     formData.Nombre.trim(),
+      Telefono:   formData.Telefono.trim(),
+      Correo:     formData.Correo.trim(),
+      Foto:       formData.Foto,
+    };
+    if (!editingId) payload.Password = formData.Password;
+
+    const action = editingId ? updateCliente({ id: editingId, data: payload }) : createCliente(payload);
     const result = await dispatch(action);
     if (!result.error) { setShowForm(false); dispatch(fetchClientes()); }
-    else setFormError(result.payload || 'Error al guardar.');
+    else setFormError(result.payload || 'No se pudo guardar el cliente.');
   };
 
   const handleToggle = (item) => {
     dispatch(toggleClienteEstado({ id: item.Id_Cliente, Estado: item.Estado === 1 ? 0 : 1 }));
   };
 
+  // Muestra el error de un campo solo si fue tocado o hubo intento de submit.
+  const fieldError = (name) => (touched[name] ? errors[name] : '') || '';
+
   const columns = [
     { key: '#', label: '#', width: '50px', render: (_, __, i) => i + 1 },
     {
       key: 'Nombre', label: 'Nombre', render: (v, row) => (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
+        <div className="cell-user">
           {row.Foto
-            ? <img src={row.Foto} alt="" style={{ width: 28, height: 28, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
-            : <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'rgba(181,242,61,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', fontWeight: 700, color: '#b5f23d', flexShrink: 0 }}>{v?.charAt(0)}</div>
-          }
+            ? <img src={row.Foto} alt="" className="cell-user__avatar" />
+            : <div className="cell-user__avatar cell-user__avatar--initial">{v?.charAt(0)}</div>}
           <span className="font-medium">{v}</span>
         </div>
       )
@@ -126,12 +179,7 @@ export default function ClientesPage() {
         <div className="card__header">
           <SearchBar value={search} onChange={setSearch} placeholder="Buscar por nombre, documento, correo..."
             filterSlot={
-              <FilterDropdown
-                statusFilter={statusFilter}
-                onStatusChange={setStatusFilter}
-                pageSize={pageSize}
-                onPageSizeChange={setPageSize}
-              />
+              <FilterDropdown statusFilter={statusFilter} onStatusChange={setStatusFilter} pageSize={pageSize} onPageSizeChange={setPageSize} />
             }
           />
         </div>
@@ -147,7 +195,6 @@ export default function ClientesPage() {
             <div className="detail-item"><span className="detail-label">Documento</span><span className="detail-value">{detailItem.Documento}</span></div>
             <div className="detail-item"><span className="detail-label">Teléfono</span><span className="detail-value">{detailItem.Telefono || '—'}</span></div>
             <div className="detail-item"><span className="detail-label">Correo</span><span className="detail-value">{detailItem.Correo || '—'}</span></div>
-            <div className="detail-item"><span className="detail-label">Dirección</span><span className="detail-value">{detailItem.Direccion || '—'}</span></div>
             <div className="detail-item"><span className="detail-label">Estado</span><span className="detail-value"><StatusBadge estado={detailItem.Estado} /></span></div>
           </div>
         )}
@@ -158,87 +205,109 @@ export default function ClientesPage() {
         footer={
           <>
             <button className="btn btn--outline" onClick={() => setShowForm(false)}>Cancelar</button>
-            <button className="btn btn--primary" onClick={handleFormSubmit} disabled={actionLoading}>{actionLoading ? 'Guardando...' : 'Guardar'}</button>
+            <button className="btn btn--primary" onClick={handleFormSubmit} disabled={actionLoading || formInvalid}>{actionLoading ? 'Guardando...' : 'Guardar'}</button>
           </>
         }
       >
         {formError && <div className="form-error-box">{formError}</div>}
         <form className="form-grid" onSubmit={handleFormSubmit} noValidate>
 
+          {/* Avatar (opcional) */}
           <div className="form-group span-2">
             <div className="form-avatar-row">
               <ImageUploader
                 preview={fotoPreview}
                 onChange={file => {
                   const reader = new FileReader();
-                  reader.onload = ev => {
-                    setFotoPreview(ev.target.result);
-                    setFormData(p => ({ ...p, Foto: ev.target.result }));
-                  };
+                  reader.onload = ev => { setFotoPreview(ev.target.result); setFormData(p => ({ ...p, Foto: ev.target.result })); };
                   reader.readAsDataURL(file);
                 }}
                 size={60}
                 initials={formData.Nombre?.charAt(0)?.toUpperCase()}
               />
-              <div style={{ flex: 1 }}>
-                <label className="form-label">Nombre <span className="required">*</span></label>
-                <input name="Nombre" className="form-control" value={formData.Nombre} onChange={handleFormChange} placeholder="Nombre completo" />
-              </div>
+              <span className="form-hint">Foto del cliente (opcional)</span>
             </div>
           </div>
 
+          {/* 1. Tipo de documento */}
           <div className="form-group">
             <label className="form-label">Tipo de documento <span className="required">*</span></label>
             <SearchableSelect
               options={tiposDocOpts}
               value={String(formData.Id_TipoDoc)}
-              onChange={v => setFormData(p => ({ ...p, Id_TipoDoc: v }))}
+              onChange={v => { setField('Id_TipoDoc', v); setTouched(t => ({ ...t, Id_TipoDoc: true })); }}
               placeholder="Seleccionar tipo..."
             />
+            {fieldError('Id_TipoDoc') && <p className="form-error">{fieldError('Id_TipoDoc')}</p>}
           </div>
+
+          {/* 2. Número de documento */}
           <div className="form-group">
             <label className="form-label">Número de documento <span className="required">*</span></label>
-            <input name="Documento" className="form-control" value={formData.Documento} onChange={handleFormChange} placeholder="Número de documento" />
+            <input name="Documento" className={`form-control ${fieldError('Documento') ? 'is-error' : ''}`}
+              value={formData.Documento} onChange={handleFormChange} onBlur={handleBlur}
+              inputMode="numeric" placeholder="Solo números" />
+            {fieldError('Documento') && <p className="form-error">{fieldError('Documento')}</p>}
           </div>
 
-          <div className="form-group">
-            <label className="form-label">Teléfono</label>
-            <input name="Telefono" className="form-control" value={formData.Telefono} onChange={handleFormChange} placeholder="Teléfono de contacto" />
+          {/* 3. Nombres */}
+          <div className="form-group span-2">
+            <label className="form-label">Nombres <span className="required">*</span></label>
+            <input name="Nombre" className={`form-control ${fieldError('Nombre') ? 'is-error' : ''}`}
+              value={formData.Nombre} onChange={handleFormChange} onBlur={handleBlur} placeholder="Nombre completo" />
+            {fieldError('Nombre') && <p className="form-error">{fieldError('Nombre')}</p>}
           </div>
+
+          {/* 4. Teléfono */}
+          <div className="form-group">
+            <label className="form-label">Teléfono <span className="required">*</span></label>
+            <input name="Telefono" className={`form-control ${fieldError('Telefono') ? 'is-error' : ''}`}
+              value={formData.Telefono} onChange={handleFormChange} onBlur={handleBlur}
+              inputMode="numeric" placeholder="Teléfono de contacto" />
+            {fieldError('Telefono') && <p className="form-error">{fieldError('Telefono')}</p>}
+          </div>
+
+          {/* 5. Correo */}
           <div className="form-group">
             <label className="form-label">Correo electrónico</label>
-            <input name="Correo" type="email" className="form-control" value={formData.Correo} onChange={handleFormChange} placeholder="correo@ejemplo.com" />
+            <input name="Correo" type="email" className={`form-control ${fieldError('Correo') ? 'is-error' : ''}`}
+              value={formData.Correo} onChange={handleFormChange} onBlur={handleBlur} placeholder="correo@ejemplo.com" />
+            {fieldError('Correo') && <p className="form-error">{fieldError('Correo')}</p>}
           </div>
 
-          <div className="form-group span-2">
-            <label className="form-label">Dirección</label>
-            <input name="Direccion" className="form-control" value={formData.Direccion} onChange={handleFormChange} placeholder="Dirección" />
-          </div>
-
-          <div className="form-group span-2">
-            <label className="form-label">Contraseña portal{editingId && <span style={{ color: '#9ca3af', fontWeight: 400, marginLeft: 6 }}>(dejar vacío para no cambiar)</span>}</label>
-            <div style={{ position: 'relative' }}>
-              <input
-                name="Password"
-                type={showPassword ? 'text' : 'password'}
-                className="form-control"
-                value={formData.Password}
-                onChange={handleFormChange}
-                placeholder={editingId ? 'Nueva contraseña (opcional)' : 'Contraseña para acceso al portal'}
-                style={{ paddingRight: '2.5rem' }}
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(v => !v)}
-                style={{ position: 'absolute', right: '0.75rem', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#6b7280', padding: 0 }}
-              >
-                {showPassword ? <MdVisibilityOff size={18} /> : <MdVisibility size={18} />}
-              </button>
-            </div>
-          </div>
+          {/* 6. Contraseña + Confirmar (solo al crear) */}
+          {!editingId && (
+            <>
+              <div className="form-group">
+                <label className="form-label">Contraseña portal <span className="required">*</span></label>
+                <div className="form-password-wrap">
+                  <input name="Password" type={showPassword ? 'text' : 'password'}
+                    className={`form-control ${fieldError('Password') ? 'is-error' : ''}`}
+                    value={formData.Password} onChange={handleFormChange} onBlur={handleBlur}
+                    placeholder="Mínimo 8, letra y número" />
+                  <button type="button" className="form-password-toggle" onClick={() => setShowPassword(v => !v)} aria-label={showPassword ? 'Ocultar' : 'Mostrar'}>
+                    {showPassword ? <MdVisibilityOff size={18} /> : <MdVisibility size={18} />}
+                  </button>
+                </div>
+                {fieldError('Password') && <p className="form-error">{fieldError('Password')}</p>}
+              </div>
+              <div className="form-group">
+                <label className="form-label">Confirmar contraseña <span className="required">*</span></label>
+                <div className="form-password-wrap">
+                  <input name="ConfirmPassword" type={showConfirm ? 'text' : 'password'}
+                    className={`form-control ${fieldError('ConfirmPassword') ? 'is-error' : ''}`}
+                    value={formData.ConfirmPassword} onChange={handleFormChange} onBlur={handleBlur}
+                    placeholder="Repite la contraseña" />
+                  <button type="button" className="form-password-toggle" onClick={() => setShowConfirm(v => !v)} aria-label={showConfirm ? 'Ocultar' : 'Mostrar'}>
+                    {showConfirm ? <MdVisibilityOff size={18} /> : <MdVisibility size={18} />}
+                  </button>
+                </div>
+                {fieldError('ConfirmPassword') && <p className="form-error">{fieldError('ConfirmPassword')}</p>}
+              </div>
+            </>
+          )}
         </form>
       </Modal>
     </div>
   );
 }
-
