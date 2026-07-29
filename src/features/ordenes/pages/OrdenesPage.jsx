@@ -35,9 +35,11 @@ function EstadoBadge({ estado }) {
   return <Badge variant={cfg.variant}>{cfg.label}</Badge>;
 }
 
-function ProgresoEstado({ estadoActual, onAvanzar, loading, disabled }) {
+function ProgresoEstado({ estadoActual, onAvanzar, loading, disabled, sinTrabajo }) {
   const estadoNum = estadoActual ?? 0;
   const siguienteEstado = estadoNum < 3 ? estadoNum + 1 : null;
+  // No se puede avanzar a Realizado (3) sin al menos un servicio o repuesto.
+  const bloqueaRealizado = siguienteEstado === 3 && sinTrabajo;
 
   return (
     <div className="progreso-container">
@@ -68,7 +70,12 @@ function ProgresoEstado({ estadoActual, onAvanzar, loading, disabled }) {
           </button>
         )}
         {siguienteEstado && estadoNum >= 1 && (
-          <button className="btn btn--primary btn--sm progreso-btn" onClick={() => onAvanzar(siguienteEstado)} disabled={loading || disabled}>
+          <button
+            className="btn btn--primary btn--sm progreso-btn"
+            onClick={() => onAvanzar(siguienteEstado)}
+            disabled={loading || disabled || bloqueaRealizado}
+            title={bloqueaRealizado ? 'Agrega al menos un servicio o repuesto para marcarla como Realizada' : undefined}
+          >
             <MdArrowForward size={15} /> Avanzar a: {PASOS.find(p => p.estado === siguienteEstado)?.label}
           </button>
         )}
@@ -108,6 +115,7 @@ export default function OrdenesPage() {
   const [addServError, setAddServError]   = useState('');
   const [addRepForm, setAddRepForm]       = useState({ Id_Repuesto: '', cantidad: '', precio_unitario: '' });
   const [addRepError, setAddRepError]     = useState('');
+  const [flujoError, setFlujoError]       = useState('');
   const [manoInput, setManoInput]         = useState('');
   const [editingMano, setEditingMano]     = useState(false);
   const [servPage, setServPage]           = useState(0);
@@ -127,6 +135,7 @@ export default function OrdenesPage() {
       setManoInput('');
       setServPage(0);
       setRepPage(0);
+      setFlujoError('');
     } else {
       dispatch(clearSelected());
     }
@@ -176,10 +185,14 @@ export default function OrdenesPage() {
 
   const handleAvanzarEstado = async (newEstado) => {
     if (!detailId) return;
+    setFlujoError('');
     const result = await dispatch(toggleOrdenEstado({ id: detailId, Estado: newEstado }));
     if (!result.error) {
       dispatch(fetchOrdenById(detailId));
       dispatch(fetchOrdenes());
+    } else {
+      // Muestra el mensaje en español de la API (p. ej. Realizada sin trabajo).
+      setFlujoError(result.payload || 'No se pudo cambiar el estado de la orden.');
     }
   };
 
@@ -335,11 +348,13 @@ export default function OrdenesPage() {
                       Esta orden está inactiva. Actívala para poder editar su contenido.
                     </p>
                   )}
+                  {flujoError && <div className="form-error-box" style={{ marginBottom: '0.75rem' }}>{flujoError}</div>}
                   <ProgresoEstado
                     estadoActual={selected.Estado}
                     onAvanzar={handleAvanzarEstado}
                     loading={actionLoading}
                     disabled={!puedeToggle}
+                    sinTrabajo={(selected.servicios?.length || 0) === 0 && (selected.repuestos?.length || 0) === 0}
                   />
                 </div>
 
