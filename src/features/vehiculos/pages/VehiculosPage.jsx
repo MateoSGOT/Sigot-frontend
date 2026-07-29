@@ -191,10 +191,6 @@ export default function VehiculosPage() {
             {fieldError('Placa') && <p className="form-error">{fieldError('Placa')}</p>}
           </div>
           <div className="form-group">
-            <label className="form-label">VIN</label>
-            <input name="VIN" className="form-control" value={formData.VIN} onChange={handleChange} placeholder="Número VIN" />
-          </div>
-          <div className="form-group">
             <label className="form-label">Marca <span className="required">*</span></label>
             <SearchableSelect
               options={marcasOpts}
@@ -224,6 +220,10 @@ export default function VehiculosPage() {
           <div className="form-group">
             <label className="form-label">Color</label>
             <input name="Color" className="form-control" value={formData.Color} onChange={handleChange} placeholder="Blanco" />
+          </div>
+          <div className="form-group">
+            <label className="form-label">VIN</label>
+            <input name="VIN" className="form-control" value={formData.VIN} onChange={handleChange} placeholder="Número VIN" />
           </div>
           <div className="form-group span-2">
             <label className="form-label">Cliente <span className="required">*</span></label>

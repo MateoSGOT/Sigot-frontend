@@ -18,7 +18,7 @@ import { useFormValidation } from '../../../shared/hooks/useFormValidation.js';
 import api from '../../../shared/services/api.js';
 import './EmpleadosPage.css';
 
-const EMPTY = { Nombre: '', Id_TipoDoc: '', Documento: '', Id_Rol: '', Correo: '', Password: '' };
+const EMPTY = { Nombre: '', Id_TipoDoc: '', Documento: '', Id_Rol: '', Correo: '', Password: '', ConfirmPassword: '' };
 
 export default function EmpleadosPage() {
   const dispatch = useDispatch();
@@ -38,6 +38,7 @@ export default function EmpleadosPage() {
   const [showForm, setShowForm] = useState(false);
   const [formError, setFormError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
   const [fotoPreview, setFotoPreview] = useState(null);
   const [photoFile, setPhotoFile] = useState(null);
   const [savedOk, setSavedOk] = useState(false);
@@ -47,10 +48,18 @@ export default function EmpleadosPage() {
       Id_TipoDoc: (v) => V.requiredSelect(v, 'El tipo de documento'),
       Documento:  V.documento,
       Nombre:     (v) => V.nombre(v, 3),
-      Id_Rol:     (v) => V.requiredSelect(v, 'El rol'),
       Correo:     (v) => V.correo(v, false),
+      Id_Rol:     (v) => V.requiredSelect(v, 'El rol'),
     };
-    if (!editingId) r.Password = V.passwordFuerte;
+    if (!editingId) {
+      // Al crear: contraseña obligatoria + confirmación.
+      r.Password = V.passwordFuerte;
+      r.ConfirmPassword = (v, all) => V.confirmarPassword(v, all.Password);
+    } else {
+      // Al editar: opcional; solo se valida si el admin escribe una nueva.
+      r.Password = (v) => (String(v ?? '') === '' ? '' : V.passwordFuerte(v));
+      r.ConfirmPassword = (v, all) => (String(all.Password ?? '') === '' ? '' : V.confirmarPassword(v, all.Password));
+    }
     return r;
   }, [editingId]);
   const { errors, touched, setErrors, revalidate, markTouched, touchAll, fieldError, isInvalid, validateNow, reset } = useFormValidation(rules);
@@ -74,17 +83,17 @@ export default function EmpleadosPage() {
 
   const openCreate = () => {
     setFormData(EMPTY); setEditingId(null); setFormError(''); reset();
-    setShowPassword(false); setFotoPreview(null); setPhotoFile(null); setSavedOk(false); setShowForm(true);
+    setShowPassword(false); setShowConfirm(false); setFotoPreview(null); setPhotoFile(null); setSavedOk(false); setShowForm(true);
   };
 
   const openEdit = (item) => {
-    setEditingId(item.Id_Empleado); setFormError(''); setSavedOk(false); setShowPassword(false); reset();
+    setEditingId(item.Id_Empleado); setFormError(''); setSavedOk(false); setShowPassword(false); setShowConfirm(false); reset();
     setFotoPreview(item.Foto_url || item.Foto || null);
     setPhotoFile(null);
     setFormData({
       Nombre: item.Nombre || '', Id_TipoDoc: String(item.Id_TipoDoc || ''),
       Documento: item.Documento || '', Id_Rol: String(item.Id_Rol || ''),
-      Correo: item.Correo || '', Password: '',
+      Correo: item.Correo || '', Password: '', ConfirmPassword: '',
     });
     setShowForm(true);
   };
@@ -235,6 +244,7 @@ export default function EmpleadosPage() {
         {formError && <div className="form-error-box">{formError}</div>}
         <form className="form-grid" onSubmit={handleSubmit} noValidate>
 
+          {/* Avatar (opcional) */}
           <div className="form-group span-2">
             <div className="form-avatar-row">
               <ImageUploader
@@ -243,26 +253,11 @@ export default function EmpleadosPage() {
                 size={60}
                 initials={formData.Nombre?.charAt(0)?.toUpperCase()}
               />
-              <div style={{ flex: 1 }}>
-                <label className="form-label">Nombre <span className="required">*</span></label>
-                <input name="Nombre" className={`form-control ${fieldError('Nombre') ? 'is-error' : ''}`} value={formData.Nombre} onChange={handleChange} onBlur={handleBlur} placeholder="Nombre completo" />
-                {fieldError('Nombre') && <p className="form-error">{fieldError('Nombre')}</p>}
-              </div>
+              <span className="form-hint">Foto del empleado (opcional)</span>
             </div>
           </div>
 
-          <div className="form-group">
-            <label className="form-label">Rol <span className="required">*</span></label>
-            <SearchableSelect
-              options={rolesOpts}
-              value={String(formData.Id_Rol)}
-              onChange={v => { setField('Id_Rol', v); markTouched('Id_Rol'); }}
-              placeholder="Seleccionar rol..."
-              disabled={!!(editingId && items.find(e => e.Id_Empleado === editingId)?.Rol === 'Administrador')}
-            />
-            {fieldError('Id_Rol') && <p className="form-error">{fieldError('Id_Rol')}</p>}
-          </div>
-
+          {/* 1. Tipo de documento */}
           <div className="form-group">
             <label className="form-label">Tipo de documento <span className="required">*</span></label>
             <SearchableSelect
@@ -274,18 +269,30 @@ export default function EmpleadosPage() {
             {fieldError('Id_TipoDoc') && <p className="form-error">{fieldError('Id_TipoDoc')}</p>}
           </div>
 
+          {/* 2. Número de documento */}
           <div className="form-group">
             <label className="form-label">Número de documento <span className="required">*</span></label>
             <input name="Documento" className={`form-control ${fieldError('Documento') ? 'is-error' : ''}`} value={formData.Documento} onChange={handleChange} onBlur={handleBlur} inputMode="numeric" placeholder="Número de documento" />
             {fieldError('Documento') && <p className="form-error">{fieldError('Documento')}</p>}
           </div>
 
-          <div className="form-group">
+          {/* 3. Nombres */}
+          <div className="form-group span-2">
+            <label className="form-label">Nombres <span className="required">*</span></label>
+            <input name="Nombre" className={`form-control ${fieldError('Nombre') ? 'is-error' : ''}`} value={formData.Nombre} onChange={handleChange} onBlur={handleBlur} placeholder="Nombre completo" />
+            {fieldError('Nombre') && <p className="form-error">{fieldError('Nombre')}</p>}
+          </div>
+
+          {/* 4. (Teléfono no existe en el modelo Empleado → pendiente de esquema) */}
+
+          {/* 5. Correo electrónico */}
+          <div className="form-group span-2">
             <label className="form-label">Correo electrónico <span className="required">*</span></label>
             <input name="Correo" type="email" className={`form-control ${fieldError('Correo') ? 'is-error' : ''}`} value={formData.Correo} onChange={handleChange} onBlur={handleBlur} placeholder="correo@empresa.com" />
             {fieldError('Correo') && <p className="form-error">{fieldError('Correo')}</p>}
           </div>
 
+          {/* 6. Contraseña + Confirmar */}
           <div className="form-group">
             <label className="form-label">
               Contraseña {!editingId && <span className="required">*</span>}
@@ -298,6 +305,31 @@ export default function EmpleadosPage() {
               </button>
             </div>
             {fieldError('Password') && <p className="form-error">{fieldError('Password')}</p>}
+          </div>
+          <div className="form-group">
+            <label className="form-label">
+              Confirmar contraseña {!editingId && <span className="required">*</span>}
+            </label>
+            <div className="form-password-wrap">
+              <input name="ConfirmPassword" type={showConfirm ? 'text' : 'password'} className={`form-control ${fieldError('ConfirmPassword') ? 'is-error' : ''}`} value={formData.ConfirmPassword} onChange={handleChange} onBlur={handleBlur} placeholder="Repite la contraseña" />
+              <button type="button" className="form-password-toggle" onClick={() => setShowConfirm(p => !p)} tabIndex={-1}>
+                {showConfirm ? <MdVisibilityOff size={18} /> : <MdVisibility size={18} />}
+              </button>
+            </div>
+            {fieldError('ConfirmPassword') && <p className="form-error">{fieldError('ConfirmPassword')}</p>}
+          </div>
+
+          {/* 7. Rol (al final) */}
+          <div className="form-group span-2">
+            <label className="form-label">Rol <span className="required">*</span></label>
+            <SearchableSelect
+              options={rolesOpts}
+              value={String(formData.Id_Rol)}
+              onChange={v => { setField('Id_Rol', v); markTouched('Id_Rol'); }}
+              placeholder="Seleccionar rol..."
+              disabled={!!(editingId && items.find(e => e.Id_Empleado === editingId)?.Rol === 'Administrador')}
+            />
+            {fieldError('Id_Rol') && <p className="form-error">{fieldError('Id_Rol')}</p>}
           </div>
 
         </form>

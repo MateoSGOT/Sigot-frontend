@@ -167,13 +167,13 @@ export default function ProveedoresPage() {
             {fieldError('nombre') && <p className="form-error">{fieldError('nombre')}</p>}
           </div>
           <div className="form-group">
+            <label className="form-label">Contacto</label>
+            <input name="contacto" className="form-control" value={formData.contacto} onChange={handleChange} placeholder="Teléfono o persona de contacto" />
+          </div>
+          <div className="form-group">
             <label className="form-label">Correo</label>
             <input name="correo" type="email" className={`form-control ${fieldError('correo') ? 'is-error' : ''}`} value={formData.correo} onChange={handleChange} onBlur={handleBlur} placeholder="correo@proveedor.com" />
             {fieldError('correo') && <p className="form-error">{fieldError('correo')}</p>}
-          </div>
-          <div className="form-group">
-            <label className="form-label">Contacto</label>
-            <input name="contacto" className="form-control" value={formData.contacto} onChange={handleChange} placeholder="Teléfono o persona de contacto" />
           </div>
           <div className="form-group">
             <label className="form-label">Departamento</label>
