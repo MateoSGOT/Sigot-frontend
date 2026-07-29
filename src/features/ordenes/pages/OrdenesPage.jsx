@@ -313,8 +313,10 @@ export default function OrdenesPage() {
             {activeTab === 'info' && selected && (
               <div style={{ marginTop: '1rem' }}>
                 <div className="detail-grid">
-                  <div className="detail-item"><span className="detail-label">Vehículo</span><span className="detail-value">{selected.Vehiculo || selected.Placa || '—'}</span></div>
                   <div className="detail-item"><span className="detail-label">Cliente</span><span className="detail-value">{selected.Cliente || '—'}</span></div>
+                  <div className="detail-item"><span className="detail-label">Documento del cliente</span><span className="detail-value">{selected.ClienteDoc || '—'}</span></div>
+                  <div className="detail-item"><span className="detail-label">Empleado asignado</span><span className="detail-value">{selected.Empleado || '—'}</span></div>
+                  <div className="detail-item"><span className="detail-label">Vehículo</span><span className="detail-value">{selected.Vehiculo || selected.Placa || '—'}{selected.Marca ? ` · ${selected.Marca}${selected.Modelo ? ` ${selected.Modelo}` : ''}` : ''}</span></div>
                   <div className="detail-item"><span className="detail-label">Fecha de ingreso</span><span className="detail-value">{formatDate(selected.FechaIngreso)}</span></div>
                   <div className="detail-item"><span className="detail-label">Fecha de entrega</span><span className="detail-value">{formatDate(selected.FechaEntrega)}</span></div>
                   <div className="detail-item"><span className="detail-label">Kilometraje</span><span className="detail-value">{selected.Kilometraje ? `${Number(selected.Kilometraje).toLocaleString('es-CO')} km` : '—'}</span></div>
