@@ -11,10 +11,17 @@ import SearchBar from '../../../shared/components/SearchBar/SearchBar.jsx';
 import FilterDropdown from '../../../shared/components/FilterDropdown/FilterDropdown.jsx';
 import { StatusBadge } from '../../../shared/components/Badge/Badge.jsx';
 import { sortByStatus, filterItems, formatCurrency } from '../../../shared/utils/helpers.js';
+import * as V from '../../../shared/utils/validators.js';
+import { useFormValidation } from '../../../shared/hooks/useFormValidation.js';
 import api from '../../../shared/services/api.js';
 import './RepuestosPage.css';
 
-const EMPTY = { NombreRepuesto: '', Stock: '', StockMinimo: '5', Precio: '', Id_categoria: '' };
+// El repuesto es una ficha de catálogo: Stock y Precio se llenan al comprar, no al crear.
+const EMPTY = { NombreRepuesto: '', StockMinimo: '5', Id_categoria: '' };
+const RULES = {
+  NombreRepuesto: (v) => V.nombre(v, 3),
+  Id_categoria:   (v) => V.requiredSelect(v, 'La categoría'),
+};
 
 export default function RepuestosPage() {
   const dispatch = useDispatch();
@@ -33,6 +40,7 @@ export default function RepuestosPage() {
   const [editingId, setEditingId]         = useState(null);
   const [showForm, setShowForm]           = useState(false);
   const [formError, setFormError]         = useState('');
+  const { errors, touched, setErrors, revalidate, markTouched, touchAll, fieldError, isInvalid, validateNow, reset } = useFormValidation(RULES);
 
   useEffect(() => {
     dispatch(fetchRepuestos());
@@ -72,35 +80,39 @@ export default function RepuestosPage() {
     } catch { /* silent */ }
   };
 
-  const openCreate = () => { setFormData(EMPTY); setEditingId(null); setFormError(''); setShowForm(true); };
+  const openCreate = () => { setFormData(EMPTY); setEditingId(null); setFormError(''); reset(); setShowForm(true); };
   const openEdit = (item) => {
     setFormData({
       NombreRepuesto: item.NombreRepuesto || item.Nombre || '',
-      Stock: item.Stock ?? '',
-      StockMinimo: item.StockMinimo ?? 5,
-      Precio: item.Precio || '',
-      Id_categoria: item.Id_categoria ?? item.Id_Categoria ?? '',
+      StockMinimo: String(item.StockMinimo ?? 5),
+      Id_categoria: String(item.Id_categoria ?? item.Id_Categoria ?? ''),
     });
-    setEditingId(item.Id_Repuesto); setFormError(''); setShowForm(true);
+    setEditingId(item.Id_Repuesto); setFormError(''); reset(); setShowForm(true);
   };
-  const handleChange = e => setFormData(p => ({ ...p, [e.target.name]: e.target.value }));
+  const setField = (name, value) => {
+    const next = { ...formData, [name]: value };
+    setFormData(next);
+    if (touched[name] || errors[name]) revalidate(next);
+  };
+  const handleChange = (e) => setField(e.target.name, e.target.value);
+  const handleBlur = (e) => { markTouched(e.target.name); revalidate(formData); };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!formData.NombreRepuesto || !formData.Id_categoria || !formData.Stock || !formData.Precio) {
-      setFormError('Completa los campos obligatorios.'); return;
-    }
+    const errs = validateNow(formData);
+    setErrors(errs); touchAll();
+    if (V.hasErrors(errs)) { setFormError('Corrige los campos marcados antes de guardar.'); return; }
+    setFormError('');
+    // Ficha de catálogo: sin Stock ni Precio (la API los deja en 0; se llenan al comprar).
     const payload = {
-      NombreRepuesto: formData.NombreRepuesto,
-      Stock: Number(formData.Stock),
+      NombreRepuesto: formData.NombreRepuesto.trim(),
       StockMinimo: Number(formData.StockMinimo ?? 5),
-      Precio: Number(formData.Precio),
       Id_categoria: Number(formData.Id_categoria),
     };
     const action = editingId ? updateRepuesto({ id: editingId, data: payload }) : createRepuesto(payload);
     const result = await dispatch(action);
     if (!result.error) { setShowForm(false); dispatch(fetchRepuestos()); }
-    else setFormError(result.payload || 'Error al guardar.');
+    else setFormError(result.payload || 'No se pudo guardar el repuesto.');
   };
 
   const columns = [
@@ -195,32 +207,27 @@ export default function RepuestosPage() {
       </Modal>
 
       <Modal isOpen={showForm} onClose={() => setShowForm(false)} title={editingId ? 'Editar repuesto' : 'Nuevo repuesto'} size="md"
-        footer={<><button className="btn btn--outline" onClick={() => setShowForm(false)}>Cancelar</button><button className="btn btn--primary" onClick={handleSubmit} disabled={actionLoading}>{actionLoading ? 'Guardando...' : 'Guardar'}</button></>}
+        footer={<><button className="btn btn--outline" onClick={() => setShowForm(false)}>Cancelar</button><button className="btn btn--primary" onClick={handleSubmit} disabled={actionLoading || isInvalid(formData)}>{actionLoading ? 'Guardando...' : 'Guardar'}</button></>}
       >
         {formError && <div className="form-error-box">{formError}</div>}
+        {!editingId && <p className="form-hint" style={{ marginBottom: '0.5rem' }}>El stock y el precio se registran a través de una compra.</p>}
         <form className="form-grid" onSubmit={handleSubmit} noValidate>
           <div className="form-group span-2">
             <label className="form-label">Nombre <span className="required">*</span></label>
-            <input name="NombreRepuesto" className="form-control" value={formData.NombreRepuesto} onChange={handleChange} placeholder="Nombre del repuesto" />
+            <input name="NombreRepuesto" className={`form-control ${fieldError('NombreRepuesto') ? 'is-error' : ''}`} value={formData.NombreRepuesto} onChange={handleChange} onBlur={handleBlur} placeholder="Nombre del repuesto" />
+            {fieldError('NombreRepuesto') && <p className="form-error">{fieldError('NombreRepuesto')}</p>}
           </div>
           <div className="form-group span-2">
             <label className="form-label">Categoría <span className="required">*</span></label>
-            <select name="Id_categoria" className="form-control" value={formData.Id_categoria} onChange={handleChange}>
+            <select name="Id_categoria" className={`form-control ${fieldError('Id_categoria') ? 'is-error' : ''}`} value={formData.Id_categoria} onChange={handleChange} onBlur={handleBlur}>
               <option value="">Seleccionar categoría...</option>
               {categorias.map(c => <option key={c.Id_categoria} value={c.Id_categoria}>{c.Nombre}</option>)}
             </select>
+            {fieldError('Id_categoria') && <p className="form-error">{fieldError('Id_categoria')}</p>}
           </div>
-          <div className="form-group">
-            <label className="form-label">Stock <span className="required">*</span></label>
-            <input name="Stock" type="number" min="0" className="form-control" value={formData.Stock} onChange={handleChange} placeholder="0" />
-          </div>
-          <div className="form-group">
+          <div className="form-group span-2">
             <label className="form-label">Stock mínimo</label>
             <input name="StockMinimo" type="number" min="0" className="form-control" value={formData.StockMinimo} onChange={handleChange} placeholder="5" />
-          </div>
-          <div className="form-group">
-            <label className="form-label">Precio <span className="required">*</span></label>
-            <input name="Precio" type="number" min="0" step="0.01" className="form-control" value={formData.Precio} onChange={handleChange} placeholder="0" />
           </div>
         </form>
       </Modal>
