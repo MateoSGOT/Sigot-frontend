@@ -179,8 +179,8 @@ export default function DashboardPage() {
                 <CartesianGrid {...CHART_STYLE.grid} />
                 <XAxis dataKey="name" tick={CHART_STYLE.tick} axisLine={false} tickLine={false} />
                 <YAxis tick={CHART_STYLE.tick} axisLine={false} tickLine={false} />
-                <Tooltip {...CHART_STYLE.tooltip} />
-                <Area type="monotone" dataKey="total" stroke="#2d6a2d" strokeWidth={2.5} fill="url(#colorCompras)" />
+                <Tooltip {...CHART_STYLE.tooltip} formatter={(val) => [`$${Number(val).toLocaleString('es-CO')}`, 'Total comprado']} />
+                <Area type="monotone" dataKey="total" name="Total comprado" stroke="#2d6a2d" strokeWidth={2.5} fill="url(#colorCompras)" />
               </AreaChart>
             </ResponsiveContainer>
           </div>
@@ -195,12 +195,12 @@ export default function DashboardPage() {
             <div className="card__body">
               <ResponsiveContainer width="100%" height={220}>
                 <PieChart>
-                  <Pie data={repuestosChartData} cx="50%" cy="50%" innerRadius={55} outerRadius={90} paddingAngle={3} dataKey="value">
+                  <Pie data={repuestosChartData} cx="50%" cy="50%" innerRadius={55} outerRadius={90} paddingAngle={3} dataKey="value" nameKey="name" name="Cantidad">
                     {repuestosChartData.map((_, idx) => (
                       <Cell key={idx} fill={PIE_COLORS[idx % PIE_COLORS.length]} />
                     ))}
                   </Pie>
-                  <Tooltip {...CHART_STYLE.tooltip} />
+                  <Tooltip {...CHART_STYLE.tooltip} formatter={(val, _name, props) => [val, props?.payload?.name ?? 'Cantidad']} />
                   <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: '12px', color: '#888' }} />
                 </PieChart>
               </ResponsiveContainer>
@@ -219,8 +219,8 @@ export default function DashboardPage() {
                 <CartesianGrid {...CHART_STYLE.grid} horizontal={false} />
                 <XAxis type="number" tick={CHART_STYLE.tick} axisLine={false} tickLine={false} />
                 <YAxis type="category" dataKey="name" tick={CHART_STYLE.tick} axisLine={false} tickLine={false} width={140} />
-                <Tooltip {...CHART_STYLE.tooltip} />
-                <Bar dataKey="value" fill="#2d6a2d" radius={[0, 4, 4, 0]} />
+                <Tooltip {...CHART_STYLE.tooltip} formatter={(val, _name, props) => [val, props?.payload?.name ?? 'Cantidad']} />
+                <Bar dataKey="value" name="Cantidad" fill="#2d6a2d" radius={[0, 4, 4, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
