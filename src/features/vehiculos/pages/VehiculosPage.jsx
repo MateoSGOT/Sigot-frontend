@@ -11,8 +11,18 @@ import SearchBar from '../../../shared/components/SearchBar/SearchBar.jsx';
 import FilterDropdown from '../../../shared/components/FilterDropdown/FilterDropdown.jsx';
 import { StatusBadge } from '../../../shared/components/Badge/Badge.jsx';
 import { sortByStatus, filterItems } from '../../../shared/utils/helpers.js';
+import * as V from '../../../shared/utils/validators.js';
+import { useFormValidation } from '../../../shared/hooks/useFormValidation.js';
 import api from '../../../shared/services/api.js';
 import './VehiculosPage.css';
+
+const RULES = {
+  Placa:      (v) => V.required(v, 'La placa'),
+  Id_Marca:   (v) => V.requiredSelect(v, 'La marca'),
+  Modelo:     (v) => V.required(v, 'El modelo'),
+  Anio:       V.anioVehiculo,
+  Id_Cliente: (v) => V.requiredSelect(v, 'El cliente'),
+};
 
 const MARCAS_MODELOS = {
   'Mercedes': ['Clase A', 'Clase C', 'Clase E', 'Clase S', 'GLC', 'GLE', 'GLS'],
@@ -50,6 +60,7 @@ export default function VehiculosPage() {
   const [editingId, setEditingId] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [formError, setFormError] = useState('');
+  const { errors, touched, setErrors, revalidate, markTouched, touchAll, fieldError, isInvalid, validateNow, reset } = useFormValidation(RULES);
 
   useEffect(() => {
     dispatch(fetchVehiculos());
@@ -73,32 +84,35 @@ export default function VehiculosPage() {
   })();
 
   const openCreate = () => {
-    setFormData(EMPTY); setEditingId(null); setFormError(''); setShowForm(true);
+    setFormData(EMPTY); setEditingId(null); setFormError(''); reset(); setShowForm(true);
   };
 
   const openEdit = (item) => {
     setFormData({ Placa: item.Placa || '', VIN: item.VIN || '', Id_Marca: item.Id_Marca || '', Modelo: item.Modelo || '', Anio: item.Anio || '', Color: item.Color || '', Id_Cliente: item.Id_Cliente || '' });
-    setEditingId(item.Id_Vehiculo); setFormError(''); setShowForm(true);
+    setEditingId(item.Id_Vehiculo); setFormError(''); reset(); setShowForm(true);
   };
 
-  const handleChange = e => {
-    const { name, value } = e.target;
-    setFormData(p => {
-      const next = { ...p, [name]: value };
-      if (name === 'Id_Marca') next.Modelo = '';
-      return next;
-    });
+  const setField = (name, value, extra = {}) => {
+    const next = { ...formData, [name]: value, ...extra };
+    setFormData(next);
+    if (touched[name] || errors[name]) revalidate(next);
   };
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setField(name, value, name === 'Id_Marca' ? { Modelo: '' } : {});
+  };
+  const handleBlur = (e) => { markTouched(e.target.name); revalidate(formData); };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!formData.Placa || !formData.Id_Marca || !formData.Modelo || !formData.Anio || !formData.Id_Cliente) {
-      setFormError('Completa los campos obligatorios.'); return;
-    }
+    const errs = validateNow(formData);
+    setErrors(errs); touchAll();
+    if (V.hasErrors(errs)) { setFormError('Corrige los campos marcados antes de guardar.'); return; }
+    setFormError('');
     const action = editingId ? updateVehiculo({ id: editingId, data: formData }) : createVehiculo(formData);
     const result = await dispatch(action);
     if (!result.error) { setShowForm(false); dispatch(fetchVehiculos()); }
-    else setFormError(result.payload || 'Error al guardar.');
+    else setFormError(result.payload || 'No se pudo guardar el vehículo.');
   };
 
   const columns = [
@@ -167,13 +181,14 @@ export default function VehiculosPage() {
       </Modal>
 
       <Modal isOpen={showForm} onClose={() => setShowForm(false)} title={editingId ? 'Editar vehículo' : 'Nuevo vehículo'} size="md"
-        footer={<><button className="btn btn--outline" onClick={() => setShowForm(false)}>Cancelar</button><button className="btn btn--primary" onClick={handleSubmit} disabled={actionLoading}>{actionLoading ? 'Guardando...' : 'Guardar'}</button></>}
+        footer={<><button className="btn btn--outline" onClick={() => setShowForm(false)}>Cancelar</button><button className="btn btn--primary" onClick={handleSubmit} disabled={actionLoading || isInvalid(formData)}>{actionLoading ? 'Guardando...' : 'Guardar'}</button></>}
       >
         {formError && <div className="form-error-box">{formError}</div>}
         <form className="form-grid" onSubmit={handleSubmit} noValidate>
           <div className="form-group">
             <label className="form-label">Placa <span className="required">*</span></label>
-            <input name="Placa" className="form-control" value={formData.Placa} onChange={handleChange} placeholder="ABC-123" />
+            <input name="Placa" className={`form-control ${fieldError('Placa') ? 'is-error' : ''}`} value={formData.Placa} onChange={handleChange} onBlur={handleBlur} placeholder="ABC-123" />
+            {fieldError('Placa') && <p className="form-error">{fieldError('Placa')}</p>}
           </div>
           <div className="form-group">
             <label className="form-label">VIN</label>
@@ -184,24 +199,27 @@ export default function VehiculosPage() {
             <SearchableSelect
               options={marcasOpts}
               value={String(formData.Id_Marca)}
-              onChange={v => setFormData(p => ({ ...p, Id_Marca: v, Modelo: '' }))}
+              onChange={v => { setField('Id_Marca', v, { Modelo: '' }); markTouched('Id_Marca'); }}
               placeholder="Seleccionar marca..."
             />
+            {fieldError('Id_Marca') && <p className="form-error">{fieldError('Id_Marca')}</p>}
           </div>
           <div className="form-group">
             <label className="form-label">Modelo <span className="required">*</span></label>
             {modeloOptions.length > 0 ? (
-              <select name="Modelo" className="form-control" value={formData.Modelo} onChange={handleChange}>
+              <select name="Modelo" className={`form-control ${fieldError('Modelo') ? 'is-error' : ''}`} value={formData.Modelo} onChange={handleChange} onBlur={handleBlur}>
                 <option value="">Seleccionar modelo...</option>
                 {modeloOptions.map(m => <option key={m} value={m}>{m}</option>)}
               </select>
             ) : (
-              <input name="Modelo" className="form-control" value={formData.Modelo} onChange={handleChange} placeholder="Ej: Corolla" />
+              <input name="Modelo" className={`form-control ${fieldError('Modelo') ? 'is-error' : ''}`} value={formData.Modelo} onChange={handleChange} onBlur={handleBlur} placeholder="Ej: Corolla" />
             )}
+            {fieldError('Modelo') && <p className="form-error">{fieldError('Modelo')}</p>}
           </div>
           <div className="form-group">
             <label className="form-label">Año <span className="required">*</span></label>
-            <input name="Anio" type="number" className="form-control" value={formData.Anio} onChange={handleChange} placeholder="2023" min="1900" max="2100" />
+            <input name="Anio" type="number" className={`form-control ${fieldError('Anio') ? 'is-error' : ''}`} value={formData.Anio} onChange={handleChange} onBlur={handleBlur} placeholder="2023" min="1900" max="2100" />
+            {fieldError('Anio') && <p className="form-error">{fieldError('Anio')}</p>}
           </div>
           <div className="form-group">
             <label className="form-label">Color</label>
@@ -212,9 +230,10 @@ export default function VehiculosPage() {
             <SearchableSelect
               options={clientesOpts}
               value={String(formData.Id_Cliente)}
-              onChange={v => setFormData(p => ({ ...p, Id_Cliente: v }))}
+              onChange={v => { setField('Id_Cliente', v); markTouched('Id_Cliente'); }}
               placeholder="Buscar cliente por nombre o documento..."
             />
+            {fieldError('Id_Cliente') && <p className="form-error">{fieldError('Id_Cliente')}</p>}
           </div>
         </form>
       </Modal>

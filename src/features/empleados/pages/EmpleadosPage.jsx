@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { MdAdd, MdVisibility, MdEdit, MdWarning, MdVisibilityOff, MdCheck } from 'react-icons/md';
 import { usePermiso } from '../../../shared/hooks/usePermiso.js';
@@ -13,6 +13,8 @@ import Badge from '../../../shared/components/Badge/Badge.jsx';
 import SearchableSelect from '../../../shared/components/SearchableSelect/SearchableSelect.jsx';
 import ImageUploader from '../../../shared/components/ImageUploader/ImageUploader.jsx';
 import { sortByStatus, filterItems, formatDate } from '../../../shared/utils/helpers.js';
+import * as V from '../../../shared/utils/validators.js';
+import { useFormValidation } from '../../../shared/hooks/useFormValidation.js';
 import api from '../../../shared/services/api.js';
 import './EmpleadosPage.css';
 
@@ -40,6 +42,19 @@ export default function EmpleadosPage() {
   const [photoFile, setPhotoFile] = useState(null);
   const [savedOk, setSavedOk] = useState(false);
 
+  const rules = useMemo(() => {
+    const r = {
+      Id_TipoDoc: (v) => V.requiredSelect(v, 'El tipo de documento'),
+      Documento:  V.documento,
+      Nombre:     (v) => V.nombre(v, 3),
+      Id_Rol:     (v) => V.requiredSelect(v, 'El rol'),
+      Correo:     (v) => V.correo(v, false),
+    };
+    if (!editingId) r.Password = V.passwordFuerte;
+    return r;
+  }, [editingId]);
+  const { errors, touched, setErrors, revalidate, markTouched, touchAll, fieldError, isInvalid, validateNow, reset } = useFormValidation(rules);
+
   useEffect(() => {
     dispatch(fetchEmpleados());
     api.get('/api/catalogos/tipos-documento').then(r => setTiposDoc(r.data?.data || r.data || [])).catch(() => {});
@@ -58,23 +73,29 @@ export default function EmpleadosPage() {
   })();
 
   const openCreate = () => {
-    setFormData(EMPTY); setEditingId(null); setFormError('');
+    setFormData(EMPTY); setEditingId(null); setFormError(''); reset();
     setShowPassword(false); setFotoPreview(null); setPhotoFile(null); setSavedOk(false); setShowForm(true);
   };
 
   const openEdit = (item) => {
-    setEditingId(item.Id_Empleado); setFormError(''); setSavedOk(false); setShowPassword(false);
+    setEditingId(item.Id_Empleado); setFormError(''); setSavedOk(false); setShowPassword(false); reset();
     setFotoPreview(item.Foto_url || item.Foto || null);
     setPhotoFile(null);
     setFormData({
-      Nombre: item.Nombre || '', Id_TipoDoc: item.Id_TipoDoc || '',
-      Documento: item.Documento || '', Id_Rol: item.Id_Rol || '',
+      Nombre: item.Nombre || '', Id_TipoDoc: String(item.Id_TipoDoc || ''),
+      Documento: item.Documento || '', Id_Rol: String(item.Id_Rol || ''),
       Correo: item.Correo || '', Password: '',
     });
     setShowForm(true);
   };
 
-  const handleChange = e => setFormData(p => ({ ...p, [e.target.name]: e.target.value }));
+  const setField = (name, value) => {
+    const next = { ...formData, [name]: value };
+    setFormData(next);
+    if (touched[name] || errors[name]) revalidate(next);
+  };
+  const handleChange = (e) => setField(e.target.name, e.target.value);
+  const handleBlur = (e) => { markTouched(e.target.name); revalidate(formData); };
 
   const handlePhotoChange = (file) => {
     setPhotoFile(file);
@@ -83,12 +104,10 @@ export default function EmpleadosPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!formData.Nombre || !formData.Documento || !formData.Id_TipoDoc || !formData.Id_Rol || !formData.Correo) {
-      setFormError('Completa los campos obligatorios.'); return;
-    }
-    if (!editingId && !formData.Password) {
-      setFormError('La contraseña es obligatoria para nuevos empleados.'); return;
-    }
+    const errs = validateNow(formData);
+    setErrors(errs); touchAll();
+    if (V.hasErrors(errs)) { setFormError('Corrige los campos marcados antes de guardar.'); return; }
+    setFormError('');
 
     const fd = new FormData();
     fd.append('Nombre', formData.Nombre);
@@ -211,7 +230,7 @@ export default function EmpleadosPage() {
       </Modal>
 
       <Modal isOpen={showForm} onClose={() => setShowForm(false)} title={editingId ? 'Editar empleado' : 'Nuevo empleado'} size="lg"
-        footer={<><button className="btn btn--outline" onClick={() => setShowForm(false)}>Cancelar</button><button className="btn btn--primary" onClick={handleSubmit} disabled={actionLoading}>{actionLoading ? 'Guardando...' : 'Guardar'}</button></>}
+        footer={<><button className="btn btn--outline" onClick={() => setShowForm(false)}>Cancelar</button><button className="btn btn--primary" onClick={handleSubmit} disabled={actionLoading || isInvalid(formData)}>{actionLoading ? 'Guardando...' : 'Guardar'}</button></>}
       >
         {formError && <div className="form-error-box">{formError}</div>}
         <form className="form-grid" onSubmit={handleSubmit} noValidate>
@@ -226,7 +245,8 @@ export default function EmpleadosPage() {
               />
               <div style={{ flex: 1 }}>
                 <label className="form-label">Nombre <span className="required">*</span></label>
-                <input name="Nombre" className="form-control" value={formData.Nombre} onChange={handleChange} placeholder="Nombre completo" />
+                <input name="Nombre" className={`form-control ${fieldError('Nombre') ? 'is-error' : ''}`} value={formData.Nombre} onChange={handleChange} onBlur={handleBlur} placeholder="Nombre completo" />
+                {fieldError('Nombre') && <p className="form-error">{fieldError('Nombre')}</p>}
               </div>
             </div>
           </div>
@@ -236,10 +256,11 @@ export default function EmpleadosPage() {
             <SearchableSelect
               options={rolesOpts}
               value={String(formData.Id_Rol)}
-              onChange={v => setFormData(p => ({ ...p, Id_Rol: v }))}
+              onChange={v => { setField('Id_Rol', v); markTouched('Id_Rol'); }}
               placeholder="Seleccionar rol..."
               disabled={!!(editingId && items.find(e => e.Id_Empleado === editingId)?.Rol === 'Administrador')}
             />
+            {fieldError('Id_Rol') && <p className="form-error">{fieldError('Id_Rol')}</p>}
           </div>
 
           <div className="form-group">
@@ -247,32 +268,36 @@ export default function EmpleadosPage() {
             <SearchableSelect
               options={tiposDocOpts}
               value={String(formData.Id_TipoDoc)}
-              onChange={v => setFormData(p => ({ ...p, Id_TipoDoc: v }))}
+              onChange={v => { setField('Id_TipoDoc', v); markTouched('Id_TipoDoc'); }}
               placeholder="Seleccionar tipo..."
             />
+            {fieldError('Id_TipoDoc') && <p className="form-error">{fieldError('Id_TipoDoc')}</p>}
           </div>
 
           <div className="form-group">
             <label className="form-label">Número de documento <span className="required">*</span></label>
-            <input name="Documento" className="form-control" value={formData.Documento} onChange={handleChange} placeholder="Número de documento" />
+            <input name="Documento" className={`form-control ${fieldError('Documento') ? 'is-error' : ''}`} value={formData.Documento} onChange={handleChange} onBlur={handleBlur} inputMode="numeric" placeholder="Número de documento" />
+            {fieldError('Documento') && <p className="form-error">{fieldError('Documento')}</p>}
           </div>
 
           <div className="form-group">
             <label className="form-label">Correo electrónico <span className="required">*</span></label>
-            <input name="Correo" type="email" className="form-control" value={formData.Correo} onChange={handleChange} placeholder="correo@empresa.com" />
+            <input name="Correo" type="email" className={`form-control ${fieldError('Correo') ? 'is-error' : ''}`} value={formData.Correo} onChange={handleChange} onBlur={handleBlur} placeholder="correo@empresa.com" />
+            {fieldError('Correo') && <p className="form-error">{fieldError('Correo')}</p>}
           </div>
 
           <div className="form-group">
             <label className="form-label">
               Contraseña {!editingId && <span className="required">*</span>}
-              {editingId && <span style={{ fontSize: '0.7rem', color: 'var(--color-text-muted)', marginLeft: '4px' }}>(dejar vacío para no cambiar)</span>}
+              {editingId && <span className="form-label__hint">(dejar vacío para no cambiar)</span>}
             </label>
             <div className="form-password-wrap">
-              <input name="Password" type={showPassword ? 'text' : 'password'} className="form-control" value={formData.Password} onChange={handleChange} placeholder={editingId ? 'Nueva contraseña' : 'Contraseña'} />
+              <input name="Password" type={showPassword ? 'text' : 'password'} className={`form-control ${fieldError('Password') ? 'is-error' : ''}`} value={formData.Password} onChange={handleChange} onBlur={handleBlur} placeholder={editingId ? 'Nueva contraseña' : 'Mínimo 8, letra y número'} />
               <button type="button" className="form-password-toggle" onClick={() => setShowPassword(p => !p)} tabIndex={-1}>
                 {showPassword ? <MdVisibilityOff size={18} /> : <MdVisibility size={18} />}
               </button>
             </div>
+            {fieldError('Password') && <p className="form-error">{fieldError('Password')}</p>}
           </div>
 
         </form>

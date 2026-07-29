@@ -11,12 +11,20 @@ import FilterDropdown from '../../../shared/components/FilterDropdown/FilterDrop
 import SearchableSelect from '../../../shared/components/SearchableSelect/SearchableSelect.jsx';
 import { StatusBadge } from '../../../shared/components/Badge/Badge.jsx';
 import { sortByStatus, filterItems } from '../../../shared/utils/helpers.js';
+import * as V from '../../../shared/utils/validators.js';
+import { useFormValidation } from '../../../shared/hooks/useFormValidation.js';
 import { MUNICIPIOS_POR_DEPARTAMENTO } from '../../../shared/data/colombiaGeo.js';
 import './ProveedoresPage.css';
 
 const DEPARTAMENTOS = Object.keys(MUNICIPIOS_POR_DEPARTAMENTO).sort().map(d => ({ label: d, value: d }));
 
 const EMPTY = { TipoProveedor: '', Documento: '', nombre: '', correo: '', contacto: '', departamento: '', ciudad: '', direccion: '', detalles: '' };
+const RULES = {
+  TipoProveedor: (v) => V.requiredSelect(v, 'El tipo de proveedor'),
+  Documento:     V.documento,
+  nombre:        (v) => V.nombre(v, 3),
+  correo:        (v) => V.correo(v, true),
+};
 
 export default function ProveedoresPage() {
   const dispatch = useDispatch();
@@ -32,6 +40,7 @@ export default function ProveedoresPage() {
   const [editingId, setEditingId] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [formError, setFormError] = useState('');
+  const { errors, touched, setErrors, revalidate, markTouched, touchAll, fieldError, isInvalid, validateNow, reset } = useFormValidation(RULES);
 
   useEffect(() => { dispatch(fetchProveedores()); }, [dispatch]);
 
@@ -47,7 +56,7 @@ export default function ProveedoresPage() {
     return sortByStatus(list);
   })();
 
-  const openCreate = () => { setFormData(EMPTY); setEditingId(null); setFormError(''); setShowForm(true); };
+  const openCreate = () => { setFormData(EMPTY); setEditingId(null); setFormError(''); reset(); setShowForm(true); };
   const openEdit = (item) => {
     setFormData({
       TipoProveedor: item.TipoProveedor || '',
@@ -60,19 +69,26 @@ export default function ProveedoresPage() {
       direccion: item.direccion || '',
       detalles: item.detalles || '',
     });
-    setEditingId(item.Id_Proveedor); setFormError(''); setShowForm(true);
+    setEditingId(item.Id_Proveedor); setFormError(''); reset(); setShowForm(true);
   };
-  const handleChange = e => setFormData(p => ({ ...p, [e.target.name]: e.target.value }));
+  const setField = (name, value, extra = {}) => {
+    const next = { ...formData, [name]: value, ...extra };
+    setFormData(next);
+    if (touched[name] || errors[name]) revalidate(next);
+  };
+  const handleChange = (e) => setField(e.target.name, e.target.value);
+  const handleBlur = (e) => { markTouched(e.target.name); revalidate(formData); };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!formData.Documento || !formData.TipoProveedor || !formData.nombre) {
-      setFormError('Tipo de proveedor, documento y nombre son obligatorios.'); return;
-    }
+    const errs = validateNow(formData);
+    setErrors(errs); touchAll();
+    if (V.hasErrors(errs)) { setFormError('Corrige los campos marcados antes de guardar.'); return; }
+    setFormError('');
     const action = editingId ? updateProveedor({ id: editingId, data: formData }) : createProveedor(formData);
     const result = await dispatch(action);
     if (!result.error) { setShowForm(false); dispatch(fetchProveedores()); }
-    else setFormError(result.payload || 'Error al guardar.');
+    else setFormError(result.payload || 'No se pudo guardar el proveedor.');
   };
 
   const columns = [
@@ -127,29 +143,33 @@ export default function ProveedoresPage() {
       </Modal>
 
       <Modal isOpen={showForm} onClose={() => setShowForm(false)} title={editingId ? 'Editar proveedor' : 'Nuevo proveedor'} size="lg"
-        footer={<><button className="btn btn--outline" onClick={() => setShowForm(false)}>Cancelar</button><button className="btn btn--primary" onClick={handleSubmit} disabled={actionLoading}>{actionLoading ? 'Guardando...' : 'Guardar'}</button></>}
+        footer={<><button className="btn btn--outline" onClick={() => setShowForm(false)}>Cancelar</button><button className="btn btn--primary" onClick={handleSubmit} disabled={actionLoading || isInvalid(formData)}>{actionLoading ? 'Guardando...' : 'Guardar'}</button></>}
       >
         {formError && <div className="form-error-box">{formError}</div>}
         <form className="form-grid" onSubmit={handleSubmit} noValidate>
           <div className="form-group">
             <label className="form-label">Tipo de proveedor <span className="required">*</span></label>
-            <select name="TipoProveedor" className="form-control" value={formData.TipoProveedor} onChange={handleChange}>
+            <select name="TipoProveedor" className={`form-control ${fieldError('TipoProveedor') ? 'is-error' : ''}`} value={formData.TipoProveedor} onChange={handleChange} onBlur={handleBlur}>
               <option value="">Seleccionar...</option>
               <option value="Natural">Natural</option>
               <option value="Juridico">Jurídico</option>
             </select>
+            {fieldError('TipoProveedor') && <p className="form-error">{fieldError('TipoProveedor')}</p>}
           </div>
           <div className="form-group">
             <label className="form-label">Documento <span className="required">*</span></label>
-            <input name="Documento" className="form-control" value={formData.Documento} onChange={handleChange} placeholder="Número de documento o NIT" />
+            <input name="Documento" className={`form-control ${fieldError('Documento') ? 'is-error' : ''}`} value={formData.Documento} onChange={handleChange} onBlur={handleBlur} inputMode="numeric" placeholder="Número de documento o NIT" />
+            {fieldError('Documento') && <p className="form-error">{fieldError('Documento')}</p>}
           </div>
           <div className="form-group span-2">
             <label className="form-label">Nombre <span className="required">*</span></label>
-            <input name="nombre" className="form-control" value={formData.nombre} onChange={handleChange} placeholder="Nombre del proveedor o empresa" />
+            <input name="nombre" className={`form-control ${fieldError('nombre') ? 'is-error' : ''}`} value={formData.nombre} onChange={handleChange} onBlur={handleBlur} placeholder="Nombre del proveedor o empresa" />
+            {fieldError('nombre') && <p className="form-error">{fieldError('nombre')}</p>}
           </div>
           <div className="form-group">
             <label className="form-label">Correo</label>
-            <input name="correo" type="email" className="form-control" value={formData.correo} onChange={handleChange} placeholder="correo@proveedor.com" />
+            <input name="correo" type="email" className={`form-control ${fieldError('correo') ? 'is-error' : ''}`} value={formData.correo} onChange={handleChange} onBlur={handleBlur} placeholder="correo@proveedor.com" />
+            {fieldError('correo') && <p className="form-error">{fieldError('correo')}</p>}
           </div>
           <div className="form-group">
             <label className="form-label">Contacto</label>

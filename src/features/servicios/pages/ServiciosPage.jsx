@@ -10,9 +10,15 @@ import SearchBar from '../../../shared/components/SearchBar/SearchBar.jsx';
 import FilterDropdown from '../../../shared/components/FilterDropdown/FilterDropdown.jsx';
 import { StatusBadge } from '../../../shared/components/Badge/Badge.jsx';
 import { sortByStatus, filterItems, formatCurrency } from '../../../shared/utils/helpers.js';
+import * as V from '../../../shared/utils/validators.js';
+import { useFormValidation } from '../../../shared/hooks/useFormValidation.js';
 import './ServiciosPage.css';
 
 const EMPTY = { Nombre: '', Descripcion: '', Precio: '' };
+const RULES = {
+  Nombre: (v) => V.nombre(v, 3),
+  Precio: (v) => V.numeroPositivo(v, 'El precio'),
+};
 
 export default function ServiciosPage() {
   const dispatch = useDispatch();
@@ -28,6 +34,7 @@ export default function ServiciosPage() {
   const [editingId, setEditingId] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [formError, setFormError] = useState('');
+  const { errors, touched, setErrors, revalidate, markTouched, touchAll, fieldError, isInvalid, validateNow, reset } = useFormValidation(RULES);
 
   useEffect(() => { dispatch(fetchServicios()); }, [dispatch]);
 
@@ -39,17 +46,25 @@ export default function ServiciosPage() {
     return sortByStatus(list);
   })();
 
-  const openCreate = () => { setFormData(EMPTY); setEditingId(null); setFormError(''); setShowForm(true); };
-  const openEdit = (item) => { setFormData({ Nombre: item.Nombre || '', Descripcion: item.Descripcion || '', Precio: item.Precio || '' }); setEditingId(item.Id_Servicio); setFormError(''); setShowForm(true); };
-  const handleChange = e => setFormData(p => ({ ...p, [e.target.name]: e.target.value }));
+  const openCreate = () => { setFormData(EMPTY); setEditingId(null); setFormError(''); reset(); setShowForm(true); };
+  const openEdit = (item) => { setFormData({ Nombre: item.Nombre || '', Descripcion: item.Descripcion || '', Precio: item.Precio || '' }); setEditingId(item.Id_Servicio); setFormError(''); reset(); setShowForm(true); };
+  const handleChange = (e) => {
+    const next = { ...formData, [e.target.name]: e.target.value };
+    setFormData(next);
+    if (touched[e.target.name] || errors[e.target.name]) revalidate(next);
+  };
+  const handleBlur = (e) => { markTouched(e.target.name); revalidate(formData); };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!formData.Nombre || !formData.Precio) { setFormError('Nombre y precio son obligatorios.'); return; }
+    const errs = validateNow(formData);
+    setErrors(errs); touchAll();
+    if (V.hasErrors(errs)) { setFormError('Corrige los campos marcados antes de guardar.'); return; }
+    setFormError('');
     const action = editingId ? updateServicio({ id: editingId, data: formData }) : createServicio(formData);
     const result = await dispatch(action);
     if (!result.error) { setShowForm(false); dispatch(fetchServicios()); }
-    else setFormError(result.payload || 'Error al guardar.');
+    else setFormError(result.payload || 'No se pudo guardar el servicio.');
   };
 
   const columns = [
@@ -104,13 +119,19 @@ export default function ServiciosPage() {
       </Modal>
 
       <Modal isOpen={showForm} onClose={() => setShowForm(false)} title={editingId ? 'Editar servicio' : 'Nuevo servicio'} size="md"
-        footer={<><button className="btn btn--outline" onClick={() => setShowForm(false)}>Cancelar</button><button className="btn btn--primary" onClick={handleSubmit} disabled={actionLoading}>{actionLoading ? 'Guardando...' : 'Guardar'}</button></>}
+        footer={<><button className="btn btn--outline" onClick={() => setShowForm(false)}>Cancelar</button><button className="btn btn--primary" onClick={handleSubmit} disabled={actionLoading || isInvalid(formData)}>{actionLoading ? 'Guardando...' : 'Guardar'}</button></>}
       >
         {formError && <div className="form-error-box">{formError}</div>}
         <form className="form-grid" onSubmit={handleSubmit} noValidate>
-          <div className="form-group span-2"><label className="form-label">Nombre <span className="required">*</span></label><input name="Nombre" className="form-control" value={formData.Nombre} onChange={handleChange} placeholder="Nombre del servicio" /></div>
+          <div className="form-group span-2"><label className="form-label">Nombre <span className="required">*</span></label>
+            <input name="Nombre" className={`form-control ${fieldError('Nombre') ? 'is-error' : ''}`} value={formData.Nombre} onChange={handleChange} onBlur={handleBlur} placeholder="Nombre del servicio" />
+            {fieldError('Nombre') && <p className="form-error">{fieldError('Nombre')}</p>}
+          </div>
           <div className="form-group span-2"><label className="form-label">Descripción</label><textarea name="Descripcion" className="form-control" value={formData.Descripcion} onChange={handleChange} rows={3} placeholder="Describe el servicio..." /></div>
-          <div className="form-group span-2"><label className="form-label">Precio <span className="required">*</span></label><input name="Precio" type="number" min="0" className="form-control" value={formData.Precio} onChange={handleChange} placeholder="0" /></div>
+          <div className="form-group span-2"><label className="form-label">Precio <span className="required">*</span></label>
+            <input name="Precio" type="number" min="0" step="0.01" className={`form-control ${fieldError('Precio') ? 'is-error' : ''}`} value={formData.Precio} onChange={handleChange} onBlur={handleBlur} placeholder="0" />
+            {fieldError('Precio') && <p className="form-error">{fieldError('Precio')}</p>}
+          </div>
         </form>
       </Modal>
     </div>

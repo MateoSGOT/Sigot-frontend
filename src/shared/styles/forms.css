@@ -166,3 +166,10 @@ textarea.form-control {
   .form-grid, .form-grid--3 { grid-template-columns: 1fr; }
   .form-grid .span-2 { grid-column: span 1; }
 }
+
+.form-label__hint {
+  color: var(--color-text-light);
+  font-weight: var(--weight-regular, 400);
+  font-size: var(--text-caption, 0.75rem);
+  margin-left: 4px;
+}
