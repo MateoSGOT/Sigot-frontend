@@ -14,10 +14,17 @@ import * as V from '../../../shared/utils/validators.js';
 import { useFormValidation } from '../../../shared/hooks/useFormValidation.js';
 import './ServiciosPage.css';
 
-const EMPTY = { Nombre: '', Descripcion: '', Precio: '' };
+const EMPTY = { Nombre: '', Descripcion: '', Precio: '', DuracionMinutos: '' };
 const RULES = {
   Nombre: (v) => V.nombre(v, 3),
   Precio: (v) => V.numeroPositivo(v, 'El precio'),
+  // Opcional: si se llena, entero >= 1.
+  DuracionMinutos: (v) => {
+    if (v == null || String(v).trim() === '') return '';
+    const n = Number(v);
+    if (!Number.isInteger(n) || n < 1) return 'La duración debe ser un entero de al menos 1 minuto.';
+    return '';
+  },
 };
 
 export default function ServiciosPage() {
@@ -47,7 +54,7 @@ export default function ServiciosPage() {
   })();
 
   const openCreate = () => { setFormData(EMPTY); setEditingId(null); setFormError(''); reset(); setShowForm(true); };
-  const openEdit = (item) => { setFormData({ Nombre: item.Nombre || '', Descripcion: item.Descripcion || '', Precio: item.Precio || '' }); setEditingId(item.Id_Servicio); setFormError(''); reset(); setShowForm(true); };
+  const openEdit = (item) => { setFormData({ Nombre: item.Nombre || '', Descripcion: item.Descripcion || '', Precio: item.Precio || '', DuracionMinutos: item.DuracionMinutos ?? '' }); setEditingId(item.Id_Servicio); setFormError(''); reset(); setShowForm(true); };
   const handleChange = (e) => {
     const next = { ...formData, [e.target.name]: e.target.value };
     setFormData(next);
@@ -61,7 +68,14 @@ export default function ServiciosPage() {
     setErrors(errs); touchAll();
     if (V.hasErrors(errs)) { setFormError('Corrige los campos marcados antes de guardar.'); return; }
     setFormError('');
-    const action = editingId ? updateServicio({ id: editingId, data: formData }) : createServicio(formData);
+    const dur = String(formData.DuracionMinutos ?? '').trim();
+    const payload = {
+      Nombre: formData.Nombre,
+      Descripcion: formData.Descripcion,
+      Precio: formData.Precio,
+      DuracionMinutos: dur === '' ? null : Number(dur),
+    };
+    const action = editingId ? updateServicio({ id: editingId, data: payload }) : createServicio(payload);
     const result = await dispatch(action);
     if (!result.error) { setShowForm(false); dispatch(fetchServicios()); }
     else setFormError(result.payload || 'No se pudo guardar el servicio.');
@@ -72,6 +86,7 @@ export default function ServiciosPage() {
     { key: 'Nombre', label: 'Nombre', render: v => <span className="font-medium">{v}</span> },
     { key: 'Descripcion', label: 'Descripción', render: v => <span className="descripcion-cell">{v || '—'}</span> },
     { key: 'Precio', label: 'Precio', render: v => formatCurrency(v) },
+    { key: 'DuracionMinutos', label: 'Duración', render: v => (v ? `${v} min` : '—') },
     { key: 'Estado', label: 'Estado', render: v => <StatusBadge estado={v} /> },
     {
       key: 'acciones', label: 'Acciones', render: (_, row) => (
@@ -114,6 +129,7 @@ export default function ServiciosPage() {
           <div className="detail-item" style={{ gridColumn: 'span 2' }}><span className="detail-label">Nombre</span><span className="detail-value">{detailItem.Nombre}</span></div>
           <div className="detail-item" style={{ gridColumn: 'span 2' }}><span className="detail-label">Descripción</span><span className="detail-value">{detailItem.Descripcion || '—'}</span></div>
           <div className="detail-item"><span className="detail-label">Precio</span><span className="detail-value">{formatCurrency(detailItem.Precio)}</span></div>
+          <div className="detail-item"><span className="detail-label">Duración</span><span className="detail-value">{detailItem.DuracionMinutos ? `${detailItem.DuracionMinutos} min` : '—'}</span></div>
           <div className="detail-item"><span className="detail-label">Estado</span><span className="detail-value"><StatusBadge estado={detailItem.Estado} /></span></div>
         </div>}
       </Modal>
@@ -128,9 +144,13 @@ export default function ServiciosPage() {
             {fieldError('Nombre') && <p className="form-error">{fieldError('Nombre')}</p>}
           </div>
           <div className="form-group span-2"><label className="form-label">Descripción</label><textarea name="Descripcion" className="form-control" value={formData.Descripcion} onChange={handleChange} rows={3} placeholder="Describe el servicio..." /></div>
-          <div className="form-group span-2"><label className="form-label">Precio <span className="required">*</span></label>
+          <div className="form-group"><label className="form-label">Precio <span className="required">*</span></label>
             <input name="Precio" type="number" min="0" step="0.01" className={`form-control ${fieldError('Precio') ? 'is-error' : ''}`} value={formData.Precio} onChange={handleChange} onBlur={handleBlur} placeholder="0" />
             {fieldError('Precio') && <p className="form-error">{fieldError('Precio')}</p>}
+          </div>
+          <div className="form-group"><label className="form-label">Duración (minutos)</label>
+            <input name="DuracionMinutos" type="number" min="1" step="1" className={`form-control ${fieldError('DuracionMinutos') ? 'is-error' : ''}`} value={formData.DuracionMinutos} onChange={handleChange} onBlur={handleBlur} placeholder="Opcional (ej. 45)" />
+            {fieldError('DuracionMinutos') && <p className="form-error">{fieldError('DuracionMinutos')}</p>}
           </div>
         </form>
       </Modal>
