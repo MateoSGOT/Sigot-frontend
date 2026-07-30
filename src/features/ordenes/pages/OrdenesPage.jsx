@@ -208,11 +208,14 @@ export default function OrdenesPage() {
     else setAddServError(result.payload || 'Error al agregar servicio.');
   };
 
-  // Auto-fill price when selecting a repuesto
+  // Auto-fill price when selecting a repuesto. Al cliente se le cobra el PRECIO DE VENTA
+  // (con IVA y margen), no el costo. Si aún no tiene precio de venta (nunca comprado),
+  // cae al costo como respaldo.
   const handleRepuestoSelect = (e) => {
     const id = e.target.value;
     const rep = repuestosOpts.find(r => String(r.Id_Repuesto) === String(id));
-    setAddRepForm(p => ({ ...p, Id_Repuesto: id, precio_unitario: (rep?.Precio ?? rep?.PrecioVenta) ? String(rep?.Precio ?? rep?.PrecioVenta) : '' }));
+    const precio = rep?.PrecioVenta ?? rep?.Precio;
+    setAddRepForm(p => ({ ...p, Id_Repuesto: id, precio_unitario: precio != null ? String(precio) : '' }));
   };
 
   const handleAddRepuesto = async (e) => {

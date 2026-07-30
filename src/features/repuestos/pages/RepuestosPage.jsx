@@ -16,11 +16,20 @@ import { useFormValidation } from '../../../shared/hooks/useFormValidation.js';
 import api from '../../../shared/services/api.js';
 import './RepuestosPage.css';
 
-// El repuesto es una ficha de catálogo: Stock y Precio se llenan al comprar, no al crear.
-const EMPTY = { NombreRepuesto: '', StockMinimo: '5', Id_categoria: '' };
+// El repuesto es una ficha de catálogo: Stock y Costo (Precio) se llenan al comprar, no al crear.
+// El margen tiene piso 50% y el precio de venta se calcula (costo × margen × IVA).
+const EMPTY = { NombreRepuesto: '', StockMinimo: '5', Id_categoria: '', MargenPorcentaje: '50', _costo: 0, _iva: 19, _precioVenta: null };
 const RULES = {
   NombreRepuesto: (v) => V.nombre(v, 3),
   Id_categoria:   (v) => V.requiredSelect(v, 'La categoría'),
+  MargenPorcentaje: (v) => {
+    if (v == null || String(v).trim() === '') return ''; // opcional; queda en su default 50
+    const n = Number(v);
+    if (Number.isNaN(n)) return 'El margen debe ser un número.';
+    if (n < 50) return 'El margen de ganancia no puede ser menor al 50%.';
+    if (n > 1000) return 'El margen no puede superar el 1000%.';
+    return '';
+  },
 };
 
 export default function RepuestosPage() {
@@ -69,7 +78,9 @@ export default function RepuestosPage() {
         Nombre: r.NombreRepuesto || r.Nombre || '',
         Categoría: catMap[r.Id_categoria ?? r.Id_Categoria] || '—',
         Stock: r.Stock ?? 0,
-        Precio: Number(r.Precio ?? 0),
+        Costo: Number(r.Precio ?? 0),
+        'Margen %': Number(r.MargenPorcentaje ?? 50),
+        'Precio venta': r.PrecioVenta != null ? Number(r.PrecioVenta) : '',
         Estado: r.Estado ? 'Activo' : 'Inactivo',
       }));
       const ws = XLSX.utils.json_to_sheet(rows);
@@ -86,8 +97,21 @@ export default function RepuestosPage() {
       NombreRepuesto: item.NombreRepuesto || item.Nombre || '',
       StockMinimo: String(item.StockMinimo ?? 5),
       Id_categoria: String(item.Id_categoria ?? item.Id_Categoria ?? ''),
+      MargenPorcentaje: String(item.MargenPorcentaje ?? 50),
+      _costo: Number(item.Precio ?? 0),
+      _iva: Number(item.IvaPorcentaje ?? 19),
+      _precioVenta: item.PrecioVenta ?? null,
     });
     setEditingId(item.Id_Repuesto); setFormError(''); reset(); setShowForm(true);
+  };
+
+  // Previsualización del precio de venta al cambiar el margen (la fuente de verdad es la API).
+  const previewPrecioVenta = () => {
+    const costo = Number(formData._costo ?? 0);
+    const iva   = Number(formData._iva ?? 19);
+    const m     = Number(formData.MargenPorcentaje);
+    if (!costo || Number.isNaN(m) || m < 50) return null;
+    return Math.round(costo * (1 + m / 100) * (1 + iva / 100) * 100) / 100;
   };
   const setField = (name, value) => {
     const next = { ...formData, [name]: value };
@@ -103,11 +127,13 @@ export default function RepuestosPage() {
     setErrors(errs); touchAll();
     if (V.hasErrors(errs)) { setFormError('Corrige los campos marcados antes de guardar.'); return; }
     setFormError('');
-    // Ficha de catálogo: sin Stock ni Precio (la API los deja en 0; se llenan al comprar).
+    // Ficha de catálogo: sin Stock ni Costo (la API los deja en 0; se llenan al comprar).
+    // El margen sí se puede fijar/ajustar (piso 50%); el precio de venta lo calcula la API.
     const payload = {
       NombreRepuesto: formData.NombreRepuesto.trim(),
       StockMinimo: Number(formData.StockMinimo ?? 5),
       Id_categoria: Number(formData.Id_categoria),
+      MargenPorcentaje: Number(formData.MargenPorcentaje || 50),
     };
     const action = editingId ? updateRepuesto({ id: editingId, data: payload }) : createRepuesto(payload);
     const result = await dispatch(action);
@@ -136,7 +162,9 @@ export default function RepuestosPage() {
       }
     },
     { key: 'StockMinimo', label: 'Stock mín.', render: v => v ?? 5 },
-    { key: 'Precio', label: 'Precio', render: v => formatCurrency(v) },
+    { key: 'Precio', label: 'Costo', render: v => (v != null && Number(v) > 0 ? formatCurrency(v) : '—') },
+    { key: 'MargenPorcentaje', label: 'Margen %', render: v => `${Number(v ?? 50)}%` },
+    { key: 'PrecioVenta', label: 'Precio venta', render: v => (v != null ? formatCurrency(v) : '—') },
     { key: 'Estado', label: 'Estado', render: v => <StatusBadge estado={v} /> },
     {
       key: 'acciones', label: 'Acciones', render: (_, row) => (
@@ -201,7 +229,9 @@ export default function RepuestosPage() {
           <div className="detail-item"><span className="detail-label">Nombre</span><span className="detail-value">{detailItem.Nombre}</span></div>
           <div className="detail-item"><span className="detail-label">Categoría</span><span className="detail-value">{detailItem.Categoria || detailItem.Id_Categoria}</span></div>
           <div className="detail-item"><span className="detail-label">Stock</span><span className="detail-value">{detailItem.Stock}</span></div>
-          <div className="detail-item"><span className="detail-label">Precio</span><span className="detail-value">{formatCurrency(detailItem.Precio)}</span></div>
+          <div className="detail-item"><span className="detail-label">Costo</span><span className="detail-value">{detailItem.Precio != null && Number(detailItem.Precio) > 0 ? formatCurrency(detailItem.Precio) : '—'}</span></div>
+          <div className="detail-item"><span className="detail-label">Margen</span><span className="detail-value">{Number(detailItem.MargenPorcentaje ?? 50)}%</span></div>
+          <div className="detail-item"><span className="detail-label">Precio venta {detailItem.IvaPorcentaje != null ? `(IVA ${detailItem.IvaPorcentaje}%)` : ''}</span><span className="detail-value">{detailItem.PrecioVenta != null ? formatCurrency(detailItem.PrecioVenta) : '—'}</span></div>
           <div className="detail-item"><span className="detail-label">Estado</span><span className="detail-value"><StatusBadge estado={detailItem.Estado} /></span></div>
         </div>}
       </Modal>
@@ -229,6 +259,24 @@ export default function RepuestosPage() {
             <label className="form-label">Stock mínimo</label>
             <input name="StockMinimo" type="number" min="0" className="form-control" value={formData.StockMinimo} onChange={handleChange} placeholder="5" />
           </div>
+          <div className="form-group span-2">
+            <label className="form-label">Margen de ganancia (%)</label>
+            <input name="MargenPorcentaje" type="number" min="50" step="1" className={`form-control ${fieldError('MargenPorcentaje') ? 'is-error' : ''}`} value={formData.MargenPorcentaje} onChange={handleChange} onBlur={handleBlur} placeholder="50" />
+            {fieldError('MargenPorcentaje') && <p className="form-error">{fieldError('MargenPorcentaje')}</p>}
+            <p className="form-hint">Mínimo 50%. El precio de venta se calcula automáticamente.</p>
+          </div>
+          {editingId && (
+            <>
+              <div className="form-group">
+                <label className="form-label">Costo (fijado por la compra)</label>
+                <input className="form-control" value={Number(formData._costo) > 0 ? formatCurrency(formData._costo) : 'Sin compras aún'} readOnly disabled />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Precio de venta (IVA {formData._iva}%)</label>
+                <input className="form-control" value={previewPrecioVenta() != null ? formatCurrency(previewPrecioVenta()) : '—'} readOnly disabled />
+              </div>
+            </>
+          )}
         </form>
       </Modal>
     </div>
