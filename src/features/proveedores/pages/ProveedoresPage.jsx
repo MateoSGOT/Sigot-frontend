@@ -19,9 +19,20 @@ import './ProveedoresPage.css';
 const DEPARTAMENTOS = Object.keys(MUNICIPIOS_POR_DEPARTAMENTO).sort().map(d => ({ label: d, value: d }));
 
 const EMPTY = { TipoProveedor: '', Documento: '', nombre: '', correo: '', contacto: '', departamento: '', ciudad: '', direccion: '', detalles: '' };
+// Documento condicional según el tipo: Jurídico -> NIT (9-10), Natural -> Cédula (6-10).
+const documentoPorTipo = (v, values = {}) => {
+  const esJuridico = values.TipoProveedor === 'Juridico';
+  const label = esJuridico ? 'El NIT' : 'La cédula';
+  const s = String(v ?? '').trim();
+  if (!s) return `${label === 'El NIT' ? 'El NIT es obligatorio' : 'La cédula es obligatoria'}.`;
+  if (!/^\d+$/.test(s)) return `${label} solo puede contener números.`;
+  const [min, max] = esJuridico ? [9, 10] : [6, 10];
+  if (s.length < min || s.length > max) return `${label} debe tener entre ${min} y ${max} dígitos.`;
+  return '';
+};
 const RULES = {
   TipoProveedor: (v) => V.requiredSelect(v, 'El tipo de proveedor'),
-  Documento:     V.documento,
+  Documento:     documentoPorTipo,
   nombre:        (v) => V.nombre(v, 3),
   correo:        (v) => V.correo(v, true),
 };
@@ -43,6 +54,14 @@ export default function ProveedoresPage() {
   const { errors, touched, setErrors, revalidate, markTouched, touchAll, fieldError, isInvalid, validateNow, reset } = useFormValidation(RULES);
 
   useEffect(() => { dispatch(fetchProveedores()); }, [dispatch]);
+
+  // Etiquetas/placeholder del documento y del nombre según el tipo de proveedor.
+  const esJuridico  = formData.TipoProveedor === 'Juridico';
+  const esNatural   = formData.TipoProveedor === 'Natural';
+  const docLabel    = esJuridico ? 'NIT' : esNatural ? 'Cédula' : 'Documento';
+  const docHint     = esJuridico ? 'NIT (9 a 10 dígitos)' : esNatural ? 'Cédula (6 a 10 dígitos)' : 'Número de documento o NIT';
+  const nombreLabel = esJuridico ? 'Razón social' : esNatural ? 'Nombre completo' : 'Nombre';
+  const nombreHint  = esJuridico ? 'Razón social de la empresa' : esNatural ? 'Nombre completo' : 'Nombre del proveedor o empresa';
 
   const ciudadesOpts = formData.departamento
     ? (MUNICIPIOS_POR_DEPARTAMENTO[formData.departamento] || []).map(c => ({ label: c, value: c }))
@@ -74,6 +93,8 @@ export default function ProveedoresPage() {
   const setField = (name, value, extra = {}) => {
     const next = { ...formData, [name]: value, ...extra };
     setFormData(next);
+    // Al cambiar el tipo, revalida el documento con la nueva regla (etiquetas/validación en caliente).
+    if (name === 'TipoProveedor') { revalidate(next); return; }
     if (touched[name] || errors[name]) revalidate(next);
   };
   const handleChange = (e) => setField(e.target.name, e.target.value);
@@ -157,13 +178,13 @@ export default function ProveedoresPage() {
             {fieldError('TipoProveedor') && <p className="form-error">{fieldError('TipoProveedor')}</p>}
           </div>
           <div className="form-group">
-            <label className="form-label">Documento <span className="required">*</span></label>
-            <input name="Documento" className={`form-control ${fieldError('Documento') ? 'is-error' : ''}`} value={formData.Documento} onChange={handleChange} onBlur={handleBlur} inputMode="numeric" placeholder="Número de documento o NIT" />
+            <label className="form-label">{docLabel} <span className="required">*</span></label>
+            <input name="Documento" className={`form-control ${fieldError('Documento') ? 'is-error' : ''}`} value={formData.Documento} onChange={handleChange} onBlur={handleBlur} inputMode="numeric" placeholder={docHint} />
             {fieldError('Documento') && <p className="form-error">{fieldError('Documento')}</p>}
           </div>
           <div className="form-group span-2">
-            <label className="form-label">Nombre <span className="required">*</span></label>
-            <input name="nombre" className={`form-control ${fieldError('nombre') ? 'is-error' : ''}`} value={formData.nombre} onChange={handleChange} onBlur={handleBlur} placeholder="Nombre del proveedor o empresa" />
+            <label className="form-label">{nombreLabel} <span className="required">*</span></label>
+            <input name="nombre" className={`form-control ${fieldError('nombre') ? 'is-error' : ''}`} value={formData.nombre} onChange={handleChange} onBlur={handleBlur} placeholder={nombreHint} />
             {fieldError('nombre') && <p className="form-error">{fieldError('nombre')}</p>}
           </div>
           <div className="form-group">
