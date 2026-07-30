@@ -16,7 +16,7 @@ import * as V from '../../../shared/utils/validators.js';
 import api from '../../../shared/services/api.js';
 import './ClientesPage.css';
 
-const EMPTY_FORM = { Nombre: '', Id_TipoDoc: '', Documento: '', Telefono: '', Correo: '', Foto: '', Password: '', ConfirmPassword: '' };
+const EMPTY_FORM = { Nombre: '', Id_TipoDoc: '', Documento: '', Telefono: '', Direccion: '', Correo: '', Foto: '', Password: '', ConfirmPassword: '' };
 
 export default function ClientesPage() {
   const dispatch = useDispatch();
@@ -61,6 +61,7 @@ export default function ClientesPage() {
       Documento:  V.documento,
       Nombre:     (v) => V.nombre(v, 3),
       Telefono:   (v) => V.telefono(v, false),
+      Direccion:  (v) => (String(v ?? '').length > 150 ? 'La dirección no puede superar los 150 caracteres.' : ''),
       Correo:     (v) => V.correo(v, true),
     };
     if (!editingId) {
@@ -83,6 +84,7 @@ export default function ClientesPage() {
     setFormData({
       Nombre: item.Nombre || '', Id_TipoDoc: String(item.Id_TipoDoc || ''),
       Documento: item.Documento || '', Telefono: item.Telefono || '',
+      Direccion: item.Direccion || '',
       Correo: item.Correo || '', Foto: item.Foto || '', Password: '', ConfirmPassword: '',
     });
     setFotoPreview(item.Foto || null);
@@ -120,6 +122,7 @@ export default function ClientesPage() {
       Documento:  formData.Documento.trim(),
       Nombre:     formData.Nombre.trim(),
       Telefono:   formData.Telefono.trim(),
+      Direccion:  formData.Direccion.trim(),
       Correo:     formData.Correo.trim(),
       Foto:       formData.Foto,
     };
@@ -194,6 +197,7 @@ export default function ClientesPage() {
             <div className="detail-item"><span className="detail-label">Tipo de documento</span><span className="detail-value">{detailItem.TipoDoc || detailItem.Id_TipoDoc}</span></div>
             <div className="detail-item"><span className="detail-label">Documento</span><span className="detail-value">{detailItem.Documento}</span></div>
             <div className="detail-item"><span className="detail-label">Teléfono</span><span className="detail-value">{detailItem.Telefono || '—'}</span></div>
+            <div className="detail-item" style={{ gridColumn: 'span 2' }}><span className="detail-label">Dirección</span><span className="detail-value">{detailItem.Direccion || '—'}</span></div>
             <div className="detail-item"><span className="detail-label">Correo</span><span className="detail-value">{detailItem.Correo || '—'}</span></div>
             <div className="detail-item"><span className="detail-label">Estado</span><span className="detail-value"><StatusBadge estado={detailItem.Estado} /></span></div>
           </div>
@@ -267,7 +271,16 @@ export default function ClientesPage() {
             {fieldError('Telefono') && <p className="form-error">{fieldError('Telefono')}</p>}
           </div>
 
-          {/* 5. Correo */}
+          {/* 5. Dirección (opcional) */}
+          <div className="form-group span-2">
+            <label className="form-label">Dirección</label>
+            <input name="Direccion" className={`form-control ${fieldError('Direccion') ? 'is-error' : ''}`}
+              value={formData.Direccion} onChange={handleFormChange} onBlur={handleBlur}
+              maxLength={150} placeholder="Dirección (opcional)" />
+            {fieldError('Direccion') && <p className="form-error">{fieldError('Direccion')}</p>}
+          </div>
+
+          {/* 6. Correo */}
           <div className="form-group">
             <label className="form-label">Correo electrónico</label>
             <input name="Correo" type="email" className={`form-control ${fieldError('Correo') ? 'is-error' : ''}`}
