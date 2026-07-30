@@ -2,6 +2,7 @@ import { configureStore } from '@reduxjs/toolkit';
 import authReducer from '../features/auth/slices/authSlice';
 import clientesReducer from '../features/clientes/slices/clientesSlice';
 import vehiculosReducer from '../features/vehiculos/slices/vehiculosSlice';
+import marcasReducer from '../features/marcas/slices/marcasSlice';
 import empleadosReducer from '../features/empleados/slices/empleadosSlice';
 import repuestosReducer from '../features/repuestos/slices/repuestosSlice';
 import categoriasReducer from '../features/categorias/slices/categoriasSlice';
@@ -20,6 +21,7 @@ export const store = configureStore({
     auth: authReducer,
     clientes: clientesReducer,
     vehiculos: vehiculosReducer,
+    marcas: marcasReducer,
     empleados: empleadosReducer,
     repuestos: repuestosReducer,
     categorias: categoriasReducer,

@@ -19,29 +19,12 @@ import './VehiculosPage.css';
 const RULES = {
   Placa:      (v) => V.required(v, 'La placa'),
   Id_Marca:   (v) => V.requiredSelect(v, 'La marca'),
-  Modelo:     (v) => V.required(v, 'El modelo'),
+  Id_Modelo:  (v) => V.requiredSelect(v, 'El modelo'),
   Anio:       V.anioVehiculo,
   Id_Cliente: (v) => V.requiredSelect(v, 'El cliente'),
 };
 
-const MARCAS_MODELOS = {
-  'Mercedes': ['Clase A', 'Clase C', 'Clase E', 'Clase S', 'GLC', 'GLE', 'GLS'],
-  'Mazda': ['Mazda 2', 'Mazda 3', 'Mazda 6', 'CX-5', 'CX-30', 'MX-5', 'CX-9'],
-  'Toyota': ['Corolla', 'Camry', 'Hilux', 'RAV4', 'Prado', 'Yaris', 'Fortuner', 'Rush'],
-  'Ford': ['Focus', 'Fiesta', 'Explorer', 'F-150', 'Mustang', 'EcoSport', 'Escape'],
-  'Chevrolet': ['Spark', 'Sail', 'Onix', 'Tracker', 'Trailblazer', 'Colorado', 'Equinox'],
-  'BMW': ['Serie 1', 'Serie 3', 'Serie 5', 'Serie 7', 'X1', 'X3', 'X5', 'Z4'],
-  'Audi': ['A3', 'A4', 'A6', 'A8', 'Q3', 'Q5', 'Q7', 'TT'],
-  'Kia': ['Picanto', 'Rio', 'Cerato', 'Sportage', 'Sorento', 'Stinger', 'Carnival'],
-  'Hyundai': ['i10', 'i20', 'Accent', 'Elantra', 'Tucson', 'Santa Fe', 'Kona', 'Ioniq'],
-  'Renault': ['Twingo', 'Clio', 'Sandero', 'Duster', 'Koleos', 'Logan', 'Stepway'],
-  'Volkswagen': ['Polo', 'Golf', 'Jetta', 'Passat', 'Tiguan', 'Touareg', 'T-Cross'],
-  'Nissan': ['March', 'Tiida', 'Sentra', 'X-Trail', 'Frontier', 'Kicks', 'Navara'],
-  'Honda': ['Fit', 'City', 'Civic', 'Accord', 'CR-V', 'HR-V', 'Pilot'],
-  'Suzuki': ['Alto', 'Celerio', 'Swift', 'Vitara', 'S-Cross', 'Jimny', 'Ertiga'],
-};
-
-const EMPTY = { Placa: '', VIN: '', Id_Marca: '', Modelo: '', Anio: '', Color: '', Id_Cliente: '' };
+const EMPTY = { Placa: '', VIN: '', Id_Marca: '', Id_Modelo: '', Anio: '', Color: '', Id_Cliente: '' };
 
 export default function VehiculosPage() {
   const dispatch = useDispatch();
@@ -51,6 +34,8 @@ export default function VehiculosPage() {
   const puedeToggle  = usePermiso('VEHICULOS.CAMBIAR_ESTADO');
   const [marcas, setMarcas] = useState([]);
   const [clientes, setClientes] = useState([]);
+  const [modelos, setModelos] = useState([]);        // modelos de la marca seleccionada
+  const [modelosLoading, setModelosLoading] = useState(false);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('todos');
   const [marcaFilter, setMarcaFilter] = useState('');
@@ -68,10 +53,24 @@ export default function VehiculosPage() {
     api.get('/api/clientes').then(r => setClientes(r.data?.data || r.data || [])).catch(() => {});
   }, [dispatch]);
 
-  const selectedMarcaNombre = marcas.find(m => String(m.Id_Marca) === String(formData.Id_Marca))?.Nombre || '';
-  const modeloOptions = MARCAS_MODELOS[selectedMarcaNombre] || [];
+  // Carga los modelos de una marca (selector dependiente). incluir = Id_Modelo actual
+  // a conservar aunque esté inactivo (caso edición).
+  const loadModelos = (idMarca, incluir = null) => {
+    if (!idMarca) { setModelos([]); return; }
+    setModelosLoading(true);
+    api.get(`/api/marcas/${idMarca}/modelos`)
+      .then(r => {
+        const data = r.data?.data || r.data || [];
+        setModelos(data.filter(m => m.Estado !== false && m.Estado !== 0) .concat(
+          data.filter(m => (m.Estado === false || m.Estado === 0) && incluir != null && String(m.Id_Modelo) === String(incluir))
+        ));
+      })
+      .catch(() => setModelos([]))
+      .finally(() => setModelosLoading(false));
+  };
 
   const marcasOpts   = marcas.map(m => ({ value: String(m.Id_Marca), label: m.Nombre }));
+  const modelosOpts  = modelos.map(m => ({ value: String(m.Id_Modelo), label: m.Nombre }));
   const clientesOpts = clientes.map(c => ({ value: String(c.Id_Cliente), label: `${c.Nombre} — ${c.Documento}` }));
 
   const filtered = (() => {
@@ -84,12 +83,14 @@ export default function VehiculosPage() {
   })();
 
   const openCreate = () => {
-    setFormData(EMPTY); setEditingId(null); setFormError(''); reset(); setShowForm(true);
+    setFormData(EMPTY); setEditingId(null); setFormError(''); reset(); setModelos([]); setShowForm(true);
   };
 
   const openEdit = (item) => {
-    setFormData({ Placa: item.Placa || '', VIN: item.VIN || '', Id_Marca: item.Id_Marca || '', Modelo: item.Modelo || '', Anio: item.Anio || '', Color: item.Color || '', Id_Cliente: item.Id_Cliente || '' });
-    setEditingId(item.Id_Vehiculo); setFormError(''); reset(); setShowForm(true);
+    setFormData({ Placa: item.Placa || '', VIN: item.VIN || '', Id_Marca: item.Id_Marca || '', Id_Modelo: item.Id_Modelo || '', Anio: item.Anio || '', Color: item.Color || '', Id_Cliente: item.Id_Cliente || '' });
+    setEditingId(item.Id_Vehiculo); setFormError(''); reset();
+    loadModelos(item.Id_Marca, item.Id_Modelo);
+    setShowForm(true);
   };
 
   const setField = (name, value, extra = {}) => {
@@ -99,7 +100,8 @@ export default function VehiculosPage() {
   };
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setField(name, value, name === 'Id_Marca' ? { Modelo: '' } : {});
+    if (name === 'Id_Marca') { setField(name, value, { Id_Modelo: '' }); loadModelos(value); return; }
+    setField(name, value);
   };
   const handleBlur = (e) => { markTouched(e.target.name); revalidate(formData); };
 
@@ -195,22 +197,21 @@ export default function VehiculosPage() {
             <SearchableSelect
               options={marcasOpts}
               value={String(formData.Id_Marca)}
-              onChange={v => { setField('Id_Marca', v, { Modelo: '' }); markTouched('Id_Marca'); }}
+              onChange={v => { setField('Id_Marca', v, { Id_Modelo: '' }); loadModelos(v); markTouched('Id_Marca'); }}
               placeholder="Seleccionar marca..."
             />
             {fieldError('Id_Marca') && <p className="form-error">{fieldError('Id_Marca')}</p>}
           </div>
           <div className="form-group">
             <label className="form-label">Modelo <span className="required">*</span></label>
-            {modeloOptions.length > 0 ? (
-              <select name="Modelo" className={`form-control ${fieldError('Modelo') ? 'is-error' : ''}`} value={formData.Modelo} onChange={handleChange} onBlur={handleBlur}>
-                <option value="">Seleccionar modelo...</option>
-                {modeloOptions.map(m => <option key={m} value={m}>{m}</option>)}
-              </select>
-            ) : (
-              <input name="Modelo" className={`form-control ${fieldError('Modelo') ? 'is-error' : ''}`} value={formData.Modelo} onChange={handleChange} onBlur={handleBlur} placeholder="Ej: Corolla" />
-            )}
-            {fieldError('Modelo') && <p className="form-error">{fieldError('Modelo')}</p>}
+            <SearchableSelect
+              options={modelosOpts}
+              value={String(formData.Id_Modelo)}
+              onChange={v => { setField('Id_Modelo', v); markTouched('Id_Modelo'); }}
+              placeholder={!formData.Id_Marca ? 'Primero selecciona una marca' : modelosLoading ? 'Cargando modelos...' : (modelosOpts.length ? 'Seleccionar modelo...' : 'Esta marca no tiene modelos activos')}
+              disabled={!formData.Id_Marca || modelosLoading}
+            />
+            {fieldError('Id_Modelo') && <p className="form-error">{fieldError('Id_Modelo')}</p>}
           </div>
           <div className="form-group">
             <label className="form-label">Año <span className="required">*</span></label>

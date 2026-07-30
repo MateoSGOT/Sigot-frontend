@@ -1,0 +1,62 @@
+.marcas-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: var(--space-4, 16px);
+  padding: var(--space-4, 16px);
+}
+
+.marcas-empty {
+  padding: var(--space-8, 32px);
+  text-align: center;
+  color: var(--color-text-muted, #6b7280);
+}
+
+.marca-card {
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: var(--radius-lg14, 14px);
+  background: var(--color-surface, #fff);
+  box-shadow: var(--shadow-sm, 0 1px 2px rgba(0, 0, 0, 0.04));
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.marca-card--inactive { opacity: 0.7; }
+
+.marca-card__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2, 8px);
+  padding: var(--space-3, 12px) var(--space-4, 16px);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.marca-card__title { display: flex; align-items: center; gap: var(--space-2, 8px); }
+.marca-card__name { font-weight: 600; font-size: var(--text-md, 15px); }
+.marca-card__actions { display: flex; align-items: center; gap: var(--space-2, 8px); }
+
+.marca-card__modelos { padding: var(--space-3, 12px) var(--space-4, 16px); }
+
+.marca-card__modelos-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-2, 8px);
+}
+.marca-card__modelos-label { font-size: var(--text-sm, 13px); color: var(--color-text-muted, #6b7280); font-weight: 500; }
+.marca-card__no-modelos { font-size: var(--text-sm, 13px); color: var(--color-text-muted, #9ca3af); font-style: italic; margin: 0; }
+
+.modelo-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.modelo-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2, 8px);
+  padding: 6px 8px;
+  border-radius: var(--radius-sm6, 6px);
+  background: var(--color-surface-alt, #f9fafb);
+}
+.modelo-item--inactive { opacity: 0.55; }
+.modelo-item__name { font-size: var(--text-sm, 13px); }
+.modelo-item__actions { display: flex; align-items: center; gap: 6px; }

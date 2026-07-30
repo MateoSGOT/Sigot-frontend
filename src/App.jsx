@@ -10,6 +10,7 @@ import PortalPage from './features/portal/pages/PortalPage.jsx';
 import DashboardPage from './features/dashboard/pages/DashboardPage.jsx';
 import ClientesPage from './features/clientes/pages/ClientesPage.jsx';
 import VehiculosPage from './features/vehiculos/pages/VehiculosPage.jsx';
+import MarcasPage from './features/marcas/pages/MarcasPage.jsx';
 import EmpleadosPage from './features/empleados/pages/EmpleadosPage.jsx';
 import RepuestosPage from './features/repuestos/pages/RepuestosPage.jsx';
 import CategoriasPage from './features/categorias/pages/CategoriasPage.jsx';
@@ -91,6 +92,7 @@ function App() {
         <Route path="dashboard"   element={<DashboardPage />} />
         <Route path="clientes"    element={<ClientesPage />} />
         <Route path="vehiculos"   element={<VehiculosPage />} />
+        <Route path="marcas"      element={<MarcasPage />} />
         <Route path="empleados"   element={<EmpleadosPage />} />
         <Route path="repuestos"   element={<RepuestosPage />} />
         <Route path="categorias"  element={<CategoriasPage />} />

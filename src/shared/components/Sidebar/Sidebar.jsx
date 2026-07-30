@@ -5,7 +5,7 @@ import {
   MdDashboard, MdPeople, MdDirectionsCar, MdBuild, MdShoppingCart,
   MdMiscellaneousServices, MdAssignment, MdEventNote,
   MdNewReleases, MdSecurity, MdCategory, MdLocalShipping,
-  MdLogout, MdPerson,
+  MdLogout, MdPerson, MdBrandingWatermark,
   MdPeopleAlt, MdStorage, MdChevronRight,
 } from 'react-icons/md';
 import { logout } from '../../../features/auth/slices/authSlice';
@@ -23,6 +23,7 @@ const NAV_STRUCTURE = [
     ],
   },
   { type: 'link', to: '/vehiculos', icon: MdDirectionsCar,        label: 'Vehículos', permiso: 'VEHICULOS' },
+  { type: 'link', to: '/marcas',    icon: MdBrandingWatermark,    label: 'Marcas y modelos', permiso: 'VEHICULOS' },
   { type: 'link', to: '/agenda',    icon: MdEventNote,             label: 'Agenda',    permiso: 'AGENDA'    },
   { type: 'link', to: '/servicios', icon: MdMiscellaneousServices, label: 'Servicios', permiso: 'SERVICIOS' },
   {
