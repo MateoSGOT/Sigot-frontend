@@ -42,9 +42,11 @@ export default function AgendaPage() {
   const [ordenCitaId, setOrdenCitaId] = useState(null);
   const [ordenError, setOrdenError]   = useState('');
   const [ordenVehiculoKm, setOrdenVehiculoKm] = useState(null); // km actual del vehículo (odómetro)
+  const [horario, setHorario] = useState({ apertura: '08:00', cierre: '18:00', diasLaborales: [1, 2, 3, 4, 5, 6] });
 
   useEffect(() => {
     dispatch(fetchAgenda());
+    api.get('/api/agenda/horario').then(r => { const h = r.data?.data || r.data; if (h?.apertura) setHorario(h); }).catch(() => {});
     api.get('/api/clientes').then(r => setClientes(r.data?.data || r.data || [])).catch(() => {});
     api.get('/api/vehiculos').then(r => setVehiculos(r.data?.data || r.data || [])).catch(() => {});
     api.get('/api/empleados').then(r => setEmpleados(r.data?.data || r.data || [])).catch(() => {});
@@ -67,6 +69,18 @@ export default function AgendaPage() {
   const vehiculosFiltered = formData.Id_Cliente
     ? vehiculos.filter(v => String(v.Id_Cliente) === String(formData.Id_Cliente))
     : vehiculos;
+
+  // Opciones de hora dentro del horario de atención (cada 30 min, apertura→cierre inclusive).
+  const DIAS_NOMBRE = { 1: 'Lun', 2: 'Mar', 3: 'Mié', 4: 'Jue', 5: 'Vie', 6: 'Sáb', 7: 'Dom' };
+  const horaOptions = (() => {
+    const toMin = h => { const [hh, mm] = String(h).split(':').map(Number); return hh * 60 + mm; };
+    const ap = toMin(horario.apertura), ci = toMin(horario.cierre);
+    const out = [];
+    for (let t = ap; t <= ci && !Number.isNaN(t); t += 30) out.push(`${String(Math.floor(t / 60)).padStart(2, '0')}:${String(t % 60).padStart(2, '0')}`);
+    return out;
+  })();
+  const diasLaboralesLabel = (horario.diasLaborales || []).map(d => DIAS_NOMBRE[d]).join(', ');
+  const esDiaLaboral = (ymd) => { if (!ymd) return true; const js = new Date(`${ymd}T12:00:00`).getDay(); const iso = js === 0 ? 7 : js; return (horario.diasLaborales || []).includes(iso); };
 
   const clientesOpts  = clientes.map(c => ({ value: String(c.Id_Cliente), label: c.Nombre }));
   const vehiculosOpts = vehiculosFiltered.map(v => ({ value: String(v.Id_Vehiculo), label: `${v.Placa} — ${v.Modelo}` }));
@@ -111,6 +125,7 @@ export default function AgendaPage() {
     if (!formData.Id_Cliente || !formData.Id_Vehiculo || !formData.id_empleado || !formData.FechaAgendamiento || !formData.Hora) {
       setFormError('Completa todos los campos obligatorios.'); return;
     }
+    if (!esDiaLaboral(formData.FechaAgendamiento)) { setFormError('El taller no atiende ese día.'); return; }
     if (novedadesActivas.has(String(formData.id_empleado))) {
       setFormError('El empleado seleccionado tiene una novedad activa y no puede ser asignado.'); return;
     }
@@ -231,8 +246,16 @@ export default function AgendaPage() {
               <p className="novedad-warning">⚠ Este empleado tiene una novedad activa y no puede ser asignado.</p>
             )}
           </div>
-          <div className="form-group"><label className="form-label">Fecha de agendamiento <span className="required">*</span></label><input name="FechaAgendamiento" type="date" className="form-control" value={formData.FechaAgendamiento} onChange={handleChange} min={TODAY} /></div>
-          <div className="form-group"><label className="form-label">Hora <span className="required">*</span></label><input name="Hora" type="time" className="form-control" value={formData.Hora} onChange={handleChange} /></div>
+          <div className="form-group"><label className="form-label">Fecha de agendamiento <span className="required">*</span></label><input name="FechaAgendamiento" type="date" className="form-control" value={formData.FechaAgendamiento} onChange={handleChange} min={TODAY} />
+            {formData.FechaAgendamiento && !esDiaLaboral(formData.FechaAgendamiento) && <p className="form-error">El taller no atiende ese día.</p>}
+          </div>
+          <div className="form-group"><label className="form-label">Hora <span className="required">*</span></label>
+            <select name="Hora" className="form-control" value={formData.Hora} onChange={handleChange}>
+              <option value="">Seleccionar hora...</option>
+              {horaOptions.map(h => <option key={h} value={h}>{h}</option>)}
+            </select>
+            <p className="form-hint">Atención: {horario.apertura}–{horario.cierre} · {diasLaboralesLabel}</p>
+          </div>
         </form>
       </Modal>
 
