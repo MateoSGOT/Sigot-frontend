@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { MdAdd, MdEdit } from 'react-icons/md';
+import { MdAdd, MdEdit, MdListAlt } from 'react-icons/md';
 import { usePermiso } from '../../../shared/hooks/usePermiso.js';
 import ToggleSwitch from '../../../shared/components/ToggleSwitch/ToggleSwitch.jsx';
 import Modal from '../../../shared/components/Modal/Modal.jsx';
+import Table from '../../../shared/components/Table/Table.jsx';
 import SearchBar from '../../../shared/components/SearchBar/SearchBar.jsx';
+import FilterDropdown from '../../../shared/components/FilterDropdown/FilterDropdown.jsx';
 import { StatusBadge } from '../../../shared/components/Badge/Badge.jsx';
 import { sortByStatus, filterItems } from '../../../shared/utils/helpers.js';
 import {
@@ -21,17 +23,27 @@ export default function MarcasPage() {
   const puedeToggle = usePermiso('VEHICULOS.CAMBIAR_ESTADO');
 
   const [search, setSearch] = useState('');
-  // Modal de marca
+  const [statusFilter, setStatusFilter] = useState('todos');
+  const [pageSize, setPageSize] = useState(5);
+
+  // Modal crear/editar marca
   const [marcaForm, setMarcaForm] = useState(null); // { id, Nombre } | null
   const [marcaError, setMarcaError] = useState('');
-  // Modal de modelo
-  const [modeloForm, setModeloForm] = useState(null); // { id, idMarca, Nombre } | null
+
+  // Modal gestionar modelos de una marca
+  const [gestionId, setGestionId] = useState(null);
+  const gestionMarca = items.find(m => m.Id_Marca === gestionId) || null;
+  // Formulario inline de modelo dentro del panel de gestión
+  const [modeloForm, setModeloForm] = useState(null); // { id, Nombre } | null
   const [modeloError, setModeloError] = useState('');
 
   useEffect(() => { dispatch(fetchMarcas()); }, [dispatch]);
 
   const filtered = (() => {
-    let list = filterItems(items, search, ['Nombre']);
+    let list = items;
+    if (statusFilter === 'activos') list = list.filter(i => i.Estado !== 0);
+    else if (statusFilter === 'inactivos') list = list.filter(i => i.Estado === 0);
+    list = filterItems(list, search, ['Nombre']);
     return sortByStatus(list);
   })();
 
@@ -49,19 +61,54 @@ export default function MarcasPage() {
     else setMarcaError(r.payload || 'No se pudo guardar la marca.');
   };
 
-  // ===== Modelo =====
-  const openCreateModelo = (idMarca) => { setModeloForm({ id: null, idMarca, Nombre: '' }); setModeloError(''); };
-  const openEditModelo = (mod) => { setModeloForm({ id: mod.Id_Modelo, idMarca: mod.Id_Marca, Nombre: mod.Nombre || '' }); setModeloError(''); };
+  // ===== Modelos (dentro del panel de gestión) =====
+  const openGestion = (m) => { setGestionId(m.Id_Marca); setModeloForm(null); setModeloError(''); };
+  const closeGestion = () => { setGestionId(null); setModeloForm(null); setModeloError(''); };
+  const startNuevoModelo = () => { setModeloForm({ id: null, Nombre: '' }); setModeloError(''); };
+  const startEditarModelo = (mod) => { setModeloForm({ id: mod.Id_Modelo, Nombre: mod.Nombre || '' }); setModeloError(''); };
   const submitModelo = async () => {
     const Nombre = (modeloForm.Nombre || '').trim();
     if (Nombre.length < 1) { setModeloError('El nombre del modelo es obligatorio.'); return; }
     const action = modeloForm.id
       ? updateModelo({ id: modeloForm.id, data: { Nombre } })
-      : createModelo({ idMarca: modeloForm.idMarca, data: { Nombre } });
+      : createModelo({ idMarca: gestionId, data: { Nombre } });
     const r = await dispatch(action);
-    if (!r.error) setModeloForm(null);
+    if (!r.error) { setModeloForm(null); setModeloError(''); }
     else setModeloError(r.payload || 'No se pudo guardar el modelo.');
   };
+
+  // ===== Columnas tabla de marcas =====
+  const columns = [
+    { key: '#', label: '#', width: '50px', render: (_, __, i) => i + 1 },
+    { key: 'Nombre', label: 'Marca', render: v => <span className="font-medium">{v}</span> },
+    { key: 'modelos', label: 'N° de modelos', render: v => (Array.isArray(v) ? v.length : 0) },
+    { key: 'Estado', label: 'Estado', render: v => <StatusBadge estado={v} /> },
+    {
+      key: 'acciones', label: 'Acciones', render: (_, row) => (
+        <div className="table-actions">
+          <button className="btn btn--ghost btn--icon btn--sm" onClick={() => openGestion(row)} title="Gestionar modelos"><MdListAlt size={17} /></button>
+          <button className="btn btn--ghost btn--icon btn--sm" disabled={!puedeEditar} onClick={() => openEditMarca(row)} title="Editar marca"><MdEdit size={17} /></button>
+          <ToggleSwitch checked={row.Estado === 1} onChange={() => dispatch(toggleMarcaEstado({ id: row.Id_Marca, Estado: row.Estado === 1 ? 0 : 1 }))} disabled={!puedeToggle} />
+        </div>
+      )
+    },
+  ];
+
+  // ===== Columnas tabla pequeña de modelos =====
+  const modeloColumns = [
+    { key: 'Nombre', label: 'Modelo', render: v => <span className="font-medium">{v}</span> },
+    { key: 'Estado', label: 'Estado', render: v => <StatusBadge estado={v} /> },
+    {
+      key: 'acciones', label: 'Acciones', render: (_, row) => (
+        <div className="table-actions">
+          <button className="btn btn--ghost btn--icon btn--sm" disabled={!puedeEditar} onClick={() => startEditarModelo(row)} title="Editar modelo"><MdEdit size={16} /></button>
+          <ToggleSwitch checked={row.Estado === 1} onChange={() => dispatch(toggleModeloEstado({ id: row.Id_Modelo, Estado: row.Estado === 1 ? 0 : 1 }))} disabled={!puedeToggle} />
+        </div>
+      )
+    },
+  ];
+
+  const modelosData = gestionMarca?.modelos ? [...gestionMarca.modelos].sort((a, b) => (a.Nombre || '').localeCompare(b.Nombre || '')) : [];
 
   return (
     <div className="page">
@@ -72,56 +119,24 @@ export default function MarcasPage() {
 
       <div className="card">
         <div className="card__header">
-          <SearchBar value={search} onChange={setSearch} placeholder="Buscar marca..." />
+          <SearchBar
+            value={search}
+            onChange={setSearch}
+            placeholder="Buscar por nombre..."
+            filterSlot={
+              <FilterDropdown
+                statusFilter={statusFilter}
+                onStatusChange={setStatusFilter}
+                pageSize={pageSize}
+                onPageSizeChange={setPageSize}
+              />
+            }
+          />
         </div>
-
-        {loading ? (
-          <div className="marcas-empty">Cargando...</div>
-        ) : filtered.length === 0 ? (
-          <div className="marcas-empty">No se encontraron marcas.</div>
-        ) : (
-          <div className="marcas-grid">
-            {filtered.map(marca => (
-              <div key={marca.Id_Marca} className={`marca-card ${marca.Estado === 0 ? 'marca-card--inactive' : ''}`}>
-                <div className="marca-card__head">
-                  <div className="marca-card__title">
-                    <span className="marca-card__name">{marca.Nombre}</span>
-                    <StatusBadge estado={marca.Estado} />
-                  </div>
-                  <div className="marca-card__actions">
-                    <button className="btn btn--ghost btn--icon btn--sm" disabled={!puedeEditar} onClick={() => openEditMarca(marca)} title="Editar marca"><MdEdit size={16} /></button>
-                    <ToggleSwitch checked={marca.Estado === 1} onChange={() => dispatch(toggleMarcaEstado({ id: marca.Id_Marca, Estado: marca.Estado === 1 ? 0 : 1 }))} disabled={!puedeToggle} />
-                  </div>
-                </div>
-
-                <div className="marca-card__modelos">
-                  <div className="marca-card__modelos-head">
-                    <span className="marca-card__modelos-label">Modelos ({marca.modelos?.length || 0})</span>
-                    <button className="btn btn--ghost btn--sm" disabled={!puedeCrear} onClick={() => openCreateModelo(marca.Id_Marca)}><MdAdd size={14} />Agregar</button>
-                  </div>
-                  {(!marca.modelos || marca.modelos.length === 0) ? (
-                    <p className="marca-card__no-modelos">Sin modelos aún.</p>
-                  ) : (
-                    <ul className="modelo-list">
-                      {marca.modelos.map(mod => (
-                        <li key={mod.Id_Modelo} className={`modelo-item ${mod.Estado === 0 ? 'modelo-item--inactive' : ''}`}>
-                          <span className="modelo-item__name">{mod.Nombre}</span>
-                          <div className="modelo-item__actions">
-                            <button className="btn btn--ghost btn--icon btn--sm" disabled={!puedeEditar} onClick={() => openEditModelo(mod)} title="Editar modelo"><MdEdit size={14} /></button>
-                            <ToggleSwitch checked={mod.Estado === 1} onChange={() => dispatch(toggleModeloEstado({ id: mod.Id_Modelo, Estado: mod.Estado === 1 ? 0 : 1 }))} disabled={!puedeToggle} />
-                          </div>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
+        <Table columns={columns} data={filtered} loading={loading} pageSize={pageSize} searchTerm={search} onClearSearch={() => setSearch('')} emptyMessage="No se encontraron marcas" />
       </div>
 
-      {/* Modal Marca */}
+      {/* Modal crear/editar marca */}
       <Modal isOpen={!!marcaForm} onClose={() => setMarcaForm(null)} title={marcaForm?.id ? 'Editar marca' : 'Nueva marca'} size="sm"
         footer={<><button className="btn btn--outline" onClick={() => setMarcaForm(null)}>Cancelar</button><button className="btn btn--primary" onClick={submitMarca} disabled={actionLoading}>{actionLoading ? 'Guardando...' : 'Guardar'}</button></>}
       >
@@ -135,18 +150,36 @@ export default function MarcasPage() {
         </div>
       </Modal>
 
-      {/* Modal Modelo */}
-      <Modal isOpen={!!modeloForm} onClose={() => setModeloForm(null)} title={modeloForm?.id ? 'Editar modelo' : 'Nuevo modelo'} size="sm"
-        footer={<><button className="btn btn--outline" onClick={() => setModeloForm(null)}>Cancelar</button><button className="btn btn--primary" onClick={submitModelo} disabled={actionLoading}>{actionLoading ? 'Guardando...' : 'Guardar'}</button></>}
+      {/* Modal gestionar modelos */}
+      <Modal isOpen={!!gestionMarca} onClose={closeGestion} title={gestionMarca ? `Modelos de ${gestionMarca.Nombre}` : 'Modelos'} size="md"
+        footer={<button className="btn btn--outline" onClick={closeGestion}>Cerrar</button>}
       >
-        {modeloError && <div className="form-error-box">{modeloError}</div>}
-        <div className="form-group">
-          <label className="form-label">Nombre <span className="required">*</span></label>
-          <input className="form-control" value={modeloForm?.Nombre || ''} autoFocus
-            onChange={e => setModeloForm(f => ({ ...f, Nombre: e.target.value }))}
-            onKeyDown={e => { if (e.key === 'Enter') submitModelo(); }}
-            placeholder="Ej. Corolla" />
-        </div>
+        {gestionMarca && (
+          <>
+            <div className="modelos-panel__head">
+              <span className="modelos-panel__count">{modelosData.length} modelo(s)</span>
+              {!modeloForm && (
+                <button className="btn btn--primary btn--sm" onClick={startNuevoModelo} disabled={!puedeCrear}><MdAdd size={16} />Nuevo modelo</button>
+              )}
+            </div>
+
+            {modeloForm && (
+              <div className="modelo-inline-form">
+                {modeloError && <div className="form-error-box">{modeloError}</div>}
+                <div className="modelo-inline-form__row">
+                  <input className="form-control" autoFocus value={modeloForm.Nombre}
+                    onChange={e => setModeloForm(f => ({ ...f, Nombre: e.target.value }))}
+                    onKeyDown={e => { if (e.key === 'Enter') submitModelo(); if (e.key === 'Escape') setModeloForm(null); }}
+                    placeholder={modeloForm.id ? 'Editar modelo' : 'Nombre del nuevo modelo (ej. Corolla)'} />
+                  <button className="btn btn--primary btn--sm" onClick={submitModelo} disabled={actionLoading}>{actionLoading ? '...' : 'Guardar'}</button>
+                  <button className="btn btn--outline btn--sm" onClick={() => { setModeloForm(null); setModeloError(''); }}>Cancelar</button>
+                </div>
+              </div>
+            )}
+
+            <Table columns={modeloColumns} data={modelosData} loading={false} pageSize={'all'} emptyMessage="Esta marca aún no tiene modelos" />
+          </>
+        )}
       </Modal>
     </div>
   );

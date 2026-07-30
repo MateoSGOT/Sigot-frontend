@@ -22,8 +22,13 @@ const NAV_STRUCTURE = [
       { to: '/clientes',  icon: MdPerson, label: 'Clientes',  permiso: 'CLIENTES'  },
     ],
   },
-  { type: 'link', to: '/vehiculos', icon: MdDirectionsCar,        label: 'Vehículos', permiso: 'VEHICULOS' },
-  { type: 'link', to: '/marcas',    icon: MdBrandingWatermark,    label: 'Marcas y modelos', permiso: 'VEHICULOS' },
+  {
+    type: 'group', name: 'Vehículos', icon: MdDirectionsCar,
+    children: [
+      { to: '/vehiculos', icon: MdDirectionsCar,     label: 'Vehículos',        permiso: 'VEHICULOS' },
+      { to: '/marcas',    icon: MdBrandingWatermark, label: 'Marcas y modelos', permiso: 'VEHICULOS' },
+    ],
+  },
   { type: 'link', to: '/agenda',    icon: MdEventNote,             label: 'Agenda',    permiso: 'AGENDA'    },
   { type: 'link', to: '/servicios', icon: MdMiscellaneousServices, label: 'Servicios', permiso: 'SERVICIOS' },
   {
