@@ -178,6 +178,10 @@ export default function OrdenesPage() {
   const handleEditSubmit = async (e) => {
     e.preventDefault();
     if (!editForm.Diagnostico || !editForm.Kilometraje) { setEditError('Diagnóstico y kilometraje son obligatorios.'); return; }
+    const km = Number(editForm.Kilometraje);
+    if (!Number.isInteger(km) || km < 0) { setEditError('El kilometraje debe ser un entero mayor o igual a 0.'); return; }
+    // La regla del odómetro (no menor al km del vehículo) la valida el backend en la
+    // misma transacción; si el km es menor, devuelve el mensaje que se muestra abajo.
     const result = await dispatch(updateOrden({ id: editingId, data: editForm }));
     if (!result.error) { setShowEdit(false); dispatch(fetchOrdenes()); }
     else setEditError(result.payload || 'Error al actualizar.');

@@ -22,9 +22,17 @@ const RULES = {
   Id_Modelo:  (v) => V.requiredSelect(v, 'El modelo'),
   Anio:       V.anioVehiculo,
   Id_Cliente: (v) => V.requiredSelect(v, 'El cliente'),
+  // Opcional: si se llena, entero >= 0.
+  Kilometraje: (v) => {
+    if (v == null || String(v).trim() === '') return '';
+    const n = Number(v);
+    if (!Number.isInteger(n) || n < 0) return 'El kilometraje debe ser un entero mayor o igual a 0.';
+    if (n > 2000000) return 'El kilometraje supera el máximo permitido (2.000.000 km).';
+    return '';
+  },
 };
 
-const EMPTY = { Placa: '', VIN: '', Id_Marca: '', Id_Modelo: '', Anio: '', Color: '', Id_Cliente: '' };
+const EMPTY = { Placa: '', VIN: '', Id_Marca: '', Id_Modelo: '', Anio: '', Color: '', Id_Cliente: '', Kilometraje: '' };
 
 export default function VehiculosPage() {
   const dispatch = useDispatch();
@@ -87,7 +95,7 @@ export default function VehiculosPage() {
   };
 
   const openEdit = (item) => {
-    setFormData({ Placa: item.Placa || '', VIN: item.VIN || '', Id_Marca: item.Id_Marca || '', Id_Modelo: item.Id_Modelo || '', Anio: item.Anio || '', Color: item.Color || '', Id_Cliente: item.Id_Cliente || '' });
+    setFormData({ Placa: item.Placa || '', VIN: item.VIN || '', Id_Marca: item.Id_Marca || '', Id_Modelo: item.Id_Modelo || '', Anio: item.Anio || '', Color: item.Color || '', Id_Cliente: item.Id_Cliente || '', Kilometraje: item.Kilometraje ?? '' });
     setEditingId(item.Id_Vehiculo); setFormError(''); reset();
     loadModelos(item.Id_Marca, item.Id_Modelo);
     setShowForm(true);
@@ -111,7 +119,9 @@ export default function VehiculosPage() {
     setErrors(errs); touchAll();
     if (V.hasErrors(errs)) { setFormError('Corrige los campos marcados antes de guardar.'); return; }
     setFormError('');
-    const action = editingId ? updateVehiculo({ id: editingId, data: formData }) : createVehiculo(formData);
+    const km = String(formData.Kilometraje ?? '').trim();
+    const payload = { ...formData, Kilometraje: km === '' ? null : Number(km) };
+    const action = editingId ? updateVehiculo({ id: editingId, data: payload }) : createVehiculo(payload);
     const result = await dispatch(action);
     if (!result.error) { setShowForm(false); dispatch(fetchVehiculos()); }
     else setFormError(result.payload || 'No se pudo guardar el vehículo.');
@@ -124,6 +134,7 @@ export default function VehiculosPage() {
     { key: 'Marca', label: 'Marca' },
     { key: 'Modelo', label: 'Modelo' },
     { key: 'Anio', label: 'Año' },
+    { key: 'Kilometraje', label: 'Kilometraje', render: v => (v != null && v !== '' ? `${Number(v).toLocaleString('es-CO')} km` : '—') },
     { key: 'Color', label: 'Color' },
     { key: 'Cliente', label: 'Cliente' },
     { key: 'Estado', label: 'Estado', render: v => <StatusBadge estado={v} /> },
@@ -176,6 +187,7 @@ export default function VehiculosPage() {
           <div className="detail-item"><span className="detail-label">Marca</span><span className="detail-value">{detailItem.Marca || detailItem.Id_Marca}</span></div>
           <div className="detail-item"><span className="detail-label">Modelo</span><span className="detail-value">{detailItem.Modelo}</span></div>
           <div className="detail-item"><span className="detail-label">Año</span><span className="detail-value">{detailItem.Anio}</span></div>
+          <div className="detail-item"><span className="detail-label">Kilometraje</span><span className="detail-value">{detailItem.Kilometraje != null && detailItem.Kilometraje !== '' ? `${Number(detailItem.Kilometraje).toLocaleString('es-CO')} km` : '—'}</span></div>
           <div className="detail-item"><span className="detail-label">Color</span><span className="detail-value">{detailItem.Color || '—'}</span></div>
           <div className="detail-item"><span className="detail-label">Cliente</span><span className="detail-value">{detailItem.Cliente || detailItem.Id_Cliente}</span></div>
           <div className="detail-item"><span className="detail-label">Estado</span><span className="detail-value"><StatusBadge estado={detailItem.Estado} /></span></div>
@@ -217,6 +229,11 @@ export default function VehiculosPage() {
             <label className="form-label">Año <span className="required">*</span></label>
             <input name="Anio" type="number" className={`form-control ${fieldError('Anio') ? 'is-error' : ''}`} value={formData.Anio} onChange={handleChange} onBlur={handleBlur} placeholder="2023" min="1900" max="2100" />
             {fieldError('Anio') && <p className="form-error">{fieldError('Anio')}</p>}
+          </div>
+          <div className="form-group">
+            <label className="form-label">Kilometraje</label>
+            <input name="Kilometraje" type="number" min="0" step="1" className={`form-control ${fieldError('Kilometraje') ? 'is-error' : ''}`} value={formData.Kilometraje} onChange={handleChange} onBlur={handleBlur} placeholder="Opcional (ej. 45000)" />
+            {fieldError('Kilometraje') && <p className="form-error">{fieldError('Kilometraje')}</p>}
           </div>
           <div className="form-group">
             <label className="form-label">Color</label>

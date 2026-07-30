@@ -41,6 +41,7 @@ export default function AgendaPage() {
   const [showOrdenModal, setShowOrdenModal] = useState(false);
   const [ordenCitaId, setOrdenCitaId] = useState(null);
   const [ordenError, setOrdenError]   = useState('');
+  const [ordenVehiculoKm, setOrdenVehiculoKm] = useState(null); // km actual del vehículo (odómetro)
 
   useEffect(() => {
     dispatch(fetchAgenda());
@@ -121,7 +122,11 @@ export default function AgendaPage() {
 
   const openGenerarOrden = (item) => {
     setOrdenCitaId(item.Id_Agenda || item.id);
-    setOrdenData({ ...EMPTY_ORDEN, FechaIngreso: new Date().toISOString().split('T')[0] });
+    // Precarga el km con el del vehículo (odómetro). El mecánico puede subirlo.
+    const veh = vehiculos.find(v => String(v.Id_Vehiculo) === String(item.Id_Vehiculo));
+    const kmActual = veh && veh.Kilometraje != null ? Number(veh.Kilometraje) : null;
+    setOrdenVehiculoKm(kmActual);
+    setOrdenData({ ...EMPTY_ORDEN, FechaIngreso: new Date().toISOString().split('T')[0], Kilometraje: kmActual != null ? String(kmActual) : '' });
     setOrdenError(''); setShowOrdenModal(true);
   };
   const handleOrdenChange = e => setOrdenData(p => ({ ...p, [e.target.name]: e.target.value }));
@@ -129,6 +134,11 @@ export default function AgendaPage() {
     e.preventDefault();
     if (!ordenData.FechaIngreso || !ordenData.FechaEntrega || !ordenData.Diagnostico || !ordenData.Kilometraje) {
       setOrdenError('Completa todos los campos.'); return;
+    }
+    const km = Number(ordenData.Kilometraje);
+    if (!Number.isInteger(km) || km < 0) { setOrdenError('El kilometraje debe ser un entero mayor o igual a 0.'); return; }
+    if (ordenVehiculoKm != null && km < ordenVehiculoKm) {
+      setOrdenError(`El kilometraje no puede ser menor al último registrado del vehículo (${ordenVehiculoKm.toLocaleString('es-CO')} km).`); return;
     }
     const result = await dispatch(generarOrdenDeCita({ id: ordenCitaId, data: ordenData }));
     if (!result.error) { setShowOrdenModal(false); alert('Orden de trabajo generada exitosamente.'); dispatch(fetchAgenda()); }
@@ -234,7 +244,7 @@ export default function AgendaPage() {
           <div className="form-group"><label className="form-label">Fecha de ingreso <span className="required">*</span></label><input name="FechaIngreso" type="date" className="form-control" value={ordenData.FechaIngreso} onChange={handleOrdenChange} min={TODAY} /></div>
           <div className="form-group"><label className="form-label">Fecha de entrega <span className="required">*</span></label><input name="FechaEntrega" type="date" className="form-control" value={ordenData.FechaEntrega} onChange={handleOrdenChange} min={ordenData.FechaIngreso || TODAY} /></div>
           <div className="form-group span-2"><label className="form-label">Diagnóstico <span className="required">*</span></label><textarea name="Diagnostico" className="form-control" value={ordenData.Diagnostico} onChange={handleOrdenChange} rows={3} placeholder="Describe el diagnóstico..." /></div>
-          <div className="form-group span-2"><label className="form-label">Kilometraje <span className="required">*</span></label><input name="Kilometraje" type="number" min="0" className="form-control" value={ordenData.Kilometraje} onChange={handleOrdenChange} placeholder="km actuales del vehículo" /></div>
+          <div className="form-group span-2"><label className="form-label">Kilometraje <span className="required">*</span></label><input name="Kilometraje" type="number" min={ordenVehiculoKm ?? 0} className="form-control" value={ordenData.Kilometraje} onChange={handleOrdenChange} placeholder="km actuales del vehículo" />{ordenVehiculoKm != null && <p className="form-hint">Último registrado del vehículo: {ordenVehiculoKm.toLocaleString('es-CO')} km. No puede ser menor.</p>}</div>
         </form>
       </Modal>
     </div>
