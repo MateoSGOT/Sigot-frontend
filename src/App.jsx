@@ -6,6 +6,7 @@ import Layout from './shared/components/Layout/Layout.jsx';
 import LandingPage from './features/landing/pages/LandingPage.jsx';
 import LoginPage from './features/auth/pages/LoginPage.jsx';
 import ResetPasswordPage from './features/auth/pages/ResetPasswordPage.jsx';
+import CambiarPasswordInicialPage from './features/auth/pages/CambiarPasswordInicialPage.jsx';
 import PortalPage from './features/portal/pages/PortalPage.jsx';
 import DashboardPage from './features/dashboard/pages/DashboardPage.jsx';
 import ClientesPage from './features/clientes/pages/ClientesPage.jsx';
@@ -23,23 +24,35 @@ import NovedadesPage from './features/novedades/pages/NovedadesPage.jsx';
 import RolesPage from './features/roles/pages/RolesPage.jsx';
 
 function ProtectedRoute({ children }) {
-  const { token, restoring } = useSelector((state) => state.auth);
+  const { token, restoring, debeCambiarPassword } = useSelector((state) => state.auth);
   if (restoring) return null;
   if (!token) return <Navigate to="/login" replace />;
+  // Bloqueo real: mientras deba cambiar la contraseña, no accede a ninguna ruta del panel.
+  if (debeCambiarPassword) return <Navigate to="/cambiar-password" replace />;
   return children;
 }
 
 function PortalRoute({ children }) {
-  const { token, tipo, restoring } = useSelector((state) => state.auth);
+  const { token, tipo, restoring, debeCambiarPassword } = useSelector((state) => state.auth);
   if (restoring) return null;
   if (!token) return <Navigate to="/login" replace />;
+  if (debeCambiarPassword) return <Navigate to="/cambiar-password" replace />;
   if (tipo === 'empleado') return <Navigate to="/dashboard" replace />;
+  return children;
+}
+
+// Ruta del cambio obligatorio: solo accesible autenticado y con la bandera activa.
+function RequirePasswordChange({ children }) {
+  const { token, restoring, debeCambiarPassword } = useSelector((state) => state.auth);
+  if (restoring) return null;
+  if (!token) return <Navigate to="/login" replace />;
+  if (!debeCambiarPassword) return <Navigate to="/" replace />;
   return children;
 }
 
 function App() {
   const dispatch = useDispatch();
-  const { token, empleado, cliente, tipo, restoring } = useSelector((state) => state.auth);
+  const { token, empleado, cliente, tipo, restoring, debeCambiarPassword } = useSelector((state) => state.auth);
 
   useEffect(() => {
     if (token && !empleado && !cliente) {
@@ -56,14 +69,15 @@ function App() {
 
   if (restoring) return null;
 
-  const loginRedirect = tipo === 'cliente' ? '/portal' : '/dashboard';
+  const loginRedirect = debeCambiarPassword ? '/cambiar-password' : (tipo === 'cliente' ? '/portal' : '/dashboard');
 
   return (
     <Routes>
       {/* Public routes */}
-      <Route path="/" element={<LandingPage />} />
+      <Route path="/" element={token && debeCambiarPassword ? <Navigate to="/cambiar-password" replace /> : <LandingPage />} />
       <Route path="/portal" element={<PortalRoute><PortalPage /></PortalRoute>} />
       <Route path="/reset-password" element={<ResetPasswordPage />} />
+      <Route path="/cambiar-password" element={<RequirePasswordChange><CambiarPasswordInicialPage /></RequirePasswordChange>} />
       <Route
         path="/login"
         element={token ? <Navigate to={loginRedirect} replace /> : <LoginPage />}

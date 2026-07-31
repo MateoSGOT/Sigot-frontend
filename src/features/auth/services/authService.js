@@ -16,4 +16,8 @@ export const authService = {
     const response = await api.post('/api/auth/recuperar-password', { Correo });
     return response.data;
   },
+  async cambiarPasswordInicial(passwordActual, passwordNueva) {
+    const response = await api.post('/api/auth/cambiar-password-inicial', { passwordActual, passwordNueva });
+    return response.data;
+  },
 };

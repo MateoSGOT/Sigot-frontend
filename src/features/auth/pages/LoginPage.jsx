@@ -58,7 +58,10 @@ export default function LoginPage() {
     const result = await dispatch(loginThunk(form));
     if (!result.error) {
       const payload = result.payload?.data || result.payload;
-      if (payload?.tipo === 'cliente') {
+      const debeCambiar = !!(payload?.debeCambiarPassword ?? payload?.empleado?.debeCambiarPassword ?? payload?.cliente?.debeCambiarPassword);
+      if (debeCambiar) {
+        navigate('/cambiar-password', { replace: true });
+      } else if (payload?.tipo === 'cliente') {
         navigate('/portal');
       } else {
         navigate('/dashboard');

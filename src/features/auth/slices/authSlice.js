@@ -44,6 +44,7 @@ const authSlice = createSlice({
     cliente: null,
     tipo: storedTipo || null,
     permisos: null,  // null = no cargado, [] = cargado sin permisos, [...] = lista de nombres
+    debeCambiarPassword: false, // fuerza el cambio de contraseña en el primer ingreso
     loading: false,
     restoring: !!storedToken,
     error: null,
@@ -52,12 +53,18 @@ const authSlice = createSlice({
     updateCliente(state, action) {
       state.cliente = { ...state.cliente, ...action.payload };
     },
+    passwordChanged(state) {
+      state.debeCambiarPassword = false;
+      if (state.empleado) state.empleado.debeCambiarPassword = false;
+      if (state.cliente)  state.cliente.debeCambiarPassword = false;
+    },
     logout(state) {
       state.token = null;
       state.empleado = null;
       state.cliente = null;
       state.tipo = null;
       state.permisos = null;
+      state.debeCambiarPassword = false;
       state.restoring = false;
       localStorage.removeItem(TOKEN_KEY);
       localStorage.removeItem(TIPO_KEY);
@@ -81,6 +88,7 @@ const authSlice = createSlice({
         state.tipo = payload.tipo;
         state.empleado = payload.empleado || null;
         state.cliente = payload.cliente || null;
+        state.debeCambiarPassword = !!(payload.debeCambiarPassword ?? payload.empleado?.debeCambiarPassword ?? payload.cliente?.debeCambiarPassword);
         state.restoring = false;
         localStorage.setItem(TOKEN_KEY, payload.token);
         if (payload.tipo) localStorage.setItem(TIPO_KEY, payload.tipo);
@@ -95,11 +103,13 @@ const authSlice = createSlice({
         const tipo = payload.tipo || 'empleado';
         state.tipo = tipo;
         state.restoring = false;
+        const restored = payload.data || payload;
         if (tipo === 'cliente') {
-          state.cliente = payload.data || null;
+          state.cliente = restored || null;
         } else {
-          state.empleado = payload.data || payload;
+          state.empleado = restored;
         }
+        state.debeCambiarPassword = !!(restored && restored.debeCambiarPassword);
         localStorage.setItem(TIPO_KEY, tipo);
       })
       .addCase(restoreSession.rejected, (state) => {
@@ -119,5 +129,5 @@ const authSlice = createSlice({
   },
 });
 
-export const { logout, clearError, updateCliente } = authSlice.actions;
+export const { logout, clearError, updateCliente, passwordChanged } = authSlice.actions;
 export default authSlice.reducer;
