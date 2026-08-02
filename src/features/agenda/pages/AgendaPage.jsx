@@ -1,10 +1,10 @@
 ﻿import React, { useEffect, useMemo, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { MdAdd, MdVisibility, MdEdit, MdAssignment } from 'react-icons/md';
+import { MdAdd, MdVisibility, MdEdit, MdAssignment, MdEventBusy } from 'react-icons/md';
 import { usePermiso } from '../../../shared/hooks/usePermiso.js';
 import SearchableSelect from '../../../shared/components/SearchableSelect/SearchableSelect.jsx';
 import ToggleSwitch from '../../../shared/components/ToggleSwitch/ToggleSwitch.jsx';
-import { fetchAgenda, createCita, updateCita, toggleCitaEstado, generarOrdenDeCita } from '../slices/agendaSlice.js';
+import { fetchAgenda, createCita, updateCita, toggleCitaEstado, generarOrdenDeCita, cancelarCita } from '../slices/agendaSlice.js';
 import Modal from '../../../shared/components/Modal/Modal.jsx';
 import Table from '../../../shared/components/Table/Table.jsx';
 import SearchBar from '../../../shared/components/SearchBar/SearchBar.jsx';
@@ -15,6 +15,19 @@ import api from '../../../shared/services/api.js';
 import './AgendaPage.css';
 
 const EMPTY_CITA  = { Id_Cliente: '', Id_Vehiculo: '', id_empleado: '', FechaAgendamiento: '', Hora: '' };
+
+const ESTADO_CITA_STYLE = {
+  Pendiente:  { bg: '#eff6ff', fg: '#1d4ed8', label: 'Pendiente' },
+  Confirmada: { bg: '#ecfeff', fg: '#0e7490', label: 'Confirmada' },
+  Atendida:   { bg: '#f0fdf4', fg: '#15803d', label: 'Atendida' },
+  Cancelada:  { bg: '#fef2f2', fg: '#b91c1c', label: 'Cancelada' },
+  NoAsistio:  { bg: '#fefce8', fg: '#a16207', label: 'No asistió' },
+};
+function CitaEstadoBadge({ estado }) {
+  const s = ESTADO_CITA_STYLE[estado] || ESTADO_CITA_STYLE.Pendiente;
+  return <span style={{ background: s.bg, color: s.fg, padding: '2px 10px', borderRadius: '999px', fontSize: '0.75rem', fontWeight: 600 }}>{s.label}</span>;
+}
+const CITA_CANCELABLE = (estado) => ['Pendiente', 'Confirmada'].includes(estado || 'Pendiente');
 const EMPTY_ORDEN = { FechaIngreso: '', FechaEntrega: '', Diagnostico: '', Kilometraje: '' };
 const TODAY = new Date().toISOString().split('T')[0];
 
@@ -162,6 +175,13 @@ export default function AgendaPage() {
     else setOrdenError(result.payload || 'Error al generar orden.');
   };
 
+  const handleCancelar = async (row) => {
+    if (!window.confirm('¿Cancelar esta cita? El vehículo quedará libre para reagendar.')) return;
+    const r = await dispatch(cancelarCita(row.Id_Agenda || row.id));
+    if (!r.error) dispatch(fetchAgenda());
+    else alert(r.payload || 'No se pudo cancelar la cita.');
+  };
+
   const getClienteNombre  = id => clientes.find(c => String(c.Id_Cliente) === String(id))?.Nombre || `#${id}`;
   const getVehiculoPlaca  = id => vehiculos.find(v => String(v.Id_Vehiculo) === String(id))?.Placa || `#${id}`;
   const getEmpleadoNombre = id => empleados.find(e => String(e.Id_Empleado ?? e.id_empleado) === String(id))?.Nombre || `#${id}`;
@@ -173,16 +193,24 @@ export default function AgendaPage() {
     { key: 'Empleado', label: 'Empleado', render: (v, row) => v || getEmpleadoNombre(row.id_empleado || row.Id_Empleado) },
     { key: 'FechaAgendamiento', label: 'Fecha', render: v => formatDate(v) },
     { key: 'Hora', label: 'Hora' },
-    { key: 'Estado', label: 'Estado', render: v => <StatusBadge estado={v} /> },
+    { key: 'EstadoCita', label: 'Estado cita', render: v => <CitaEstadoBadge estado={v || 'Pendiente'} /> },
+    { key: 'Estado', label: 'Activa', render: v => <StatusBadge estado={v} /> },
     {
-      key: 'acciones', label: 'Acciones', render: (_, row) => (
-        <div className="table-actions">
-          <button className="btn btn--ghost btn--icon btn--sm" title="Ver detalle" onClick={() => setDetailItem(row)}><MdVisibility size={17} /></button>
-          <button className="btn btn--ghost btn--icon btn--sm" title="Editar" disabled={!puedeEditar} onClick={() => openEdit(row)}><MdEdit size={17} /></button>
-          <button className="btn btn--ghost btn--icon btn--sm agenda-order-btn" title="Generar orden" onClick={() => openGenerarOrden(row)}><MdAssignment size={17} /></button>
-          <ToggleSwitch checked={row.Estado === 1} onChange={() => dispatch(toggleCitaEstado({ id: row.Id_Agenda || row.id, Estado: row.Estado === 1 ? 0 : 1 }))} disabled={!puedeToggle} />
-        </div>
-      )
+      key: 'acciones', label: 'Acciones', render: (_, row) => {
+        const estadoCita = row.EstadoCita || 'Pendiente';
+        const atendida = estadoCita === 'Atendida';
+        return (
+          <div className="table-actions">
+            <button className="btn btn--ghost btn--icon btn--sm" title="Ver detalle" onClick={() => setDetailItem(row)}><MdVisibility size={17} /></button>
+            <button className="btn btn--ghost btn--icon btn--sm" title="Editar" disabled={!puedeEditar || atendida} onClick={() => openEdit(row)}><MdEdit size={17} /></button>
+            <button className="btn btn--ghost btn--icon btn--sm agenda-order-btn" title="Generar orden" disabled={atendida || estadoCita === 'Cancelada'} onClick={() => openGenerarOrden(row)}><MdAssignment size={17} /></button>
+            {CITA_CANCELABLE(estadoCita) && (
+              <button className="btn btn--ghost btn--icon btn--sm" title="Cancelar cita" disabled={!puedeToggle} onClick={() => handleCancelar(row)}><MdEventBusy size={17} /></button>
+            )}
+            <ToggleSwitch checked={row.Estado === 1} onChange={() => dispatch(toggleCitaEstado({ id: row.Id_Agenda || row.id, Estado: row.Estado === 1 ? 0 : 1 }))} disabled={!puedeToggle} />
+          </div>
+        );
+      }
     },
   ];
 
@@ -224,7 +252,8 @@ export default function AgendaPage() {
           <div className="detail-item"><span className="detail-label">Empleado</span><span className="detail-value">{detailItem.Empleado || getEmpleadoNombre(detailItem.id_empleado || detailItem.Id_Empleado)}</span></div>
           <div className="detail-item"><span className="detail-label">Fecha</span><span className="detail-value">{formatDate(detailItem.FechaAgendamiento)}</span></div>
           <div className="detail-item"><span className="detail-label">Hora</span><span className="detail-value">{detailItem.Hora}</span></div>
-          <div className="detail-item"><span className="detail-label">Estado</span><span className="detail-value"><StatusBadge estado={detailItem.Estado} /></span></div>
+          <div className="detail-item"><span className="detail-label">Estado de la cita</span><span className="detail-value"><CitaEstadoBadge estado={detailItem.EstadoCita || 'Pendiente'} /></span></div>
+          <div className="detail-item"><span className="detail-label">Activa</span><span className="detail-value"><StatusBadge estado={detailItem.Estado} /></span></div>
         </div>}
       </Modal>
 

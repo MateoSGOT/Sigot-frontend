@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { MdAdd, MdVisibility, MdCheck, MdCameraAlt, MdDirectionsCar } from 'react-icons/md';
+import { MdAdd, MdVisibility, MdCheck, MdCameraAlt, MdDirectionsCar, MdEventBusy } from 'react-icons/md';
 import { logout, updateCliente } from '../../auth/slices/authSlice.js';
 import PortalSidebar from '../components/PortalSidebar.jsx';
 import Modal from '../../../shared/components/Modal/Modal.jsx';
@@ -12,6 +12,18 @@ import { StatusBadge } from '../../../shared/components/Badge/Badge.jsx';
 import { filterItems, formatDate, formatCurrency } from '../../../shared/utils/helpers.js';
 import api from '../../../shared/services/api.js';
 import './PortalPage.css';
+
+const ESTADO_CITA_STYLE = {
+  Pendiente:  { bg: '#eff6ff', fg: '#1d4ed8', label: 'Pendiente' },
+  Confirmada: { bg: '#ecfeff', fg: '#0e7490', label: 'Confirmada' },
+  Atendida:   { bg: '#f0fdf4', fg: '#15803d', label: 'Atendida' },
+  Cancelada:  { bg: '#fef2f2', fg: '#b91c1c', label: 'Cancelada' },
+  NoAsistio:  { bg: '#fefce8', fg: '#a16207', label: 'No asistió' },
+};
+function CitaEstadoBadge({ estado }) {
+  const s = ESTADO_CITA_STYLE[estado] || ESTADO_CITA_STYLE.Pendiente;
+  return <span style={{ background: s.bg, color: s.fg, padding: '2px 10px', borderRadius: '999px', fontSize: '0.75rem', fontWeight: 600 }}>{s.label}</span>;
+}
 
 const ORDEN_ESTADO = {
   0: { label: 'Inactivo',   variant: 'gray'    },
@@ -95,6 +107,18 @@ export default function PortalPage() {
     VehiculoPlaca:  c.vehiculo?.Placa || '',
     EmpleadoNombre: c.empleado?.Nombre || 'Sin asignar',
   }));
+
+  const handleCancelarCita = async (row) => {
+    if (!window.confirm('¿Cancelar esta cita?')) return;
+    try {
+      const h = { Authorization: `Bearer ${token}` };
+      await api.patch(`/api/portal/citas/${row.Id_Agenda || row.id}/cancelar`, {}, { headers: h });
+      const cRes = await api.get('/api/portal/citas', { headers: h });
+      setCitas(flattenCitas(cRes.data?.data || []));
+    } catch (e) {
+      alert(e?.response?.data?.message || 'No se pudo cancelar la cita.');
+    }
+  };
 
   /* ── Mi Cuenta ───────────────────────────────────────────── */
   const handleFotoChange = e => {
@@ -243,7 +267,14 @@ export default function PortalPage() {
     { key: 'VehiculoPlaca',    label: 'Vehículo',  render: v => v || '—' },
     { key: 'EmpleadoNombre',   label: 'Técnico',   render: v => v || 'Sin asignar' },
     { key: 'Descripcion',      label: 'Descripción', render: v => v ? <span className="diag-cell">{v}</span> : '—' },
-    { key: 'Estado',           label: 'Estado',    render: v => <StatusBadge estado={v} /> },
+    { key: 'EstadoCita',       label: 'Estado',    render: v => <CitaEstadoBadge estado={v || 'Pendiente'} /> },
+    {
+      key: 'acciones', label: '', render: (_, row) => (
+        ['Pendiente', 'Confirmada'].includes(row.EstadoCita || 'Pendiente')
+          ? <button className="btn btn--ghost btn--icon btn--sm" title="Cancelar cita" onClick={() => handleCancelarCita(row)}><MdEventBusy size={17} /></button>
+          : null
+      ),
+    },
   ];
 
   /* ── Render ──────────────────────────────────────────────── */

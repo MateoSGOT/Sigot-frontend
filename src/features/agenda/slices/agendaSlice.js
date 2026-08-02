@@ -20,6 +20,10 @@ export const generarOrdenDeCita = createAsyncThunk('agenda/generarOrden', async 
   try { const r = await agendaService.generarOrden(id, data); return r.data || r; }
   catch (e) { return rejectWithValue(e?.response?.data?.message || 'Error al generar orden'); }
 });
+export const cancelarCita = createAsyncThunk('agenda/cancelar', async (id, { rejectWithValue }) => {
+  try { const r = await agendaService.cancelar(id); return r.data || r; }
+  catch (e) { return rejectWithValue(e?.response?.data?.message || 'No se pudo cancelar la cita'); }
+});
 const agendaSlice = createSlice({
   name: 'agenda',
   initialState: { items: [], loading: false, error: null, actionLoading: false },
@@ -37,7 +41,9 @@ const agendaSlice = createSlice({
      .addCase(toggleCitaEstado.fulfilled, (s,a) => { const item=s.items.find(i=>(i.Id_Agenda||i.id)===a.payload.id); if(item) item.Estado=a.payload.Estado; })
      .addCase(generarOrdenDeCita.pending, s => { s.actionLoading=true; })
      .addCase(generarOrdenDeCita.fulfilled, s => { s.actionLoading=false; })
-     .addCase(generarOrdenDeCita.rejected, (s,a) => { s.actionLoading=false; s.error=a.payload; });
+     .addCase(generarOrdenDeCita.rejected, (s,a) => { s.actionLoading=false; s.error=a.payload; })
+     .addCase(cancelarCita.fulfilled, (s,a) => { const item=s.items.find(i=>(i.Id_Agenda||i.id)===a.payload?.Id_Agenda); if(item) item.EstadoCita=a.payload?.EstadoCita; })
+     .addCase(cancelarCita.rejected, (s,a) => { s.error=a.payload; });
   },
 });
 export const { clearError } = agendaSlice.actions;
