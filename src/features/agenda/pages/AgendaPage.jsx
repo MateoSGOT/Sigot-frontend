@@ -66,9 +66,11 @@ export default function AgendaPage() {
     }).catch(() => {});
   }, [dispatch]);
 
-  const vehiculosFiltered = formData.Id_Cliente
+  const esActivo = (x) => x?.Estado !== false && x?.Estado !== 0; // excluye inactivos (B4)
+  const vehiculosFiltered = (formData.Id_Cliente
     ? vehiculos.filter(v => String(v.Id_Cliente) === String(formData.Id_Cliente))
-    : vehiculos;
+    : vehiculos
+  ).filter(esActivo);
 
   // Opciones de hora dentro del horario de atención (cada 30 min, apertura→cierre inclusive).
   const DIAS_NOMBRE = { 1: 'Lun', 2: 'Mar', 3: 'Mié', 4: 'Jue', 5: 'Vie', 6: 'Sáb', 7: 'Dom' };
@@ -82,9 +84,9 @@ export default function AgendaPage() {
   const diasLaboralesLabel = (horario.diasLaborales || []).map(d => DIAS_NOMBRE[d]).join(', ');
   const esDiaLaboral = (ymd) => { if (!ymd) return true; const js = new Date(`${ymd}T12:00:00`).getDay(); const iso = js === 0 ? 7 : js; return (horario.diasLaborales || []).includes(iso); };
 
-  const clientesOpts  = clientes.map(c => ({ value: String(c.Id_Cliente), label: c.Nombre }));
+  const clientesOpts  = clientes.filter(esActivo).map(c => ({ value: String(c.Id_Cliente), label: c.Nombre }));
   const vehiculosOpts = vehiculosFiltered.map(v => ({ value: String(v.Id_Vehiculo), label: `${v.Placa} — ${v.Modelo}` }));
-  const empleadosOpts = empleados.map(e => {
+  const empleadosOpts = empleados.filter(esActivo).map(e => {
     const id = String(e.Id_Empleado ?? e.id_empleado);
     const conNovedad = novedadesActivas.has(id);
     return { value: id, label: `${e.Nombre}${conNovedad ? ' — Con novedad' : ''}`, disabled: conNovedad };

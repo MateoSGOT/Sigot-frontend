@@ -604,7 +604,7 @@ export default function PortalPage() {
             <label className="form-label">Vehículo <span className="required">*</span></label>
             <select className="form-control" value={citaForm.Id_Vehiculo} onChange={e => setCitaForm(p => ({ ...p, Id_Vehiculo: e.target.value }))} required>
               <option value="">Seleccionar vehículo...</option>
-              {vehiculos.map(v => <option key={v.Id_Vehiculo} value={v.Id_Vehiculo}>{v.Placa} — {v.Marca || ''}</option>)}
+              {vehiculos.filter(v => v.Estado !== false && v.Estado !== 0).map(v => <option key={v.Id_Vehiculo} value={v.Id_Vehiculo}>{v.Placa} — {v.Marca || ''}</option>)}
             </select>
           </div>
           <div className="form-group">
