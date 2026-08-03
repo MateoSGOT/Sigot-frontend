@@ -13,7 +13,6 @@ import agendaReducer from '../features/agenda/slices/agendaSlice';
 import ordenesReducer from '../features/ordenes/slices/ordenesSlice';
 import novedadesReducer from '../features/novedades/slices/novedadesSlice';
 import rolesReducer from '../features/roles/slices/rolesSlice';
-import permisosReducer from '../features/permisos/slices/permisosSlice';
 import dashboardReducer from '../features/dashboard/slices/dashboardSlice';
 
 export const store = configureStore({
@@ -32,7 +31,6 @@ export const store = configureStore({
     ordenes: ordenesReducer,
     novedades: novedadesReducer,
     roles: rolesReducer,
-    permisos: permisosReducer,
     dashboard: dashboardReducer,
   },
 });
