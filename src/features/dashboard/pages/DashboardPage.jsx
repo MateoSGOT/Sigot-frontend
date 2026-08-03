@@ -10,6 +10,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend, Area, AreaChart
 } from 'recharts';
+import EmptyState from '../../../shared/components/EmptyState/EmptyState.jsx';
 import './DashboardPage.css';
 
 // Serious, muted professional palette for donut chart
@@ -31,24 +32,6 @@ const CHART_STYLE = {
   grid: { strokeDasharray: '3 3', stroke: 'rgba(0,0,0,0.07)' },
   tick: { fontSize: 12, fill: '#9ca3af' },
 };
-
-// Placeholder data shown when API returns no data
-const PLACEHOLDER_COMPRAS = [
-  { name: 'Oct', total: 1200000 },
-  { name: 'Nov', total: 2800000 },
-  { name: 'Dic', total: 1900000 },
-  { name: 'Ene', total: 3400000 },
-  { name: 'Feb', total: 2100000 },
-  { name: 'Mar', total: 4200000 },
-];
-
-const PLACEHOLDER_SERVICIOS = [
-  { name: 'Cambio de aceite', value: 45 },
-  { name: 'Alineación', value: 38 },
-  { name: 'Frenos', value: 31 },
-  { name: 'Diagnóstico eléctrico', value: 27 },
-  { name: 'Revisión general', value: 19 },
-];
 
 function StatCard({ icon: Icon, label, value, sub, color = 'green', loading }) {
   return (
@@ -96,26 +79,29 @@ export default function DashboardPage() {
     ? repuestos.slice(0, 6).map(r => ({ name: r.Nombre || r.nombre, value: r.Stock || r.stock || 0 }))
     : [];
 
+  // Solo datos REALES de la API. Si no hay, el arreglo queda vacío y se muestra un estado
+  // vacío honesto (nada de cifras inventadas). El dashboard con series reales es Tanda B.
   const comprasChartData = (() => {
-    const real = Array.isArray(compras?.porMes) ? compras.porMes : Array.isArray(compras) ? compras : [];
-    if (real.length > 0) {
-      return real.slice(0, 6).map((c, i) => ({
-        name: c.mes || c.month || c.name || `Mes ${i + 1}`,
-        total: c.total || c.monto || c.value || c.PrecioUnitario || 0,
-      }));
-    }
-    return PLACEHOLDER_COMPRAS;
+    const real = Array.isArray(compras?.porMes) ? compras.porMes : [];
+    return real.slice(0, 12).map((c, i) => ({
+      name: c.mes || c.month || c.name || `Mes ${i + 1}`,
+      total: Number(c.total || c.monto || c.value || 0),
+    }));
   })();
 
   const serviciosChartData = (() => {
     if (Array.isArray(servicios?.top) && servicios.top.length > 0)
-      return servicios.top.map(s => ({ name: s.Nombre || s.nombre, value: s.total || s.count || 0 }));
-    if (Array.isArray(servicios) && servicios.length > 0) {
-      const mapped = servicios.slice(0, 5).map(s => ({ name: s.Nombre || s.nombre, value: s.Precio || 0 }));
-      if (mapped.some(d => d.value > 0)) return mapped;
-    }
-    return PLACEHOLDER_SERVICIOS;
+      return servicios.top.map(s => ({ name: s.Nombre || s.nombre, value: Number(s.total || s.count || 0) }));
+    return [];
   })();
+
+  const EMPTY_CHART = (
+    <EmptyState
+      variant="empty"
+      title="Aún no hay datos suficientes"
+      description="Este resumen se completará a medida que se registren movimientos."
+    />
+  );
 
   return (
     <div className="page dashboard-page">
@@ -162,27 +148,29 @@ export default function DashboardPage() {
 
       {/* Charts */}
       <div className="dashboard-charts">
-        {/* Compras por mes — always shows (placeholder if no data) */}
+        {/* Compras por mes — solo con datos reales; si no, estado vacío honesto */}
         <div className="card dashboard-chart-card">
           <div className="card__header">
             <span className="card__title">Compras registradas</span>
           </div>
           <div className="card__body">
-            <ResponsiveContainer width="100%" height={220}>
-              <AreaChart data={comprasChartData}>
-                <defs>
-                  <linearGradient id="colorCompras" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%"  stopColor="#2d6a2d" stopOpacity={0.18} />
-                    <stop offset="95%" stopColor="#2d6a2d" stopOpacity={0}    />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid {...CHART_STYLE.grid} />
-                <XAxis dataKey="name" tick={CHART_STYLE.tick} axisLine={false} tickLine={false} />
-                <YAxis tick={CHART_STYLE.tick} axisLine={false} tickLine={false} />
-                <Tooltip {...CHART_STYLE.tooltip} formatter={(val) => [`$${Number(val).toLocaleString('es-CO')}`, 'Total comprado']} />
-                <Area type="monotone" dataKey="total" name="Total comprado" stroke="#2d6a2d" strokeWidth={2.5} fill="url(#colorCompras)" />
-              </AreaChart>
-            </ResponsiveContainer>
+            {comprasChartData.length > 0 ? (
+              <ResponsiveContainer width="100%" height={220}>
+                <AreaChart data={comprasChartData}>
+                  <defs>
+                    <linearGradient id="colorCompras" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%"  stopColor="#2d6a2d" stopOpacity={0.18} />
+                      <stop offset="95%" stopColor="#2d6a2d" stopOpacity={0}    />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid {...CHART_STYLE.grid} />
+                  <XAxis dataKey="name" tick={CHART_STYLE.tick} axisLine={false} tickLine={false} />
+                  <YAxis tick={CHART_STYLE.tick} axisLine={false} tickLine={false} />
+                  <Tooltip {...CHART_STYLE.tooltip} formatter={(val) => [`$${Number(val).toLocaleString('es-CO')}`, 'Total comprado']} />
+                  <Area type="monotone" dataKey="total" name="Total comprado" stroke="#2d6a2d" strokeWidth={2.5} fill="url(#colorCompras)" />
+                </AreaChart>
+              </ResponsiveContainer>
+            ) : EMPTY_CHART}
           </div>
         </div>
 
@@ -208,21 +196,23 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {/* Servicios — always shows (placeholder if no data) */}
+        {/* Servicios más realizados — solo con datos reales; si no, estado vacío honesto */}
         <div className="card dashboard-chart-card dashboard-chart-card--wide">
           <div className="card__header">
-            <span className="card__title">Servicios disponibles</span>
+            <span className="card__title">Servicios más realizados</span>
           </div>
           <div className="card__body">
-            <ResponsiveContainer width="100%" height={220}>
-              <BarChart data={serviciosChartData} layout="vertical">
-                <CartesianGrid {...CHART_STYLE.grid} horizontal={false} />
-                <XAxis type="number" tick={CHART_STYLE.tick} axisLine={false} tickLine={false} />
-                <YAxis type="category" dataKey="name" tick={CHART_STYLE.tick} axisLine={false} tickLine={false} width={140} />
-                <Tooltip {...CHART_STYLE.tooltip} formatter={(val, _name, props) => [val, props?.payload?.name ?? 'Cantidad']} />
-                <Bar dataKey="value" name="Cantidad" fill="#2d6a2d" radius={[0, 4, 4, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
+            {serviciosChartData.length > 0 ? (
+              <ResponsiveContainer width="100%" height={220}>
+                <BarChart data={serviciosChartData} layout="vertical">
+                  <CartesianGrid {...CHART_STYLE.grid} horizontal={false} />
+                  <XAxis type="number" tick={CHART_STYLE.tick} axisLine={false} tickLine={false} />
+                  <YAxis type="category" dataKey="name" tick={CHART_STYLE.tick} axisLine={false} tickLine={false} width={140} />
+                  <Tooltip {...CHART_STYLE.tooltip} formatter={(val, _name, props) => [val, props?.payload?.name ?? 'Cantidad']} />
+                  <Bar dataKey="value" name="Cantidad" fill="#2d6a2d" radius={[0, 4, 4, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            ) : EMPTY_CHART}
           </div>
         </div>
       </div>
