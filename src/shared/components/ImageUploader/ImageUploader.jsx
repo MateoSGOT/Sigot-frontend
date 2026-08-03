@@ -1,15 +1,17 @@
 import React, { useRef } from 'react';
 import { MdCameraAlt } from 'react-icons/md';
+import { useToast } from '../Toast/ToastContext.jsx';
 import './ImageUploader.css';
 
 export default function ImageUploader({ preview, onChange, size = 80, disabled, initials }) {
   const ref = useRef(null);
+  const { addToast } = useToast();
 
   const handleChange = (e) => {
     const file = e.target.files[0];
     if (!file) return;
     if (file.size > 2 * 1024 * 1024) {
-      alert('La imagen no puede superar 2 MB.');
+      addToast({ type: 'error', message: 'La imagen no puede superar 2 MB.' });
       e.target.value = '';
       return;
     }

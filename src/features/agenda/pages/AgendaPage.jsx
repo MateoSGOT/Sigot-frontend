@@ -6,6 +6,8 @@ import SearchableSelect from '../../../shared/components/SearchableSelect/Search
 import ToggleSwitch from '../../../shared/components/ToggleSwitch/ToggleSwitch.jsx';
 import { fetchAgenda, createCita, updateCita, toggleCitaEstado, generarOrdenDeCita, cancelarCita } from '../slices/agendaSlice.js';
 import Modal from '../../../shared/components/Modal/Modal.jsx';
+import ConfirmDialog from '../../../shared/components/ConfirmDialog/ConfirmDialog.jsx';
+import { useToast } from '../../../shared/components/Toast/ToastContext.jsx';
 import Table from '../../../shared/components/Table/Table.jsx';
 import SearchBar from '../../../shared/components/SearchBar/SearchBar.jsx';
 import FilterDropdown from '../../../shared/components/FilterDropdown/FilterDropdown.jsx';
@@ -33,6 +35,7 @@ const TODAY = new Date().toISOString().split('T')[0];
 
 export default function AgendaPage() {
   const dispatch = useDispatch();
+  const { addToast } = useToast();
   const { items, loading, actionLoading } = useSelector(s => s.agenda);
   const puedeCrear   = usePermiso('AGENDA.REGISTRAR');
   const puedeEditar  = usePermiso('AGENDA.EDITAR');
@@ -41,6 +44,7 @@ export default function AgendaPage() {
   const [vehiculos, setVehiculos] = useState([]);
   const [empleados, setEmpleados] = useState([]);
   const [novedadesActivas, setNovedadesActivas] = useState(new Set());
+  const [confirmCancelar, setConfirmCancelar] = useState(null); // cita a cancelar (ConfirmDialog)
   const [search, setSearch]             = useState('');
   const [statusFilter, setStatusFilter] = useState('todos');
   const [empleadoFilter, setEmpleadoFilter] = useState('');
@@ -96,6 +100,14 @@ export default function AgendaPage() {
   })();
   const diasLaboralesLabel = (horario.diasLaborales || []).map(d => DIAS_NOMBRE[d]).join(', ');
   const esDiaLaboral = (ymd) => { if (!ymd) return true; const js = new Date(`${ymd}T12:00:00`).getDay(); const iso = js === 0 ? 7 : js; return (horario.diasLaborales || []).includes(iso); };
+  // Validación de fecha EN TIEMPO REAL (se recalcula al cambiar el campo). Mensajes en español.
+  const fechaError = (() => {
+    const f = formData.FechaAgendamiento;
+    if (!f) return '';
+    if (f < TODAY) return 'La fecha no puede ser en el pasado.';
+    if (!esDiaLaboral(f)) return 'El taller no atiende ese día.';
+    return '';
+  })();
 
   const clientesOpts  = clientes.filter(esActivo).map(c => ({ value: String(c.Id_Cliente), label: c.Nombre }));
   const vehiculosOpts = vehiculosFiltered.map(v => ({ value: String(v.Id_Vehiculo), label: `${v.Placa} — ${v.Modelo}` }));
@@ -141,7 +153,7 @@ export default function AgendaPage() {
     if (!formData.Id_Cliente || !formData.Id_Vehiculo || !formData.id_empleado || !formData.FechaAgendamiento || !formData.Hora) {
       setFormError('Completa todos los campos obligatorios.'); return;
     }
-    if (!esDiaLaboral(formData.FechaAgendamiento)) { setFormError('El taller no atiende ese día.'); return; }
+    if (fechaError) { setFormError(fechaError); return; }
     if (novedadesActivas.has(String(formData.id_empleado))) {
       setFormError('El empleado seleccionado tiene una novedad activa y no puede ser asignado.'); return;
     }
@@ -174,15 +186,16 @@ export default function AgendaPage() {
       setOrdenError(`El kilometraje no puede ser menor al último registrado del vehículo (${ordenVehiculoKm.toLocaleString('es-CO')} km).`); return;
     }
     const result = await dispatch(generarOrdenDeCita({ id: ordenCitaId, data: ordenData }));
-    if (!result.error) { setShowOrdenModal(false); alert('Orden de trabajo generada exitosamente.'); dispatch(fetchAgenda()); }
+    if (!result.error) { setShowOrdenModal(false); addToast({ type: 'success', message: 'Orden de trabajo generada exitosamente.' }); dispatch(fetchAgenda()); }
     else setOrdenError(result.payload || 'Error al generar orden.');
   };
 
-  const handleCancelar = async (row) => {
-    if (!window.confirm('¿Cancelar esta cita? El vehículo quedará libre para reagendar.')) return;
-    const r = await dispatch(cancelarCita(row.Id_Agenda || row.id));
-    if (!r.error) dispatch(fetchAgenda());
-    else alert(r.payload || 'No se pudo cancelar la cita.');
+  const doCancelar = async () => {
+    if (!confirmCancelar) return;
+    const r = await dispatch(cancelarCita(confirmCancelar.Id_Agenda || confirmCancelar.id));
+    setConfirmCancelar(null);
+    if (!r.error) { addToast({ type: 'success', message: 'Cita cancelada.' }); dispatch(fetchAgenda()); }
+    else addToast({ type: 'error', message: r.payload || 'No se pudo cancelar la cita.' });
   };
 
   const getClienteNombre  = id => clientes.find(c => String(c.Id_Cliente) === String(id))?.Nombre || `#${id}`;
@@ -208,7 +221,7 @@ export default function AgendaPage() {
             <button className="btn btn--ghost btn--icon btn--sm" title="Editar" disabled={!puedeEditar || atendida} onClick={() => openEdit(row)}><MdEdit size={17} /></button>
             <button className="btn btn--ghost btn--icon btn--sm agenda-order-btn" title="Generar orden" disabled={atendida || estadoCita === 'Cancelada'} onClick={() => openGenerarOrden(row)}><MdAssignment size={17} /></button>
             {CITA_CANCELABLE(estadoCita) && (
-              <button className="btn btn--ghost btn--icon btn--sm" title="Cancelar cita" disabled={!puedeToggle} onClick={() => handleCancelar(row)}><MdEventBusy size={17} /></button>
+              <button className="btn btn--ghost btn--icon btn--sm" title="Cancelar cita" disabled={!puedeToggle} onClick={() => setConfirmCancelar(row)}><MdEventBusy size={17} /></button>
             )}
             <ToggleSwitch checked={row.Estado === 1} onChange={() => dispatch(toggleCitaEstado({ id: row.Id_Agenda || row.id, Estado: row.Estado === 1 ? 0 : 1 }))} disabled={!puedeToggle} />
           </div>
@@ -280,8 +293,8 @@ export default function AgendaPage() {
               <p className="novedad-warning">⚠ Este empleado tiene una novedad activa y no puede ser asignado.</p>
             )}
           </div>
-          <div className="form-group"><label className="form-label">Fecha de agendamiento <span className="required">*</span></label><input name="FechaAgendamiento" type="date" className="form-control" value={formData.FechaAgendamiento} onChange={handleChange} min={TODAY} />
-            {formData.FechaAgendamiento && !esDiaLaboral(formData.FechaAgendamiento) && <p className="form-error">El taller no atiende ese día.</p>}
+          <div className="form-group"><label className="form-label">Fecha de agendamiento <span className="required">*</span></label><input name="FechaAgendamiento" type="date" className={`form-control ${fechaError ? 'is-error' : ''}`} value={formData.FechaAgendamiento} onChange={handleChange} min={TODAY} />
+            {fechaError && <p className="form-error">{fechaError}</p>}
           </div>
           <div className="form-group"><label className="form-label">Hora <span className="required">*</span></label>
             <select name="Hora" className="form-control" value={formData.Hora} onChange={handleChange}>
@@ -308,6 +321,17 @@ export default function AgendaPage() {
           <div className="form-group span-2"><label className="form-label">Kilometraje <span className="required">*</span></label><input name="Kilometraje" type="number" min={ordenVehiculoKm ?? 0} className="form-control" value={ordenData.Kilometraje} onChange={handleOrdenChange} placeholder="km actuales del vehículo" />{ordenVehiculoKm != null && <p className="form-hint">Último registrado del vehículo: {ordenVehiculoKm.toLocaleString('es-CO')} km. No puede ser menor.</p>}</div>
         </form>
       </Modal>
+
+      <ConfirmDialog
+        isOpen={!!confirmCancelar}
+        onClose={() => setConfirmCancelar(null)}
+        onConfirm={doCancelar}
+        title="Cancelar cita"
+        message="¿Cancelar esta cita? El vehículo quedará libre para reagendar."
+        confirmLabel="Sí, cancelar"
+        danger
+        loading={actionLoading}
+      />
     </div>
   );
 }

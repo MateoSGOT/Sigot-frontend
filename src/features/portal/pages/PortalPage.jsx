@@ -4,6 +4,8 @@ import { MdAdd, MdVisibility, MdCheck, MdCameraAlt, MdDirectionsCar, MdEventBusy
 import { logout, updateCliente } from '../../auth/slices/authSlice.js';
 import PortalSidebar from '../components/PortalSidebar.jsx';
 import Modal from '../../../shared/components/Modal/Modal.jsx';
+import ConfirmDialog from '../../../shared/components/ConfirmDialog/ConfirmDialog.jsx';
+import { useToast } from '../../../shared/components/Toast/ToastContext.jsx';
 import Table from '../../../shared/components/Table/Table.jsx';
 import SearchBar from '../../../shared/components/SearchBar/SearchBar.jsx';
 import FilterDropdown from '../../../shared/components/FilterDropdown/FilterDropdown.jsx';
@@ -38,6 +40,7 @@ function OrdenEstadoBadge({ estado }) {
 
 export default function PortalPage() {
   const dispatch = useDispatch();
+  const { addToast } = useToast();
   const { cliente, token, tipo } = useSelector(s => s.auth);
 
   const [tab, setTab] = useState('cuenta');
@@ -45,6 +48,8 @@ export default function PortalPage() {
   const [ordenes, setOrdenes]     = useState([]);
   const [citas, setCitas]         = useState([]);
   const [loading, setLoading]     = useState(false);
+  const [confirmCancelarCita, setConfirmCancelarCita] = useState(null);
+  const [cancelando, setCancelando] = useState(false);
 
   /* ── MI CUENTA ───────────────────────────────────────────── */
   const [editData,    setEditData]    = useState({});
@@ -108,15 +113,20 @@ export default function PortalPage() {
     EmpleadoNombre: c.empleado?.Nombre || 'Sin asignar',
   }));
 
-  const handleCancelarCita = async (row) => {
-    if (!window.confirm('¿Cancelar esta cita?')) return;
+  const doCancelarCita = async () => {
+    if (!confirmCancelarCita) return;
+    setCancelando(true);
     try {
       const h = { Authorization: `Bearer ${token}` };
-      await api.patch(`/api/portal/citas/${row.Id_Agenda || row.id}/cancelar`, {}, { headers: h });
+      await api.patch(`/api/portal/citas/${confirmCancelarCita.Id_Agenda || confirmCancelarCita.id}/cancelar`, {}, { headers: h });
       const cRes = await api.get('/api/portal/citas', { headers: h });
       setCitas(flattenCitas(cRes.data?.data || []));
+      addToast({ type: 'success', message: 'Cita cancelada.' });
+      setConfirmCancelarCita(null);
     } catch (e) {
-      alert(e?.response?.data?.message || 'No se pudo cancelar la cita.');
+      addToast({ type: 'error', message: e?.response?.data?.message || 'No se pudo cancelar la cita.' });
+    } finally {
+      setCancelando(false);
     }
   };
 
@@ -271,7 +281,7 @@ export default function PortalPage() {
     {
       key: 'acciones', label: '', render: (_, row) => (
         ['Pendiente', 'Confirmada'].includes(row.EstadoCita || 'Pendiente')
-          ? <button className="btn btn--ghost btn--icon btn--sm" title="Cancelar cita" onClick={() => handleCancelarCita(row)}><MdEventBusy size={17} /></button>
+          ? <button className="btn btn--ghost btn--icon btn--sm" title="Cancelar cita" onClick={() => setConfirmCancelarCita(row)}><MdEventBusy size={17} /></button>
           : null
       ),
     },
@@ -688,6 +698,16 @@ export default function PortalPage() {
         </form>
       </Modal>
 
+      <ConfirmDialog
+        isOpen={!!confirmCancelarCita}
+        onClose={() => setConfirmCancelarCita(null)}
+        onConfirm={doCancelarCita}
+        title="Cancelar cita"
+        message="¿Cancelar esta cita?"
+        confirmLabel="Sí, cancelar"
+        danger
+        loading={cancelando}
+      />
     </div>
   );
 }
