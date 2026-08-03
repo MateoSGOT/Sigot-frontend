@@ -14,7 +14,7 @@ import { filterItems, formatDate } from '../../../shared/utils/helpers.js';
 import api from '../../../shared/services/api.js';
 import './AgendaPage.css';
 
-const EMPTY_CITA  = { Id_Cliente: '', Id_Vehiculo: '', id_empleado: '', FechaAgendamiento: '', Hora: '' };
+const EMPTY_CITA  = { Id_Cliente: '', Id_Vehiculo: '', id_empleado: '', FechaAgendamiento: '', Hora: '', DuracionEstimadaMin: '60' };
 
 const ESTADO_CITA_STYLE = {
   Pendiente:  { bg: '#eff6ff', fg: '#1d4ed8', label: 'Pendiente' },
@@ -124,6 +124,7 @@ export default function AgendaPage() {
       id_empleado: item.id_empleado || item.Id_Empleado || '',
       FechaAgendamiento: item.FechaAgendamiento ? item.FechaAgendamiento.split('T')[0] : '',
       Hora: item.Hora || '',
+      DuracionEstimadaMin: String(item.DuracionEstimadaMin ?? 60),
     });
     setEditingId(item.Id_Agenda || item.id); setFormError(''); setShowForm(true);
   };
@@ -144,7 +145,9 @@ export default function AgendaPage() {
     if (novedadesActivas.has(String(formData.id_empleado))) {
       setFormError('El empleado seleccionado tiene una novedad activa y no puede ser asignado.'); return;
     }
-    const action = editingId ? updateCita({ id: editingId, data: formData }) : createCita(formData);
+    const dur = Number(formData.DuracionEstimadaMin);
+    const payload = { ...formData, DuracionEstimadaMin: Number.isInteger(dur) && dur > 0 ? dur : 60 };
+    const action = editingId ? updateCita({ id: editingId, data: payload }) : createCita(payload);
     const result = await dispatch(action);
     if (!result.error) { setShowForm(false); dispatch(fetchAgenda()); }
     else setFormError(result.payload || 'Error al guardar.');
@@ -286,6 +289,10 @@ export default function AgendaPage() {
               {horaOptions.map(h => <option key={h} value={h}>{h}</option>)}
             </select>
             <p className="form-hint">Atención: {horario.apertura}–{horario.cierre} · {diasLaboralesLabel}</p>
+          </div>
+          <div className="form-group"><label className="form-label">Duración estimada (min)</label>
+            <input name="DuracionEstimadaMin" type="number" min="1" step="15" className="form-control" value={formData.DuracionEstimadaMin} onChange={handleChange} placeholder="60" />
+            <p className="form-hint">Evita solapar al mismo empleado. Por defecto 60 min.</p>
           </div>
         </form>
       </Modal>
