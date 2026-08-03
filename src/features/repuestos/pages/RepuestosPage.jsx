@@ -1,16 +1,16 @@
-﻿import React, { useEffect, useState } from 'react';
+﻿import React, { useEffect, useState, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { MdAdd, MdVisibility, MdEdit, MdWarning, MdTableChart } from 'react-icons/md';
 import { usePermiso } from '../../../shared/hooks/usePermiso.js';
 import * as XLSX from 'xlsx';
 import ToggleSwitch from '../../../shared/components/ToggleSwitch/ToggleSwitch.jsx';
-import { fetchRepuestos, createRepuesto, updateRepuesto, toggleRepuestoEstado } from '../slices/repuestosSlice.js';
+import { createRepuesto, updateRepuesto, toggleRepuestoEstado } from '../slices/repuestosSlice.js';
 import Modal from '../../../shared/components/Modal/Modal.jsx';
 import Table from '../../../shared/components/Table/Table.jsx';
 import SearchBar from '../../../shared/components/SearchBar/SearchBar.jsx';
 import FilterDropdown from '../../../shared/components/FilterDropdown/FilterDropdown.jsx';
 import { StatusBadge } from '../../../shared/components/Badge/Badge.jsx';
-import { sortByStatus, filterItems, formatCurrency } from '../../../shared/utils/helpers.js';
+import { formatCurrency } from '../../../shared/utils/helpers.js';
 import * as V from '../../../shared/utils/validators.js';
 import { useFormValidation } from '../../../shared/hooks/useFormValidation.js';
 import api from '../../../shared/services/api.js';
@@ -34,7 +34,7 @@ const RULES = {
 
 export default function RepuestosPage() {
   const dispatch = useDispatch();
-  const { items, loading, actionLoading } = useSelector(s => s.repuestos);
+  const { actionLoading } = useSelector(s => s.repuestos);
   const puedeCrear   = usePermiso('REPUESTOS.REGISTRAR');
   const puedeEditar  = usePermiso('REPUESTOS.EDITAR');
   const puedeToggle  = usePermiso('REPUESTOS.CAMBIAR_ESTADO');
@@ -44,6 +44,12 @@ export default function RepuestosPage() {
   const [categoriaFilter, setCategoriaFilter] = useState('');
   const [pageSize, setPageSize]           = useState(5);
   const [stockBajoFilter, setStockBajoFilter] = useState(false);
+  // Estado del listado SERVER-SIDE (piloto de paginación).
+  const [page, setPage]         = useState(1);
+  const [rows, setRows]         = useState([]);
+  const [total, setTotal]       = useState(0);
+  const [listLoading, setListLoading] = useState(true);
+  const [stockBajoItems, setStockBajoItems] = useState([]); // para el banner (todo, no paginado)
   const [detailItem, setDetailItem]       = useState(null);
   const [formData, setFormData]           = useState(EMPTY);
   const [editingId, setEditingId]         = useState(null);
@@ -51,21 +57,44 @@ export default function RepuestosPage() {
   const [formError, setFormError]         = useState('');
   const { errors, touched, setErrors, revalidate, markTouched, touchAll, fieldError, isInvalid, validateNow, reset } = useFormValidation(RULES);
 
-  useEffect(() => {
-    dispatch(fetchRepuestos());
-    api.get('/api/categoria-repuestos').then(r => setCategorias(r.data?.data || r.data || [])).catch(() => {});
-  }, [dispatch]);
+  const pageSizeNum = pageSize === 'all' ? (total || 9999) : Number(pageSize);
 
-  const itemsConStockBajo = items.filter(i => i.Estado !== 0 && Number(i.Stock) <= Number(i.StockMinimo ?? 5));
-  const filtered = (() => {
-    let list = items;
-    if (statusFilter === 'activos') list = list.filter(i => i.Estado !== 0);
-    else if (statusFilter === 'inactivos') list = list.filter(i => i.Estado === 0);
-    if (categoriaFilter) list = list.filter(i => String(i.Id_Categoria ?? i.Id_categoria) === categoriaFilter);
-    if (stockBajoFilter) list = list.filter(i => i.Estado !== 0 && Number(i.Stock) <= Number(i.StockMinimo ?? 5));
-    list = filterItems(list, search, ['Nombre', 'NombreRepuesto']);
-    return sortByStatus(list);
-  })();
+  // Pide al backend la página actual con los filtros vigentes (server-side).
+  const fetchPage = useCallback(async () => {
+    setListLoading(true);
+    try {
+      const ps = pageSize === 'all' ? 9999 : pageSize;
+      const params = new URLSearchParams({ page: String(page), pageSize: String(ps), estado: statusFilter });
+      if (search) params.set('search', search);
+      if (categoriaFilter) params.set('categoria', categoriaFilter);
+      if (stockBajoFilter) params.set('soloBajo', 'true');
+      const r = await api.get(`/api/repuestos?${params.toString()}`);
+      setRows(r.data?.data || []);
+      setTotal(r.data?.total ?? 0);
+    } catch { setRows([]); setTotal(0); }
+    finally { setListLoading(false); }
+  }, [page, pageSize, search, statusFilter, categoriaFilter, stockBajoFilter]);
+
+  const fetchStockBajo = useCallback(async () => {
+    try { const r = await api.get('/api/repuestos/stock-bajo'); setStockBajoItems(r.data?.data || r.data || []); } catch { /* silent */ }
+  }, []);
+
+  useEffect(() => {
+    api.get('/api/categoria-repuestos').then(r => setCategorias(r.data?.data || r.data || [])).catch(() => {});
+    fetchStockBajo();
+  }, [fetchStockBajo]);
+
+  useEffect(() => { fetchPage(); }, [fetchPage]);
+
+  // Al cambiar búsqueda/filtro → reiniciar a la página 1 (y refetch por dependencias).
+  const onSearch    = (v) => { setSearch(v); setPage(1); };
+  const onCategoria = (v) => { setCategoriaFilter(v); setPage(1); };
+  const onStatus    = (v) => { setStatusFilter(v); setPage(1); };
+  const onPageSize  = (v) => { setPageSize(v); setPage(1); };
+  const onToggleBajo = () => { setStockBajoFilter(v => !v); setPage(1); };
+  const refrescar = () => { fetchPage(); fetchStockBajo(); };
+
+  const itemsConStockBajo = stockBajoItems;
 
   const exportarExcel = async () => {
     try {
@@ -137,12 +166,17 @@ export default function RepuestosPage() {
     };
     const action = editingId ? updateRepuesto({ id: editingId, data: payload }) : createRepuesto(payload);
     const result = await dispatch(action);
-    if (!result.error) { setShowForm(false); dispatch(fetchRepuestos()); }
+    if (!result.error) { setShowForm(false); refrescar(); }
     else setFormError(result.payload || 'No se pudo guardar el repuesto.');
   };
 
+  const handleToggle = async (row) => {
+    const r = await dispatch(toggleRepuestoEstado({ id: row.Id_Repuesto, Estado: row.Estado === 1 ? 0 : 1 }));
+    if (!r.error) refrescar();
+  };
+
   const columns = [
-    { key: '#', label: '#', width: '50px', render: (_, __, i) => i + 1 },
+    { key: '#', label: '#', width: '50px', render: (_, __, i) => (page - 1) * pageSizeNum + i + 1 },
     { key: 'Nombre', label: 'Nombre', render: v => <span className="font-medium">{v}</span> },
     { key: 'Categoria', label: 'Categoría' },
     {
@@ -171,7 +205,7 @@ export default function RepuestosPage() {
         <div className="table-actions">
           <button className="btn btn--ghost btn--icon btn--sm" onClick={() => setDetailItem(row)}><MdVisibility size={17} /></button>
           <button className="btn btn--ghost btn--icon btn--sm" disabled={!puedeEditar} onClick={() => openEdit(row)}><MdEdit size={17} /></button>
-          <ToggleSwitch checked={row.Estado === 1} onChange={() => dispatch(toggleRepuestoEstado({ id: row.Id_Repuesto, Estado: row.Estado === 1 ? 0 : 1 }))} disabled={!puedeToggle} />
+          <ToggleSwitch checked={row.Estado === 1} onChange={() => handleToggle(row)} disabled={!puedeToggle} />
         </div>
       )
     },
@@ -180,7 +214,7 @@ export default function RepuestosPage() {
   return (
     <div className="page">
       <div className="page__header">
-        <div><h1 className="page__title">Repuestos</h1><p className="page__subtitle">{items.length} repuesto(s) en inventario</p></div>
+        <div><h1 className="page__title">Repuestos</h1><p className="page__subtitle">{total} repuesto(s) en inventario</p></div>
         <div style={{ display: 'flex', gap: '0.5rem' }}>
           <button className="btn btn--outline" onClick={exportarExcel} style={{ color: '#16a34a', borderColor: '#16a34a' }}><MdTableChart size={17} />Exportar Excel</button>
           <button className="btn btn--primary" onClick={openCreate} disabled={!puedeCrear}><MdAdd size={18} />Nuevo repuesto</button>
@@ -193,7 +227,7 @@ export default function RepuestosPage() {
           <button
             className="btn btn--sm btn--outline"
             style={{ marginLeft: 'auto' }}
-            onClick={() => setStockBajoFilter(v => !v)}
+            onClick={onToggleBajo}
           >
             {stockBajoFilter ? 'Ver todos' : 'Ver solo stock bajo'}
           </button>
@@ -203,25 +237,37 @@ export default function RepuestosPage() {
         <div className="card__header">
           <SearchBar
             value={search}
-            onChange={setSearch}
+            onChange={onSearch}
             placeholder="Buscar por nombre..."
             filterSlot={
               <>
-                <select className="filter-select" value={categoriaFilter} onChange={e => setCategoriaFilter(e.target.value)}>
+                <select className="filter-select" value={categoriaFilter} onChange={e => onCategoria(e.target.value)}>
                   <option value="">Todas las categorías</option>
                   {categorias.map(c => <option key={c.Id_categoria} value={c.Id_categoria}>{c.Nombre}</option>)}
                 </select>
                 <FilterDropdown
                   statusFilter={statusFilter}
-                  onStatusChange={setStatusFilter}
+                  onStatusChange={onStatus}
                   pageSize={pageSize}
-                  onPageSizeChange={setPageSize}
+                  onPageSizeChange={onPageSize}
                 />
               </>
             }
           />
         </div>
-        <Table columns={columns} data={filtered} loading={loading} pageSize={pageSize} emptyMessage="No se encontraron repuestos" />
+        <Table
+          columns={columns}
+          data={rows}
+          loading={listLoading}
+          serverSide
+          total={total}
+          page={page}
+          onPageChange={setPage}
+          pageSize={pageSize}
+          searchTerm={search}
+          onClearSearch={() => onSearch('')}
+          emptyMessage="No se encontraron repuestos"
+        />
       </div>
 
       <Modal isOpen={!!detailItem} onClose={() => setDetailItem(null)} title="Detalle del repuesto" size="md">

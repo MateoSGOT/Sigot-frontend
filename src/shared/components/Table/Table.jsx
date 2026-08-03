@@ -15,22 +15,38 @@ export default function Table({
   searchTerm,        // si hay búsqueda activa y no hay datos → variante "sin resultados"
   onClearSearch,     // acción "Limpiar búsqueda" para la variante no-results
   pageSize: externalPageSize,
+  // Modo server-side (OPT-IN). Si serverSide=false (default), el comportamiento es idéntico
+  // al de siempre (paginación en cliente) → no afecta a los demás módulos.
+  serverSide = false,
+  total = 0,         // total de registros (server-side)
+  page: serverPage = 1,
+  onPageChange,      // (nuevaPagina) => void  — el padre pide esa página al backend
 }) {
   const [page, setPage] = useState(1);
   const [internalPageSize] = useState(DEFAULT_PAGE_SIZE);
 
   const effectivePageSize = externalPageSize ?? internalPageSize;
-  const showAll = effectivePageSize === 'all';
+  const showAll = !serverSide && effectivePageSize === 'all';
 
-  useEffect(() => { setPage(1); }, [data.length, effectivePageSize]);
+  // En client-side reseteamos a la página 1 al cambiar los datos/tamaño; en server-side
+  // la página la controla el padre (no tocamos el estado interno).
+  useEffect(() => { if (!serverSide) setPage(1); }, [serverSide, data.length, effectivePageSize]);
 
-  const totalItems = data.length;
-  const totalPages = showAll ? 1 : Math.max(1, Math.ceil(totalItems / effectivePageSize));
-  const safePage = Math.min(page, totalPages);
+  const numericPageSize = typeof effectivePageSize === 'number' ? effectivePageSize : DEFAULT_PAGE_SIZE;
+  const totalItems = serverSide ? total : data.length;
+  const totalPages = serverSide
+    ? Math.max(1, Math.ceil(total / numericPageSize))
+    : (showAll ? 1 : Math.max(1, Math.ceil(totalItems / effectivePageSize)));
+  const safePage = serverSide ? serverPage : Math.min(page, totalPages);
   const start = showAll ? 0 : (safePage - 1) * effectivePageSize;
-  const pageData = showAll ? data : data.slice(start, start + effectivePageSize);
+  // Server-side: 'data' ya es la página actual (no se corta). Client-side: se corta el array.
+  const pageData = serverSide ? data : (showAll ? data : data.slice(start, start + effectivePageSize));
 
-  const goTo = (p) => setPage(Math.max(1, Math.min(p, totalPages)));
+  const goTo = (p) => {
+    const np = Math.max(1, Math.min(p, totalPages));
+    if (serverSide) onPageChange?.(np);
+    else setPage(np);
+  };
 
   const skeletonRows = typeof effectivePageSize === 'number' ? Math.min(effectivePageSize, 8) : 6;
 
