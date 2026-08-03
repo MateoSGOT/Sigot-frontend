@@ -95,6 +95,18 @@ function ProgresoEstado({ estadoActual, onAvanzar, loading, disabled, sinTrabajo
 const EMPTY_EDIT = { Diagnostico: '', Kilometraje: '', FechaIngreso: '', FechaEntrega: '' };
 const ITEMS_PER_PAGE = 5;
 
+// Formatea minutos a algo legible: 90 -> "1h 30min", 45 -> "45min", 120 -> "2h".
+// null/sin estimar -> "—".
+const fmtDuracion = (min) => {
+  if (min == null || min === '' || Number.isNaN(Number(min))) return '—';
+  const m = Number(min);
+  const h = Math.floor(m / 60);
+  const r = m % 60;
+  if (h > 0 && r > 0) return `${h}h ${r}min`;
+  if (h > 0) return `${h}h`;
+  return `${r}min`;
+};
+
 export default function OrdenesPage() {
   const dispatch = useDispatch();
   const { items, selected, loading, actionLoading } = useSelector(s => s.ordenes);
@@ -335,6 +347,7 @@ export default function OrdenesPage() {
                 <div className="detail-grid">
                   <div className="detail-item"><span className="detail-label">Cliente</span><span className="detail-value">{selected.Cliente || '—'}</span></div>
                   <div className="detail-item"><span className="detail-label">Documento del cliente</span><span className="detail-value">{selected.ClienteDoc || '—'}</span></div>
+                  <div className="detail-item"><span className="detail-label">Correo del cliente</span><span className="detail-value">{selected.ClienteCorreo || '—'}</span></div>
                   <div className="detail-item"><span className="detail-label">Empleado asignado</span><span className="detail-value">{selected.Empleado || '—'}</span></div>
                   <div className="detail-item"><span className="detail-label">Vehículo</span><span className="detail-value">{selected.Vehiculo || selected.Placa || '—'}{selected.Marca ? ` · ${selected.Marca}${selected.Modelo ? ` ${selected.Modelo}` : ''}` : ''}</span></div>
                   <div className="detail-item"><span className="detail-label">Fecha de ingreso</span><span className="detail-value">{formatDate(selected.FechaIngreso)}</span></div>
@@ -425,6 +438,7 @@ export default function OrdenesPage() {
                           servSlice.map((s, i) => (
                             <div key={i} className="orden-item-row">
                               <span className="orden-item-name">{s.servicio || s.Nombre || s.nombre || `Servicio #${s.Id_Servicio}`}</span>
+                              <span className="orden-item-duracion" style={{ color: 'var(--color-text-muted)', fontSize: '0.8rem', whiteSpace: 'nowrap' }} title="Duración estimada">{fmtDuracion(s.DuracionMinutos)}</span>
                               <span className="orden-item-price">{formatCurrency(s.precio_unitario || s.Precio)}</span>
                               {!contenidoBloqueado && (
                                 <button className="btn btn--ghost btn--icon btn--sm orden-item-delete" title="Eliminar servicio" onClick={() => handleDeleteServicio(s.Id_Servicio)} disabled={actionLoading}>
@@ -435,6 +449,13 @@ export default function OrdenesPage() {
                           ))
                         ) : <p className="empty-list">No hay servicios agregados.</p>}
                       </div>
+                      {servItems.length > 0 && (
+                        <div className="orden-item-row" style={{ fontWeight: 600 }}>
+                          <span className="orden-item-name">Tiempo total estimado</span>
+                          <span className="orden-item-duracion" style={{ whiteSpace: 'nowrap' }}>{fmtDuracion(selected?.DuracionTotalMin)}</span>
+                          <span className="orden-item-price" />
+                        </div>
+                      )}
                       {servItems.length > ITEMS_PER_PAGE && (
                         <div className="pagination-controls">
                           <button className="btn btn--outline btn--sm" onClick={() => setServPage(p => p - 1)} disabled={servPage === 0}>Anterior</button>
