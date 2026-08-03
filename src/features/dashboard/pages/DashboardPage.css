@@ -137,3 +137,15 @@
   .dashboard-charts { grid-template-columns: 1fr; padding: 0 1rem 1rem; }
   .dashboard-chart-card--wide { grid-column: span 1; }
 }
+
+/* Selector de rango (Tanda B) */
+.dashboard-rango {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3, 12px);
+  flex-wrap: wrap;
+  padding: 0 var(--space-4, 16px) var(--space-3, 12px);
+}
+.dashboard-rango__presets { display: flex; gap: 6px; flex-wrap: wrap; }
+.dashboard-rango__custom { display: flex; align-items: center; gap: 8px; }
+.dashboard-rango__custom .form-control { width: auto; }
