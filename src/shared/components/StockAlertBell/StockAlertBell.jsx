@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { MdNotifications, MdWarning } from 'react-icons/md';
 import api from '../../services/api.js';
@@ -10,7 +11,9 @@ export default function StockAlertBell() {
   const [items, setItems]       = useState([]);
   const [open, setOpen]         = useState(false);
   const [loading, setLoading]   = useState(false);
-  const ref = useRef(null);
+  const [pos, setPos]           = useState({ top: 0, left: 0 });
+  const btnRef = useRef(null);
+  const dropdownRef = useRef(null);
 
   const fetchStockBajo = async () => {
     setLoading(true);
@@ -24,27 +27,45 @@ export default function StockAlertBell() {
   useEffect(() => { fetchStockBajo(); }, []);
 
   useEffect(() => {
-    const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    // Cerrar al hacer clic fuera del botón Y fuera del dropdown (que ahora
+    // vive en un portal, fuera del subárbol del sidebar).
+    const handler = (e) => {
+      if (btnRef.current?.contains(e.target)) return;
+      if (dropdownRef.current?.contains(e.target)) return;
+      setOpen(false);
+    };
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, []);
 
+  // Recalcular la posición del panel (fixed) desde el botón mientras está abierto.
+  const recalcPos = () => {
+    if (!btnRef.current) return;
+    const r = btnRef.current.getBoundingClientRect();
+    setPos({ top: r.bottom + 8, left: r.left });
+  };
+
+  useEffect(() => {
+    if (!open) return;
+    recalcPos();
+    window.addEventListener('resize', recalcPos);
+    window.addEventListener('scroll', recalcPos, true);
+    return () => {
+      window.removeEventListener('resize', recalcPos);
+      window.removeEventListener('scroll', recalcPos, true);
+    };
+  }, [open]);
+
+  const toggle = () => {
+    if (!open) recalcPos();
+    setOpen(o => !o);
+  };
+
   const count = items.length;
 
-  return (
-    <div className="stock-bell" ref={ref}>
-      <button
-        className={`stock-bell__btn ${count > 0 ? 'stock-bell__btn--alert' : ''}`}
-        onClick={() => setOpen(o => !o)}
-        title="Alertas de stock"
-      >
-        <MdNotifications size={20} />
-        {count > 0 && <span className="stock-bell__badge">{count > 99 ? '99+' : count}</span>}
-      </button>
-
-      {open && (
-        <div className="stock-bell__dropdown">
-          <div className="stock-bell__header">
+  const dropdown = open && createPortal(
+    <div className="stock-bell__dropdown" ref={dropdownRef} style={{ top: pos.top, left: pos.left }}>
+      <div className="stock-bell__header">
             <MdWarning size={16} />
             <span>Stock bajo ({count})</span>
           </div>
@@ -74,13 +95,27 @@ export default function StockAlertBell() {
               </span>
             </div>
           ))}
-          {count > 0 && (
-            <button className="stock-bell__ver-todos" onClick={() => { setOpen(false); navigate('/repuestos'); }}>
-              Ver todos en Repuestos →
-            </button>
-          )}
-        </div>
+      {count > 0 && (
+        <button className="stock-bell__ver-todos" onClick={() => { setOpen(false); navigate('/repuestos'); }}>
+          Ver todos en Repuestos →
+        </button>
       )}
+    </div>,
+    document.body
+  );
+
+  return (
+    <div className="stock-bell">
+      <button
+        ref={btnRef}
+        className={`stock-bell__btn ${count > 0 ? 'stock-bell__btn--alert' : ''}`}
+        onClick={toggle}
+        title="Alertas de stock"
+      >
+        <MdNotifications size={20} />
+        {count > 0 && <span className="stock-bell__badge">{count > 99 ? '99+' : count}</span>}
+      </button>
+      {dropdown}
     </div>
   );
 }

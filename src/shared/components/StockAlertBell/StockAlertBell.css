@@ -36,16 +36,18 @@
   line-height: 1;
 }
 
+/* Renderizado vía portal al <body> con position:fixed (top/left inline
+   calculados desde el botón). Así escapa del overflow:hidden del sidebar
+   —que se necesita para el brillo ::before y el borde glass— y flota
+   completo sobre el contenido en vez de recortarse a los 240px. */
 .stock-bell__dropdown {
-  position: absolute;
-  top: calc(100% + 8px);
-  left: 0;
+  position: fixed;
   width: 280px;
   background: #fff;
   border: 1px solid #e5e7eb;
   border-radius: 10px;
   box-shadow: 0 8px 24px rgba(0,0,0,0.13);
-  z-index: 200;
+  z-index: 900;
   overflow: hidden;
 }
 
