@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { loginThunk, clearError } from '../slices/authSlice.js';
 import { authService } from '../services/authService.js';
 import { MdLock, MdEmail, MdVisibility, MdVisibilityOff, MdClose, MdBuild, MdAssignment, MdEventNote, MdSend } from 'react-icons/md';
+import { correo as validarCorreo } from '../../../shared/utils/validators.js';
 import './LoginPage.css';
 
 const FEATURES = [
@@ -25,8 +26,13 @@ export default function LoginPage() {
   const [showRecovery, setShowRecovery] = useState(false);
   const [recoveryStep, setRecoveryStep] = useState(1); // 1 = form, 2 = confirmation
   const [recoveryEmail, setRecoveryEmail] = useState('');
+  const [recoveryTouched, setRecoveryTouched] = useState(false);
   const [recoveryLoading, setRecoveryLoading] = useState(false);
   const [recoveryError, setRecoveryError] = useState('');
+
+  // Validación de FORMATO en tiempo real (no revela si el correo existe:
+  // eso lo maneja el backend con un mensaje genérico anti-enumeración).
+  const recoveryFormatError = validarCorreo(recoveryEmail, false);
   const [resendCountdown, setResendCountdown] = useState(0);
   const countdownRef = useRef(null);
 
@@ -73,6 +79,7 @@ export default function LoginPage() {
     setShowRecovery(true);
     setRecoveryStep(1);
     setRecoveryEmail('');
+    setRecoveryTouched(false);
     setRecoveryError('');
     setResendCountdown(0);
     if (countdownRef.current) clearInterval(countdownRef.current);
@@ -99,7 +106,8 @@ export default function LoginPage() {
 
   const handleRecoverySubmit = (e) => {
     e.preventDefault();
-    if (!recoveryEmail.trim()) return;
+    setRecoveryTouched(true);
+    if (recoveryFormatError) return; // formato inválido → no se envía
     sendRecovery(recoveryEmail);
   };
 
@@ -219,25 +227,30 @@ export default function LoginPage() {
                       <label className="login-form__label">
                         Correo electrónico
                       </label>
-                      <div className="login-form__field login-form__field--light">
+                      <div className={`login-form__field login-form__field--light${recoveryTouched && recoveryFormatError ? ' login-form__field--error' : ''}`}>
                         <MdEmail className="login-form__field-icon login-form__field-icon--light" size={18} />
                         <input
                           type="email"
                           className="login-form__input login-form__input--light"
                           placeholder="correo@empresa.com"
                           value={recoveryEmail}
-                          onChange={e => { setRecoveryEmail(e.target.value); setRecoveryError(''); }}
+                          onChange={e => { setRecoveryEmail(e.target.value); setRecoveryTouched(true); setRecoveryError(''); }}
+                          onBlur={() => setRecoveryTouched(true)}
+                          aria-invalid={recoveryTouched && !!recoveryFormatError}
                           autoFocus
                           required
                         />
                       </div>
+                      {recoveryTouched && recoveryFormatError && (
+                        <p className="login-recovery__field-error">{recoveryFormatError}</p>
+                      )}
                     </div>
 
                     {recoveryError && (
                       <div className="login-recovery__error">{recoveryError}</div>
                     )}
 
-                    <button type="submit" className="login-recovery-form__btn" disabled={recoveryLoading}>
+                    <button type="submit" className="login-recovery-form__btn" disabled={recoveryLoading || !!recoveryFormatError}>
                       {recoveryLoading
                         ? <><span className="login-form__spinner login-form__spinner--green" />Enviando...</>
                         : <><MdSend size={16} />Enviar enlace de recuperación</>

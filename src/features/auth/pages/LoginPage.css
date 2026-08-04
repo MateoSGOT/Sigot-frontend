@@ -240,6 +240,15 @@
   font-size: var(--text-small);
 }
 
+/* Validación de formato del correo (bajo el campo) */
+.login-form__field--error { border-color: var(--color-danger); }
+.login-form__field--error:focus-within { box-shadow: 0 0 0 3px var(--color-danger-soft); }
+.login-recovery__field-error {
+  margin-top: var(--space-xs);
+  font-size: var(--text-small);
+  color: var(--color-danger-soft-on);
+}
+
 .login-recovery-form__btn {
   padding: var(--space-md);
   background: var(--color-primary-strong);
