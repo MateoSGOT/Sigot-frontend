@@ -49,3 +49,26 @@ img { max-width: 100%; }
 
 .w-full   { width: 100%; }
 .truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* === Utilidades de espaciado/tipografía basadas en tokens ===
+   Reemplazan inline styles sueltos. Valores snappeados a la escala 4px. */
+.u-mt-xs { margin-top: var(--space-xs); }
+.u-mt-lg { margin-top: var(--space-lg); }
+.u-mt-xl { margin-top: var(--space-xl); }
+.u-mb-sm { margin-bottom: var(--space-sm); }
+.u-mb-md { margin-bottom: var(--space-md); }
+.u-mb-lg { margin-bottom: var(--space-lg); }
+.u-mb-xl { margin-bottom: var(--space-xl); }
+.u-span-2  { grid-column: span 2; }
+.u-nowrap  { white-space: nowrap; }
+.u-flex-1  { flex: 1; }
+.u-semibold { font-weight: var(--weight-semibold); }
+.u-bold     { font-weight: var(--weight-bold); }
+.u-hint     { font-size: var(--text-caption); color: var(--color-text-muted); }
+.u-hint-sm  { font-size: var(--text-small);   color: var(--color-text-muted); }
+.u-muted-nowrap { font-size: var(--text-small); color: var(--color-text-muted); white-space: nowrap; }
+.u-center-note  { text-align: center; padding: var(--space-xl); color: var(--color-text-muted); }
+.fs-body    { font-size: var(--text-body); }
+.fs-sm      { font-size: var(--text-small); }
+.fs-caption { font-size: var(--text-caption); }
+.u-ic-mr    { margin-right: var(--space-xs); vertical-align: middle; }

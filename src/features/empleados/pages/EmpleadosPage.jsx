@@ -144,10 +144,10 @@ export default function EmpleadosPage() {
     { key: '#', label: '#', width: '50px', render: (_, __, i) => i + 1 },
     {
       key: 'Nombre', label: 'Nombre', render: (v, row) => (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
+        <div className="emp-cell">
           {(row.Foto_url || row.Foto)
-            ? <img src={row.Foto_url || row.Foto} alt="" style={{ width: 28, height: 28, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
-            : <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'rgba(181,242,61,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', fontWeight: 700, color: '#b5f23d', flexShrink: 0 }}>{v?.charAt(0)}</div>
+            ? <img src={row.Foto_url || row.Foto} alt="" className="emp-avatar" />
+            : <div className="emp-avatar emp-avatar--fallback">{v?.charAt(0)}</div>
           }
           <span className="font-medium">{v}</span>
         </div>
@@ -160,8 +160,8 @@ export default function EmpleadosPage() {
       key: 'novedades', label: 'Novedades', render: (_, row) => {
         const novs = getEmpNovedades(row.Id_Empleado);
         return novs.length > 0
-          ? <Badge variant="warning"><MdWarning size={12} style={{ marginRight: '3px' }} />{novs.length} novedad(es)</Badge>
-          : <span className="text-muted" style={{ fontSize: '0.8rem' }}>Sin novedades</span>;
+          ? <Badge variant="warning"><MdWarning size={12} className="u-ic-mr" />{novs.length} novedad(es)</Badge>
+          : <span className="text-muted fs-sm">Sin novedades</span>;
       }
     },
     { key: 'Estado', label: 'Estado', render: (v, row) => esAdminSistema(row) ? <Badge variant="gray">Sistema</Badge> : <StatusBadge estado={v} /> },
@@ -193,8 +193,8 @@ export default function EmpleadosPage() {
       </div>
 
       {savedOk && (
-        <div style={{ margin: '0.75rem 2rem 0', padding: '0.75rem 1rem', background: 'rgba(181,242,61,0.12)', border: '1px solid rgba(181,242,61,0.3)', borderRadius: '8px', color: '#b5f23d', fontSize: '0.875rem' }}>
-          <MdCheck size={16} style={{marginRight:'4px',verticalAlign:'middle'}} /> Empleado guardado correctamente.
+        <div className="emp-novedad-banner">
+          <MdCheck size={16} className="u-ic-mr" /> Empleado guardado correctamente.
         </div>
       )}
 
@@ -210,7 +210,7 @@ export default function EmpleadosPage() {
       <Modal isOpen={!!detailItem} onClose={() => setDetailItem(null)} title="Detalle del empleado" size="lg">
         {detailItem && (
           <div>
-            <div className="detail-grid" style={{ marginBottom: '1.5rem' }}>
+            <div className="detail-grid u-mb-xl">
               <div className="detail-item"><span className="detail-label">Nombre</span><span className="detail-value">{detailItem.Nombre}</span></div>
               <div className="detail-item"><span className="detail-label">Documento</span><span className="detail-value">{detailItem.Documento}</span></div>
               <div className="detail-item"><span className="detail-label">Tipo documento</span><span className="detail-value">{detailItem.TipoDocumento || detailItem.Id_TipoDoc}</span></div>
@@ -220,14 +220,14 @@ export default function EmpleadosPage() {
             </div>
             {detailNovedades.length > 0 && (
               <div>
-                <h4 style={{ marginBottom: '0.75rem', fontSize: '0.875rem', fontWeight: '700' }}>Novedades registradas</h4>
+                <h4 className="u-mb-md fs-body u-bold">Novedades registradas</h4>
                 <div className="novedades-list">
                   {detailNovedades.map((n, i) => (
                     <div key={i} className="novedad-item">
-                      <MdWarning size={16} style={{ color: '#f5a623', flexShrink: 0 }} />
+                      <MdWarning size={16} className="text-warning" style={{ flexShrink: 0 }} />
                       <div>
-                        <p style={{ fontSize: '0.875rem', fontWeight: '600' }}>{n.Descripcion}</p>
-                        <p style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>{formatDate(n.Fecha_Novedad)}</p>
+                        <p className="fs-body u-semibold">{n.Descripcion}</p>
+                        <p className="u-hint">{formatDate(n.Fecha_Novedad)}</p>
                       </div>
                     </div>
                   ))}

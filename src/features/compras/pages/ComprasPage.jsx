@@ -227,35 +227,35 @@ export default function ComprasPage() {
       >
         {detailItem && (
           <div>
-            <div className="detail-grid" style={{ marginBottom: '1.25rem' }}>
+            <div className="detail-grid u-mb-xl">
               <div className="detail-item"><span className="detail-label">Proveedor</span><span className="detail-value">{detailItem.Proveedor || getNombre(proveedores, 'Id_Proveedor', detailItem.Id_Proveedor)}</span></div>
               <div className="detail-item"><span className="detail-label">Fecha</span><span className="detail-value">{formatDate(detailItem.Fecha)}</span></div>
               <div className="detail-item"><span className="detail-label">Estado</span><span className="detail-value">{detailItem.Anulada ? <Badge variant="gray">Anulada</Badge> : <Badge variant="success">Vigente</Badge>}</span></div>
             </div>
-            <h4 style={{ fontSize: '0.875rem', fontWeight: 700, marginBottom: '0.75rem' }}>Productos ({detailItems.length})</h4>
-            <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.875rem' }}>
+            <h4 className="compra-detail__subhead">Productos ({detailItems.length})</h4>
+            <div className="compra-detail__scroll">
+              <table className="compra-detail-table">
                 <thead>
-                  <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+                  <tr>
                     {['Repuesto', 'Cantidad', 'Precio unitario', 'Subtotal'].map(h => (
-                      <th key={h} style={{ textAlign: 'left', padding: '0.5rem 0.75rem', color: 'var(--color-text-muted)', fontWeight: 600, fontSize: '0.78rem' }}>{h}</th>
+                      <th key={h}>{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
                   {detailItems.map((row, i) => (
-                    <tr key={i} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                      <td style={{ padding: '0.5rem 0.75rem' }}>{row.Repuesto || getNombre(repuestos, 'Id_Repuesto', row.Id_Repuesto)}</td>
-                      <td style={{ padding: '0.5rem 0.75rem' }}>{row.Cantidad}</td>
-                      <td style={{ padding: '0.5rem 0.75rem' }}>{formatCurrency(row.PrecioUnitario)}</td>
-                      <td style={{ padding: '0.5rem 0.75rem', fontWeight: 600 }}>{formatCurrency(Number(row.Cantidad) * Number(row.PrecioUnitario))}</td>
+                    <tr key={i}>
+                      <td>{row.Repuesto || getNombre(repuestos, 'Id_Repuesto', row.Id_Repuesto)}</td>
+                      <td>{row.Cantidad}</td>
+                      <td>{formatCurrency(row.PrecioUnitario)}</td>
+                      <td className="is-total">{formatCurrency(Number(row.Cantidad) * Number(row.PrecioUnitario))}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
-            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '1rem', paddingTop: '0.75rem', borderTop: '1px solid rgba(255,255,255,0.08)' }}>
-              <span style={{ fontWeight: 700, fontSize: '1rem' }}>Total: {formatCurrency(detailTotal)}</span>
+            <div className="compra-detail__total">
+              <span className="compra-detail__total-value">Total: {formatCurrency(detailTotal)}</span>
             </div>
           </div>
         )}
@@ -277,7 +277,7 @@ export default function ComprasPage() {
         }
       >
         {formError && (
-          <div className="form-error-box" style={{ marginBottom: '1rem' }}>{formError}</div>
+          <div className="form-error-box u-mb-lg">{formError}</div>
         )}
         <form className="compra-form" onSubmit={handleSubmit} noValidate>
           <div className="form-grid">

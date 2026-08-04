@@ -174,7 +174,7 @@ export default function DashboardPage() {
             {loading ? <Skeleton height={220} /> : ingresosSerie.length > 0 ? (
               <ResponsiveContainer width="100%" height={240}>
                 <AreaChart data={ingresosSerie}>
-                  <defs><linearGradient id="colorIng" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#2d6a2d" stopOpacity={0.18} /><stop offset="95%" stopColor="#2d6a2d" stopOpacity={0} /></linearGradient></defs>
+                  <defs><linearGradient id="colorIng" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#16a34a" stopOpacity={0.28} /><stop offset="60%" stopColor="#16a34a" stopOpacity={0.10} /><stop offset="100%" stopColor="#b5f23d" stopOpacity={0.02} /></linearGradient></defs>
                   <CartesianGrid {...CHART_STYLE.grid} />
                   <XAxis dataKey="name" tick={CHART_STYLE.tick} axisLine={false} tickLine={false} />
                   <YAxis tick={CHART_STYLE.tick} axisLine={false} tickLine={false} tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`} />
@@ -195,11 +195,12 @@ export default function DashboardPage() {
             {loading ? <Skeleton height={220} /> : rep.topServicios.length > 0 ? (
               <ResponsiveContainer width="100%" height={220}>
                 <BarChart data={rep.topServicios.map(s => ({ name: s.nombre, value: s.veces }))} layout="vertical">
+                  <defs><linearGradient id="gradServ" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stopColor="#15803d" /><stop offset="100%" stopColor="#22c55e" /></linearGradient></defs>
                   <CartesianGrid {...CHART_STYLE.grid} horizontal={false} />
                   <XAxis type="number" tick={CHART_STYLE.tick} axisLine={false} tickLine={false} allowDecimals={false} />
                   <YAxis type="category" dataKey="name" tick={CHART_STYLE.tick} axisLine={false} tickLine={false} width={130} />
                   <Tooltip {...CHART_STYLE.tooltip} formatter={(v, _n, p) => [`${v} vez(es)`, p?.payload?.name]} />
-                  <Bar dataKey="value" name="Veces" fill="#2d6a2d" radius={[0, 4, 4, 0]} />
+                  <Bar dataKey="value" name="Veces" fill="url(#gradServ)" radius={[0, 4, 4, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             ) : EMPTY_CHART}
@@ -212,11 +213,12 @@ export default function DashboardPage() {
             {loading ? <Skeleton height={220} /> : rep.topRepuestos.length > 0 ? (
               <ResponsiveContainer width="100%" height={220}>
                 <BarChart data={rep.topRepuestos.map(s => ({ name: s.nombre, value: s.cantidad }))} layout="vertical">
+                  <defs><linearGradient id="gradRep" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stopColor="#2563eb" /><stop offset="100%" stopColor="#3b82f6" /></linearGradient></defs>
                   <CartesianGrid {...CHART_STYLE.grid} horizontal={false} />
                   <XAxis type="number" tick={CHART_STYLE.tick} axisLine={false} tickLine={false} allowDecimals={false} />
                   <YAxis type="category" dataKey="name" tick={CHART_STYLE.tick} axisLine={false} tickLine={false} width={130} />
                   <Tooltip {...CHART_STYLE.tooltip} formatter={(v, _n, p) => [`${v} unidad(es)`, p?.payload?.name]} />
-                  <Bar dataKey="value" name="Cantidad" fill="#3a6b9e" radius={[0, 4, 4, 0]} />
+                  <Bar dataKey="value" name="Cantidad" fill="url(#gradRep)" radius={[0, 4, 4, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             ) : EMPTY_CHART}

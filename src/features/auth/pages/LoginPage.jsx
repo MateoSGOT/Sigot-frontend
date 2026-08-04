@@ -216,7 +216,7 @@ export default function LoginPage() {
 
                   <form className="login-recovery-form" onSubmit={handleRecoverySubmit}>
                     <div className="login-form__group">
-                      <label className="login-form__label" style={{ color: '#374151' }}>
+                      <label className="login-form__label">
                         Correo electrónico
                       </label>
                       <div className="login-form__field login-form__field--light">

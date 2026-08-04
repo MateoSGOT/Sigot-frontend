@@ -13,3 +13,23 @@
 .file-upload-area:hover { border-color: rgba(181,242,61,0.5); background: rgba(181,242,61,0.04); }
 .file-upload-label { font-size: 0.875rem; font-weight: 500; color: var(--color-text-muted); }
 .file-upload-hint { font-size: 0.7rem; color: rgba(255,255,255,0.28); }
+
+/* Celda de nombre con avatar (reemplaza inline styles, tokens) */
+.emp-cell { display: flex; align-items: center; gap: var(--space-sm); }
+.emp-avatar { width: 28px; height: 28px; border-radius: var(--radius-full); object-fit: cover; flex-shrink: 0; }
+.emp-avatar--fallback {
+  background: var(--color-accent-soft);
+  color: var(--color-accent-soft-on);
+  display: flex; align-items: center; justify-content: center;
+  font-size: var(--text-caption); font-weight: var(--weight-bold);
+}
+/* Banner de novedades activas */
+.emp-novedad-banner {
+  margin: var(--space-md) var(--space-2xl) 0;
+  padding: var(--space-md) var(--space-lg);
+  background: var(--color-accent-soft);
+  border: 1px solid var(--color-accent);
+  border-radius: var(--radius-md);
+  color: var(--color-accent-soft-on);
+  font-size: var(--text-body);
+}

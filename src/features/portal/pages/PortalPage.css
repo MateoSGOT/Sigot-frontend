@@ -360,3 +360,18 @@
   .portal-profile-fields { grid-template-columns: 1fr; }
   .portal-profile-field-label { font-size: 0.75rem; }
 }
+
+/* Badge de estado de cita — tokens semánticos (pares accesibles) */
+.cita-badge {
+  display: inline-block;
+  padding: 2px var(--space-sm);
+  border-radius: var(--radius-full);
+  font-size: var(--text-caption);
+  font-weight: var(--weight-semibold);
+}
+.cita-badge--pendiente  { background: var(--color-info-soft);    color: var(--color-info-soft-on); }
+.cita-badge--atendida   { background: var(--color-success-soft); color: var(--color-success-soft-on); }
+.cita-badge--cancelada  { background: var(--color-danger-soft);  color: var(--color-danger-soft-on); }
+.cita-badge--noasistio  { background: var(--color-warning-soft); color: var(--color-warning-soft-on); }
+/* Confirmada: cian sin token equivalente; par accesible conservado (AA) */
+.cita-badge--confirmada { background: #ecfeff; color: #0e7490; }

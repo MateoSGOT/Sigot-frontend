@@ -159,4 +159,45 @@
   --blur: blur(16px);
   --blur-lg: blur(24px);
   --blur-xl: blur(40px);
+
+  /* === Radios canónicos (antes referenciados pero sin definir) ===
+     input=sm(6) · card/botón/modal=md(10) · feature=lg(14) · badge/pill=full. */
+  --radius-sm:   6px;
+  --radius-md:   10px;
+  --radius-lg:   14px;
+  --radius-full: 999px;
+  /* aliases legacy usados en páginas antiguas */
+  --radius:      10px;
+  --radius-xl:   16px;
+  --radius-2xl:  20px;
+
+  /* ============================================================
+     TEXTURA Y FONDOS (Tanda F) — riqueza visual sobre el sistema,
+     con moderación. Todos derivados de la paleta actual.
+     ============================================================ */
+  /* Patrón de puntos tenue (SVG propio, sin imágenes de stock). Dos variantes
+     según el fondo para no perder contraste. */
+  --pattern-dots-dark:  url("data:image/svg+xml,%3Csvg width='22' height='22' viewBox='0 0 22 22' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='2' cy='2' r='1' fill='%23ffffff' fill-opacity='0.05'/%3E%3C/svg%3E");
+  --pattern-dots-light: url("data:image/svg+xml,%3Csvg width='22' height='22' viewBox='0 0 22 22' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='2' cy='2' r='1' fill='%23166534' fill-opacity='0.05'/%3E%3C/svg%3E");
+
+  /* Fondo de la app: degradados MUY sutiles de marca en las esquinas, sobre --color-bg.
+     No afecta legibilidad del contenido (las cards son superficies sólidas encima). */
+  --bg-app:
+    radial-gradient(1200px 620px at 100% -8%,  rgba(22, 163, 74, 0.055), transparent 60%),
+    radial-gradient(1000px 520px at -8% 108%,  rgba(181, 242, 61, 0.06),  transparent 55%),
+    var(--color-bg);
+
+  /* Header del dashboard: velo de marca + puntos discretos. */
+  --bg-header:
+    var(--pattern-dots-light),
+    linear-gradient(135deg, rgba(22, 163, 74, 0.10) 0%, rgba(181, 242, 61, 0.06) 100%);
+
+  /* Panel decorativo del login: verde profundo con brillo esmeralda + puntos. */
+  --bg-login-panel:
+    var(--pattern-dots-dark),
+    radial-gradient(900px 600px at 22% 18%, rgba(22, 163, 74, 0.55), transparent 62%),
+    linear-gradient(160deg, #0d1f0d 0%, #12331b 55%, #0a1a0a 100%);
+
+  /* Sidebar: degradado sutil (oscuro → más oscuro) con tinte de marca imperceptible. */
+  --sidebar-bg-gradient: linear-gradient(180deg, #0f2611 0%, #0d1f0d 52%, #0a190a 100%);
 }

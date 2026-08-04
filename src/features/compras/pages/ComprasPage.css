@@ -105,3 +105,21 @@ select.form-control--sm {
   font-size: 0.75rem; color: #f5a623;
   padding: 0.25rem 0.75rem 0.5rem;
 }
+
+/* Tabla de detalle de compra (reemplaza estilos inline por tokens) */
+.compra-detail__subhead { font-size: var(--text-body); font-weight: var(--weight-bold); margin-bottom: var(--space-md); }
+.compra-detail__scroll { overflow-x: auto; }
+.compra-detail-table { width: 100%; border-collapse: collapse; font-size: var(--text-body); }
+.compra-detail-table th {
+  text-align: left; padding: var(--space-sm) var(--space-md);
+  color: var(--color-text-muted); font-weight: var(--weight-semibold);
+  font-size: var(--text-small); border-bottom: 1px solid var(--color-border);
+}
+.compra-detail-table td { padding: var(--space-sm) var(--space-md); border-bottom: 1px solid var(--color-border); }
+.compra-detail-table td.is-total { font-weight: var(--weight-semibold); }
+.compra-detail__total {
+  display: flex; justify-content: flex-end;
+  margin-top: var(--space-lg); padding-top: var(--space-md);
+  border-top: 1px solid var(--color-border);
+}
+.compra-detail__total-value { font-weight: var(--weight-bold); font-size: var(--text-h3); }

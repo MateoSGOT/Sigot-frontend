@@ -343,7 +343,7 @@ export default function OrdenesPage() {
             </div>
 
             {activeTab === 'info' && selected && (
-              <div style={{ marginTop: '1rem' }}>
+              <div className="u-mt-lg">
                 <div className="detail-grid">
                   <div className="detail-item"><span className="detail-label">Cliente</span><span className="detail-value">{selected.Cliente || '—'}</span></div>
                   <div className="detail-item"><span className="detail-label">Documento del cliente</span><span className="detail-value">{selected.ClienteDoc || '—'}</span></div>
@@ -354,21 +354,21 @@ export default function OrdenesPage() {
                   <div className="detail-item"><span className="detail-label">Fecha de entrega</span><span className="detail-value">{formatDate(selected.FechaEntrega)}</span></div>
                   <div className="detail-item"><span className="detail-label">Kilometraje</span><span className="detail-value">{selected.Kilometraje ? `${Number(selected.Kilometraje).toLocaleString('es-CO')} km` : '—'}</span></div>
                   <div className="detail-item"><span className="detail-label">Estado</span><span className="detail-value"><EstadoBadge estado={selected.Estado} /></span></div>
-                  <div className="detail-item" style={{ gridColumn: 'span 2' }}><span className="detail-label">Diagnóstico</span><span className="detail-value">{selected.Diagnostico || '—'}</span></div>
+                  <div className="detail-item u-span-2"><span className="detail-label">Diagnóstico</span><span className="detail-value">{selected.Diagnostico || '—'}</span></div>
                 </div>
 
                 {/* Estado de la orden — siempre visible para poder activar/inactivar
                     o avanzar el flujo, incluso si el contenido está bloqueado. */}
-                <div style={{ marginTop: '1.5rem' }}>
-                  <p className="detail-label" style={{ marginBottom: '0.875rem' }}>
+                <div className="u-mt-xl">
+                  <p className="detail-label u-mb-md">
                     {selected.Estado === 0 ? 'Estado de la orden' : 'Progreso de la orden'}
                   </p>
                   {selected.Estado === 0 && (
-                    <p className="novedad-warning" style={{ marginBottom: '0.75rem' }}>
+                    <p className="novedad-warning u-mb-md">
                       Esta orden está inactiva. Actívala para poder editar su contenido.
                     </p>
                   )}
-                  {flujoError && <div className="form-error-box" style={{ marginBottom: '0.75rem' }}>{flujoError}</div>}
+                  {flujoError && <div className="form-error-box u-mb-md">{flujoError}</div>}
                   <ProgresoEstado
                     estadoActual={selected.Estado}
                     onAvanzar={handleAvanzarEstado}
@@ -380,7 +380,7 @@ export default function OrdenesPage() {
 
                 {/* Editar datos básicos (diagnóstico, km, fechas) — solo si editable */}
                 {!contenidoBloqueado && puedeEditar && (
-                  <div style={{ marginTop: '1.25rem' }}>
+                  <div className="u-mt-xl">
                     <button className="btn btn--outline btn--sm" onClick={() => { openEdit(selected); setDetailId(null); }}>
                       <MdEdit size={15} /> Editar datos (diagnóstico, km, fechas)
                     </button>
@@ -411,7 +411,7 @@ export default function OrdenesPage() {
                   </div>
                 )}
 
-                <div className="orden-total-card" style={{ marginTop: '1.25rem' }}>
+                <div className="orden-total-card u-mt-xl">
                   <div className="orden-total-breakdown">
                     <div className="orden-total-row"><span>Servicios</span><span>{formatCurrency(totalServicios)}</span></div>
                     <div className="orden-total-row"><span>Repuestos</span><span>{formatCurrency(totalRepuestos)}</span></div>
@@ -426,7 +426,7 @@ export default function OrdenesPage() {
             )}
 
             {activeTab === 'servicios' && (
-              <div style={{ marginTop: '1rem' }}>
+              <div className="u-mt-lg">
                 {(() => {
                   const servItems = selected?.servicios || [];
                   const servStart = servPage * ITEMS_PER_PAGE;
@@ -438,7 +438,7 @@ export default function OrdenesPage() {
                           servSlice.map((s, i) => (
                             <div key={i} className="orden-item-row">
                               <span className="orden-item-name">{s.servicio || s.Nombre || s.nombre || `Servicio #${s.Id_Servicio}`}</span>
-                              <span className="orden-item-duracion" style={{ color: 'var(--color-text-muted)', fontSize: '0.8rem', whiteSpace: 'nowrap' }} title="Duración estimada">{fmtDuracion(s.DuracionMinutos)}</span>
+                              <span className="orden-item-duracion u-muted-nowrap" title="Duración estimada">{fmtDuracion(s.DuracionMinutos)}</span>
                               <span className="orden-item-price">{formatCurrency(s.precio_unitario || s.Precio)}</span>
                               {!contenidoBloqueado && (
                                 <button className="btn btn--ghost btn--icon btn--sm orden-item-delete" title="Eliminar servicio" onClick={() => handleDeleteServicio(s.Id_Servicio)} disabled={actionLoading}>
@@ -450,9 +450,9 @@ export default function OrdenesPage() {
                         ) : <p className="empty-list">No hay servicios agregados.</p>}
                       </div>
                       {servItems.length > 0 && (
-                        <div className="orden-item-row" style={{ fontWeight: 600 }}>
+                        <div className="orden-item-row u-semibold">
                           <span className="orden-item-name">Tiempo total estimado</span>
-                          <span className="orden-item-duracion" style={{ whiteSpace: 'nowrap' }}>{fmtDuracion(selected?.DuracionTotalMin)}</span>
+                          <span className="orden-item-duracion u-nowrap">{fmtDuracion(selected?.DuracionTotalMin)}</span>
                           <span className="orden-item-price" />
                         </div>
                       )}
@@ -500,7 +500,7 @@ export default function OrdenesPage() {
                 {!contenidoBloqueado && (
                   <div className="orden-add-form">
                     <h4>Agregar servicio</h4>
-                    {addServError && <div className="form-error-box" style={{ marginBottom: '0.5rem' }}>{addServError}</div>}
+                    {addServError && <div className="form-error-box u-mb-sm">{addServError}</div>}
                     <div className="orden-add-row">
                       <select className="form-control" value={addServForm.Id_Servicio}
                         onChange={e => {
@@ -512,7 +512,7 @@ export default function OrdenesPage() {
                         {serviciosOpts.map(s => <option key={s.Id_Servicio} value={s.Id_Servicio}>{s.Nombre}</option>)}
                       </select>
                       <input type="number" min="0" className="form-control" placeholder="Precio unitario" value={addServForm.precio_unitario} onChange={e => setAddServForm(p => ({ ...p, precio_unitario: e.target.value }))} />
-                      {addServForm.precio_unitario && <span style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)', whiteSpace: 'nowrap' }}>= {formatCurrency(addServForm.precio_unitario)}</span>}
+                      {addServForm.precio_unitario && <span className="u-muted-nowrap">= {formatCurrency(addServForm.precio_unitario)}</span>}
                       <button className="btn btn--primary btn--sm" onClick={handleAddServicio} disabled={actionLoading}><MdAdd size={16} />Agregar</button>
                     </div>
                   </div>
@@ -521,7 +521,7 @@ export default function OrdenesPage() {
             )}
 
             {activeTab === 'repuestos' && (
-              <div style={{ marginTop: '1rem' }}>
+              <div className="u-mt-lg">
                 {(() => {
                   const repItems = selected?.repuestos || [];
                   const repStart = repPage * ITEMS_PER_PAGE;
@@ -573,7 +573,7 @@ export default function OrdenesPage() {
                 {!contenidoBloqueado && (
                   <div className="orden-add-form">
                     <h4>Agregar repuesto</h4>
-                    {addRepError && <div className="form-error-box" style={{ marginBottom: '0.5rem' }}>{addRepError}</div>}
+                    {addRepError && <div className="form-error-box u-mb-sm">{addRepError}</div>}
                     <div className="orden-add-row">
                       <select className="form-control" value={addRepForm.Id_Repuesto} onChange={handleRepuestoSelect}>
                         <option value="">Seleccionar repuesto...</option>
@@ -590,7 +590,7 @@ export default function OrdenesPage() {
                       <button className="btn btn--primary btn--sm" onClick={handleAddRepuesto} disabled={actionLoading}><MdAdd size={16} />Agregar</button>
                     </div>
                     {addRepForm.Id_Repuesto && addRepForm.precio_unitario && (
-                      <p style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', marginTop: '0.375rem' }}>
+                      <p className="u-hint u-mt-xs">
                         Precio por defecto: {formatCurrency(addRepForm.precio_unitario)} — puedes modificarlo para esta orden.
                       </p>
                     )}

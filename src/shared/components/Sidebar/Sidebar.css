@@ -7,8 +7,8 @@
   left: 0; top: 0; height: 100vh;
   width: var(--sidebar-width);
 
-  /* Fondo oscuro semitransparente con efecto vidrio esmerilado */
-  background: rgba(18, 20, 28, 0.92);
+  /* Fondo con degradado sutil de marca (oscuro → más oscuro) */
+  background: var(--sidebar-bg-gradient);
 
   /* Glassmorphism */
   backdrop-filter: blur(20px) saturate(1.4);

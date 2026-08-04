@@ -15,16 +15,16 @@ import { filterItems, formatDate, formatCurrency } from '../../../shared/utils/h
 import api from '../../../shared/services/api.js';
 import './PortalPage.css';
 
-const ESTADO_CITA_STYLE = {
-  Pendiente:  { bg: '#eff6ff', fg: '#1d4ed8', label: 'Pendiente' },
-  Confirmada: { bg: '#ecfeff', fg: '#0e7490', label: 'Confirmada' },
-  Atendida:   { bg: '#f0fdf4', fg: '#15803d', label: 'Atendida' },
-  Cancelada:  { bg: '#fef2f2', fg: '#b91c1c', label: 'Cancelada' },
-  NoAsistio:  { bg: '#fefce8', fg: '#a16207', label: 'No asistió' },
+const ESTADO_CITA_META = {
+  Pendiente:  { cls: 'cita-badge--pendiente',  label: 'Pendiente' },
+  Confirmada: { cls: 'cita-badge--confirmada', label: 'Confirmada' },
+  Atendida:   { cls: 'cita-badge--atendida',   label: 'Atendida' },
+  Cancelada:  { cls: 'cita-badge--cancelada',  label: 'Cancelada' },
+  NoAsistio:  { cls: 'cita-badge--noasistio',  label: 'No asistió' },
 };
 function CitaEstadoBadge({ estado }) {
-  const s = ESTADO_CITA_STYLE[estado] || ESTADO_CITA_STYLE.Pendiente;
-  return <span style={{ background: s.bg, color: s.fg, padding: '2px 10px', borderRadius: '999px', fontSize: '0.75rem', fontWeight: 600 }}>{s.label}</span>;
+  const s = ESTADO_CITA_META[estado] || ESTADO_CITA_META.Pendiente;
+  return <span className={`cita-badge ${s.cls}`}>{s.label}</span>;
 }
 
 const ORDEN_ESTADO = {
@@ -545,7 +545,7 @@ export default function PortalPage() {
         size="xl"
       >
         {ordLoading && !ordDetail ? (
-          <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--color-text-muted)' }}>Cargando detalle...</div>
+          <div className="u-center-note">Cargando detalle...</div>
         ) : ordDetail ? (
           <div>
             <div className="orden-tabs">
@@ -557,14 +557,14 @@ export default function PortalPage() {
             </div>
 
             {ordTab === 'info' && (
-              <div style={{ marginTop: '1rem' }}>
+              <div className="u-mt-lg">
                 <div className="detail-grid">
                   <div className="detail-item"><span className="detail-label">Vehículo</span><span className="detail-value">{ordDetail.Vehiculo || ordDetail.vehiculo || `#${ordDetail.Id_Vehiculo}`}</span></div>
                   <div className="detail-item"><span className="detail-label">Estado</span><span className="detail-value"><OrdenEstadoBadge estado={ordDetail.Estado} /></span></div>
                   <div className="detail-item"><span className="detail-label">Fecha ingreso</span><span className="detail-value">{formatDate(ordDetail.FechaIngreso)}</span></div>
                   <div className="detail-item"><span className="detail-label">Fecha entrega</span><span className="detail-value">{formatDate(ordDetail.FechaEntrega)}</span></div>
                   <div className="detail-item"><span className="detail-label">Kilometraje</span><span className="detail-value">{ordDetail.Kilometraje ? `${Number(ordDetail.Kilometraje).toLocaleString('es-CO')} km` : '—'}</span></div>
-                  <div className="detail-item" style={{ gridColumn: 'span 2' }}><span className="detail-label">Diagnóstico</span><span className="detail-value">{ordDetail.Diagnostico || '—'}</span></div>
+                  <div className="detail-item u-span-2"><span className="detail-label">Diagnóstico</span><span className="detail-value">{ordDetail.Diagnostico || '—'}</span></div>
                 </div>
                 <div className="orden-total-card">
                   <div className="orden-total-breakdown">
@@ -581,12 +581,12 @@ export default function PortalPage() {
             )}
 
             {ordTab === 'servicios' && (
-              <div style={{ marginTop: '1rem' }}>
+              <div className="u-mt-lg">
                 <div className="orden-items-list">
                   {(ordDetail.servicios || []).length > 0
                     ? (ordDetail.servicios || []).map((s, i) => (
                       <div key={i} className="orden-item-row">
-                        <span className="orden-item-name" style={{ flex: 1 }}>{s.servicio || s.Nombre || `Servicio #${s.Id_Servicio}`}</span>
+                        <span className="orden-item-name u-flex-1">{s.servicio || s.Nombre || `Servicio #${s.Id_Servicio}`}</span>
                         <span className="orden-item-price">{formatCurrency(s.precio_unitario)}</span>
                       </div>
                     ))
@@ -601,12 +601,12 @@ export default function PortalPage() {
             )}
 
             {ordTab === 'repuestos' && (
-              <div style={{ marginTop: '1rem' }}>
+              <div className="u-mt-lg">
                 <div className="orden-items-list">
                   {(ordDetail.repuestos || []).length > 0
                     ? (ordDetail.repuestos || []).map((r, i) => (
                       <div key={i} className="orden-item-row">
-                        <span className="orden-item-name" style={{ flex: 1 }}>{r.repuesto || r.Nombre || `Repuesto #${r.Id_Repuesto}`}</span>
+                        <span className="orden-item-name u-flex-1">{r.repuesto || r.Nombre || `Repuesto #${r.Id_Repuesto}`}</span>
                         <span className="orden-item-qty">x{r.cantidad || r.Cantidad}</span>
                         <span className="orden-item-price">{formatCurrency(Number(r.cantidad || 1) * Number(r.precio_unitario || 0))}</span>
                       </div>
@@ -673,11 +673,11 @@ export default function PortalPage() {
             </select>
           </div>
           <div className="form-group">
-            <label className="form-label">Técnico asignado <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>(opcional)</span></label>
+            <label className="form-label">Técnico asignado <span className="u-hint">(opcional)</span></label>
             {!citaForm.Fecha ? (
-              <p style={{ fontSize: '0.8125rem', color: 'var(--color-text-muted)', margin: 0 }}>Selecciona una fecha primero</p>
+              <p className="u-hint-sm">Selecciona una fecha primero</p>
             ) : loadingEmpl ? (
-              <p style={{ fontSize: '0.8125rem', color: 'var(--color-text-muted)', margin: 0 }}>Cargando técnicos...</p>
+              <p className="u-hint-sm">Cargando técnicos...</p>
             ) : (
               <select className="form-control" value={citaForm.Id_Empleado} onChange={e => setCitaForm(p => ({ ...p, Id_Empleado: e.target.value }))}>
                 <option value="">Sin preferencia</option>

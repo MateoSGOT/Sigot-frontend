@@ -64,18 +64,25 @@
 .stat-card__icon-wrap {
   width: 52px;
   height: 52px;
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-full);   /* badge circular */
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
 }
 
-/* Dark mode icon wrap colors */
-.stat-card--green .stat-card__icon-wrap  { background: rgba(181, 242, 61, 0.14); color: #b5f23d; }
-.stat-card--blue .stat-card__icon-wrap   { background: rgba(78, 154, 241, 0.14); color: #4e9af1; }
-.stat-card--amber .stat-card__icon-wrap  { background: rgba(245, 166, 35, 0.14); color: #f5a623; }
-.stat-card--purple .stat-card__icon-wrap { background: rgba(168, 85, 247, 0.14); color: #a855f7; }
+/* Franja de acento a la izquierda de cada KPI, en su color semántico */
+.stat-card { position: relative; border-left: 3px solid transparent; }
+.stat-card--green  { border-left-color: var(--color-primary); }
+.stat-card--blue   { border-left-color: var(--color-info); }
+.stat-card--amber  { border-left-color: var(--color-warning); }
+.stat-card--purple { border-left-color: #a855f7; }
+
+/* Íconos en badge circular tintado (tokens -soft por color semántico) */
+.stat-card--green .stat-card__icon-wrap  { background: var(--color-success-soft); color: var(--color-success-soft-on); }
+.stat-card--blue .stat-card__icon-wrap   { background: var(--color-info-soft);    color: var(--color-info-soft-on); }
+.stat-card--amber .stat-card__icon-wrap  { background: var(--color-warning-soft); color: var(--color-warning-soft-on); }
+.stat-card--purple .stat-card__icon-wrap { background: rgba(168, 85, 247, 0.14);  color: #7c3aed; }
 
 .stat-card__body {
   display: flex;
@@ -149,3 +156,11 @@
 .dashboard-rango__presets { display: flex; gap: 6px; flex-wrap: wrap; }
 .dashboard-rango__custom { display: flex; align-items: center; gap: 8px; }
 .dashboard-rango__custom .form-control { width: auto; }
+
+/* Header del dashboard con textura sutil de marca (solo esta pantalla) */
+.dashboard-page .page__header {
+  background: var(--bg-header);
+  background-size: 22px 22px, cover;
+  border-bottom: 1px solid var(--color-primary-soft);
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+}

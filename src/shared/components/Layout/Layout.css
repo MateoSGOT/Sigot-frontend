@@ -7,7 +7,9 @@
 .layout__main {
   flex: 1;
   margin-left: var(--sidebar-width);
-  background: var(--color-bg);
+  /* Fondo de la app con textura sutil de marca (no afecta legibilidad del contenido) */
+  background: var(--bg-app);
+  background-attachment: fixed;
   overflow-x: hidden;
   min-height: 100vh;
   color: var(--color-text);
