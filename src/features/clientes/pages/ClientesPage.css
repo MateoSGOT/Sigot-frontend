@@ -1,5 +1,23 @@
 .table-actions { display: flex; align-items: center; gap: 0.25rem; }
 .font-medium { font-weight: 600; }
+
+/* Celda nombre + avatar en la tabla (mismo patrón que .emp-avatar en Empleados) */
+.cell-user { display: flex; align-items: center; gap: var(--space-sm); }
+.cell-user__avatar {
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  overflow: hidden;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+.cell-user__avatar--initial {
+  display: flex; align-items: center; justify-content: center;
+  background: var(--color-accent-soft);
+  color: var(--color-accent-soft-on);
+  font-size: var(--text-small);
+  font-weight: var(--weight-bold);
+  text-transform: uppercase;
+}
 .text-success { color: var(--color-success); }
 .text-danger { color: var(--color-danger); }
 
