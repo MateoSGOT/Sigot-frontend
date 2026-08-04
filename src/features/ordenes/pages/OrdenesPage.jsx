@@ -329,7 +329,7 @@ export default function OrdenesPage() {
             <span className="table-summary__total">{resumenOrd.total} en total</span>
           </div>
         )}
-        <Table columns={columns} data={filtered} loading={loading} pageSize={pageSize} emptyMessage="No se encontraron órdenes de trabajo" />
+        <Table columns={columns} rowKey="Id_Orden" data={filtered} loading={loading} pageSize={pageSize} emptyMessage="No se encontraron órdenes de trabajo" />
       </div>
 
       {/* Detail Modal */}

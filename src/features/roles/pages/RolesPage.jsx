@@ -362,6 +362,7 @@ export default function RolesPage() {
           </div>
           <Table
             columns={columns}
+            rowKey="Id_Rol"
             data={sortedForTable}
             loading={loading}
             pageSize={pageSize}

@@ -133,7 +133,7 @@ export default function MarcasPage() {
             }
           />
         </div>
-        <Table columns={columns} data={filtered} loading={loading} pageSize={pageSize} searchTerm={search} onClearSearch={() => setSearch('')} emptyMessage="No se encontraron marcas" />
+        <Table columns={columns} rowKey="Id_Marca" data={filtered} loading={loading} pageSize={pageSize} searchTerm={search} onClearSearch={() => setSearch('')} emptyMessage="No se encontraron marcas" />
       </div>
 
       {/* Modal crear/editar marca */}
@@ -177,7 +177,7 @@ export default function MarcasPage() {
               </div>
             )}
 
-            <Table columns={modeloColumns} data={modelosData} loading={false} pageSize={'all'} emptyMessage="Esta marca aún no tiene modelos" />
+            <Table columns={modeloColumns} rowKey="Id_Modelo" data={modelosData} loading={false} pageSize={'all'} emptyMessage="Esta marca aún no tiene modelos" />
           </>
         )}
       </Modal>

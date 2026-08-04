@@ -257,6 +257,7 @@ export default function RepuestosPage() {
         </div>
         <Table
           columns={columns}
+          rowKey="Id_Repuesto"
           data={rows}
           loading={listLoading}
           serverSide

@@ -413,6 +413,7 @@ export default function PortalPage() {
               </div>
               <Table
                 columns={vehiculosColumns}
+                rowKey="Id_Vehiculo"
                 data={filteredVehiculos}
                 loading={loading}
                 pageSize={vehPageSize}
@@ -463,6 +464,7 @@ export default function PortalPage() {
               </div>
               <Table
                 columns={ordenesColumns}
+                rowKey="Id_Orden"
                 data={filteredOrdenes}
                 loading={loading}
                 pageSize={ordPageSize}
@@ -512,6 +514,7 @@ export default function PortalPage() {
               </div>
               <Table
                 columns={citasColumns}
+                rowKey="Id_Agenda"
                 data={filteredCitas}
                 loading={loading}
                 pageSize={citaPageSize}

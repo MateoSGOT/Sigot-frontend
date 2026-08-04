@@ -87,7 +87,7 @@ export default function CategoriasPage() {
             }
           />
         </div>
-        <Table columns={columns} data={filtered} loading={loading} pageSize={pageSize} emptyMessage="No se encontraron categorías" />
+        <Table columns={columns} rowKey="Id_Categoria" data={filtered} loading={loading} pageSize={pageSize} emptyMessage="No se encontraron categorías" />
       </div>
 
       <Modal isOpen={showForm} onClose={() => setShowForm(false)} title={editingId ? 'Editar categoría' : 'Nueva categoría'} size="sm"

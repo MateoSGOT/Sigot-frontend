@@ -143,7 +143,7 @@ export default function ProveedoresPage() {
             filterSlot={<FilterDropdown statusFilter={statusFilter} onStatusChange={setStatusFilter} pageSize={pageSize} onPageSizeChange={setPageSize} />}
           />
         </div>
-        <Table columns={columns} data={filtered} loading={loading} pageSize={pageSize} emptyMessage="No se encontraron proveedores" />
+        <Table columns={columns} rowKey="Id_Proveedor" data={filtered} loading={loading} pageSize={pageSize} emptyMessage="No se encontraron proveedores" />
       </div>
 
       <Modal isOpen={!!detailItem} onClose={() => setDetailItem(null)} title="Detalle del proveedor" size="md">

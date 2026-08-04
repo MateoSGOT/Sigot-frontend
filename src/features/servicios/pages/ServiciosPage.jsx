@@ -121,7 +121,7 @@ export default function ServiciosPage() {
             }
           />
         </div>
-        <Table columns={columns} data={filtered} loading={loading} pageSize={pageSize} emptyMessage="No se encontraron servicios" />
+        <Table columns={columns} rowKey="Id_Servicio" data={filtered} loading={loading} pageSize={pageSize} emptyMessage="No se encontraron servicios" />
       </div>
 
       <Modal isOpen={!!detailItem} onClose={() => setDetailItem(null)} title="Detalle del servicio" size="md">

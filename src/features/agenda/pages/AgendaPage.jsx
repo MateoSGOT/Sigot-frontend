@@ -258,7 +258,7 @@ export default function AgendaPage() {
             }
           />
         </div>
-        <Table columns={columns} data={filtered} loading={loading} pageSize={pageSize} emptyMessage="No se encontraron citas" />
+        <Table columns={columns} rowKey="Id_Agenda" data={filtered} loading={loading} pageSize={pageSize} emptyMessage="No se encontraron citas" />
       </div>
 
       <Modal isOpen={!!detailItem} onClose={() => setDetailItem(null)} title="Detalle de la cita" size="md">

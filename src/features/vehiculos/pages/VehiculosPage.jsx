@@ -177,7 +177,7 @@ export default function VehiculosPage() {
             }
           />
         </div>
-        <Table columns={columns} data={filtered} loading={loading} pageSize={pageSize} emptyMessage="No se encontraron vehículos" />
+        <Table columns={columns} rowKey="Id_Vehiculo" data={filtered} loading={loading} pageSize={pageSize} emptyMessage="No se encontraron vehículos" />
       </div>
 
       <Modal isOpen={!!detailItem} onClose={() => setDetailItem(null)} title="Detalle del vehículo" size="md">

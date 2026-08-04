@@ -204,7 +204,7 @@ export default function EmpleadosPage() {
             filterSlot={<FilterDropdown statusFilter={statusFilter} onStatusChange={setStatusFilter} pageSize={pageSize} onPageSizeChange={setPageSize} />}
           />
         </div>
-        <Table columns={columns} data={filtered} loading={loading} pageSize={pageSize} emptyMessage="No se encontraron empleados" />
+        <Table columns={columns} rowKey="Id_Empleado" data={filtered} loading={loading} pageSize={pageSize} emptyMessage="No se encontraron empleados" />
       </div>
 
       <Modal isOpen={!!detailItem} onClose={() => setDetailItem(null)} title="Detalle del empleado" size="lg">

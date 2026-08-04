@@ -15,6 +15,11 @@ export default function Table({
   searchTerm,        // si hay búsqueda activa y no hay datos → variante "sin resultados"
   onClearSearch,     // acción "Limpiar búsqueda" para la variante no-results
   pageSize: externalPageSize,
+  // Clave estable por fila. Acepta el nombre de un campo ("Id_Empleado") o una
+  // función (row, index) => key. Cada página DEBE pasar su PK real; el fallback
+  // genérico es row.id ?? rowIndex — SIN Id_Rol ni ningún campo de entidad
+  // específico (eso causaba keys duplicadas y filas repetidas al paginar).
+  rowKey,
   // Modo server-side (OPT-IN). Si serverSide=false (default), el comportamiento es idéntico
   // al de siempre (paginación en cliente) → no afecta a los demás módulos.
   serverSide = false,
@@ -49,6 +54,13 @@ export default function Table({
   };
 
   const skeletonRows = typeof effectivePageSize === 'number' ? Math.min(effectivePageSize, 8) : 6;
+
+  // Clave estable por fila: rowKey (campo o función) → row.id → rowIndex.
+  const getRowKey = (row, i) => {
+    if (typeof rowKey === 'function') return rowKey(row, i);
+    if (typeof rowKey === 'string' && row[rowKey] != null) return row[rowKey];
+    return row.id ?? i;
+  };
 
   // Estado vacío: distingue "sin resultados de búsqueda" de "aún no hay datos".
   const renderEmpty = () => {
@@ -104,7 +116,7 @@ export default function Table({
                 }
                 return (
                   <tr
-                    key={row.id || row.Id_Rol || rowIndex}
+                    key={getRowKey(row, rowIndex)}
                     className={`table__row ${row.Estado === 0 ? 'table__row--inactive' : ''}`}
                   >
                     {columns.map((col) => (

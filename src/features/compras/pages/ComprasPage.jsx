@@ -218,7 +218,7 @@ export default function ComprasPage() {
             }
           />
         </div>
-        <Table columns={columns} data={filtered} loading={loading} pageSize={pageSize} emptyMessage="No se encontraron compras" />
+        <Table columns={columns} rowKey="Id_Compra" data={filtered} loading={loading} pageSize={pageSize} emptyMessage="No se encontraron compras" />
       </div>
 
       {/* Modal de detalle — muestra TODOS los productos de esa compra */}

@@ -121,7 +121,7 @@ export default function NovedadesPage() {
             }
           />
         </div>
-        <Table columns={columns} data={filtered} loading={loading} pageSize={pageSize} emptyMessage="No se encontraron novedades" />
+        <Table columns={columns} rowKey="Id_Novedad" data={filtered} loading={loading} pageSize={pageSize} emptyMessage="No se encontraron novedades" />
       </div>
 
       <Modal isOpen={!!detailItem} onClose={() => setDetailItem(null)} title="Detalle de la novedad" size="md">

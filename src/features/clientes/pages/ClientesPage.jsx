@@ -199,7 +199,7 @@ export default function ClientesPage() {
             <span className="table-summary__total">{resumen.total} en total</span>
           </div>
         )}
-        <Table columns={columns} data={filtered} loading={loading} pageSize={pageSize} emptyMessage="No se encontraron clientes" />
+        <Table columns={columns} rowKey="Id_Cliente" data={filtered} loading={loading} pageSize={pageSize} emptyMessage="No se encontraron clientes" />
       </div>
 
       {/* Detail Modal */}
