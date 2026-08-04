@@ -159,6 +159,12 @@ export default function OrdenesPage() {
     return filterItems(list, search, ['cliente', 'vehiculo', 'Vehiculo', 'Cliente', 'Diagnostico']);
   })();
 
+  // Mini-resumen por estado sobre el total (Estado numérico: 1=Pend, 2=Proc, 3=Real).
+  const resumenOrd = useMemo(() => {
+    const by = (e) => items.filter(i => i.Estado === e).length;
+    return { pendientes: by(1), enProceso: by(2), realizadas: by(3), total: items.length };
+  }, [items]);
+
   // Mapa de repuestos por id para acceder rápido a datos de garantía como fallback
   const repuestoById = useMemo(() =>
     Object.fromEntries(repuestosOpts.map(r => [String(r.Id_Repuesto), r])),
@@ -315,6 +321,14 @@ export default function OrdenesPage() {
             }
           />
         </div>
+        {!loading && items.length > 0 && (
+          <div className="table-summary">
+            <Badge variant="warning">{resumenOrd.pendientes} pendientes</Badge>
+            <Badge variant="info">{resumenOrd.enProceso} en proceso</Badge>
+            <Badge variant="success">{resumenOrd.realizadas} realizadas</Badge>
+            <span className="table-summary__total">{resumenOrd.total} en total</span>
+          </div>
+        )}
         <Table columns={columns} data={filtered} loading={loading} pageSize={pageSize} emptyMessage="No se encontraron órdenes de trabajo" />
       </div>
 

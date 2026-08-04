@@ -71,4 +71,13 @@ img { max-width: 100%; }
 .fs-body    { font-size: var(--text-body); }
 .fs-sm      { font-size: var(--text-small); }
 .fs-caption { font-size: var(--text-caption); }
+
+/* Mini-resumen sobre las tablas (conteos por estado con badges del sistema) */
+.table-summary {
+  display: flex; flex-wrap: wrap; align-items: center;
+  gap: var(--space-sm) var(--space-md);
+  padding: var(--space-md) var(--space-lg);
+  border-bottom: 1px solid var(--color-border);
+}
+.table-summary__total { margin-left: auto; font-size: var(--text-small); color: var(--color-text-muted); }
 .u-ic-mr    { margin-right: var(--space-xs); vertical-align: middle; }

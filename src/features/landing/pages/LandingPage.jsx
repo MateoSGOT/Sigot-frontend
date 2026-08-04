@@ -3,16 +3,20 @@ import { useNavigate } from 'react-router-dom';
 import {
   MdBuild, MdSearch, MdRotateRight, MdElectricBolt, MdDoNotDisturb, MdInvertColors,
   MdDirectionsCar, MdCheck, MdLocationOn, MdAccessTime, MdPhone, MdEmail,
+  MdGroups, MdListAlt, MdMiscellaneousServices,
 } from 'react-icons/md';
 import { FiFacebook, FiInstagram, FiMessageSquare } from 'react-icons/fi';
+import api from '../../../shared/services/api.js';
 import './LandingPage.css';
 
 /* ─── Data ─────────────────────────────────────────────────── */
-const STATS = [
-  { value: '12+', label: 'Años en el mercado' },
-  { value: '1.2K+', label: 'Vehículos atendidos' },
-  { value: '800+', label: 'Clientes satisfechos' },
-  { value: '99%', label: 'Índice de satisfacción' },
+// Métricas reales que expone GET /api/landing/stats (agregados, sin datos
+// personales). Cada card se llena con datos del sistema, nada hardcodeado.
+const STAT_DEFS = [
+  { key: 'vehiculosAtendidos',   label: 'Vehículos atendidos',   Icon: MdDirectionsCar },
+  { key: 'clientesActivos',      label: 'Clientes activos',      Icon: MdGroups },
+  { key: 'serviciosDisponibles', label: 'Servicios disponibles', Icon: MdMiscellaneousServices },
+  { key: 'ordenesTotales',       label: 'Órdenes gestionadas',   Icon: MdListAlt },
 ];
 
 const SERVICES = [
@@ -73,12 +77,29 @@ export default function LandingPage() {
   const [formData, setFormData] = useState({ nombre: '', correo: '', telefono: '', mensaje: '' });
   const [formSent, setFormSent] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [stats, setStats] = useState(null);
+  const [statsLoading, setStatsLoading] = useState(true);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 60);
     window.addEventListener('scroll', onScroll);
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
+
+  // Estadísticas públicas reales (agregados). Sin token: es la página pública.
+  useEffect(() => {
+    let cancel = false;
+    (async () => {
+      try {
+        const r = await api.get('/api/landing/stats');
+        if (!cancel) setStats(r.data?.data || null);
+      } catch { /* silencioso: la landing no debe romperse si el stat falla */ }
+      finally { if (!cancel) setStatsLoading(false); }
+    })();
+    return () => { cancel = true; };
+  }, []);
+
+  const fmt = (n) => (n ?? 0).toLocaleString('es-CO');
 
   const scrollTo = (id) => {
     setMenuOpen(false);
@@ -135,7 +156,7 @@ export default function LandingPage() {
             <span className="landing-hero__accent">lo mejor</span>
           </h1>
           <p className="landing-hero__subtitle">
-            Más de 12 años de experiencia en mantenimiento, diagnóstico y reparación
+            Experiencia en mantenimiento, diagnóstico y reparación
             de vehículos en La Balladera. Tecnología de punta, técnicos certificados.
           </p>
           <div className="landing-hero__actions">
@@ -158,22 +179,29 @@ export default function LandingPage() {
             <div className="landing-hero__card-body">
               <div className="landing-hero__stat-row">
                 <span className="landing-hero__stat-label">Órdenes activas</span>
-                <span className="landing-hero__stat-value">24</span>
+                <span className="landing-hero__stat-value">
+                  {statsLoading ? <span className="landing-skel landing-skel--hero" /> : fmt(stats?.ordenesActivas)}
+                </span>
               </div>
               <div className="landing-hero__stat-row">
-                <span className="landing-hero__stat-label">Completadas hoy</span>
-                <span className="landing-hero__stat-value landing-hero__stat-value--green">8</span>
+                <span className="landing-hero__stat-label">Vehículos atendidos</span>
+                <span className="landing-hero__stat-value landing-hero__stat-value--green">
+                  {statsLoading ? <span className="landing-skel landing-skel--hero" /> : fmt(stats?.vehiculosAtendidos)}
+                </span>
               </div>
               <div className="landing-hero__stat-row">
-                <span className="landing-hero__stat-label">Satisfacción</span>
-                <span className="landing-hero__stat-value landing-hero__stat-value--green">99%</span>
+                <span className="landing-hero__stat-label">Clientes activos</span>
+                <span className="landing-hero__stat-value landing-hero__stat-value--green">
+                  {statsLoading ? <span className="landing-skel landing-skel--hero" /> : fmt(stats?.clientesActivos)}
+                </span>
               </div>
               <div className="landing-hero__progress">
                 <div className="landing-hero__progress-label">
-                  <span>Capacidad del taller</span><span>75%</span>
+                  <span>Órdenes completadas</span>
+                  <span>{statsLoading ? '—' : `${stats?.pctCompletadas ?? 0}%`}</span>
                 </div>
                 <div className="landing-hero__progress-bar">
-                  <div className="landing-hero__progress-fill" style={{ width: '75%' }} />
+                  <div className="landing-hero__progress-fill" style={{ width: statsLoading ? '0%' : `${stats?.pctCompletadas ?? 0}%` }} />
                 </div>
               </div>
             </div>
@@ -185,10 +213,15 @@ export default function LandingPage() {
       <section className="landing-stats">
         <div className="landing-container">
           <div className="landing-stats__grid">
-            {STATS.map((s, i) => (
-              <AnimSection key={s.label} delay={i * 80}>
+            {STAT_DEFS.map((s, i) => (
+              <AnimSection key={s.key} delay={i * 80}>
                 <div className="landing-stat-card">
-                  <span className="landing-stat-card__value">{s.value}</span>
+                  <div className="landing-stat-card__icon"><s.Icon size={24} /></div>
+                  <span className="landing-stat-card__value">
+                    {statsLoading
+                      ? <span className="landing-skel landing-skel--val" />
+                      : fmt(stats?.[s.key])}
+                  </span>
                   <span className="landing-stat-card__label">{s.label}</span>
                 </div>
               </AnimSection>

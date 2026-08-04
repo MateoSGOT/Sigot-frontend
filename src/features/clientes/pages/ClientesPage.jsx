@@ -9,7 +9,7 @@ import Modal from '../../../shared/components/Modal/Modal.jsx';
 import Table from '../../../shared/components/Table/Table.jsx';
 import SearchBar from '../../../shared/components/SearchBar/SearchBar.jsx';
 import FilterDropdown from '../../../shared/components/FilterDropdown/FilterDropdown.jsx';
-import { StatusBadge } from '../../../shared/components/Badge/Badge.jsx';
+import Badge, { StatusBadge } from '../../../shared/components/Badge/Badge.jsx';
 import SearchableSelect from '../../../shared/components/SearchableSelect/SearchableSelect.jsx';
 import { sortByStatus, filterItems } from '../../../shared/utils/helpers.js';
 import * as V from '../../../shared/utils/validators.js';
@@ -53,6 +53,12 @@ export default function ClientesPage() {
   })();
 
   const tiposDocOpts = tiposDoc.map(t => ({ value: String(t.Id_TipoDoc), label: t.Nombre }));
+
+  // Mini-resumen: conteos sobre el total (no sobre la vista filtrada).
+  const resumen = useMemo(() => {
+    const activos = items.filter(i => i.Estado !== 0).length;
+    return { activos, inactivos: items.length - activos, total: items.length };
+  }, [items]);
 
   // Reglas de validación (las de contraseña solo aplican al crear).
   const rules = useMemo(() => {
@@ -186,6 +192,13 @@ export default function ClientesPage() {
             }
           />
         </div>
+        {!loading && items.length > 0 && (
+          <div className="table-summary">
+            <Badge variant="success">{resumen.activos} activos</Badge>
+            <Badge variant="gray">{resumen.inactivos} inactivos</Badge>
+            <span className="table-summary__total">{resumen.total} en total</span>
+          </div>
+        )}
         <Table columns={columns} data={filtered} loading={loading} pageSize={pageSize} emptyMessage="No se encontraron clientes" />
       </div>
 
