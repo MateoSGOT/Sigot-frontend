@@ -56,6 +56,33 @@ function useInView(threshold = 0.15) {
   return [ref, inView];
 }
 
+/* ─── Conteo animado de KPIs (respeta prefers-reduced-motion) ── */
+function useCountUp(target, active, duration = 1300) {
+  const [val, setVal] = useState(0);
+  useEffect(() => {
+    if (typeof target !== 'number' || Number.isNaN(target)) { setVal(0); return; }
+    const reduce = typeof window !== 'undefined'
+      && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    if (!active || reduce || target === 0) { setVal(target); return; }
+    let raf; const t0 = performance.now();
+    const tick = (now) => {
+      const p = Math.min(1, (now - t0) / duration);
+      const eased = 1 - Math.pow(1 - p, 3); // easeOutCubic
+      setVal(Math.round(target * eased));
+      if (p < 1) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [target, active, duration]);
+  return val;
+}
+
+function CountUp({ value, loading, active = true, suffix = '', skel = 'landing-skel--val' }) {
+  const n = useCountUp(loading ? 0 : (value ?? 0), active && !loading);
+  if (loading) return <span className={`landing-skel ${skel}`} />;
+  return <>{n.toLocaleString('es-CO')}{suffix}</>;
+}
+
 /* ─── Components ────────────────────────────────────────────── */
 function AnimSection({ children, className = '', delay = 0 }) {
   const [ref, inView] = useInView();
@@ -79,6 +106,7 @@ export default function LandingPage() {
   const [scrolled, setScrolled] = useState(false);
   const [stats, setStats] = useState(null);
   const [statsLoading, setStatsLoading] = useState(true);
+  const [statsRef, statsInView] = useInView(0.3); // dispara el conteo al entrar en vista
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 60);
@@ -98,8 +126,6 @@ export default function LandingPage() {
     })();
     return () => { cancel = true; };
   }, []);
-
-  const fmt = (n) => (n ?? 0).toLocaleString('es-CO');
 
   const scrollTo = (id) => {
     setMenuOpen(false);
@@ -180,25 +206,25 @@ export default function LandingPage() {
               <div className="landing-hero__stat-row">
                 <span className="landing-hero__stat-label">Órdenes activas</span>
                 <span className="landing-hero__stat-value">
-                  {statsLoading ? <span className="landing-skel landing-skel--hero" /> : fmt(stats?.ordenesActivas)}
+                  <CountUp value={stats?.ordenesActivas} loading={statsLoading} skel="landing-skel--hero" />
                 </span>
               </div>
               <div className="landing-hero__stat-row">
                 <span className="landing-hero__stat-label">Vehículos atendidos</span>
                 <span className="landing-hero__stat-value landing-hero__stat-value--green">
-                  {statsLoading ? <span className="landing-skel landing-skel--hero" /> : fmt(stats?.vehiculosAtendidos)}
+                  <CountUp value={stats?.vehiculosAtendidos} loading={statsLoading} skel="landing-skel--hero" />
                 </span>
               </div>
               <div className="landing-hero__stat-row">
                 <span className="landing-hero__stat-label">Clientes activos</span>
                 <span className="landing-hero__stat-value landing-hero__stat-value--green">
-                  {statsLoading ? <span className="landing-skel landing-skel--hero" /> : fmt(stats?.clientesActivos)}
+                  <CountUp value={stats?.clientesActivos} loading={statsLoading} skel="landing-skel--hero" />
                 </span>
               </div>
               <div className="landing-hero__progress">
                 <div className="landing-hero__progress-label">
                   <span>Órdenes completadas</span>
-                  <span>{statsLoading ? '—' : `${stats?.pctCompletadas ?? 0}%`}</span>
+                  <span>{statsLoading ? '—' : <CountUp value={stats?.pctCompletadas} loading={statsLoading} suffix="%" skel="landing-skel--hero" />}</span>
                 </div>
                 <div className="landing-hero__progress-bar">
                   <div className="landing-hero__progress-fill" style={{ width: statsLoading ? '0%' : `${stats?.pctCompletadas ?? 0}%` }} />
@@ -212,15 +238,13 @@ export default function LandingPage() {
       {/* ── STATS ───────────────────────────────────────────── */}
       <section className="landing-stats">
         <div className="landing-container">
-          <div className="landing-stats__grid">
+          <div className="landing-stats__grid" ref={statsRef}>
             {STAT_DEFS.map((s, i) => (
               <AnimSection key={s.key} delay={i * 80}>
                 <div className="landing-stat-card">
                   <div className="landing-stat-card__icon"><s.Icon size={24} /></div>
                   <span className="landing-stat-card__value">
-                    {statsLoading
-                      ? <span className="landing-skel landing-skel--val" />
-                      : fmt(stats?.[s.key])}
+                    <CountUp value={stats?.[s.key]} loading={statsLoading} active={statsInView} skel="landing-skel--val" />
                   </span>
                   <span className="landing-stat-card__label">{s.label}</span>
                 </div>
