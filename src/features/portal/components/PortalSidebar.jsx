@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
+import { useNavigate } from 'react-router-dom';
 import {
   MdHome, MdDirectionsCar, MdAssignment, MdCalendarMonth,
   MdExitToApp, MdMenu, MdClose,
@@ -16,10 +17,11 @@ const NAV_ITEMS = [
 
 export default function PortalSidebar({ activeTab, onTabChange }) {
   const dispatch    = useDispatch();
+  const navigate    = useNavigate();
   const { cliente } = useSelector(s => s.auth);
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  const handleLogout = () => dispatch(logout());
+  const handleLogout = () => { dispatch(logout()); navigate('/'); };
 
   const handleNav = (key) => {
     onTabChange(key);
