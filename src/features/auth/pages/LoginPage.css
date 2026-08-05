@@ -29,7 +29,9 @@
   position: absolute;
   border-radius: var(--radius-full);
   filter: blur(60px);
-  opacity: 0.5;
+  /* Sin opacity aquí: la transparencia la controlan los rgba de cada blob
+     (--1/--2/--3). Antes había opacity:0.5 que se MULTIPLICABA con el alfa
+     del rgba (0.55×0.5=0.275…) dejando los blobs casi invisibles. */
 }
 .login-left__blob--1 { width: 320px; height: 320px; top: -60px; left: -40px; background: rgba(22, 163, 74, 0.55); }
 .login-left__blob--2 { width: 260px; height: 260px; bottom: 40px; right: -60px; background: rgba(181, 242, 61, 0.28); }
