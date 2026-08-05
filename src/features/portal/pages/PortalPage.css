@@ -88,7 +88,7 @@
 /* ── Feedback ───────────────────────────────────────────────*/
 .portal-success {
   background: #dcfce7;
-  color: #16a34a;
+  color: var(--color-primary);
   border: 1px solid rgba(22,163,74,0.3);
   border-radius: 10px;
   padding: 0.75rem 1rem;
@@ -103,7 +103,7 @@
   border: 1px solid rgba(22,163,74,0.3);
   border-radius: 10px;
   padding: 0.75rem 1rem;
-  color: #16a34a;
+  color: var(--color-primary);
   font-size: 0.875rem;
   margin-bottom: 1.25rem;
 }
@@ -129,25 +129,28 @@
 .portal-profile-card {
   background: var(--color-surface, #fff);
   border: 1px solid var(--color-border, rgba(0,0,0,0.08));
-  border-radius: 12px;
+  border-radius: var(--radius-lg, 14px);
   padding: 1.25rem 1.5rem;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+  box-shadow: var(--shadow-sm);
   width: 100%;
   max-width: 100%;
   box-sizing: border-box;
+  transition: box-shadow var(--duration-base) var(--ease), transform var(--duration-base) var(--ease);
 }
 
-/* Card 1: avatar row */
+/* Card 1: avatar row — franja de acento como los KPIs del dashboard */
 .portal-profile-header-card {
   display: flex;
   align-items: center;
   gap: 1.25rem;
+  position: relative;
+  border-left: 3px solid var(--color-primary);
 }
 
 .portal-profile-avatar {
   width: 80px; height: 80px; border-radius: 50%;
   object-fit: cover;
-  border: 3px solid #16a34a;
+  border: 3px solid var(--color-primary);
   flex-shrink: 0;
 }
 
@@ -155,7 +158,7 @@
   width: 64px;
   height: 64px;
   border-radius: 50%;
-  background: #16a34a;
+  background: var(--color-primary);
   color: #fff;
   font-size: 1.5rem;
   font-weight: 700;
@@ -236,7 +239,7 @@
 }
 
 .portal-profile-field-input:focus {
-  border-color: #16a34a;
+  border-color: var(--color-primary);
   box-shadow: 0 0 0 3px rgba(22,163,74,0.12);
 }
 
@@ -275,7 +278,7 @@
   font-family: inherit;
 }
 .orden-tab:hover { color: var(--color-text, #111827); }
-.orden-tab--active { color: #2d6a2d; border-bottom-color: #2d6a2d; }
+.orden-tab--active { color: var(--color-primary-soft-on); border-bottom-color: var(--color-primary-soft-on); }
 
 .orden-items-list {
   display: flex; flex-direction: column; gap: 0.5rem;
@@ -291,7 +294,7 @@
 }
 .orden-item-name  { font-weight: 600; color: var(--color-text, #111827); }
 .orden-item-qty   { color: var(--color-text-muted, #6b7280); font-size: 0.8125rem; }
-.orden-item-price { font-weight: 700; color: #2d6a2d; flex-shrink: 0; }
+.orden-item-price { font-weight: 700; color: var(--color-primary-soft-on); flex-shrink: 0; }
 
 .empty-list {
   text-align: center; color: var(--color-text-muted, #6b7280);
@@ -310,9 +313,11 @@
 
 .orden-total-card {
   border: 1px solid var(--color-border, #e5e7eb);
+  border-left: 3px solid var(--color-primary);
   border-radius: var(--radius-lg, 12px);
   overflow: hidden;
   margin-top: 1.25rem;
+  box-shadow: var(--shadow-sm);
 }
 .orden-total-breakdown {
   padding: 0.75rem 1.25rem;
@@ -331,10 +336,10 @@
   color: var(--color-text, #111827);
   border-top: 1px solid var(--color-border, #e5e7eb);
 }
-.orden-total-final span:last-child { color: #2d6a2d; font-size: 1.125rem; }
+.orden-total-final span:last-child { color: var(--color-primary-soft-on); font-size: 1.125rem; }
 
 /* ── Mobile ─────────────────────────────────────────────────*/
-@media (max-width: 900px) {
+@media (max-width: 1023px) {
   .portal-layout__main {
     margin-left: 0;
     padding-top: 3.5rem;
@@ -344,7 +349,7 @@
 
   .portal-sidebar {
     transform: translateX(-100%);
-    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: transform var(--duration-entrance) var(--ease-entrance);
     z-index: 100;
   }
   .portal-sidebar--open {
