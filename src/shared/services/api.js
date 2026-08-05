@@ -20,7 +20,12 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
+    const url = error.config?.url || '';
+    // El POST de /logout responde 401 (ya no hay token): es esperado y NO debe
+    // forzar una redirección dura a /login — si no, pisa el navigate('/') del
+    // cierre de sesión y termina en el login en vez de la landing.
+    const isLogout = url.includes('/api/auth/logout');
+    if (error.response?.status === 401 && !isLogout) {
       localStorage.removeItem(TOKEN_KEY);
       window.location.href = '/login';
     }
