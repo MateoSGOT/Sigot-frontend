@@ -3,7 +3,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { loginThunk, clearError } from '../slices/authSlice.js';
 import { authService } from '../services/authService.js';
-import { MdLock, MdEmail, MdVisibility, MdVisibilityOff, MdClose, MdBuild, MdAssignment, MdEventNote, MdSend } from 'react-icons/md';
+import { MdLock, MdEmail, MdVisibility, MdVisibilityOff, MdClose, MdBuild, MdAssignment, MdEventNote, MdSend, MdInsights, MdLocationOn } from 'react-icons/md';
 import { correo as validarCorreo } from '../../../shared/utils/validators.js';
 import './LoginPage.css';
 
@@ -11,6 +11,7 @@ const FEATURES = [
   { icon: MdBuild,      title: 'Gestión de taller',  desc: 'Ordenes de trabajo, servicios y repuestos en un solo lugar.' },
   { icon: MdEventNote,  title: 'Agenda inteligente', desc: 'Programa citas y genera órdenes automáticamente.' },
   { icon: MdAssignment, title: 'Control total',       desc: 'Empleados, clientes, vehículos e inventario centralizado.' },
+  { icon: MdInsights,   title: 'Reportes en vivo',    desc: 'Ingresos, órdenes y alertas de stock actualizados al instante.' },
 ];
 
 const RESEND_COOLDOWN = 60;
@@ -142,6 +143,11 @@ export default function LoginPage() {
               </div>
             ))}
           </div>
+
+          <div className="login-left__footer">
+            <MdLocationOn size={16} />
+            <span>Copacabana, Antioquia · Sistema de gestión de taller</span>
+          </div>
         </div>
       </div>
 
@@ -198,6 +204,10 @@ export default function LoginPage() {
             <button className="login-recovery-link" onClick={openRecovery}>
               ¿Olvidaste tu contraseña?
             </button>
+          </div>
+
+          <div className="login-form-footer">
+            ¿Sin acceso? Solicita tus credenciales al <strong>administrador del taller</strong>.
           </div>
         </div>
       </div>

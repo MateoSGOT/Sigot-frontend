@@ -86,6 +86,16 @@
 .login-feature-card__title { font-size: var(--text-body); font-weight: var(--weight-semibold); color: #fff; }
 .login-feature-card__desc  { font-size: var(--text-small); color: rgba(255, 255, 255, 0.66); line-height: var(--leading-normal); }
 
+/* Pie del panel decorativo: ancla marca/ubicación y llena el espacio inferior */
+.login-left__footer {
+  margin-top: var(--space-2xl);
+  padding-top: var(--space-lg);
+  border-top: 1px solid rgba(255, 255, 255, 0.10);
+  display: flex; align-items: center; gap: var(--space-sm);
+  font-size: var(--text-small); color: rgba(255, 255, 255, 0.58);
+}
+.login-left__footer svg { color: var(--color-accent); flex-shrink: 0; }
+
 /* ── Panel del formulario (derecha) ── */
 .login-right {
   display: flex;
@@ -131,12 +141,15 @@
   background: var(--color-input-bg);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.04);
   transition: border-color var(--duration-fast) var(--ease), box-shadow var(--duration-fast) var(--ease);
 }
+.login-form__field:hover { border-color: var(--color-border-strong, rgba(0,0,0,0.18)); }
 .login-form__field:focus-within {
-  border-color: var(--color-focus);
-  box-shadow: 0 0 0 3px var(--color-focus-ring);
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 4px var(--color-focus-ring), inset 0 1px 2px rgba(0, 0, 0, 0.02);
 }
+.login-form__field:focus-within .login-form__field-icon { color: var(--color-primary); }
 .login-form__field-icon { position: absolute; left: var(--space-md); color: var(--color-text-light); pointer-events: none; }
 
 .login-form__input {
@@ -163,18 +176,26 @@
 
 .login-form__submit {
   margin-top: var(--space-xs);
-  padding: var(--space-md);
-  background: var(--color-primary-strong);
+  padding: calc(var(--space-md) + 1px) var(--space-md);
+  background: linear-gradient(180deg, var(--color-primary-strong), var(--color-primary-strong-hover));
   color: var(--color-primary-on);
   border: none;
   border-radius: var(--radius-md);
   font-size: var(--text-body);
   font-weight: var(--weight-semibold);
+  letter-spacing: 0.01em;
   display: flex; align-items: center; justify-content: center; gap: var(--space-sm);
-  box-shadow: var(--shadow-green-sm);
-  transition: background var(--duration-fast) var(--ease), transform var(--duration-fast) var(--ease);
+  box-shadow: 0 4px 14px rgba(22, 163, 74, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.14);
+  transition: transform var(--duration-fast) var(--ease),
+              box-shadow var(--duration-base) var(--ease),
+              filter var(--duration-fast) var(--ease);
 }
-.login-form__submit:hover:not(:disabled) { background: var(--color-primary-strong-hover); transform: translateY(-1px); }
+.login-form__submit:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 26px rgba(22, 163, 74, 0.40), inset 0 1px 0 rgba(255, 255, 255, 0.20);
+  filter: brightness(1.04);
+}
+.login-form__submit:active:not(:disabled) { transform: translateY(0); box-shadow: 0 3px 10px rgba(22, 163, 74, 0.3); }
 .login-form__submit:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }
 .login-form__submit:disabled { opacity: 0.7; cursor: not-allowed; }
 
@@ -196,6 +217,18 @@
   border-radius: var(--radius-sm);
 }
 .login-recovery-link:hover { text-decoration: underline; }
+
+/* Pie del panel del formulario: llena el espacio inferior con una nota útil */
+.login-form-footer {
+  margin-top: var(--space-2xl);
+  padding-top: var(--space-lg);
+  border-top: 1px solid var(--color-border);
+  text-align: center;
+  font-size: var(--text-caption);
+  color: var(--color-text-muted);
+  line-height: var(--leading-normal);
+}
+.login-form-footer strong { color: var(--color-text-secondary); font-weight: var(--weight-semibold); }
 .login-recovery-link:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }
 
 /* ── Modal de recuperación ── */
@@ -295,6 +328,8 @@
   .login-left { padding: var(--space-xl); min-height: auto; }
   .login-left__title { font-size: var(--text-h1); }
   .login-left__cards { display: none; }
+  .login-left__footer { display: none; }
   .login-left__subtitle { margin-bottom: 0; }
   .login-right { padding: var(--space-2xl) var(--space-lg); }
+  .login-form-footer { margin-top: var(--space-xl); }
 }
