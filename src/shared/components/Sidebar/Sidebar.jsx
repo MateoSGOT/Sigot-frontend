@@ -108,11 +108,12 @@ export default function Sidebar() {
   const toggleGroup = (name) => setOpenGroups(p => ({ ...p, [name]: !p[name] }));
 
   const handleLogout = () => {
-    // Navegar ANTES de limpiar el token: así la ruta ya es la landing pública
-    // cuando el estado queda sin sesión (evita que un ProtectedRoute aún montado
-    // vea !token y redirija a /login).
-    navigate('/');
+    // Limpia sesión y hace una navegación DURA a la landing pública. Un
+    // window.location.replace es determinista: recarga la página, aborta la
+    // petición de /logout en vuelo (el interceptor 401 ni corre) y no depende
+    // del timing de React Router. Así el cierre de sesión nunca cae en /login.
     dispatch(logout());
+    window.location.replace('/');
   };
 
   return (
