@@ -2,6 +2,17 @@
   overflow-x: auto;
   border-radius: var(--radius-md);
   border: 1px solid var(--color-border);
+  -webkit-overflow-scrolling: touch;
+  /* Indicador de scroll horizontal (técnica CSS pura): aparece una sombra
+     en el borde que tiene más contenido oculto y desaparece al llegar al
+     extremo. Las capas "cover" (attachment local) se mueven con el scroll;
+     las de sombra (attachment scroll) quedan fijas en los bordes. */
+  background:
+    linear-gradient(to right, var(--color-surface) 30%, rgba(255,255,255,0)) 0 0 / 36px 100% no-repeat,
+    linear-gradient(to left,  var(--color-surface) 30%, rgba(255,255,255,0)) 100% 0 / 36px 100% no-repeat,
+    radial-gradient(farthest-side at 0 50%,   rgba(0,0,0,0.10), transparent) 0 0 / 14px 100% no-repeat,
+    radial-gradient(farthest-side at 100% 50%, rgba(0,0,0,0.10), transparent) 100% 0 / 14px 100% no-repeat;
+  background-attachment: local, local, scroll, scroll;
 }
 
 .table {
@@ -164,4 +175,13 @@
 .table-pagination__total {
   font-size: 0.8125rem;
   color: var(--color-text-muted);
+}
+
+/* === Responsive: densidad más compacta en móvil (más columnas visibles
+   antes de necesitar scroll; el scroll horizontal contenido sigue activo) === */
+@media (max-width: 640px) {
+  .table { font-size: var(--text-small); }
+  .table__th { padding: var(--space-sm) var(--space-md); }
+  .table__td { padding: var(--space-sm) var(--space-md); height: 44px; }
+  .table-pagination { padding: var(--space-sm) var(--space-md); }
 }
