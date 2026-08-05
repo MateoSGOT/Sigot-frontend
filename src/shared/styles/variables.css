@@ -149,6 +149,19 @@
   --duration-slow:   300ms;
   --transition-fast: all 150ms cubic-bezier(0.4, 0, 0.2, 1);
   --transition-base: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
+  /* Capa de ENTRADA con "peso" (reveals, stagger, drawer, hero). La escala
+     fast/base/slow de arriba (150/200/300) es para micro-interacciones de UI
+     (hover, foco) y se conserva; ésta es para animaciones de entrada. */
+  --ease-entrance:      cubic-bezier(0.16, 1, 0.3, 1);
+  --duration-entrance:  400ms;   /* "slow" para entradas con peso */
+  --duration-enter-md:  250ms;   /* entrada media */
+
+  /* === Breakpoints canónicos ===
+     móvil <640 · tablet 640–1023 · desktop ≥1024.
+     CSS no permite var() dentro de @media: estos son la ÚNICA fuente de verdad,
+     replicados textualmente en cada @media y expuestos a JS en breakpoints.js. */
+  --bp-mobile: 640px;
+  --bp-tablet: 1024px;
 
   /* NOTA: la consolidación de sombras a 3 niveles (sm reposo / md hover / lg modal)
      se aplica en el refactor de componentes, no aquí, para no cambiar el aspecto
