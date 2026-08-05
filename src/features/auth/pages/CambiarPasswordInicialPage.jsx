@@ -80,7 +80,7 @@ export default function CambiarPasswordInicialPage() {
           </button>
         </form>
 
-        <button className="btn btn--ghost" style={{ marginTop: '1rem', width: '100%' }} onClick={() => { dispatch(logout()); navigate('/', { replace: true }); }}>
+        <button className="btn btn--ghost" style={{ marginTop: '1rem', width: '100%' }} onClick={() => { navigate('/', { replace: true }); dispatch(logout()); }}>
           Cerrar sesión
         </button>
       </div>

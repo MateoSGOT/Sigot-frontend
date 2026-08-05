@@ -108,8 +108,11 @@ export default function Sidebar() {
   const toggleGroup = (name) => setOpenGroups(p => ({ ...p, [name]: !p[name] }));
 
   const handleLogout = () => {
-    dispatch(logout());
+    // Navegar ANTES de limpiar el token: así la ruta ya es la landing pública
+    // cuando el estado queda sin sesión (evita que un ProtectedRoute aún montado
+    // vea !token y redirija a /login).
     navigate('/');
+    dispatch(logout());
   };
 
   return (

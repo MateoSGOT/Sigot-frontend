@@ -21,7 +21,7 @@ export default function PortalSidebar({ activeTab, onTabChange }) {
   const { cliente } = useSelector(s => s.auth);
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  const handleLogout = () => { dispatch(logout()); navigate('/'); };
+  const handleLogout = () => { navigate('/'); dispatch(logout()); };
 
   const handleNav = (key) => {
     onTabChange(key);
