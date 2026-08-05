@@ -310,3 +310,23 @@
   0%, 100% { box-shadow: 0 0 0 0 rgba(74, 222, 128, 0.4); }
   50%       { box-shadow: 0 0 0 4px rgba(74, 222, 128, 0); }
 }
+
+/* ═══════════════════════════════════════════════════════════
+   RESPONSIVE — drawer en tablet/móvil (<1024). En desktop (≥1024)
+   el sidebar se comporta igual que siempre (fixed, siempre visible).
+   ═══════════════════════════════════════════════════════════ */
+@media (max-width: 1023px) {
+  .sidebar {
+    transform: translateX(-100%);
+    transition:
+      transform var(--duration-entrance) var(--ease-entrance),
+      box-shadow var(--duration-base) var(--ease);
+    z-index: 1200;           /* sobre el overlay (1100) */
+    box-shadow: none;
+    will-change: transform;
+  }
+  .sidebar--open {
+    transform: translateX(0);
+    box-shadow: 8px 0 40px rgba(0, 0, 0, 0.45);
+  }
+}

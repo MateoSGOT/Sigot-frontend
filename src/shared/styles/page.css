@@ -164,6 +164,12 @@
   color: #111111;
 }
 
+/* En tablet/móvil (<1024) la hamburguesa flota arriba-izquierda:
+   dejamos espacio para que no tape el título de la página. */
+@media (max-width: 1023px) {
+  .page__header { padding-left: 72px; }
+}
+
 @media (max-width: 768px) {
   .page { padding: 1rem; }
   .detail-grid { grid-template-columns: 1fr; }

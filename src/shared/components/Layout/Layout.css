@@ -14,3 +14,37 @@
   min-height: 100vh;
   color: var(--color-text);
 }
+
+/* Hamburguesa + overlay: solo en tablet/móvil (<1024) */
+.layout__hamburger { display: none; }
+.layout__overlay   { display: none; }
+
+@media (max-width: 1023px) {
+  .layout__main { margin-left: 0; }
+
+  .layout__hamburger {
+    position: fixed; top: 14px; left: 14px; z-index: 1000;
+    width: 44px; height: 44px; border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    background: linear-gradient(180deg, #0f2611, #0a190a);
+    color: #4ade80;
+    border: 1px solid rgba(74, 222, 128, 0.20);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+    cursor: pointer;
+    transition: transform var(--duration-fast) var(--ease), box-shadow var(--duration-fast) var(--ease);
+  }
+  .layout__hamburger:hover  { box-shadow: 0 6px 20px rgba(0, 0, 0, 0.32); }
+  .layout__hamburger:active { transform: scale(0.94); }
+  .layout__hamburger:focus-visible { outline: 2px solid #4ade80; outline-offset: 2px; }
+
+  .layout__overlay {
+    position: fixed; inset: 0; z-index: 1100;
+    display: block;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(2px);
+    -webkit-backdrop-filter: blur(2px);
+    opacity: 0; visibility: hidden;
+    transition: opacity var(--duration-base) var(--ease), visibility var(--duration-base) var(--ease);
+  }
+  .layout__overlay--show { opacity: 1; visibility: visible; }
+}

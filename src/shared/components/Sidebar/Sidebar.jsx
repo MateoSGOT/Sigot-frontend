@@ -10,6 +10,7 @@ import {
 } from 'react-icons/md';
 import { logout } from '../../../features/auth/slices/authSlice';
 import StockAlertBell from '../StockAlertBell/StockAlertBell.jsx';
+import { useSidebar } from '../../contexts/SidebarContext.jsx';
 import './Sidebar.css';
 
 const NAV_STRUCTURE = [
@@ -80,6 +81,7 @@ export default function Sidebar() {
   const navigate  = useNavigate();
   const location  = useLocation();
   const { empleado, permisos } = useSelector((state) => state.auth);
+  const { mobileOpen } = useSidebar();
   const [profileOpen, setProfileOpen] = useState(false);
   const profileRef = React.useRef(null);
 
@@ -111,7 +113,7 @@ export default function Sidebar() {
   };
 
   return (
-    <aside className="sidebar">
+    <aside className={`sidebar${mobileOpen ? ' sidebar--open' : ''}`}>
       {/* Logo */}
       <div className="sidebar__header">
         <div className="sidebar__logo">

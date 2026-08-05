@@ -1,10 +1,19 @@
-import React, { createContext, useContext } from 'react';
+import React, { createContext, useContext, useState, useCallback } from 'react';
 
-const SidebarContext = createContext({ collapsed: false, setCollapsed: () => {} });
+const SidebarContext = createContext({
+  mobileOpen: false,
+  openMobile: () => {},
+  closeMobile: () => {},
+  toggleMobile: () => {},
+});
 
 export function SidebarProvider({ children }) {
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const openMobile   = useCallback(() => setMobileOpen(true), []);
+  const closeMobile  = useCallback(() => setMobileOpen(false), []);
+  const toggleMobile = useCallback(() => setMobileOpen(o => !o), []);
   return (
-    <SidebarContext.Provider value={{ collapsed: false, setCollapsed: () => {} }}>
+    <SidebarContext.Provider value={{ mobileOpen, openMobile, closeMobile, toggleMobile }}>
       {children}
     </SidebarContext.Provider>
   );
