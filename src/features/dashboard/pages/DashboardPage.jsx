@@ -14,6 +14,7 @@ import {
 } from 'recharts';
 import EmptyState from '../../../shared/components/EmptyState/EmptyState.jsx';
 import Skeleton from '../../../shared/components/Skeleton/Skeleton.jsx';
+import CountUp from '../../../shared/components/CountUp/CountUp.jsx';
 import './DashboardPage.css';
 
 const PIE_COLORS = ['#3a6b9e', '#8b2e2e', '#2d5a2d', '#8a7240', '#5c6b8a', '#7a4a6a', '#4a6b5c'];
@@ -59,13 +60,15 @@ const etiquetaPeriodo = (ymd, agrupacion) => {
   return `${d}/${m}`;
 };
 
-function StatCard({ icon: Icon, label, value, sub, color = 'green', loading }) {
+function StatCard({ icon: Icon, label, value, format = (n) => Math.round(n).toLocaleString('es-CO'), sub, color = 'green', loading }) {
   return (
     <div className={`stat-card stat-card--${color}`}>
       <div className="stat-card__icon-wrap"><Icon size={24} /></div>
       <div className="stat-card__body">
         <span className="stat-card__label">{label}</span>
-        {loading ? <Skeleton width={90} height={22} /> : <span className="stat-card__value">{value ?? '—'}</span>}
+        <span className="stat-card__value">
+          <CountUp value={value} loading={loading} format={format} skeleton={<Skeleton width={90} height={22} />} />
+        </span>
         {sub && <span className="stat-card__sub">{sub}</span>}
       </div>
     </div>
@@ -152,9 +155,9 @@ export default function DashboardPage() {
 
       {/* KPIs */}
       <div className="stats-grid">
-        <StatCard icon={MdPayments}   label="Ingreso del rango"  value={formatCurrency(resumen.ingresoTotal ?? 0)} sub="Órdenes entregadas" color="green"  loading={loading} />
+        <StatCard icon={MdPayments}   label="Ingreso del rango"  value={resumen.ingresoTotal ?? 0} format={formatCurrency} sub="Órdenes entregadas" color="green"  loading={loading} />
         <StatCard icon={MdReceiptLong} label="Órdenes realizadas" value={resumen.ordenesRealizadas ?? 0}          sub="En el rango"         color="blue"   loading={loading} />
-        <StatCard icon={MdMiscellaneousServices} label="Ticket promedio" value={formatCurrency(resumen.ticketPromedio ?? 0)} sub="Por orden"    color="amber"  loading={loading} />
+        <StatCard icon={MdMiscellaneousServices} label="Ticket promedio" value={resumen.ticketPromedio ?? 0} format={formatCurrency} sub="Por orden"    color="amber"  loading={loading} />
         <StatCard icon={MdShoppingCart} label="Stock bajo"        value={resumen.stockBajo ?? 0}                  sub={resumen.stockCritico ? `${resumen.stockCritico} agotado(s)` : 'Repuestos'} color="purple" loading={loading} />
       </div>
 
@@ -179,7 +182,7 @@ export default function DashboardPage() {
                   <XAxis dataKey="name" tick={CHART_STYLE.tick} axisLine={false} tickLine={false} />
                   <YAxis tick={CHART_STYLE.tick} axisLine={false} tickLine={false} tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`} />
                   <Tooltip {...CHART_STYLE.tooltip} formatter={(v) => [formatCurrency(v), 'Ingreso']} />
-                  <Area type="monotone" dataKey="total" name="Ingreso" stroke="#2d6a2d" strokeWidth={2.5} fill="url(#colorIng)" />
+                  <Area type="monotone" dataKey="total" name="Ingreso" stroke="#16a34a" strokeWidth={2.5} fill="url(#colorIng)" isAnimationActive animationDuration={900} animationEasing="ease-out" />
                 </AreaChart>
               </ResponsiveContainer>
             ) : EMPTY_CHART}
@@ -200,7 +203,7 @@ export default function DashboardPage() {
                   <XAxis type="number" tick={CHART_STYLE.tick} axisLine={false} tickLine={false} allowDecimals={false} />
                   <YAxis type="category" dataKey="name" tick={CHART_STYLE.tick} axisLine={false} tickLine={false} width={130} />
                   <Tooltip {...CHART_STYLE.tooltip} formatter={(v, _n, p) => [`${v} vez(es)`, p?.payload?.name]} />
-                  <Bar dataKey="value" name="Veces" fill="url(#gradServ)" radius={[0, 4, 4, 0]} />
+                  <Bar dataKey="value" name="Veces" fill="url(#gradServ)" radius={[0, 4, 4, 0]} isAnimationActive animationDuration={900} animationEasing="ease-out" />
                 </BarChart>
               </ResponsiveContainer>
             ) : EMPTY_CHART}
@@ -218,7 +221,7 @@ export default function DashboardPage() {
                   <XAxis type="number" tick={CHART_STYLE.tick} axisLine={false} tickLine={false} allowDecimals={false} />
                   <YAxis type="category" dataKey="name" tick={CHART_STYLE.tick} axisLine={false} tickLine={false} width={130} />
                   <Tooltip {...CHART_STYLE.tooltip} formatter={(v, _n, p) => [`${v} unidad(es)`, p?.payload?.name]} />
-                  <Bar dataKey="value" name="Cantidad" fill="url(#gradRep)" radius={[0, 4, 4, 0]} />
+                  <Bar dataKey="value" name="Cantidad" fill="url(#gradRep)" radius={[0, 4, 4, 0]} isAnimationActive animationDuration={900} animationEasing="ease-out" />
                 </BarChart>
               </ResponsiveContainer>
             ) : EMPTY_CHART}
@@ -256,7 +259,7 @@ export default function DashboardPage() {
             <div className="card__body">
               <ResponsiveContainer width="100%" height={220}>
                 <PieChart>
-                  <Pie data={repuestosPie} cx="50%" cy="50%" innerRadius={55} outerRadius={90} paddingAngle={3} dataKey="value" nameKey="name">
+                  <Pie data={repuestosPie} cx="50%" cy="50%" innerRadius={55} outerRadius={90} paddingAngle={3} dataKey="value" nameKey="name" isAnimationActive animationDuration={900} animationEasing="ease-out">
                     {repuestosPie.map((_, idx) => <Cell key={idx} fill={PIE_COLORS[idx % PIE_COLORS.length]} />)}
                   </Pie>
                   <Tooltip {...CHART_STYLE.tooltip} formatter={(v, _n, p) => [v, p?.payload?.name]} />
