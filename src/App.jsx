@@ -95,28 +95,30 @@ function App() {
         <Route index element={<Navigate to="/dashboard" replace />} />
       </Route>
 
+      {/* Rutas protegidas del panel: layout SIN path (pathless) con hijos de
+          path absoluto. Así "/" queda exclusivamente para la landing pública
+          y cerrar sesión (navigate('/')) no cae en el ProtectedRoute. */}
       <Route
-        path="/"
         element={
           <ProtectedRoute>
             <Layout />
           </ProtectedRoute>
         }
       >
-        <Route path="dashboard"   element={<DashboardPage />} />
-        <Route path="clientes"    element={<ClientesPage />} />
-        <Route path="vehiculos"   element={<VehiculosPage />} />
-        <Route path="marcas"      element={<MarcasPage />} />
-        <Route path="empleados"   element={<EmpleadosPage />} />
-        <Route path="repuestos"   element={<RepuestosPage />} />
-        <Route path="categorias"  element={<CategoriasPage />} />
-        <Route path="proveedores" element={<ProveedoresPage />} />
-        <Route path="compras"     element={<ComprasPage />} />
-        <Route path="servicios"   element={<ServiciosPage />} />
-        <Route path="agenda"      element={<AgendaPage />} />
-        <Route path="ordenes"     element={<OrdenesPage />} />
-        <Route path="novedades"   element={<NovedadesPage />} />
-        <Route path="roles"  element={<RolesPage />} />
+        <Route path="/dashboard"   element={<DashboardPage />} />
+        <Route path="/clientes"    element={<ClientesPage />} />
+        <Route path="/vehiculos"   element={<VehiculosPage />} />
+        <Route path="/marcas"      element={<MarcasPage />} />
+        <Route path="/empleados"   element={<EmpleadosPage />} />
+        <Route path="/repuestos"   element={<RepuestosPage />} />
+        <Route path="/categorias"  element={<CategoriasPage />} />
+        <Route path="/proveedores" element={<ProveedoresPage />} />
+        <Route path="/compras"     element={<ComprasPage />} />
+        <Route path="/servicios"   element={<ServiciosPage />} />
+        <Route path="/agenda"      element={<AgendaPage />} />
+        <Route path="/ordenes"     element={<OrdenesPage />} />
+        <Route path="/novedades"   element={<NovedadesPage />} />
+        <Route path="/roles"       element={<RolesPage />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />
