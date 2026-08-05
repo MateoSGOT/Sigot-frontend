@@ -20,12 +20,14 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    const url = error.config?.url || '';
-    // El POST de /logout responde 401 (ya no hay token): es esperado y NO debe
-    // forzar una redirección dura a /login — si no, pisa el navigate('/') del
-    // cierre de sesión y termina en el login en vez de la landing.
-    const isLogout = url.includes('/api/auth/logout');
-    if (error.response?.status === 401 && !isLogout) {
+    // Solo forzamos la redirección dura a /login cuando HABÍA sesión (token
+    // presente) y el servidor la rechaza → expiración real de sesión.
+    // Si ya no hay token (estamos cerrando sesión a propósito, o cualquier
+    // 401 posterior al logout), NO redirigimos: dejamos que React Router lleve
+    // a la landing. Antes, cualquier 401 durante el logout pisaba navigate('/')
+    // con window.location y terminaba en el login.
+    const hadToken = !!localStorage.getItem(TOKEN_KEY);
+    if (error.response?.status === 401 && hadToken) {
       localStorage.removeItem(TOKEN_KEY);
       window.location.href = '/login';
     }
