@@ -20,7 +20,7 @@ import './RepuestosPage.css';
 // El margen tiene piso 50% y el precio de venta se calcula (costo × margen × IVA).
 const EMPTY = { NombreRepuesto: '', StockMinimo: '5', Id_categoria: '', MargenPorcentaje: '50', _costo: 0, _iva: 19, _precioVenta: null };
 const RULES = {
-  NombreRepuesto: (v) => V.nombre(v, 3),
+  NombreRepuesto: (v) => V.nombre(v, 3, 120),
   Id_categoria:   (v) => V.requiredSelect(v, 'La categoría'),
   MargenPorcentaje: (v) => {
     if (v == null || String(v).trim() === '') return ''; // opcional; queda en su default 50
@@ -99,10 +99,10 @@ export default function RepuestosPage() {
   const exportarExcel = async () => {
     try {
       const res = await api.get('/api/repuestos?limit=9999');
-      const data = res.data?.data || res.data || items;
+      const data = res.data?.data || res.data || rows;
       const catMap = {};
       categorias.forEach(c => { catMap[c.Id_categoria ?? c.Id_Categoria] = c.Nombre; });
-      const rows = data.map((r, i) => ({
+      const exportRows = data.map((r, i) => ({
         '#': i + 1,
         Nombre: r.NombreRepuesto || r.Nombre || '',
         Categoría: catMap[r.Id_categoria ?? r.Id_Categoria] || '—',
@@ -112,7 +112,7 @@ export default function RepuestosPage() {
         'Precio venta': r.PrecioVenta != null ? Number(r.PrecioVenta) : '',
         Estado: r.Estado ? 'Activo' : 'Inactivo',
       }));
-      const ws = XLSX.utils.json_to_sheet(rows);
+      const ws = XLSX.utils.json_to_sheet(exportRows);
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, 'Inventario');
       const fecha = new Date().toISOString().split('T')[0];
@@ -291,7 +291,7 @@ export default function RepuestosPage() {
         <form className="form-grid" onSubmit={handleSubmit} noValidate>
           <div className="form-group span-2">
             <label className="form-label">Nombre <span className="required">*</span></label>
-            <input name="NombreRepuesto" className={`form-control ${fieldError('NombreRepuesto') ? 'is-error' : ''}`} value={formData.NombreRepuesto} onChange={handleChange} onBlur={handleBlur} placeholder="Nombre del repuesto" />
+            <input name="NombreRepuesto" className={`form-control ${fieldError('NombreRepuesto') ? 'is-error' : ''}`} value={formData.NombreRepuesto} onChange={handleChange} onBlur={handleBlur} maxLength={120} placeholder="Nombre del repuesto" />
             {fieldError('NombreRepuesto') && <p className="form-error">{fieldError('NombreRepuesto')}</p>}
           </div>
           <div className="form-group span-2">

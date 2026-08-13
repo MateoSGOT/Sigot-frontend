@@ -22,6 +22,7 @@ import AgendaPage from './features/agenda/pages/AgendaPage.jsx';
 import OrdenesPage from './features/ordenes/pages/OrdenesPage.jsx';
 import NovedadesPage from './features/novedades/pages/NovedadesPage.jsx';
 import RolesPage from './features/roles/pages/RolesPage.jsx';
+import CuentasPage from './features/cuentas/pages/CuentasPage.jsx';
 
 function ProtectedRoute({ children }) {
   const { token, restoring, debeCambiarPassword } = useSelector((state) => state.auth);
@@ -29,6 +30,17 @@ function ProtectedRoute({ children }) {
   if (!token) return <Navigate to="/login" replace />;
   // Bloqueo real: mientras deba cambiar la contraseña, no accede a ninguna ruta del panel.
   if (debeCambiarPassword) return <Navigate to="/cambiar-password" replace />;
+  return children;
+}
+
+// Gestión de cuentas (Fase 3): exclusiva del Super Administrador. El backend también lo
+// exige (requireSuperAdmin); esto solo evita que alguien más ni siquiera vea la página.
+function RequireSuperAdmin({ children }) {
+  const { token, restoring, debeCambiarPassword, empleado, cliente } = useSelector((state) => state.auth);
+  if (restoring) return null;
+  if (!token) return <Navigate to="/login" replace />;
+  if (debeCambiarPassword) return <Navigate to="/cambiar-password" replace />;
+  if (!empleado?.EsSuperAdmin && !cliente?.EsSuperAdmin) return <Navigate to="/dashboard" replace />;
   return children;
 }
 
@@ -60,12 +72,15 @@ function App() {
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Fetch permission names whenever the logged-in role changes (login or session restore)
+  // Fetch permission names whenever the logged-in role changes (login or session restore).
+  // Incluye cliente.Id_Rol: un cliente promovido a un rol administrativo (Fase 3) también
+  // necesita sus permisos reales para el panel de staff, no solo los empleados.
   useEffect(() => {
-    if (token && empleado?.Id_Rol) {
-      dispatch(fetchUserPermisos(empleado.Id_Rol));
+    const idRolActivo = empleado?.Id_Rol ?? cliente?.Id_Rol;
+    if (token && idRolActivo) {
+      dispatch(fetchUserPermisos(idRolActivo));
     }
-  }, [empleado?.Id_Rol]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [empleado?.Id_Rol, cliente?.Id_Rol]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (restoring) return null;
 
@@ -119,6 +134,7 @@ function App() {
         <Route path="/ordenes"     element={<OrdenesPage />} />
         <Route path="/novedades"   element={<NovedadesPage />} />
         <Route path="/roles"       element={<RolesPage />} />
+        <Route path="/cuentas"     element={<RequireSuperAdmin><CuentasPage /></RequireSuperAdmin>} />
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />

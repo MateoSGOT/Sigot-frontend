@@ -9,12 +9,19 @@ import Modal from '../../../shared/components/Modal/Modal.jsx';
 import Table from '../../../shared/components/Table/Table.jsx';
 import SearchBar from '../../../shared/components/SearchBar/SearchBar.jsx';
 import FilterDropdown from '../../../shared/components/FilterDropdown/FilterDropdown.jsx';
-import { filterItems, formatDate } from '../../../shared/utils/helpers.js';
+import { filterItems, sortNewestFirst, formatDate } from '../../../shared/utils/helpers.js';
+import * as V from '../../../shared/utils/validators.js';
+import { useFormValidation } from '../../../shared/hooks/useFormValidation.js';
 import api from '../../../shared/services/api.js';
 import './NovedadesPage.css';
 
 const EMPTY = { id_empleado: '', Descripcion: '', Fecha_Novedad: '', FechaRealizacion: '' };
 const TODAY = new Date().toISOString().split('T')[0];
+const RULES = {
+  id_empleado: (v) => V.requiredSelect(v, 'El empleado'),
+  Descripcion: (v) => V.required(v, 'La descripción') || V.maxLen(v, 500, 'La descripción'),
+  Fecha_Novedad: (v) => V.requiredSelect(v, 'La fecha de la novedad'),
+};
 
 export default function NovedadesPage() {
   const dispatch = useDispatch();
@@ -30,6 +37,7 @@ export default function NovedadesPage() {
   const [editingId, setEditingId] = useState(null);
   const [showForm, setShowForm]   = useState(false);
   const [formError, setFormError] = useState('');
+  const { errors, touched, setErrors, revalidate, markTouched, touchAll, fieldError, isInvalid, validateNow, reset } = useFormValidation(RULES);
 
   useEffect(() => {
     dispatch(fetchNovedades());
@@ -41,9 +49,9 @@ export default function NovedadesPage() {
     return e?.Nombre || `Empleado #${id}`;
   };
 
-  const filtered = filterItems(items, search, ['Descripcion']);
+  const filtered = sortNewestFirst(filterItems(items, search, ['Descripcion']), 'Id_Novedad');
 
-  const openCreate = () => { setFormData(EMPTY); setEditingId(null); setFormError(''); setShowForm(true); };
+  const openCreate = () => { setFormData(EMPTY); setEditingId(null); setFormError(''); reset(); setShowForm(true); };
   const openEdit   = (item) => {
     setFormData({
       id_empleado:     item.id_empleado || item.Id_Empleado || '',
@@ -51,15 +59,21 @@ export default function NovedadesPage() {
       Fecha_Novedad:   item.Fecha_Novedad   ? item.Fecha_Novedad.split('T')[0]   : '',
       FechaRealizacion: item.FechaRealizacion ? item.FechaRealizacion.split('T')[0] : '',
     });
-    setEditingId(item.Id_Novedad || item.id); setFormError(''); setShowForm(true);
+    setEditingId(item.Id_Novedad || item.id); setFormError(''); reset(); setShowForm(true);
   };
-  const handleChange = e => setFormData(p => ({ ...p, [e.target.name]: e.target.value }));
+  const handleChange = e => {
+    const next = { ...formData, [e.target.name]: e.target.value };
+    setFormData(next);
+    if (touched[e.target.name] || errors[e.target.name]) revalidate(next);
+  };
+  const handleBlur = (e) => { markTouched(e.target.name); revalidate(formData); };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!formData.id_empleado || !formData.Descripcion || !formData.Fecha_Novedad) {
-      setFormError('Completa empleado, descripción y fecha de novedad.'); return;
-    }
+    const errs = validateNow(formData);
+    setErrors(errs); touchAll();
+    if (V.hasErrors(errs)) { setFormError('Corrige los campos marcados antes de guardar.'); return; }
+    setFormError('');
     const payload = {
       id_empleado:   Number(formData.id_empleado),
       Descripcion:   formData.Descripcion,
@@ -134,7 +148,7 @@ export default function NovedadesPage() {
       </Modal>
 
       <Modal isOpen={showForm} onClose={() => setShowForm(false)} title={editingId ? 'Editar novedad' : 'Nueva novedad'} size="md"
-        footer={<><button className="btn btn--outline" onClick={() => setShowForm(false)}>Cancelar</button><button className="btn btn--primary" onClick={handleSubmit} disabled={actionLoading}>{actionLoading ? 'Guardando...' : 'Guardar'}</button></>}
+        footer={<><button className="btn btn--outline" onClick={() => setShowForm(false)}>Cancelar</button><button className="btn btn--primary" onClick={handleSubmit} disabled={actionLoading || isInvalid(formData)}>{actionLoading ? 'Guardando...' : 'Guardar'}</button></>}
       >
         {formError && <div className="form-error-box">{formError}</div>}
         <form className="form-grid" onSubmit={handleSubmit} noValidate>
@@ -143,17 +157,20 @@ export default function NovedadesPage() {
             <SearchableSelect
               options={empleados.map(e => ({ value: String(e.id_empleado ?? e.Id_Empleado), label: e.Nombre }))}
               value={String(formData.id_empleado)}
-              onChange={v => setFormData(p => ({ ...p, id_empleado: v }))}
+              onChange={v => { setFormData(p => ({ ...p, id_empleado: v })); markTouched('id_empleado'); }}
               placeholder="Seleccionar empleado..."
             />
+            {fieldError('id_empleado') && <p className="form-error">{fieldError('id_empleado')}</p>}
           </div>
           <div className="form-group span-2">
             <label className="form-label">Descripción <span className="required">*</span></label>
-            <textarea name="Descripcion" className="form-control" value={formData.Descripcion} onChange={handleChange} rows={3} placeholder="Describe la novedad..." />
+            <textarea name="Descripcion" className={`form-control ${fieldError('Descripcion') ? 'is-error' : ''}`} value={formData.Descripcion} onChange={handleChange} onBlur={handleBlur} rows={3} maxLength={500} placeholder="Describe la novedad..." />
+            {fieldError('Descripcion') && <p className="form-error">{fieldError('Descripcion')}</p>}
           </div>
           <div className="form-group">
             <label className="form-label">Fecha de la novedad <span className="required">*</span></label>
-            <input name="Fecha_Novedad" type="date" className="form-control" value={formData.Fecha_Novedad} onChange={handleChange} min={TODAY} />
+            <input name="Fecha_Novedad" type="date" className={`form-control ${fieldError('Fecha_Novedad') ? 'is-error' : ''}`} value={formData.Fecha_Novedad} onChange={handleChange} onBlur={handleBlur} min={TODAY} />
+            {fieldError('Fecha_Novedad') && <p className="form-error">{fieldError('Fecha_Novedad')}</p>}
           </div>
           <div className="form-group">
             <label className="form-label">Fecha de realización</label>

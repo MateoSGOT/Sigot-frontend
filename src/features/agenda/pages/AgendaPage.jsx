@@ -12,7 +12,7 @@ import Table from '../../../shared/components/Table/Table.jsx';
 import SearchBar from '../../../shared/components/SearchBar/SearchBar.jsx';
 import FilterDropdown from '../../../shared/components/FilterDropdown/FilterDropdown.jsx';
 import { StatusBadge } from '../../../shared/components/Badge/Badge.jsx';
-import { filterItems, formatDate } from '../../../shared/utils/helpers.js';
+import { filterItems, sortNewestFirst, formatDate } from '../../../shared/utils/helpers.js';
 import api from '../../../shared/services/api.js';
 import './AgendaPage.css';
 
@@ -32,6 +32,7 @@ function CitaEstadoBadge({ estado }) {
 const CITA_CANCELABLE = (estado) => ['Pendiente', 'Confirmada'].includes(estado || 'Pendiente');
 const EMPTY_ORDEN = { FechaIngreso: '', FechaEntrega: '', Diagnostico: '', Kilometraje: '' };
 const TODAY = new Date().toISOString().split('T')[0];
+const toMinHelper = (h) => { const [hh, mm] = String(h).split(':').map(Number); return hh * 60 + mm; };
 
 export default function AgendaPage() {
   const dispatch = useDispatch();
@@ -92,14 +93,35 @@ export default function AgendaPage() {
   // Opciones de hora dentro del horario de atención (cada 30 min, apertura→cierre inclusive).
   const DIAS_NOMBRE = { 1: 'Lun', 2: 'Mar', 3: 'Mié', 4: 'Jue', 5: 'Vie', 6: 'Sáb', 7: 'Dom' };
   const horaOptions = (() => {
-    const toMin = h => { const [hh, mm] = String(h).split(':').map(Number); return hh * 60 + mm; };
-    const ap = toMin(horario.apertura), ci = toMin(horario.cierre);
+    const ap = toMinHelper(horario.apertura), ci = toMinHelper(horario.cierre);
     const out = [];
     for (let t = ap; t <= ci && !Number.isNaN(t); t += 30) out.push(`${String(Math.floor(t / 60)).padStart(2, '0')}:${String(t % 60).padStart(2, '0')}`);
     return out;
   })();
   const diasLaboralesLabel = (horario.diasLaborales || []).map(d => DIAS_NOMBRE[d]).join(', ');
   const esDiaLaboral = (ymd) => { if (!ymd) return true; const js = new Date(`${ymd}T12:00:00`).getDay(); const iso = js === 0 ? 7 : js; return (horario.diasLaborales || []).includes(iso); };
+
+  // Feedback proactivo de horario: marca como ocupadas las franjas que chocarían con otra
+  // cita del mismo empleado ese día, según la duración estimada elegida. La fuente de verdad
+  // sigue siendo el backend (assertSinConflicto), esto solo evita que el usuario elija a ciegas.
+  const duracionActual = Number(formData.DuracionEstimadaMin) || 60;
+  const citasDelDiaEmpleado = formData.id_empleado && formData.FechaAgendamiento
+    ? items.filter(c =>
+        String(c.id_empleado ?? c.Id_Empleado) === String(formData.id_empleado) &&
+        (c.FechaAgendamiento || '').split('T')[0] === formData.FechaAgendamiento &&
+        !['Cancelada', 'NoAsistio'].includes(c.EstadoCita || 'Pendiente') &&
+        (c.Id_Agenda ?? c.id) !== editingId
+      )
+    : [];
+  const horaOcupada = (h) => {
+    const inicio = toMinHelper(h);
+    const fin = inicio + duracionActual;
+    return citasDelDiaEmpleado.some(c => {
+      const cIni = toMinHelper(c.Hora);
+      const cFin = cIni + Number(c.DuracionEstimadaMin || 60);
+      return inicio < cFin && cIni < fin;
+    });
+  };
   // Validación de fecha EN TIEMPO REAL (se recalcula al cambiar el campo). Mensajes en español.
   const fechaError = (() => {
     const f = formData.FechaAgendamiento;
@@ -122,7 +144,7 @@ export default function AgendaPage() {
     if (statusFilter === 'activos') list = list.filter(i => i.Estado !== 0);
     else if (statusFilter === 'inactivos') list = list.filter(i => i.Estado === 0);
     if (empleadoFilter) list = list.filter(i => String(i.id_empleado || i.Id_Empleado) === empleadoFilter);
-    return filterItems(list, search, ['cliente', 'vehiculo', 'Cliente', 'Vehiculo']);
+    return sortNewestFirst(filterItems(list, search, ['cliente', 'vehiculo', 'Cliente', 'Vehiculo']), 'Id_Agenda');
   })();
 
   const openCreate = () => {
@@ -299,9 +321,15 @@ export default function AgendaPage() {
           <div className="form-group"><label className="form-label">Hora <span className="required">*</span></label>
             <select name="Hora" className="form-control" value={formData.Hora} onChange={handleChange}>
               <option value="">Seleccionar hora...</option>
-              {horaOptions.map(h => <option key={h} value={h}>{h}</option>)}
+              {horaOptions.map(h => {
+                const ocupada = h !== formData.Hora && horaOcupada(h);
+                return <option key={h} value={h} disabled={ocupada}>{h}{ocupada ? ' (ocupado)' : ''}</option>;
+              })}
             </select>
             <p className="form-hint">Atención: {horario.apertura}–{horario.cierre} · {diasLaboralesLabel}</p>
+            {formData.id_empleado && formData.FechaAgendamiento && !formData.Hora && citasDelDiaEmpleado.length > 0 && (
+              <p className="form-hint">Este empleado ya tiene {citasDelDiaEmpleado.length} cita(s) ese día; las horas marcadas "(ocupado)" chocan con la duración estimada.</p>
+            )}
           </div>
           <div className="form-group"><label className="form-label">Duración estimada (min)</label>
             <input name="DuracionEstimadaMin" type="number" min="1" step="15" className="form-control" value={formData.DuracionEstimadaMin} onChange={handleChange} placeholder="60" />
@@ -317,7 +345,7 @@ export default function AgendaPage() {
         <form className="form-grid" onSubmit={handleOrdenSubmit} noValidate>
           <div className="form-group"><label className="form-label">Fecha de ingreso <span className="required">*</span></label><input name="FechaIngreso" type="date" className="form-control" value={ordenData.FechaIngreso} onChange={handleOrdenChange} min={TODAY} /></div>
           <div className="form-group"><label className="form-label">Fecha de entrega <span className="required">*</span></label><input name="FechaEntrega" type="date" className="form-control" value={ordenData.FechaEntrega} onChange={handleOrdenChange} min={ordenData.FechaIngreso || TODAY} /></div>
-          <div className="form-group span-2"><label className="form-label">Diagnóstico <span className="required">*</span></label><textarea name="Diagnostico" className="form-control" value={ordenData.Diagnostico} onChange={handleOrdenChange} rows={3} placeholder="Describe el diagnóstico..." /></div>
+          <div className="form-group span-2"><label className="form-label">Diagnóstico <span className="required">*</span></label><textarea name="Diagnostico" className="form-control" value={ordenData.Diagnostico} onChange={handleOrdenChange} rows={3} maxLength={500} placeholder="Describe el diagnóstico..." /></div>
           <div className="form-group span-2"><label className="form-label">Kilometraje <span className="required">*</span></label><input name="Kilometraje" type="number" min={ordenVehiculoKm ?? 0} className="form-control" value={ordenData.Kilometraje} onChange={handleOrdenChange} placeholder="km actuales del vehículo" />{ordenVehiculoKm != null && <p className="form-hint">Último registrado del vehículo: {ordenVehiculoKm.toLocaleString('es-CO')} km. No puede ser menor.</p>}</div>
         </form>
       </Modal>

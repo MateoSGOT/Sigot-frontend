@@ -8,7 +8,7 @@ import Table from '../../../shared/components/Table/Table.jsx';
 import SearchBar from '../../../shared/components/SearchBar/SearchBar.jsx';
 import FilterDropdown from '../../../shared/components/FilterDropdown/FilterDropdown.jsx';
 import { StatusBadge } from '../../../shared/components/Badge/Badge.jsx';
-import { sortByStatus, filterItems } from '../../../shared/utils/helpers.js';
+import { sortByStatus, sortNewestFirst, filterItems } from '../../../shared/utils/helpers.js';
 import {
   fetchMarcas, createMarca, updateMarca, toggleMarcaEstado,
   createModelo, updateModelo, toggleModeloEstado,
@@ -44,7 +44,7 @@ export default function MarcasPage() {
     if (statusFilter === 'activos') list = list.filter(i => i.Estado !== 0);
     else if (statusFilter === 'inactivos') list = list.filter(i => i.Estado === 0);
     list = filterItems(list, search, ['Nombre']);
-    return sortByStatus(list);
+    return sortByStatus(sortNewestFirst(list, 'Id_Marca'));
   })();
 
   // ===== Marca =====
@@ -143,7 +143,7 @@ export default function MarcasPage() {
         {marcaError && <div className="form-error-box">{marcaError}</div>}
         <div className="form-group">
           <label className="form-label">Nombre <span className="required">*</span></label>
-          <input className="form-control" value={marcaForm?.Nombre || ''} autoFocus
+          <input className="form-control" value={marcaForm?.Nombre || ''} autoFocus maxLength={60}
             onChange={e => setMarcaForm(f => ({ ...f, Nombre: e.target.value }))}
             onKeyDown={e => { if (e.key === 'Enter') submitMarca(); }}
             placeholder="Ej. Toyota" />
@@ -167,7 +167,7 @@ export default function MarcasPage() {
               <div className="modelo-inline-form">
                 {modeloError && <div className="form-error-box">{modeloError}</div>}
                 <div className="modelo-inline-form__row">
-                  <input className="form-control" autoFocus value={modeloForm.Nombre}
+                  <input className="form-control" autoFocus value={modeloForm.Nombre} maxLength={60}
                     onChange={e => setModeloForm(f => ({ ...f, Nombre: e.target.value }))}
                     onKeyDown={e => { if (e.key === 'Enter') submitModelo(); if (e.key === 'Escape') setModeloForm(null); }}
                     placeholder={modeloForm.id ? 'Editar modelo' : 'Nombre del nuevo modelo (ej. Corolla)'} />

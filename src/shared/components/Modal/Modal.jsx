@@ -9,10 +9,19 @@ export default function Modal({ isOpen, onClose, title, children, size = 'md', f
     return () => { document.body.style.overflow = ''; };
   }, [isOpen]);
 
+  useEffect(() => {
+    if (!isOpen) return;
+    const onKeyDown = (e) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
   return ReactDOM.createPortal(
-    <div className="modal-overlay" onClick={onClose}>
+    // El click en el overlay ya no cierra el modal: evita perder datos del formulario
+    // por un click accidental fuera del cuadro. Cerrar requiere el botón X o "Cancelar".
+    <div className="modal-overlay">
       <div className={`modal modal--${size}`} onClick={e => e.stopPropagation()}>
         <div className="modal__header">
           <h2 className="modal__title">{title}</h2>

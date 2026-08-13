@@ -6,7 +6,7 @@ import {
   MdMiscellaneousServices, MdAssignment, MdEventNote,
   MdNewReleases, MdSecurity, MdCategory, MdLocalShipping,
   MdLogout, MdPerson, MdBrandingWatermark,
-  MdPeopleAlt, MdStorage, MdChevronRight,
+  MdPeopleAlt, MdStorage, MdChevronRight, MdAdminPanelSettings,
 } from 'react-icons/md';
 import { logout } from '../../../features/auth/slices/authSlice';
 import StockAlertBell from '../StockAlertBell/StockAlertBell.jsx';
@@ -80,10 +80,11 @@ export default function Sidebar() {
   const dispatch  = useDispatch();
   const navigate  = useNavigate();
   const location  = useLocation();
-  const { empleado, permisos } = useSelector((state) => state.auth);
+  const { empleado, cliente, permisos } = useSelector((state) => state.auth);
   const { mobileOpen } = useSidebar();
   const [profileOpen, setProfileOpen] = useState(false);
   const profileRef = React.useRef(null);
+  const esSuperAdmin = !!(empleado?.EsSuperAdmin || cliente?.EsSuperAdmin);
 
   React.useEffect(() => {
     const handler = (e) => {
@@ -93,7 +94,12 @@ export default function Sidebar() {
     return () => document.removeEventListener('mousedown', handler);
   }, []);
 
+  // "Cuentas y accesos" (Fase 3): exclusiva del Super Administrador, no depende del
+  // sistema genérico de permisos por módulo, así que se agrega aparte.
   const visibleNav = buildVisibleNav(NAV_STRUCTURE, permisos);
+  if (esSuperAdmin) {
+    visibleNav.push({ type: 'link', to: '/cuentas', icon: MdAdminPanelSettings, label: 'Cuentas y accesos' });
+  }
 
   const [openGroups, setOpenGroups] = useState(() => {
     const groups = {};

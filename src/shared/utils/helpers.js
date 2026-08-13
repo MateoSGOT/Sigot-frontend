@@ -13,6 +13,20 @@ export const getErrorMessage = (error) => {
   return error?.response?.data?.message || error?.message || 'Ha ocurrido un error inesperado';
 };
 
+// Ordena por fecha de creación (o el campo ID como respaldo, ya que es autoincremental)
+// descendente, para que el registro recién creado aparezca primero. Combínalo con
+// sortByStatus pasándole el resultado de esta función: el orden "nuevo primero" se
+// conserva dentro del grupo de activos/inactivos porque sortByStatus solo filtra.
+export const sortNewestFirst = (items, idField = 'id') => {
+  if (!Array.isArray(items)) return [];
+  return [...items].sort((a, b) => {
+    const aDate = a?.createdAt ? new Date(a.createdAt).getTime() : null;
+    const bDate = b?.createdAt ? new Date(b.createdAt).getTime() : null;
+    if (aDate != null && bDate != null && aDate !== bDate) return bDate - aDate;
+    return Number(b?.[idField] ?? 0) - Number(a?.[idField] ?? 0);
+  });
+};
+
 export const sortByStatus = (items) => {
   if (!Array.isArray(items)) return [];
   const active = items.filter((i) => i.Estado === 1 || i.Estado === undefined);

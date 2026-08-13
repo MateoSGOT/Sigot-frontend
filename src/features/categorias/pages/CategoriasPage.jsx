@@ -9,10 +9,13 @@ import Table from '../../../shared/components/Table/Table.jsx';
 import SearchBar from '../../../shared/components/SearchBar/SearchBar.jsx';
 import FilterDropdown from '../../../shared/components/FilterDropdown/FilterDropdown.jsx';
 import { StatusBadge } from '../../../shared/components/Badge/Badge.jsx';
-import { sortByStatus, filterItems } from '../../../shared/utils/helpers.js';
+import { sortByStatus, sortNewestFirst, filterItems } from '../../../shared/utils/helpers.js';
+import * as V from '../../../shared/utils/validators.js';
+import { useFormValidation } from '../../../shared/hooks/useFormValidation.js';
 import './CategoriasPage.css';
 
 const EMPTY = { Nombre: '' };
+const RULES = { Nombre: (v) => V.nombre(v, 3, 60) };
 
 export default function CategoriasPage() {
   const dispatch = useDispatch();
@@ -27,6 +30,7 @@ export default function CategoriasPage() {
   const [editingId, setEditingId] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [formError, setFormError] = useState('');
+  const { errors, touched, setErrors, revalidate, markTouched, touchAll, fieldError, isInvalid, validateNow, reset } = useFormValidation(RULES);
 
   useEffect(() => { dispatch(fetchCategorias()); }, [dispatch]);
 
@@ -35,16 +39,24 @@ export default function CategoriasPage() {
     if (statusFilter === 'activos') list = list.filter(i => i.Estado !== 0);
     else if (statusFilter === 'inactivos') list = list.filter(i => i.Estado === 0);
     list = filterItems(list, search, ['Nombre']);
-    return sortByStatus(list);
+    return sortByStatus(sortNewestFirst(list, 'Id_Categoria'));
   })();
 
-  const openCreate = () => { setFormData(EMPTY); setEditingId(null); setFormError(''); setShowForm(true); };
-  const openEdit = (item) => { setFormData({ Nombre: item.Nombre || '' }); setEditingId(item.Id_Categoria); setFormError(''); setShowForm(true); };
-  const handleChange = e => setFormData(p => ({ ...p, [e.target.name]: e.target.value }));
+  const openCreate = () => { setFormData(EMPTY); setEditingId(null); setFormError(''); reset(); setShowForm(true); };
+  const openEdit = (item) => { setFormData({ Nombre: item.Nombre || '' }); setEditingId(item.Id_Categoria); setFormError(''); reset(); setShowForm(true); };
+  const handleChange = e => {
+    const next = { ...formData, [e.target.name]: e.target.value };
+    setFormData(next);
+    if (touched[e.target.name] || errors[e.target.name]) revalidate(next);
+  };
+  const handleBlur = (e) => { markTouched(e.target.name); revalidate(formData); };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!formData.Nombre) { setFormError('El nombre es obligatorio.'); return; }
+    const errs = validateNow(formData);
+    setErrors(errs); touchAll();
+    if (V.hasErrors(errs)) { setFormError('Corrige los campos marcados antes de guardar.'); return; }
+    setFormError('');
     const action = editingId ? updateCategoria({ id: editingId, data: formData }) : createCategoria(formData);
     const result = await dispatch(action);
     if (!result.error) { setShowForm(false); dispatch(fetchCategorias()); }
@@ -91,12 +103,13 @@ export default function CategoriasPage() {
       </div>
 
       <Modal isOpen={showForm} onClose={() => setShowForm(false)} title={editingId ? 'Editar categoría' : 'Nueva categoría'} size="sm"
-        footer={<><button className="btn btn--outline" onClick={() => setShowForm(false)}>Cancelar</button><button className="btn btn--primary" onClick={handleSubmit} disabled={actionLoading}>{actionLoading ? 'Guardando...' : 'Guardar'}</button></>}
+        footer={<><button className="btn btn--outline" onClick={() => setShowForm(false)}>Cancelar</button><button className="btn btn--primary" onClick={handleSubmit} disabled={actionLoading || isInvalid(formData)}>{actionLoading ? 'Guardando...' : 'Guardar'}</button></>}
       >
         {formError && <div className="form-error-box">{formError}</div>}
         <div className="form-group">
           <label className="form-label">Nombre <span className="required">*</span></label>
-          <input name="Nombre" className="form-control" value={formData.Nombre} onChange={handleChange} placeholder="Nombre de la categoría" />
+          <input name="Nombre" className={`form-control ${fieldError('Nombre') ? 'is-error' : ''}`} value={formData.Nombre} onChange={handleChange} onBlur={handleBlur} maxLength={60} placeholder="Nombre de la categoría" />
+          {fieldError('Nombre') && <p className="form-error">{fieldError('Nombre')}</p>}
         </div>
       </Modal>
     </div>

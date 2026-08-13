@@ -10,7 +10,7 @@ import SearchBar from '../../../shared/components/SearchBar/SearchBar.jsx';
 import FilterDropdown from '../../../shared/components/FilterDropdown/FilterDropdown.jsx';
 import SearchableSelect from '../../../shared/components/SearchableSelect/SearchableSelect.jsx';
 import { StatusBadge } from '../../../shared/components/Badge/Badge.jsx';
-import { sortByStatus, filterItems } from '../../../shared/utils/helpers.js';
+import { sortByStatus, sortNewestFirst, filterItems } from '../../../shared/utils/helpers.js';
 import * as V from '../../../shared/utils/validators.js';
 import { useFormValidation } from '../../../shared/hooks/useFormValidation.js';
 import { MUNICIPIOS_POR_DEPARTAMENTO } from '../../../shared/data/colombiaGeo.js';
@@ -33,8 +33,11 @@ const documentoPorTipo = (v, values = {}) => {
 const RULES = {
   TipoProveedor: (v) => V.requiredSelect(v, 'El tipo de proveedor'),
   Documento:     documentoPorTipo,
-  nombre:        (v) => V.nombre(v, 3),
-  correo:        (v) => V.correo(v, true),
+  nombre:        (v) => V.nombre(v, 3, 120),
+  correo:        (v) => V.correo(v, true) || V.maxLen(v, 120, 'El correo'),
+  contacto:      (v) => V.maxLen(v, 20, 'El contacto'),
+  direccion:     (v) => V.maxLen(v, 150, 'La dirección'),
+  detalles:      (v) => V.maxLen(v, 200, 'Los detalles'),
 };
 
 export default function ProveedoresPage() {
@@ -72,7 +75,7 @@ export default function ProveedoresPage() {
     if (statusFilter === 'activos') list = list.filter(i => i.Estado !== 0);
     else if (statusFilter === 'inactivos') list = list.filter(i => i.Estado === 0);
     list = filterItems(list, search, ['Nombre', 'nombre', 'Documento', 'Correo', 'correo', 'Contacto', 'contacto']);
-    return sortByStatus(list);
+    return sortByStatus(sortNewestFirst(list, 'Id_Proveedor'));
   })();
 
   const openCreate = () => { setFormData(EMPTY); setEditingId(null); setFormError(''); reset(); setShowForm(true); };
@@ -179,21 +182,22 @@ export default function ProveedoresPage() {
           </div>
           <div className="form-group">
             <label className="form-label">{docLabel} <span className="required">*</span></label>
-            <input name="Documento" className={`form-control ${fieldError('Documento') ? 'is-error' : ''}`} value={formData.Documento} onChange={handleChange} onBlur={handleBlur} inputMode="numeric" placeholder={docHint} />
+            <input name="Documento" className={`form-control ${fieldError('Documento') ? 'is-error' : ''}`} value={formData.Documento} onChange={handleChange} onBlur={handleBlur} inputMode="numeric" maxLength={10} placeholder={docHint} />
             {fieldError('Documento') && <p className="form-error">{fieldError('Documento')}</p>}
           </div>
           <div className="form-group span-2">
             <label className="form-label">{nombreLabel} <span className="required">*</span></label>
-            <input name="nombre" className={`form-control ${fieldError('nombre') ? 'is-error' : ''}`} value={formData.nombre} onChange={handleChange} onBlur={handleBlur} placeholder={nombreHint} />
+            <input name="nombre" className={`form-control ${fieldError('nombre') ? 'is-error' : ''}`} value={formData.nombre} onChange={handleChange} onBlur={handleBlur} maxLength={120} placeholder={nombreHint} />
             {fieldError('nombre') && <p className="form-error">{fieldError('nombre')}</p>}
           </div>
           <div className="form-group">
             <label className="form-label">Contacto</label>
-            <input name="contacto" className="form-control" value={formData.contacto} onChange={handleChange} placeholder="Teléfono o persona de contacto" />
+            <input name="contacto" className={`form-control ${fieldError('contacto') ? 'is-error' : ''}`} value={formData.contacto} onChange={handleChange} onBlur={handleBlur} maxLength={20} placeholder="Teléfono o persona de contacto" />
+            {fieldError('contacto') && <p className="form-error">{fieldError('contacto')}</p>}
           </div>
           <div className="form-group">
             <label className="form-label">Correo</label>
-            <input name="correo" type="email" className={`form-control ${fieldError('correo') ? 'is-error' : ''}`} value={formData.correo} onChange={handleChange} onBlur={handleBlur} placeholder="correo@proveedor.com" />
+            <input name="correo" type="email" className={`form-control ${fieldError('correo') ? 'is-error' : ''}`} value={formData.correo} onChange={handleChange} onBlur={handleBlur} maxLength={120} placeholder="correo@proveedor.com" />
             {fieldError('correo') && <p className="form-error">{fieldError('correo')}</p>}
           </div>
           <div className="form-group">
@@ -221,11 +225,13 @@ export default function ProveedoresPage() {
           </div>
           <div className="form-group">
             <label className="form-label">Dirección</label>
-            <input name="direccion" className="form-control" value={formData.direccion} onChange={handleChange} placeholder="Dirección" />
+            <input name="direccion" className={`form-control ${fieldError('direccion') ? 'is-error' : ''}`} value={formData.direccion} onChange={handleChange} onBlur={handleBlur} maxLength={150} placeholder="Dirección" />
+            {fieldError('direccion') && <p className="form-error">{fieldError('direccion')}</p>}
           </div>
           <div className="form-group span-2">
             <label className="form-label">Detalles</label>
-            <textarea name="detalles" className="form-control" value={formData.detalles} onChange={handleChange} rows={2} placeholder="Información adicional..." />
+            <textarea name="detalles" className={`form-control ${fieldError('detalles') ? 'is-error' : ''}`} value={formData.detalles} onChange={handleChange} onBlur={handleBlur} rows={2} maxLength={200} placeholder="Información adicional..." />
+            {fieldError('detalles') && <p className="form-error">{fieldError('detalles')}</p>}
           </div>
         </form>
       </Modal>

@@ -18,10 +18,18 @@ export const documento = (v) => {
   return '';
 };
 
-export const nombre = (v, min = 3) => {
+export const nombre = (v, min = 3, max = 100) => {
   const s = String(v ?? '').trim();
   if (!s) return 'El nombre es obligatorio.';
   if (s.length < min) return `El nombre debe tener al menos ${min} caracteres.`;
+  if (s.length > max) return `El nombre no puede superar ${max} caracteres.`;
+  return '';
+};
+
+// Longitud máxima genérica, para texto libre opcional (direcciones, descripciones, diagnósticos).
+export const maxLen = (v, max, label = 'Este campo') => {
+  const s = String(v ?? '');
+  if (s.length > max) return `${label} no puede superar ${max} caracteres.`;
   return '';
 };
 

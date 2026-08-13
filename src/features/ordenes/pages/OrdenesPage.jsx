@@ -1,6 +1,7 @@
 ﻿import React, { useEffect, useState, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { MdVisibility, MdEdit, MdAdd, MdBuild, MdCheck, MdArrowForward, MdDeleteOutline } from 'react-icons/md';
+import { useNavigate } from 'react-router-dom';
+import { MdVisibility, MdEdit, MdAdd, MdBuild, MdCheck, MdArrowForward, MdDeleteOutline, MdOpenInNew } from 'react-icons/md';
 import { usePermiso } from '../../../shared/hooks/usePermiso.js';
 import {
   fetchOrdenes, fetchOrdenById, updateOrden, toggleOrdenEstado,
@@ -12,7 +13,7 @@ import Table from '../../../shared/components/Table/Table.jsx';
 import SearchBar from '../../../shared/components/SearchBar/SearchBar.jsx';
 import FilterDropdown from '../../../shared/components/FilterDropdown/FilterDropdown.jsx';
 import Badge from '../../../shared/components/Badge/Badge.jsx';
-import { filterItems, formatDate, formatCurrency } from '../../../shared/utils/helpers.js';
+import { filterItems, sortNewestFirst, formatDate, formatCurrency } from '../../../shared/utils/helpers.js';
 import { generarFacturaOrden } from '../../../shared/utils/generarFacturaPDF.js';
 import api from '../../../shared/services/api.js';
 import './OrdenesPage.css';
@@ -82,7 +83,7 @@ function ProgresoEstado({ estadoActual, onAvanzar, loading, disabled, sinTrabajo
         {estadoNum === 3 && (
           <p className="progreso-done">✓ Orden completada</p>
         )}
-        {estadoNum !== 0 && (
+        {estadoNum !== 0 && estadoNum !== 3 && (
           <button className="btn btn--sm progreso-btn--inactivo" onClick={() => onAvanzar(0)} disabled={loading || disabled} title="Marcar como inactiva">
             Poner como Inactivo
           </button>
@@ -92,8 +93,11 @@ function ProgresoEstado({ estadoActual, onAvanzar, loading, disabled, sinTrabajo
   );
 }
 
-const EMPTY_EDIT = { Diagnostico: '', Kilometraje: '', FechaIngreso: '', FechaEntrega: '' };
+// FechaIngreso ya no se edita aquí (se fija una sola vez al generar la orden desde Agenda).
+// FechaEntrega solo es editable mientras la orden está Pendiente, y siempre hacia el futuro.
+const EMPTY_EDIT = { Diagnostico: '', Kilometraje: '', FechaEntrega: '' };
 const ITEMS_PER_PAGE = 5;
+const TODAY = new Date().toISOString().split('T')[0];
 
 // Formatea minutos a algo legible: 90 -> "1h 30min", 45 -> "45min", 120 -> "2h".
 // null/sin estimar -> "—".
@@ -109,6 +113,7 @@ const fmtDuracion = (min) => {
 
 export default function OrdenesPage() {
   const dispatch = useDispatch();
+  const navigate = useNavigate();
   const { items, selected, loading, actionLoading } = useSelector(s => s.ordenes);
   const puedeEditar  = usePermiso('ORDENES.EDITAR');
   const puedeToggle  = usePermiso('ORDENES.CAMBIAR_ESTADO');
@@ -123,6 +128,7 @@ export default function OrdenesPage() {
   const [editingId, setEditingId]         = useState(null);
   const [editForm, setEditForm]           = useState(EMPTY_EDIT);
   const [editError, setEditError]         = useState('');
+  const [editFechaBloqueada, setEditFechaBloqueada] = useState(false);
   const [addServForm, setAddServForm]     = useState({ Id_Servicio: '', precio_unitario: '' });
   const [addServError, setAddServError]   = useState('');
   const [addRepForm, setAddRepForm]       = useState({ Id_Repuesto: '', cantidad: '', precio_unitario: '' });
@@ -156,7 +162,7 @@ export default function OrdenesPage() {
   const filtered = (() => {
     let list = items;
     if (estadoFilter !== 'todos') list = list.filter(i => String(i.Estado) === estadoFilter);
-    return filterItems(list, search, ['cliente', 'vehiculo', 'Vehiculo', 'Cliente', 'Diagnostico']);
+    return sortNewestFirst(filterItems(list, search, ['cliente', 'vehiculo', 'Vehiculo', 'Cliente', 'Diagnostico', 'ClienteDoc', 'ClienteCorreo']), 'Id_Orden');
   })();
 
   // Mini-resumen por estado sobre el total (Estado numérico: 1=Pend, 2=Proc, 3=Real).
@@ -185,9 +191,9 @@ export default function OrdenesPage() {
     setEditForm({
       Diagnostico:  item.Diagnostico  || '',
       Kilometraje:  item.Kilometraje  || '',
-      FechaIngreso: item.FechaIngreso ? item.FechaIngreso.split('T')[0] : '',
       FechaEntrega: item.FechaEntrega ? item.FechaEntrega.split('T')[0] : '',
     });
+    setEditFechaBloqueada(item.EstadoFlujo === 'En proceso');
     setEditingId(item.Id_Orden);
     setEditError('');
     setShowEdit(true);
@@ -198,9 +204,16 @@ export default function OrdenesPage() {
     if (!editForm.Diagnostico || !editForm.Kilometraje) { setEditError('Diagnóstico y kilometraje son obligatorios.'); return; }
     const km = Number(editForm.Kilometraje);
     if (!Number.isInteger(km) || km < 0) { setEditError('El kilometraje debe ser un entero mayor o igual a 0.'); return; }
+    if (!editFechaBloqueada && editForm.FechaEntrega && editForm.FechaEntrega < TODAY) {
+      setEditError('La fecha de entrega debe ser hoy o una fecha posterior.'); return;
+    }
+    // No se envía FechaEntrega si las fechas están bloqueadas (orden En proceso); el
+    // backend igual lo rechazaría, pero así evitamos un viaje de red innecesario.
+    const { FechaEntrega, ...resto } = editForm;
+    const payload = editFechaBloqueada ? resto : editForm;
     // La regla del odómetro (no menor al km del vehículo) la valida el backend en la
     // misma transacción; si el km es menor, devuelve el mensaje que se muestra abajo.
-    const result = await dispatch(updateOrden({ id: editingId, data: editForm }));
+    const result = await dispatch(updateOrden({ id: editingId, data: payload }));
     if (!result.error) { setShowEdit(false); dispatch(fetchOrdenes()); }
     else setEditError(result.payload || 'Error al actualizar.');
   };
@@ -301,7 +314,7 @@ export default function OrdenesPage() {
           <SearchBar
             value={search}
             onChange={setSearch}
-            placeholder="Buscar por vehículo, cliente, diagnóstico..."
+            placeholder="Buscar por vehículo, cliente, documento, correo..."
             filterSlot={
               <>
                 <select className="filter-select" value={estadoFilter} onChange={e => setEstadoFilter(e.target.value)}>
@@ -513,7 +526,12 @@ export default function OrdenesPage() {
 
                 {!contenidoBloqueado && (
                   <div className="orden-add-form">
-                    <h4>Agregar servicio</h4>
+                    <div className="orden-add-form__head">
+                      <h4>Agregar servicio</h4>
+                      <button type="button" className="btn btn--outline btn--sm" onClick={() => navigate('/servicios')} title="Crear o gestionar servicios en su propia página">
+                        <MdOpenInNew size={14} /> Ir a Servicios
+                      </button>
+                    </div>
                     {addServError && <div className="form-error-box u-mb-sm">{addServError}</div>}
                     <div className="orden-add-row">
                       <select className="form-control" value={addServForm.Id_Servicio}
@@ -586,7 +604,12 @@ export default function OrdenesPage() {
 
                 {!contenidoBloqueado && (
                   <div className="orden-add-form">
-                    <h4>Agregar repuesto</h4>
+                    <div className="orden-add-form__head">
+                      <h4>Agregar repuesto</h4>
+                      <button type="button" className="btn btn--outline btn--sm" onClick={() => navigate('/repuestos')} title="Crear o gestionar repuestos en su propia página">
+                        <MdOpenInNew size={14} /> Ir a Repuestos
+                      </button>
+                    </div>
                     {addRepError && <div className="form-error-box u-mb-sm">{addRepError}</div>}
                     <div className="orden-add-row">
                       <select className="form-control" value={addRepForm.Id_Repuesto} onChange={handleRepuestoSelect}>
@@ -622,10 +645,17 @@ export default function OrdenesPage() {
       >
         {editError && <div className="form-error-box">{editError}</div>}
         <form className="form-grid" onSubmit={handleEditSubmit} noValidate>
-          <div className="form-group"><label className="form-label">Fecha de ingreso</label><input name="FechaIngreso" type="date" className="form-control" value={editForm.FechaIngreso} onChange={e => setEditForm(p => ({ ...p, FechaIngreso: e.target.value }))} /></div>
-          <div className="form-group"><label className="form-label">Fecha de entrega</label><input name="FechaEntrega" type="date" className="form-control" value={editForm.FechaEntrega} onChange={e => setEditForm(p => ({ ...p, FechaEntrega: e.target.value }))} /></div>
+          <div className="form-group span-2">
+            <label className="form-label">Fecha de entrega</label>
+            <input name="FechaEntrega" type="date" className="form-control" value={editForm.FechaEntrega}
+              onChange={e => setEditForm(p => ({ ...p, FechaEntrega: e.target.value }))}
+              min={TODAY} disabled={editFechaBloqueada} />
+            {editFechaBloqueada
+              ? <p className="form-hint">La orden está en proceso: la fecha de entrega no se puede modificar hasta que finalice o vuelva a Pendiente.</p>
+              : <p className="form-hint">Solo se puede fijar hacia una fecha futura. La fecha de ingreso queda fija desde que se generó la orden.</p>}
+          </div>
           <div className="form-group"><label className="form-label">Kilometraje <span className="required">*</span></label><input name="Kilometraje" type="number" min="0" className="form-control" value={editForm.Kilometraje} onChange={e => setEditForm(p => ({ ...p, Kilometraje: e.target.value }))} /></div>
-          <div className="form-group span-2"><label className="form-label">Diagnóstico <span className="required">*</span></label><textarea name="Diagnostico" className="form-control" value={editForm.Diagnostico} onChange={e => setEditForm(p => ({ ...p, Diagnostico: e.target.value }))} rows={4} /></div>
+          <div className="form-group span-2"><label className="form-label">Diagnóstico <span className="required">*</span></label><textarea name="Diagnostico" className="form-control" value={editForm.Diagnostico} onChange={e => setEditForm(p => ({ ...p, Diagnostico: e.target.value }))} rows={4} maxLength={500} /></div>
         </form>
       </Modal>
     </div>

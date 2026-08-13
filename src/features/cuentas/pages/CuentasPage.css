@@ -1,0 +1,25 @@
+.table-actions { display: flex; align-items: center; gap: 0.5rem; }
+.font-medium { font-weight: 600; }
+
+.cell-user { display: flex; align-items: center; gap: var(--space-sm); }
+.cell-user__avatar--initial {
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--color-accent-soft);
+  color: var(--color-accent-soft-on);
+  font-size: var(--text-small);
+  font-weight: var(--weight-bold);
+  text-transform: uppercase;
+  flex-shrink: 0;
+}
+
+.cuentas-rol-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+.cuentas-rol-cell select {
+  min-width: 170px;
+}

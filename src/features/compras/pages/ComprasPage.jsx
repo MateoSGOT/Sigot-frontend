@@ -10,7 +10,7 @@ import SearchBar from '../../../shared/components/SearchBar/SearchBar.jsx';
 import ConfirmDialog from '../../../shared/components/ConfirmDialog/ConfirmDialog.jsx';
 import Badge from '../../../shared/components/Badge/Badge.jsx';
 import FilterDropdown from '../../../shared/components/FilterDropdown/FilterDropdown.jsx';
-import { filterItems, formatDate, formatCurrency } from '../../../shared/utils/helpers.js';
+import { filterItems, sortNewestFirst, formatDate, formatCurrency } from '../../../shared/utils/helpers.js';
 import { generarFacturaCompra } from '../../../shared/utils/generarFacturaPDF.js';
 import api from '../../../shared/services/api.js';
 import './ComprasPage.css';
@@ -63,7 +63,7 @@ export default function ComprasPage() {
     let list = items;
     if (statusFilter === 'activas') list = list.filter(i => !i.Anulada);
     else if (statusFilter === 'anuladas') list = list.filter(i => i.Anulada);
-    return filterItems(list, search, ['Proveedor', 'Repuesto']);
+    return sortNewestFirst(filterItems(list, search, ['Proveedor', 'Repuesto']), 'Id_Compra');
   })();
 
   const openCreate = () => { setFormData(newForm()); setFormError(''); setPriceWarnings({}); setShowForm(true); };

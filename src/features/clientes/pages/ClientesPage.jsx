@@ -2,6 +2,7 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { MdAdd, MdVisibility, MdEdit, MdVisibilityOff } from 'react-icons/md';
 import { usePermiso } from '../../../shared/hooks/usePermiso.js';
+import { useFormValidation } from '../../../shared/hooks/useFormValidation.js';
 import ImageUploader from '../../../shared/components/ImageUploader/ImageUploader.jsx';
 import ToggleSwitch from '../../../shared/components/ToggleSwitch/ToggleSwitch.jsx';
 import { fetchClientes, createCliente, updateCliente, toggleClienteEstado } from '../slices/clientesSlice.js';
@@ -11,7 +12,7 @@ import SearchBar from '../../../shared/components/SearchBar/SearchBar.jsx';
 import FilterDropdown from '../../../shared/components/FilterDropdown/FilterDropdown.jsx';
 import Badge, { StatusBadge } from '../../../shared/components/Badge/Badge.jsx';
 import SearchableSelect from '../../../shared/components/SearchableSelect/SearchableSelect.jsx';
-import { sortByStatus, filterItems } from '../../../shared/utils/helpers.js';
+import { sortByStatus, sortNewestFirst, filterItems } from '../../../shared/utils/helpers.js';
 import * as V from '../../../shared/utils/validators.js';
 import api from '../../../shared/services/api.js';
 import './ClientesPage.css';
@@ -33,8 +34,6 @@ export default function ClientesPage() {
   const [formData, setFormData] = useState(EMPTY_FORM);
   const [editingId, setEditingId] = useState(null);
   const [formError, setFormError] = useState('');
-  const [errors, setErrors] = useState({});
-  const [touched, setTouched] = useState({});
   const [fotoPreview, setFotoPreview] = useState(null);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
@@ -49,7 +48,7 @@ export default function ClientesPage() {
     if (statusFilter === 'activos') list = list.filter(i => i.Estado !== 0);
     else if (statusFilter === 'inactivos') list = list.filter(i => i.Estado === 0);
     list = filterItems(list, search, ['Nombre', 'Documento', 'Correo', 'Telefono']);
-    return sortByStatus(list);
+    return sortByStatus(sortNewestFirst(list, 'Id_Cliente'));
   })();
 
   const tiposDocOpts = tiposDoc.map(t => ({ value: String(t.Id_TipoDoc), label: t.Nombre }));
@@ -65,10 +64,10 @@ export default function ClientesPage() {
     const r = {
       Id_TipoDoc: (v) => V.requiredSelect(v, 'El tipo de documento'),
       Documento:  V.documento,
-      Nombre:     (v) => V.nombre(v, 3),
+      Nombre:     (v) => V.nombre(v, 3, 100),
       Telefono:   (v) => V.telefono(v, false),
-      Direccion:  (v) => (String(v ?? '').length > 150 ? 'La dirección no puede superar los 150 caracteres.' : ''),
-      Correo:     (v) => V.correo(v, true),
+      Direccion:  (v) => V.maxLen(v, 150, 'La dirección'),
+      Correo:     (v) => V.correo(v, true) || V.maxLen(v, 120, 'El correo'),
     };
     if (!editingId) {
       r.Password = V.passwordFuerte;
@@ -77,9 +76,10 @@ export default function ClientesPage() {
     return r;
   }, [editingId]);
 
-  const formInvalid = V.hasErrors(V.validateForm(formData, rules));
+  const { errors, touched, setErrors, revalidate, markTouched, touchAll, fieldError, isInvalid, validateNow, reset } = useFormValidation(rules);
+  const formInvalid = isInvalid(formData);
 
-  const resetForm = () => { setErrors({}); setTouched({}); setFormError(''); setShowPassword(false); setShowConfirm(false); };
+  const resetForm = () => { reset(); setFormError(''); setShowPassword(false); setShowConfirm(false); };
 
   const openCreate = () => {
     setFormData(EMPTY_FORM); setEditingId(null); setFotoPreview(null); resetForm();
@@ -97,28 +97,25 @@ export default function ClientesPage() {
     setEditingId(item.Id_Cliente); resetForm(); setShowForm(true);
   };
 
-  const runValidation = (data) => setErrors(V.validateForm(data, rules));
-
   const setField = (name, value) => {
     const next = { ...formData, [name]: value };
     setFormData(next);
     if (touched[name] || errors[name] || name === 'ConfirmPassword' || name === 'Password') {
-      setErrors(V.validateForm(next, rules));
+      revalidate(next);
     }
   };
 
   const handleFormChange = (e) => setField(e.target.name, e.target.value);
   const handleBlur = (e) => {
-    const { name } = e.target;
-    setTouched(t => ({ ...t, [name]: true }));
-    runValidation(formData);
+    markTouched(e.target.name);
+    revalidate(formData);
   };
 
   const handleFormSubmit = async (e) => {
     e.preventDefault();
-    const errs = V.validateForm(formData, rules);
+    const errs = validateNow(formData);
     setErrors(errs);
-    setTouched(Object.keys(rules).reduce((a, k) => ({ ...a, [k]: true }), {}));
+    touchAll();
     if (V.hasErrors(errs)) { setFormError('Corrige los campos marcados antes de guardar.'); return; }
     setFormError('');
 
@@ -143,9 +140,6 @@ export default function ClientesPage() {
   const handleToggle = (item) => {
     dispatch(toggleClienteEstado({ id: item.Id_Cliente, Estado: item.Estado === 1 ? 0 : 1 }));
   };
-
-  // Muestra el error de un campo solo si fue tocado o hubo intento de submit.
-  const fieldError = (name) => (touched[name] ? errors[name] : '') || '';
 
   const columns = [
     { key: '#', label: '#', width: '50px', render: (_, __, i) => i + 1 },
@@ -252,7 +246,7 @@ export default function ClientesPage() {
             <SearchableSelect
               options={tiposDocOpts}
               value={String(formData.Id_TipoDoc)}
-              onChange={v => { setField('Id_TipoDoc', v); setTouched(t => ({ ...t, Id_TipoDoc: true })); }}
+              onChange={v => { setField('Id_TipoDoc', v); markTouched('Id_TipoDoc'); }}
               placeholder="Seleccionar tipo..."
             />
             {fieldError('Id_TipoDoc') && <p className="form-error">{fieldError('Id_TipoDoc')}</p>}
@@ -263,7 +257,7 @@ export default function ClientesPage() {
             <label className="form-label">Número de documento <span className="required">*</span></label>
             <input name="Documento" className={`form-control ${fieldError('Documento') ? 'is-error' : ''}`}
               value={formData.Documento} onChange={handleFormChange} onBlur={handleBlur}
-              inputMode="numeric" placeholder="Solo números" />
+              inputMode="numeric" maxLength={10} placeholder="Solo números" />
             {fieldError('Documento') && <p className="form-error">{fieldError('Documento')}</p>}
           </div>
 
@@ -271,7 +265,7 @@ export default function ClientesPage() {
           <div className="form-group span-2">
             <label className="form-label">Nombres <span className="required">*</span></label>
             <input name="Nombre" className={`form-control ${fieldError('Nombre') ? 'is-error' : ''}`}
-              value={formData.Nombre} onChange={handleFormChange} onBlur={handleBlur} placeholder="Nombre completo" />
+              value={formData.Nombre} onChange={handleFormChange} onBlur={handleBlur} maxLength={100} placeholder="Nombre completo" />
             {fieldError('Nombre') && <p className="form-error">{fieldError('Nombre')}</p>}
           </div>
 
@@ -280,7 +274,7 @@ export default function ClientesPage() {
             <label className="form-label">Teléfono <span className="required">*</span></label>
             <input name="Telefono" className={`form-control ${fieldError('Telefono') ? 'is-error' : ''}`}
               value={formData.Telefono} onChange={handleFormChange} onBlur={handleBlur}
-              inputMode="numeric" placeholder="Teléfono de contacto" />
+              inputMode="numeric" maxLength={10} placeholder="Teléfono de contacto" />
             {fieldError('Telefono') && <p className="form-error">{fieldError('Telefono')}</p>}
           </div>
 
@@ -297,7 +291,7 @@ export default function ClientesPage() {
           <div className="form-group">
             <label className="form-label">Correo electrónico</label>
             <input name="Correo" type="email" className={`form-control ${fieldError('Correo') ? 'is-error' : ''}`}
-              value={formData.Correo} onChange={handleFormChange} onBlur={handleBlur} placeholder="correo@ejemplo.com" />
+              value={formData.Correo} onChange={handleFormChange} onBlur={handleBlur} maxLength={120} placeholder="correo@ejemplo.com" />
             {fieldError('Correo') && <p className="form-error">{fieldError('Correo')}</p>}
           </div>
 

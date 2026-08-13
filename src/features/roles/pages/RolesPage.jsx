@@ -14,7 +14,7 @@ import Table from '../../../shared/components/Table/Table.jsx';
 import SearchBar from '../../../shared/components/SearchBar/SearchBar.jsx';
 import FilterDropdown from '../../../shared/components/FilterDropdown/FilterDropdown.jsx';
 import Badge from '../../../shared/components/Badge/Badge.jsx';
-import { filterItems } from '../../../shared/utils/helpers.js';
+import { filterItems, sortNewestFirst } from '../../../shared/utils/helpers.js';
 import api from '../../../shared/services/api.js';
 import './RolesPage.css';
 
@@ -160,7 +160,7 @@ export default function RolesPage() {
 
   const sortedForTable = (() => {
     const primaries = filteredForTable.filter(r => isPrimaryRol(r.Nombre));
-    const others    = filteredForTable.filter(r => !isPrimaryRol(r.Nombre));
+    const others    = sortNewestFirst(filteredForTable.filter(r => !isPrimaryRol(r.Nombre)), 'Id_Rol');
     if (others.length === 0) return primaries;
     return [
       ...primaries,
@@ -395,6 +395,7 @@ export default function RolesPage() {
             onChange={e => setCreateNombre(e.target.value)}
             placeholder="Ej: Recepcionista"
             onKeyDown={e => e.key === 'Enter' && handleCreate(e)}
+            maxLength={50}
             autoFocus
           />
         </div>
@@ -432,6 +433,7 @@ export default function RolesPage() {
             value={formNombre}
             onChange={e => setFormNombre(e.target.value)}
             placeholder="Nombre del rol"
+            maxLength={50}
           />
         </div>
 

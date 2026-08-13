@@ -12,7 +12,7 @@ import { StatusBadge } from '../../../shared/components/Badge/Badge.jsx';
 import Badge from '../../../shared/components/Badge/Badge.jsx';
 import SearchableSelect from '../../../shared/components/SearchableSelect/SearchableSelect.jsx';
 import ImageUploader from '../../../shared/components/ImageUploader/ImageUploader.jsx';
-import { sortByStatus, filterItems, formatDate } from '../../../shared/utils/helpers.js';
+import { sortByStatus, sortNewestFirst, filterItems, formatDate } from '../../../shared/utils/helpers.js';
 import * as V from '../../../shared/utils/validators.js';
 import { useFormValidation } from '../../../shared/hooks/useFormValidation.js';
 import api from '../../../shared/services/api.js';
@@ -47,8 +47,8 @@ export default function EmpleadosPage() {
     const r = {
       Id_TipoDoc: (v) => V.requiredSelect(v, 'El tipo de documento'),
       Documento:  V.documento,
-      Nombre:     (v) => V.nombre(v, 3),
-      Correo:     (v) => V.correo(v, false),
+      Nombre:     (v) => V.nombre(v, 3, 100),
+      Correo:     (v) => V.correo(v, false) || V.maxLen(v, 120, 'El correo'),
       Id_Rol:     (v) => V.requiredSelect(v, 'El rol'),
     };
     if (!editingId) {
@@ -78,7 +78,7 @@ export default function EmpleadosPage() {
     if (statusFilter === 'activos') list = list.filter(i => i.Estado !== 0);
     else if (statusFilter === 'inactivos') list = list.filter(i => i.Estado === 0);
     list = filterItems(list, search, ['Nombre', 'Documento', 'Correo']);
-    return sortByStatus(list);
+    return sortByStatus(sortNewestFirst(list, 'Id_Empleado'));
   })();
 
   const openCreate = () => {
@@ -272,14 +272,14 @@ export default function EmpleadosPage() {
           {/* 2. Número de documento */}
           <div className="form-group">
             <label className="form-label">Número de documento <span className="required">*</span></label>
-            <input name="Documento" className={`form-control ${fieldError('Documento') ? 'is-error' : ''}`} value={formData.Documento} onChange={handleChange} onBlur={handleBlur} inputMode="numeric" placeholder="Número de documento" />
+            <input name="Documento" className={`form-control ${fieldError('Documento') ? 'is-error' : ''}`} value={formData.Documento} onChange={handleChange} onBlur={handleBlur} inputMode="numeric" maxLength={10} placeholder="Número de documento" />
             {fieldError('Documento') && <p className="form-error">{fieldError('Documento')}</p>}
           </div>
 
           {/* 3. Nombres */}
           <div className="form-group span-2">
             <label className="form-label">Nombres <span className="required">*</span></label>
-            <input name="Nombre" className={`form-control ${fieldError('Nombre') ? 'is-error' : ''}`} value={formData.Nombre} onChange={handleChange} onBlur={handleBlur} placeholder="Nombre completo" />
+            <input name="Nombre" className={`form-control ${fieldError('Nombre') ? 'is-error' : ''}`} value={formData.Nombre} onChange={handleChange} onBlur={handleBlur} maxLength={100} placeholder="Nombre completo" />
             {fieldError('Nombre') && <p className="form-error">{fieldError('Nombre')}</p>}
           </div>
 
@@ -288,7 +288,7 @@ export default function EmpleadosPage() {
           {/* 5. Correo electrónico */}
           <div className="form-group span-2">
             <label className="form-label">Correo electrónico <span className="required">*</span></label>
-            <input name="Correo" type="email" className={`form-control ${fieldError('Correo') ? 'is-error' : ''}`} value={formData.Correo} onChange={handleChange} onBlur={handleBlur} placeholder="correo@empresa.com" />
+            <input name="Correo" type="email" className={`form-control ${fieldError('Correo') ? 'is-error' : ''}`} value={formData.Correo} onChange={handleChange} onBlur={handleBlur} maxLength={120} placeholder="correo@empresa.com" />
             {fieldError('Correo') && <p className="form-error">{fieldError('Correo')}</p>}
           </div>
 

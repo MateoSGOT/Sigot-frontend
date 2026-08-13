@@ -10,14 +10,16 @@ import Table from '../../../shared/components/Table/Table.jsx';
 import SearchBar from '../../../shared/components/SearchBar/SearchBar.jsx';
 import FilterDropdown from '../../../shared/components/FilterDropdown/FilterDropdown.jsx';
 import { StatusBadge } from '../../../shared/components/Badge/Badge.jsx';
-import { sortByStatus, filterItems } from '../../../shared/utils/helpers.js';
+import { sortByStatus, sortNewestFirst, filterItems } from '../../../shared/utils/helpers.js';
 import * as V from '../../../shared/utils/validators.js';
 import { useFormValidation } from '../../../shared/hooks/useFormValidation.js';
 import api from '../../../shared/services/api.js';
 import './VehiculosPage.css';
 
 const RULES = {
-  Placa:      (v) => V.required(v, 'La placa'),
+  Placa:      (v) => V.required(v, 'La placa') || V.maxLen(v, 10, 'La placa'),
+  VIN:        (v) => V.maxLen(v, 30, 'El VIN'),
+  Color:      (v) => V.maxLen(v, 30, 'El color'),
   Id_Marca:   (v) => V.requiredSelect(v, 'La marca'),
   Id_Modelo:  (v) => V.requiredSelect(v, 'El modelo'),
   Anio:       V.anioVehiculo,
@@ -87,7 +89,7 @@ export default function VehiculosPage() {
     else if (statusFilter === 'inactivos') list = list.filter(i => i.Estado === 0);
     if (marcaFilter) list = list.filter(i => String(i.Id_Marca) === marcaFilter || (i.Marca && i.Marca.toLowerCase() === marcas.find(m => String(m.Id_Marca) === marcaFilter)?.Nombre?.toLowerCase()));
     list = filterItems(list, search, ['Placa', 'VIN', 'Modelo', 'Color']);
-    return sortByStatus(list);
+    return sortByStatus(sortNewestFirst(list, 'Id_Vehiculo'));
   })();
 
   const openCreate = () => {
@@ -201,7 +203,7 @@ export default function VehiculosPage() {
         <form className="form-grid" onSubmit={handleSubmit} noValidate>
           <div className="form-group">
             <label className="form-label">Placa <span className="required">*</span></label>
-            <input name="Placa" className={`form-control ${fieldError('Placa') ? 'is-error' : ''}`} value={formData.Placa} onChange={handleChange} onBlur={handleBlur} placeholder="ABC-123" />
+            <input name="Placa" className={`form-control ${fieldError('Placa') ? 'is-error' : ''}`} value={formData.Placa} onChange={handleChange} onBlur={handleBlur} maxLength={10} placeholder="ABC-123" />
             {fieldError('Placa') && <p className="form-error">{fieldError('Placa')}</p>}
           </div>
           <div className="form-group">
@@ -237,11 +239,13 @@ export default function VehiculosPage() {
           </div>
           <div className="form-group">
             <label className="form-label">Color</label>
-            <input name="Color" className="form-control" value={formData.Color} onChange={handleChange} placeholder="Blanco" />
+            <input name="Color" className={`form-control ${fieldError('Color') ? 'is-error' : ''}`} value={formData.Color} onChange={handleChange} onBlur={handleBlur} maxLength={30} placeholder="Blanco" />
+            {fieldError('Color') && <p className="form-error">{fieldError('Color')}</p>}
           </div>
           <div className="form-group">
             <label className="form-label">VIN</label>
-            <input name="VIN" className="form-control" value={formData.VIN} onChange={handleChange} placeholder="Número VIN" />
+            <input name="VIN" className={`form-control ${fieldError('VIN') ? 'is-error' : ''}`} value={formData.VIN} onChange={handleChange} onBlur={handleBlur} maxLength={30} placeholder="Número VIN" />
+            {fieldError('VIN') && <p className="form-error">{fieldError('VIN')}</p>}
           </div>
           <div className="form-group span-2">
             <label className="form-label">Cliente <span className="required">*</span></label>

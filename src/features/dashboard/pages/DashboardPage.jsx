@@ -15,6 +15,8 @@ import {
 import EmptyState from '../../../shared/components/EmptyState/EmptyState.jsx';
 import Skeleton from '../../../shared/components/Skeleton/Skeleton.jsx';
 import CountUp from '../../../shared/components/CountUp/CountUp.jsx';
+import SearchBar from '../../../shared/components/SearchBar/SearchBar.jsx';
+import { filterItems } from '../../../shared/utils/helpers.js';
 import './DashboardPage.css';
 
 const PIE_COLORS = ['#3a6b9e', '#8b2e2e', '#2d5a2d', '#8a7240', '#5c6b8a', '#7a4a6a', '#4a6b5c'];
@@ -87,6 +89,7 @@ export default function DashboardPage() {
 
   const [rep, setRep] = useState({ resumen: null, ingresos: null, topServicios: [], topRepuestos: [], productividad: [] });
   const [loading, setLoading] = useState(true);
+  const [buscarMecanico, setBuscarMecanico] = useState('');
 
   useEffect(() => { dispatch(fetchDashboard()); }, [dispatch]);
 
@@ -235,20 +238,25 @@ export default function DashboardPage() {
           <div className="card__header"><span className="card__title"><MdBuild size={15} style={{ verticalAlign: '-2px', marginRight: 6 }} />Productividad por mecánico</span></div>
           <div className="card__body">
             {loading ? <Skeleton height={200} /> : rep.productividad.length > 0 ? (
-              <div className="table-wrapper">
-                <table className="table">
-                  <thead className="table__head"><tr><th className="table__th">Mecánico</th><th className="table__th table__th--num">Órdenes</th><th className="table__th table__th--num">Ingreso</th></tr></thead>
-                  <tbody>
-                    {rep.productividad.map((p, i) => (
-                      <tr key={i} className="table__row">
-                        <td className="table__td">{p.empleado}</td>
-                        <td className="table__td table__td--num">{p.ordenes}</td>
-                        <td className="table__td table__td--num">{formatCurrency(p.ingreso)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              <>
+                {rep.productividad.length > 5 && (
+                  <SearchBar value={buscarMecanico} onChange={setBuscarMecanico} placeholder="Buscar mecánico..." />
+                )}
+                <div className="table-wrapper">
+                  <table className="table">
+                    <thead className="table__head"><tr><th className="table__th">Mecánico</th><th className="table__th table__th--num">Órdenes</th><th className="table__th table__th--num">Ingreso</th></tr></thead>
+                    <tbody>
+                      {filterItems(rep.productividad, buscarMecanico, ['empleado']).map((p, i) => (
+                        <tr key={i} className="table__row">
+                          <td className="table__td">{p.empleado}</td>
+                          <td className="table__td table__td--num">{p.ordenes}</td>
+                          <td className="table__td table__td--num">{formatCurrency(p.ingreso)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </>
             ) : EMPTY_CHART}
           </div>
         </div>
