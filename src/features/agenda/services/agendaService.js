@@ -8,4 +8,5 @@ export const agendaService = {
   toggleEstado: (id, Estado) => api.patch(`${BASE}/${id}/estado`, { Estado }).then(r => r.data),
   cancelar: (id) => api.patch(`${BASE}/${id}/cancelar`).then(r => r.data),
   generarOrden: (id, data) => api.post(`${BASE}/${id}/orden`, data).then(r => r.data),
+  remove: (id) => api.delete(`${BASE}/${id}`).then(r => r.data),
 };

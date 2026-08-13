@@ -1,10 +1,10 @@
-﻿import React, { useEffect, useMemo, useState } from 'react';
+﻿import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { MdAdd, MdVisibility, MdEdit, MdAssignment, MdEventBusy } from 'react-icons/md';
+import { MdAdd, MdVisibility, MdEdit, MdAssignment, MdEventBusy, MdEventRepeat, MdDeleteForever } from 'react-icons/md';
 import { usePermiso } from '../../../shared/hooks/usePermiso.js';
 import SearchableSelect from '../../../shared/components/SearchableSelect/SearchableSelect.jsx';
 import ToggleSwitch from '../../../shared/components/ToggleSwitch/ToggleSwitch.jsx';
-import { fetchAgenda, createCita, updateCita, toggleCitaEstado, generarOrdenDeCita, cancelarCita } from '../slices/agendaSlice.js';
+import { fetchAgenda, createCita, updateCita, toggleCitaEstado, generarOrdenDeCita, cancelarCita, deleteCita } from '../slices/agendaSlice.js';
 import Modal from '../../../shared/components/Modal/Modal.jsx';
 import ConfirmDialog from '../../../shared/components/ConfirmDialog/ConfirmDialog.jsx';
 import { useToast } from '../../../shared/components/Toast/ToastContext.jsx';
@@ -46,11 +46,12 @@ export default function AgendaPage() {
   const [empleados, setEmpleados] = useState([]);
   const [novedadesActivas, setNovedadesActivas] = useState(new Set());
   const [confirmCancelar, setConfirmCancelar] = useState(null); // cita a cancelar (ConfirmDialog)
+  const [confirmEliminar, setConfirmEliminar] = useState(null); // cita cancelada a eliminar (ConfirmDialog)
   const [search, setSearch]             = useState('');
   const [statusFilter, setStatusFilter] = useState('todos');
   const [empleadoFilter, setEmpleadoFilter] = useState('');
   const [pageSize, setPageSize]         = useState(5);
-  const [detailItem, setDetailItem]   = useState(null);
+  const [detailId, setDetailId]       = useState(null);
   const [formData, setFormData]       = useState(EMPTY_CITA);
   const [editingId, setEditingId]     = useState(null);
   const [showForm, setShowForm]       = useState(false);
@@ -149,9 +150,37 @@ export default function AgendaPage() {
     return sortNewestFirst(filterItems(list, search, ['cliente', 'vehiculo', 'Cliente', 'Vehiculo']), 'Id_Agenda');
   })();
 
+  // Derivado de `items` en cada render (no un snapshot congelado): así el modal de
+  // detalle refleja en tiempo real el EstadoCita real (ej. tras cancelarla).
+  const detailItem = detailId ? items.find(i => (i.Id_Agenda ?? i.id) === detailId) || null : null;
+
   const openCreate = () => {
     setFormData({ ...EMPTY_CITA, FechaAgendamiento: new Date().toISOString().split('T')[0] });
     setEditingId(null); setFormError(''); setShowForm(true);
+  };
+  // Reagendar una cita cancelada: precarga cliente/vehículo/empleado en el formulario de
+  // "Nueva cita" (sin volver a registrar esos datos desde cero) dejando fecha/hora en
+  // blanco para elegir un horario nuevo. Es una cita NUEVA -- la cancelada queda como
+  // registro histórico y no se reutiliza (su EstadoCita es un estado terminal).
+  const handleReagendar = (item) => {
+    setDetailId(null);
+    setFormData({
+      Id_Cliente: item.Id_Cliente || '',
+      Id_Vehiculo: item.Id_Vehiculo || '',
+      id_empleado: item.id_empleado || item.Id_Empleado || '',
+      FechaAgendamiento: new Date().toISOString().split('T')[0],
+      Hora: '',
+      DuracionEstimadaMin: String(item.DuracionEstimadaMin ?? 60),
+    });
+    setEditingId(null); setFormError(''); setShowForm(true);
+  };
+  const handleEliminarCancelada = async () => {
+    if (!confirmEliminar) return;
+    const id = confirmEliminar.Id_Agenda ?? confirmEliminar.id;
+    const r = await dispatch(deleteCita(id));
+    setConfirmEliminar(null);
+    if (!r.error) { setDetailId(null); addToast({ type: 'success', message: 'Cita eliminada.' }); }
+    else addToast({ type: 'error', message: r.payload || 'No se pudo eliminar la cita.' });
   };
   const openEdit = (item) => {
     setFormData({
@@ -241,7 +270,7 @@ export default function AgendaPage() {
         const atendida = estadoCita === 'Atendida';
         return (
           <div className="table-actions">
-            <button className="btn btn--ghost btn--icon btn--sm" title="Ver detalle" onClick={() => setDetailItem(row)}><MdVisibility size={17} /></button>
+            <button className="btn btn--ghost btn--icon btn--sm" title="Ver detalle" onClick={() => setDetailId(row.Id_Agenda ?? row.id)}><MdVisibility size={17} /></button>
             <button className="btn btn--ghost btn--icon btn--sm" title="Editar" disabled={!puedeEditar || atendida} onClick={() => openEdit(row)}><MdEdit size={17} /></button>
             <button className="btn btn--ghost btn--icon btn--sm agenda-order-btn" title="Generar orden" disabled={atendida || estadoCita === 'Cancelada'} onClick={() => openGenerarOrden(row)}><MdAssignment size={17} /></button>
             {CITA_CANCELABLE(estadoCita) && (
@@ -285,15 +314,27 @@ export default function AgendaPage() {
         <Table columns={columns} rowKey="Id_Agenda" data={filtered} loading={loading} pageSize={pageSize} emptyMessage="No se encontraron citas" />
       </div>
 
-      <Modal isOpen={!!detailItem} onClose={() => setDetailItem(null)} title="Detalle de la cita" size="md">
-        {detailItem && <div className="detail-grid">
-          <div className="detail-item"><span className="detail-label">Cliente</span><span className="detail-value">{detailItem.Cliente || getClienteNombre(detailItem.Id_Cliente)}</span></div>
-          <div className="detail-item"><span className="detail-label">Vehículo</span><span className="detail-value">{detailItem.Vehiculo || getVehiculoPlaca(detailItem.Id_Vehiculo)}</span></div>
-          <div className="detail-item"><span className="detail-label">Empleado</span><span className="detail-value">{detailItem.Empleado || getEmpleadoNombre(detailItem.id_empleado || detailItem.Id_Empleado)}</span></div>
-          <div className="detail-item"><span className="detail-label">Fecha</span><span className="detail-value">{formatDate(detailItem.FechaAgendamiento)}</span></div>
-          <div className="detail-item"><span className="detail-label">Hora</span><span className="detail-value">{detailItem.Hora}</span></div>
-          <div className="detail-item"><span className="detail-label">Estado de la cita</span><span className="detail-value"><CitaEstadoBadge estado={detailItem.EstadoCita || 'Pendiente'} /></span></div>
-          <div className="detail-item"><span className="detail-label">Activa</span><span className="detail-value"><StatusBadge estado={detailItem.Estado} /></span></div>
+      <Modal isOpen={!!detailItem} onClose={() => setDetailId(null)} title="Detalle de la cita" size="md">
+        {detailItem && <div>
+          <div className="detail-grid">
+            <div className="detail-item"><span className="detail-label">Cliente</span><span className="detail-value">{detailItem.Cliente || getClienteNombre(detailItem.Id_Cliente)}</span></div>
+            <div className="detail-item"><span className="detail-label">Vehículo</span><span className="detail-value">{detailItem.Vehiculo || getVehiculoPlaca(detailItem.Id_Vehiculo)}</span></div>
+            <div className="detail-item"><span className="detail-label">Empleado</span><span className="detail-value">{detailItem.Empleado || getEmpleadoNombre(detailItem.id_empleado || detailItem.Id_Empleado)}</span></div>
+            <div className="detail-item"><span className="detail-label">Fecha</span><span className="detail-value">{formatDate(detailItem.FechaAgendamiento)}</span></div>
+            <div className="detail-item"><span className="detail-label">Hora</span><span className="detail-value">{detailItem.Hora}</span></div>
+            <div className="detail-item"><span className="detail-label">Estado de la cita</span><span className="detail-value"><CitaEstadoBadge estado={detailItem.EstadoCita || 'Pendiente'} /></span></div>
+            <div className="detail-item"><span className="detail-label">Activa</span><span className="detail-value"><StatusBadge estado={detailItem.Estado} /></span></div>
+          </div>
+          {detailItem.EstadoCita === 'Cancelada' && (
+            <div className="u-mt-lg" style={{ display: 'flex', gap: '0.5rem' }}>
+              <button className="btn btn--primary" disabled={!puedeCrear} onClick={() => handleReagendar(detailItem)}>
+                <MdEventRepeat size={18} />Reagendar
+              </button>
+              <button className="btn btn--danger" disabled={!puedeToggle} onClick={() => setConfirmEliminar(detailItem)}>
+                <MdDeleteForever size={18} />Eliminar por completo
+              </button>
+            </div>
+          )}
         </div>}
       </Modal>
 
@@ -359,6 +400,17 @@ export default function AgendaPage() {
         title="Cancelar cita"
         message="¿Cancelar esta cita? El vehículo quedará libre para reagendar."
         confirmLabel="Sí, cancelar"
+        danger
+        loading={actionLoading}
+      />
+
+      <ConfirmDialog
+        isOpen={!!confirmEliminar}
+        onClose={() => setConfirmEliminar(null)}
+        onConfirm={handleEliminarCancelada}
+        title="Eliminar cita cancelada"
+        message="Esta acción borra la cita de forma definitiva y no se puede deshacer."
+        confirmLabel="Eliminar definitivamente"
         danger
         loading={actionLoading}
       />

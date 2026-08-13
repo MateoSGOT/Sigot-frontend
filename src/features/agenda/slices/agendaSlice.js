@@ -24,6 +24,10 @@ export const cancelarCita = createAsyncThunk('agenda/cancelar', async (id, { rej
   try { const r = await agendaService.cancelar(id); return r.data || r; }
   catch (e) { return rejectWithValue(e?.response?.data?.message || 'No se pudo cancelar la cita'); }
 });
+export const deleteCita = createAsyncThunk('agenda/delete', async (id, { rejectWithValue }) => {
+  try { await agendaService.remove(id); return { id }; }
+  catch (e) { return rejectWithValue(e?.response?.data?.message || 'No se pudo eliminar la cita'); }
+});
 const agendaSlice = createSlice({
   name: 'agenda',
   initialState: { items: [], loading: false, error: null, actionLoading: false },
@@ -43,7 +47,10 @@ const agendaSlice = createSlice({
      .addCase(generarOrdenDeCita.fulfilled, s => { s.actionLoading=false; })
      .addCase(generarOrdenDeCita.rejected, (s,a) => { s.actionLoading=false; s.error=a.payload; })
      .addCase(cancelarCita.fulfilled, (s,a) => { const item=s.items.find(i=>(i.Id_Agenda||i.id)===a.payload?.Id_Agenda); if(item) item.EstadoCita=a.payload?.EstadoCita; })
-     .addCase(cancelarCita.rejected, (s,a) => { s.error=a.payload; });
+     .addCase(cancelarCita.rejected, (s,a) => { s.error=a.payload; })
+     .addCase(deleteCita.pending, s => { s.actionLoading=true; })
+     .addCase(deleteCita.fulfilled, (s,a) => { s.actionLoading=false; s.items=s.items.filter(i=>(i.Id_Agenda||i.id)!==a.payload.id); })
+     .addCase(deleteCita.rejected, (s,a) => { s.actionLoading=false; s.error=a.payload; });
   },
 });
 export const { clearError } = agendaSlice.actions;
