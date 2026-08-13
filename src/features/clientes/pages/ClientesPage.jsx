@@ -29,7 +29,7 @@ export default function ClientesPage() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('todos');
   const [pageSize, setPageSize] = useState(5);
-  const [detailItem, setDetailItem] = useState(null);
+  const [detailId, setDetailId] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [formData, setFormData] = useState(EMPTY_FORM);
   const [editingId, setEditingId] = useState(null);
@@ -50,6 +50,10 @@ export default function ClientesPage() {
     list = filterItems(list, search, ['Nombre', 'Documento', 'Correo', 'Telefono']);
     return sortByStatus(sortNewestFirst(list, 'Id_Cliente'));
   })();
+
+  // Derivado de `items` en cada render (no un snapshot congelado): así el modal de
+  // detalle refleja en tiempo real los cambios de Estado hechos desde la tabla.
+  const detailItem = detailId ? items.find(i => i.Id_Cliente === detailId) || null : null;
 
   const tiposDocOpts = tiposDoc.map(t => ({ value: String(t.Id_TipoDoc), label: t.Nombre }));
 
@@ -160,7 +164,7 @@ export default function ClientesPage() {
     {
       key: 'acciones', label: 'Acciones', render: (_, row) => (
         <div className="table-actions">
-          <button className="btn btn--ghost btn--icon btn--sm" title="Ver detalle" onClick={() => setDetailItem(row)}><MdVisibility size={17} /></button>
+          <button className="btn btn--ghost btn--icon btn--sm" title="Ver detalle" onClick={() => setDetailId(row.Id_Cliente)}><MdVisibility size={17} /></button>
           <button className="btn btn--ghost btn--icon btn--sm" title="Editar" disabled={!puedeEditar} onClick={() => openEdit(row)}><MdEdit size={17} /></button>
           <ToggleSwitch checked={row.Estado === 1} onChange={() => handleToggle(row)} disabled={!puedeToggle} />
         </div>
@@ -197,7 +201,7 @@ export default function ClientesPage() {
       </div>
 
       {/* Detail Modal */}
-      <Modal isOpen={!!detailItem} onClose={() => setDetailItem(null)} title="Detalle del cliente" size="md">
+      <Modal isOpen={!!detailItem} onClose={() => setDetailId(null)} title="Detalle del cliente" size="md">
         {detailItem && (
           <div className="detail-grid">
             <div className="detail-item"><span className="detail-label">Nombre</span><span className="detail-value">{detailItem.Nombre}</span></div>

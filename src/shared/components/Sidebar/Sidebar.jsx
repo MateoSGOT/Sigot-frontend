@@ -10,6 +10,7 @@ import {
 } from 'react-icons/md';
 import { logout } from '../../../features/auth/slices/authSlice';
 import StockAlertBell from '../StockAlertBell/StockAlertBell.jsx';
+import NovedadAlertBell from '../NovedadAlertBell/NovedadAlertBell.jsx';
 import { useSidebar } from '../../contexts/SidebarContext.jsx';
 import './Sidebar.css';
 
@@ -85,6 +86,10 @@ export default function Sidebar() {
   const [profileOpen, setProfileOpen] = useState(false);
   const profileRef = React.useRef(null);
   const esSuperAdmin = !!(empleado?.EsSuperAdmin || cliente?.EsSuperAdmin);
+  // La campana de novedades es exclusiva de Administrador/Super Administrador (avisa de
+  // cosas como empleados desactivados con citas pendientes aún asignadas -- ver
+  // NovedadAlertBell.jsx), no aplica a otros roles operativos ni a clientes.
+  const esAdminOSuperAdmin = esSuperAdmin || empleado?.Rol === 'Administrador';
 
   React.useEffect(() => {
     const handler = (e) => {
@@ -130,7 +135,10 @@ export default function Sidebar() {
           <div className="sidebar__logo-icon">S</div>
           <span className="sidebar__logo-text">SIGOT</span>
         </div>
-        <StockAlertBell />
+        <div className="sidebar__header-bells">
+          <StockAlertBell />
+          {esAdminOSuperAdmin && <NovedadAlertBell />}
+        </div>
       </div>
 
       {/* Navigation */}

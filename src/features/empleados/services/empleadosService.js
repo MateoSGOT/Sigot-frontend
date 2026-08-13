@@ -6,4 +6,5 @@ export const empleadosService = {
   create: (data) => api.post(BASE, data).then(r => r.data),
   update: (id, data) => api.put(`${BASE}/${id}`, data).then(r => r.data),
   toggleEstado: (id, Estado) => api.patch(`${BASE}/${id}/estado`, { Estado }).then(r => r.data),
+  remove: (id) => api.delete(`${BASE}/${id}`).then(r => r.data),
 };

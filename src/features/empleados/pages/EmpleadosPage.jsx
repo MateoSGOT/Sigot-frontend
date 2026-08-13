@@ -1,10 +1,11 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { MdAdd, MdVisibility, MdEdit, MdWarning, MdVisibilityOff, MdCheck } from 'react-icons/md';
+import { MdAdd, MdVisibility, MdEdit, MdWarning, MdVisibilityOff, MdCheck, MdDeleteForever } from 'react-icons/md';
 import { usePermiso } from '../../../shared/hooks/usePermiso.js';
 import ToggleSwitch from '../../../shared/components/ToggleSwitch/ToggleSwitch.jsx';
-import { fetchEmpleados, createEmpleado, updateEmpleado, toggleEmpleadoEstado } from '../slices/empleadosSlice.js';
+import { fetchEmpleados, createEmpleado, updateEmpleado, toggleEmpleadoEstado, deleteEmpleado } from '../slices/empleadosSlice.js';
 import Modal from '../../../shared/components/Modal/Modal.jsx';
+import ConfirmDialog from '../../../shared/components/ConfirmDialog/ConfirmDialog.jsx';
 import Table from '../../../shared/components/Table/Table.jsx';
 import SearchBar from '../../../shared/components/SearchBar/SearchBar.jsx';
 import FilterDropdown from '../../../shared/components/FilterDropdown/FilterDropdown.jsx';
@@ -32,7 +33,9 @@ export default function EmpleadosPage() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('todos');
   const [pageSize, setPageSize] = useState(5);
-  const [detailItem, setDetailItem] = useState(null);
+  const [detailId, setDetailId] = useState(null);
+  const [deleteId, setDeleteId] = useState(null);
+  const [deleteError, setDeleteError] = useState('');
   const [formData, setFormData] = useState(EMPTY);
   const [editingId, setEditingId] = useState(null);
   const [showForm, setShowForm] = useState(false);
@@ -168,11 +171,17 @@ export default function EmpleadosPage() {
     {
       key: 'acciones', label: 'Acciones', render: (_, row) => (
         <div className="table-actions">
-          <button className="btn btn--ghost btn--icon btn--sm" onClick={() => setDetailItem(row)}><MdVisibility size={17} /></button>
+          <button className="btn btn--ghost btn--icon btn--sm" onClick={() => setDetailId(row.Id_Empleado)}><MdVisibility size={17} /></button>
           {!esAdminSistema(row) && (
             <>
               <button className="btn btn--ghost btn--icon btn--sm" disabled={!puedeEditar} onClick={() => openEdit(row)}><MdEdit size={17} /></button>
               <ToggleSwitch checked={row.Estado === 1} onChange={() => dispatch(toggleEmpleadoEstado({ id: row.Id_Empleado, Estado: row.Estado === 1 ? 0 : 1 }))} disabled={!puedeToggle} />
+              {row.Estado === 0 && (
+                <button className="btn btn--danger btn--icon btn--sm" title="Eliminar por completo" disabled={!puedeToggle}
+                  onClick={() => { setDeleteError(''); setDeleteId(row.Id_Empleado); }}>
+                  <MdDeleteForever size={17} />
+                </button>
+              )}
             </>
           )}
         </div>
@@ -180,7 +189,18 @@ export default function EmpleadosPage() {
     },
   ];
 
+  // Derivado de `items` en cada render (no un snapshot congelado en useState): así el
+  // modal de detalle refleja en tiempo real cualquier cambio de Estado/datos hecho desde
+  // la tabla o desde otra pestaña, en vez de quedarse con la foto del momento del click.
+  const detailItem = detailId ? items.find(i => i.Id_Empleado === detailId) || null : null;
   const detailNovedades = detailItem ? getEmpNovedades(detailItem.Id_Empleado) : [];
+
+  const handleDelete = async () => {
+    setDeleteError('');
+    const result = await dispatch(deleteEmpleado(deleteId));
+    if (!result.error) setDeleteId(null);
+    else setDeleteError(result.payload || 'No se pudo eliminar el empleado.');
+  };
 
   return (
     <div className="page">
@@ -207,7 +227,7 @@ export default function EmpleadosPage() {
         <Table columns={columns} rowKey="Id_Empleado" data={filtered} loading={loading} pageSize={pageSize} emptyMessage="No se encontraron empleados" />
       </div>
 
-      <Modal isOpen={!!detailItem} onClose={() => setDetailItem(null)} title="Detalle del empleado" size="lg">
+      <Modal isOpen={!!detailItem} onClose={() => setDetailId(null)} title="Detalle del empleado" size="lg">
         {detailItem && (
           <div>
             <div className="detail-grid u-mb-xl">
@@ -334,6 +354,17 @@ export default function EmpleadosPage() {
 
         </form>
       </Modal>
+
+      <ConfirmDialog
+        isOpen={!!deleteId}
+        onClose={() => { setDeleteId(null); setDeleteError(''); }}
+        onConfirm={handleDelete}
+        title="Eliminar empleado por completo"
+        message={deleteError || 'Esta acción borra al empleado de forma definitiva y no se puede deshacer. Su historial de citas ya cerradas y novedades se conserva sin asignar. Si tiene citas pendientes o confirmadas, primero debes reasignarlas o cancelarlas.'}
+        confirmLabel="Eliminar definitivamente"
+        danger
+        loading={actionLoading}
+      />
     </div>
   );
 }

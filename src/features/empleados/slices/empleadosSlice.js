@@ -20,6 +20,10 @@ export const toggleEmpleadoEstado = createAsyncThunk('empleados/toggleEstado', a
   try { await empleadosService.toggleEstado(id, Estado); return { id, Estado }; }
   catch (e) { return rejectWithValue(e?.response?.data?.message || 'Error'); }
 });
+export const deleteEmpleado = createAsyncThunk('empleados/delete', async (id, { rejectWithValue }) => {
+  try { await empleadosService.remove(id); return { id }; }
+  catch (e) { return rejectWithValue(e?.response?.data?.message || 'Error'); }
+});
 const empleadosSlice = createSlice({
   name: 'empleados',
   initialState: { items: [], loading: false, error: null, actionLoading: false },
@@ -34,7 +38,10 @@ const empleadosSlice = createSlice({
      .addCase(updateEmpleado.pending, s => { s.actionLoading=true; })
      .addCase(updateEmpleado.fulfilled, (s,a) => { s.actionLoading=false; const n=norm(a.payload||{}); const idx=s.items.findIndex(i=>i.Id_Empleado===n.Id_Empleado); if(idx>=0) s.items[idx]=n; })
      .addCase(updateEmpleado.rejected, (s,a) => { s.actionLoading=false; s.error=a.payload; })
-     .addCase(toggleEmpleadoEstado.fulfilled, (s,a) => { const item=s.items.find(i=>i.Id_Empleado===a.payload.id); if(item) item.Estado=normEstado(a.payload.Estado); });
+     .addCase(toggleEmpleadoEstado.fulfilled, (s,a) => { const item=s.items.find(i=>i.Id_Empleado===a.payload.id); if(item) item.Estado=normEstado(a.payload.Estado); })
+     .addCase(deleteEmpleado.pending, s => { s.actionLoading=true; })
+     .addCase(deleteEmpleado.fulfilled, (s,a) => { s.actionLoading=false; s.items=s.items.filter(i=>i.Id_Empleado!==a.payload.id); })
+     .addCase(deleteEmpleado.rejected, (s,a) => { s.actionLoading=false; s.error=a.payload; });
   },
 });
 export const { clearError } = empleadosSlice.actions;

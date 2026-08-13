@@ -50,7 +50,7 @@ export default function VehiculosPage() {
   const [statusFilter, setStatusFilter] = useState('todos');
   const [marcaFilter, setMarcaFilter] = useState('');
   const [pageSize, setPageSize] = useState(5);
-  const [detailItem, setDetailItem] = useState(null);
+  const [detailId, setDetailId] = useState(null);
   const [formData, setFormData] = useState(EMPTY);
   const [editingId, setEditingId] = useState(null);
   const [showForm, setShowForm] = useState(false);
@@ -91,6 +91,10 @@ export default function VehiculosPage() {
     list = filterItems(list, search, ['Placa', 'VIN', 'Modelo', 'Color']);
     return sortByStatus(sortNewestFirst(list, 'Id_Vehiculo'));
   })();
+
+  // Derivado de `items` en cada render (no un snapshot congelado): así el modal de
+  // detalle refleja en tiempo real los cambios de Estado hechos desde la tabla.
+  const detailItem = detailId ? items.find(i => i.Id_Vehiculo === detailId) || null : null;
 
   const openCreate = () => {
     setFormData(EMPTY); setEditingId(null); setFormError(''); reset(); setModelos([]); setShowForm(true);
@@ -143,7 +147,7 @@ export default function VehiculosPage() {
     {
       key: 'acciones', label: 'Acciones', render: (_, row) => (
         <div className="table-actions">
-          <button className="btn btn--ghost btn--icon btn--sm" onClick={() => setDetailItem(row)}><MdVisibility size={17} /></button>
+          <button className="btn btn--ghost btn--icon btn--sm" onClick={() => setDetailId(row.Id_Vehiculo)}><MdVisibility size={17} /></button>
           <button className="btn btn--ghost btn--icon btn--sm" disabled={!puedeEditar} onClick={() => openEdit(row)}><MdEdit size={17} /></button>
           <ToggleSwitch checked={row.Estado === 1} onChange={() => dispatch(toggleVehiculoEstado({ id: row.Id_Vehiculo, Estado: row.Estado === 1 ? 0 : 1 }))} disabled={!puedeToggle} />
         </div>
@@ -182,7 +186,7 @@ export default function VehiculosPage() {
         <Table columns={columns} rowKey="Id_Vehiculo" data={filtered} loading={loading} pageSize={pageSize} emptyMessage="No se encontraron vehículos" />
       </div>
 
-      <Modal isOpen={!!detailItem} onClose={() => setDetailItem(null)} title="Detalle del vehículo" size="md">
+      <Modal isOpen={!!detailItem} onClose={() => setDetailId(null)} title="Detalle del vehículo" size="md">
         {detailItem && <div className="detail-grid">
           <div className="detail-item"><span className="detail-label">Placa</span><span className="detail-value">{detailItem.Placa}</span></div>
           <div className="detail-item"><span className="detail-label">VIN</span><span className="detail-value">{detailItem.VIN || '—'}</span></div>
