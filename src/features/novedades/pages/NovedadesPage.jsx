@@ -155,7 +155,7 @@ export default function NovedadesPage() {
           <div className="form-group span-2">
             <label className="form-label">Empleado <span className="required">*</span></label>
             <SearchableSelect
-              options={empleados.map(e => ({ value: String(e.id_empleado ?? e.Id_Empleado), label: e.Nombre }))}
+              options={empleados.map(e => ({ value: String(e.id_empleado ?? e.Id_Empleado), label: `${e.Nombre} — ${e.Documento}` }))}
               value={String(formData.id_empleado)}
               onChange={v => { setFormData(p => ({ ...p, id_empleado: v })); markTouched('id_empleado'); }}
               placeholder="Seleccionar empleado..."

@@ -131,12 +131,14 @@ export default function AgendaPage() {
     return '';
   })();
 
-  const clientesOpts  = clientes.filter(esActivo).map(c => ({ value: String(c.Id_Cliente), label: c.Nombre }));
+  // Se incluye el Documento en la etiqueta (no solo el Nombre) para poder distinguir
+  // clientes/empleados que comparten el mismo nombre.
+  const clientesOpts  = clientes.filter(esActivo).map(c => ({ value: String(c.Id_Cliente), label: `${c.Nombre} — ${c.Documento}` }));
   const vehiculosOpts = vehiculosFiltered.map(v => ({ value: String(v.Id_Vehiculo), label: `${v.Placa} — ${v.Modelo}` }));
   const empleadosOpts = empleados.filter(esActivo).map(e => {
     const id = String(e.Id_Empleado ?? e.id_empleado);
     const conNovedad = novedadesActivas.has(id);
-    return { value: id, label: `${e.Nombre}${conNovedad ? ' — Con novedad' : ''}`, disabled: conNovedad };
+    return { value: id, label: `${e.Nombre} — ${e.Documento}${conNovedad ? ' — Con novedad' : ''}`, disabled: conNovedad };
   });
 
   const filtered = (() => {
