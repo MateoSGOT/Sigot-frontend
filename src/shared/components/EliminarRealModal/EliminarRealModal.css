@@ -1,0 +1,72 @@
+/* Borrado real — vista previa de dependencias */
+.del-modal__loading {
+  color: var(--color-text-muted);
+  font-size: var(--text-body, 0.9375rem);
+  padding: var(--space-sm) 0;
+}
+
+.del-modal__lead {
+  font-size: 0.9375rem;
+  color: var(--color-text);
+  margin-bottom: var(--space-md);
+  line-height: 1.5;
+}
+
+/* Panel de bloqueo (Regla 4 / Regla 5) */
+.del-modal__block {
+  background: var(--color-danger-soft);
+  border: 1px solid var(--color-danger);
+  border-radius: var(--radius-lg, 12px);
+  padding: var(--space-md);
+}
+.del-modal__block-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  font-weight: var(--weight-semibold, 600);
+  color: var(--color-danger-soft-on);
+  margin-bottom: var(--space-sm);
+}
+
+/* Aviso de cascada (borrado permitido con confirmación) */
+.del-modal__cascade {
+  background: var(--color-warning-soft);
+  border: 1px solid var(--color-warning);
+  border-radius: var(--radius-lg, 12px);
+  padding: var(--space-sm) var(--space-md);
+  margin-bottom: var(--space-md);
+}
+.del-modal__cascade-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  font-weight: var(--weight-semibold, 600);
+  color: var(--color-warning-soft-on);
+  margin-bottom: var(--space-xs);
+  font-size: 0.875rem;
+}
+
+.del-modal__list {
+  margin: 0;
+  padding-left: 1.25rem;
+  font-size: 0.875rem;
+  color: var(--color-text);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.del-modal__hint {
+  margin: var(--space-sm) 0 0;
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+}
+
+.del-modal__confirm-label { display: block; margin-bottom: var(--space-xs); }
+.del-modal__confirm-label code {
+  background: var(--color-border-light, #f1f5f9);
+  padding: 1px 6px;
+  border-radius: var(--radius-sm, 6px);
+  font-weight: var(--weight-semibold, 600);
+  color: var(--color-danger-soft-on);
+}

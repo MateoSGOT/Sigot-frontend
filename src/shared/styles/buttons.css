@@ -87,6 +87,16 @@
   border-color: rgba(0, 0, 0, 0.14);
 }
 
+/* === Ghost en rojo (acción de borrado real en tablas, solo super admin) === */
+.btn--ghost.btn--danger-ghost {
+  color: #dc2626;
+}
+.btn--ghost.btn--danger-ghost:hover:not(:disabled) {
+  background: rgba(220, 38, 38, 0.12);
+  color: #b91c1c;
+  border-color: rgba(220, 38, 38, 0.30);
+}
+
 /* === Sizes === */
 .btn--sm {
   padding: 0.375rem 0.75rem;
