@@ -5,9 +5,12 @@ import {
   MdAdd, MdEdit, MdSave, MdCheck, MdClose, MdPeople, MdSecurity,
   MdDashboard, MdPeopleAlt, MdDirectionsCar, MdBuild, MdCategory,
   MdLocalShipping, MdShoppingCart, MdMiscellaneousServices,
-  MdEventNote, MdAssignment, MdNewReleases, MdPerson,
+  MdEventNote, MdAssignment, MdNewReleases, MdPerson, MdDeleteForever,
 } from 'react-icons/md';
 import ToggleSwitch from '../../../shared/components/ToggleSwitch/ToggleSwitch.jsx';
+import EliminarRealModal from '../../../shared/components/EliminarRealModal/EliminarRealModal.jsx';
+import { useBorradoReal } from '../../../shared/hooks/useBorradoReal.js';
+import { rolesService } from '../services/rolesService.js';
 import { fetchRoles, createRol, updateRol, toggleRolEstado } from '../slices/rolesSlice.js';
 import Modal from '../../../shared/components/Modal/Modal.jsx';
 import Table from '../../../shared/components/Table/Table.jsx';
@@ -67,6 +70,11 @@ export default function RolesPage() {
   const puedeCrear   = usePermiso('ROLES.REGISTRAR');
   const puedeEditar  = usePermiso('ROLES.EDITAR');
   const puedeToggle  = usePermiso('ROLES.CAMBIAR_ESTADO');
+  const esSuperadmin = useSelector(s => s.auth.empleado?.EsSuperAdmin === true);
+  const del = useBorradoReal(rolesService, {
+    entidadLabel: 'rol',
+    onDeleted: () => { dispatch(fetchRoles()); api.get('/api/empleados').then(r => setEmpleados(r.data?.data || r.data || [])).catch(() => {}); },
+  });
   const [empleados, setEmpleados]       = useState([]);
   const [search, setSearch]             = useState('');
   const [statusFilter, setStatusFilter] = useState('todos');
@@ -289,6 +297,15 @@ export default function RolesPage() {
                 <MdEdit size={17} />
               </button>
               <ToggleSwitch checked={row.Estado === 1} onChange={() => handleToggle(row)} disabled={!puedeToggle} />
+              {esSuperadmin && (
+                <button
+                  className="btn btn--ghost btn--icon btn--sm btn--danger-ghost"
+                  title="Eliminar rol"
+                  onClick={() => del.open(row.Id_Rol)}
+                >
+                  <MdDeleteForever size={17} />
+                </button>
+              )}
             </>
           )}
         </div>
@@ -527,6 +544,17 @@ export default function RolesPage() {
           </div>
         )}
       </Modal>
+
+      <EliminarRealModal
+        isOpen={del.isOpen}
+        onClose={del.close}
+        entidadLabel="rol"
+        preview={del.preview}
+        loadingPreview={del.loadingPreview}
+        deleting={del.deleting}
+        error={del.error}
+        onConfirm={del.confirm}
+      />
 
       {/* ── Toast ── */}
       {toast && (
