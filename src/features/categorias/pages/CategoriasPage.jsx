@@ -1,8 +1,11 @@
 ﻿import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { MdAdd, MdEdit } from 'react-icons/md';
+import { MdAdd, MdEdit, MdDeleteForever } from 'react-icons/md';
 import { usePermiso } from '../../../shared/hooks/usePermiso.js';
+import { useBorradoReal } from '../../../shared/hooks/useBorradoReal.js';
+import { categoriasService } from '../services/categoriasService.js';
 import ToggleSwitch from '../../../shared/components/ToggleSwitch/ToggleSwitch.jsx';
+import EliminarRealModal from '../../../shared/components/EliminarRealModal/EliminarRealModal.jsx';
 import { fetchCategorias, createCategoria, updateCategoria, toggleCategoriaEstado } from '../slices/categoriasSlice.js';
 import Modal from '../../../shared/components/Modal/Modal.jsx';
 import Table from '../../../shared/components/Table/Table.jsx';
@@ -23,6 +26,11 @@ export default function CategoriasPage() {
   const puedeCrear   = usePermiso('CATEGORIAS.REGISTRAR');
   const puedeEditar  = usePermiso('CATEGORIAS.EDITAR');
   const puedeToggle  = usePermiso('CATEGORIAS.CAMBIAR_ESTADO');
+  const esSuperadmin = useSelector(s => s.auth.empleado?.EsSuperAdmin === true);
+  const del = useBorradoReal(categoriasService, {
+    entidadLabel: 'categoría',
+    onDeleted: () => dispatch(fetchCategorias()),
+  });
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('todos');
   const [pageSize, setPageSize] = useState(5);
@@ -72,6 +80,9 @@ export default function CategoriasPage() {
         <div className="table-actions">
           <button className="btn btn--ghost btn--icon btn--sm" disabled={!puedeEditar} onClick={() => openEdit(row)}><MdEdit size={17} /></button>
           <ToggleSwitch checked={row.Estado === 1} onChange={() => dispatch(toggleCategoriaEstado({ id: row.Id_Categoria, Estado: row.Estado === 1 ? 0 : 1 }))} disabled={!puedeToggle} />
+          {esSuperadmin && (
+            <button className="btn btn--ghost btn--icon btn--sm btn--danger-ghost" title="Eliminar definitivamente" onClick={() => del.open(row.Id_Categoria)}><MdDeleteForever size={17} /></button>
+          )}
         </div>
       )
     },
@@ -112,6 +123,17 @@ export default function CategoriasPage() {
           {fieldError('Nombre') && <p className="form-error">{fieldError('Nombre')}</p>}
         </div>
       </Modal>
+
+      <EliminarRealModal
+        isOpen={del.isOpen}
+        onClose={del.close}
+        entidadLabel="categoría"
+        preview={del.preview}
+        loadingPreview={del.loadingPreview}
+        deleting={del.deleting}
+        error={del.error}
+        onConfirm={del.confirm}
+      />
     </div>
   );
 }
