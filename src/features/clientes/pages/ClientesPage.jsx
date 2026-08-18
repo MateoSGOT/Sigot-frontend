@@ -1,10 +1,13 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { MdAdd, MdVisibility, MdEdit, MdVisibilityOff } from 'react-icons/md';
+import { MdAdd, MdVisibility, MdEdit, MdVisibilityOff, MdDeleteForever } from 'react-icons/md';
 import { usePermiso } from '../../../shared/hooks/usePermiso.js';
 import { useFormValidation } from '../../../shared/hooks/useFormValidation.js';
+import { useBorradoReal } from '../../../shared/hooks/useBorradoReal.js';
+import { clientesService } from '../services/clientesService.js';
 import ImageUploader from '../../../shared/components/ImageUploader/ImageUploader.jsx';
 import ToggleSwitch from '../../../shared/components/ToggleSwitch/ToggleSwitch.jsx';
+import EliminarRealModal from '../../../shared/components/EliminarRealModal/EliminarRealModal.jsx';
 import { fetchClientes, createCliente, updateCliente, toggleClienteEstado } from '../slices/clientesSlice.js';
 import Modal from '../../../shared/components/Modal/Modal.jsx';
 import Table from '../../../shared/components/Table/Table.jsx';
@@ -25,6 +28,11 @@ export default function ClientesPage() {
   const puedeCrear   = usePermiso('CLIENTES.REGISTRAR');
   const puedeEditar  = usePermiso('CLIENTES.EDITAR');
   const puedeToggle  = usePermiso('CLIENTES.CAMBIAR_ESTADO');
+  const esSuperadmin = useSelector((s) => s.auth.empleado?.EsSuperAdmin === true);
+  const del = useBorradoReal(clientesService, {
+    entidadLabel: 'cliente',
+    onDeleted: () => dispatch(fetchClientes()),
+  });
   const [tiposDoc, setTiposDoc] = useState([]);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('todos');
@@ -167,6 +175,9 @@ export default function ClientesPage() {
           <button className="btn btn--ghost btn--icon btn--sm" title="Ver detalle" onClick={() => setDetailId(row.Id_Cliente)}><MdVisibility size={17} /></button>
           <button className="btn btn--ghost btn--icon btn--sm" title="Editar" disabled={!puedeEditar} onClick={() => openEdit(row)}><MdEdit size={17} /></button>
           <ToggleSwitch checked={row.Estado === 1} onChange={() => handleToggle(row)} disabled={!puedeToggle} />
+          {esSuperadmin && (
+            <button className="btn btn--ghost btn--icon btn--sm btn--danger-ghost" title="Eliminar definitivamente" onClick={() => del.open(row.Id_Cliente)}><MdDeleteForever size={17} /></button>
+          )}
         </div>
       )
     },
@@ -332,6 +343,17 @@ export default function ClientesPage() {
           )}
         </form>
       </Modal>
+
+      <EliminarRealModal
+        isOpen={del.isOpen}
+        onClose={del.close}
+        entidadLabel="cliente"
+        preview={del.preview}
+        loadingPreview={del.loadingPreview}
+        deleting={del.deleting}
+        error={del.error}
+        onConfirm={del.confirm}
+      />
     </div>
   );
 }
