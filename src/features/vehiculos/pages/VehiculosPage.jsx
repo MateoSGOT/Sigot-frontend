@@ -1,6 +1,9 @@
 ﻿import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { MdAdd, MdVisibility, MdEdit } from 'react-icons/md';
+import { MdAdd, MdVisibility, MdEdit, MdDeleteForever } from 'react-icons/md';
+import { useBorradoReal } from '../../../shared/hooks/useBorradoReal.js';
+import { vehiculosService } from '../services/vehiculosService.js';
+import EliminarRealModal from '../../../shared/components/EliminarRealModal/EliminarRealModal.jsx';
 import { usePermiso } from '../../../shared/hooks/usePermiso.js';
 import SearchableSelect from '../../../shared/components/SearchableSelect/SearchableSelect.jsx';
 import ToggleSwitch from '../../../shared/components/ToggleSwitch/ToggleSwitch.jsx';
@@ -42,6 +45,8 @@ export default function VehiculosPage() {
   const puedeCrear   = usePermiso('VEHICULOS.REGISTRAR');
   const puedeEditar  = usePermiso('VEHICULOS.EDITAR');
   const puedeToggle  = usePermiso('VEHICULOS.CAMBIAR_ESTADO');
+  const esSuperadmin = useSelector(s => s.auth.empleado?.EsSuperAdmin === true);
+  const del = useBorradoReal(vehiculosService, { entidadLabel: 'vehículo', onDeleted: () => dispatch(fetchVehiculos()) });
   const [marcas, setMarcas] = useState([]);
   const [clientes, setClientes] = useState([]);
   const [modelos, setModelos] = useState([]);        // modelos de la marca seleccionada
@@ -150,6 +155,9 @@ export default function VehiculosPage() {
           <button className="btn btn--ghost btn--icon btn--sm" onClick={() => setDetailId(row.Id_Vehiculo)}><MdVisibility size={17} /></button>
           <button className="btn btn--ghost btn--icon btn--sm" disabled={!puedeEditar} onClick={() => openEdit(row)}><MdEdit size={17} /></button>
           <ToggleSwitch checked={row.Estado === 1} onChange={() => dispatch(toggleVehiculoEstado({ id: row.Id_Vehiculo, Estado: row.Estado === 1 ? 0 : 1 }))} disabled={!puedeToggle} />
+          {esSuperadmin && (
+            <button className="btn btn--ghost btn--icon btn--sm btn--danger-ghost" title="Eliminar definitivamente" onClick={() => del.open(row.Id_Vehiculo)}><MdDeleteForever size={17} /></button>
+          )}
         </div>
       )
     },
@@ -263,6 +271,9 @@ export default function VehiculosPage() {
           </div>
         </form>
       </Modal>
+
+      <EliminarRealModal isOpen={del.isOpen} onClose={del.close} entidadLabel="vehículo"
+        preview={del.preview} loadingPreview={del.loadingPreview} deleting={del.deleting} error={del.error} onConfirm={del.confirm} />
     </div>
   );
 }
