@@ -72,7 +72,9 @@ export default function RepuestosPage() {
       if (categoriaFilter) params.set('categoria', categoriaFilter);
       if (stockBajoFilter) params.set('soloBajo', 'true');
       const r = await api.get(`/api/repuestos?${params.toString()}`);
-      setRows(r.data?.data || []);
+      // El backend devuelve NombreRepuesto; la columna de la tabla lee `Nombre`
+      // (igual que exportarExcel y openEdit). Sin este mapeo el nombre sale en blanco.
+      setRows((r.data?.data || []).map(x => ({ ...x, Nombre: x.NombreRepuesto || x.Nombre || '' })));
       setTotal(r.data?.total ?? 0);
     } catch { setRows([]); setTotal(0); }
     finally { setListLoading(false); }
