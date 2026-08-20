@@ -2,8 +2,11 @@
 import { useDispatch, useSelector } from 'react-redux';
 import { MdAdd, MdVisibility, MdEdit, MdAssignment, MdEventBusy, MdEventRepeat, MdDeleteForever } from 'react-icons/md';
 import { usePermiso } from '../../../shared/hooks/usePermiso.js';
+import { useBorradoReal } from '../../../shared/hooks/useBorradoReal.js';
+import { agendaService } from '../services/agendaService.js';
 import SearchableSelect from '../../../shared/components/SearchableSelect/SearchableSelect.jsx';
 import ToggleSwitch from '../../../shared/components/ToggleSwitch/ToggleSwitch.jsx';
+import EliminarRealModal from '../../../shared/components/EliminarRealModal/EliminarRealModal.jsx';
 import { fetchAgenda, createCita, updateCita, toggleCitaEstado, generarOrdenDeCita, cancelarCita, deleteCita } from '../slices/agendaSlice.js';
 import Modal from '../../../shared/components/Modal/Modal.jsx';
 import ConfirmDialog from '../../../shared/components/ConfirmDialog/ConfirmDialog.jsx';
@@ -41,6 +44,8 @@ export default function AgendaPage() {
   const puedeCrear   = usePermiso('AGENDA.REGISTRAR');
   const puedeEditar  = usePermiso('AGENDA.EDITAR');
   const puedeToggle  = usePermiso('AGENDA.CAMBIAR_ESTADO');
+  const esSuperadmin = useSelector(s => s.auth.empleado?.EsSuperAdmin === true);
+  const del = useBorradoReal(agendaService, { entidadLabel: 'cita', onDeleted: () => dispatch(fetchAgenda()) });
   const [clientes, setClientes]   = useState([]);
   const [vehiculos, setVehiculos] = useState([]);
   const [empleados, setEmpleados] = useState([]);
@@ -277,6 +282,9 @@ export default function AgendaPage() {
               <button className="btn btn--ghost btn--icon btn--sm" title="Cancelar cita" disabled={!puedeToggle} onClick={() => setConfirmCancelar(row)}><MdEventBusy size={17} /></button>
             )}
             <ToggleSwitch checked={row.Estado === 1} onChange={() => dispatch(toggleCitaEstado({ id: row.Id_Agenda || row.id, Estado: row.Estado === 1 ? 0 : 1 }))} disabled={!puedeToggle} />
+            {esSuperadmin && (
+              <button className="btn btn--ghost btn--icon btn--sm btn--danger-ghost" title="Eliminar cita definitivamente (superadmin)" onClick={() => del.open(row.Id_Agenda ?? row.id)}><MdDeleteForever size={17} /></button>
+            )}
           </div>
         );
       }
@@ -414,6 +422,9 @@ export default function AgendaPage() {
         danger
         loading={actionLoading}
       />
+
+      <EliminarRealModal isOpen={del.isOpen} onClose={del.close} entidadLabel="cita"
+        preview={del.preview} loadingPreview={del.loadingPreview} deleting={del.deleting} error={del.error} onConfirm={del.confirm} />
     </div>
   );
 }

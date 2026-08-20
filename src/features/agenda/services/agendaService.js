@@ -9,4 +9,7 @@ export const agendaService = {
   cancelar: (id) => api.patch(`${BASE}/${id}/cancelar`).then(r => r.data),
   generarOrden: (id, data) => api.post(`${BASE}/${id}/orden`, data).then(r => r.data),
   remove: (id) => api.delete(`${BASE}/${id}`).then(r => r.data),
+  // Borrado real de una cita (superadmin), endpoint separado del remove operativo.
+  getDependencias: (id) => api.get(`${BASE}/${id}/dependencias`).then(r => r.data?.data),
+  eliminar: (id, confirmacion) => api.delete(`${BASE}/${id}/borrado-real`, { data: { confirmacion } }).then(r => r.data),
 };
