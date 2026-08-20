@@ -146,7 +146,9 @@ export default function EmpleadosPage() {
   const tiposDocOpts = tiposDoc.map(t => ({ value: String(t.Id_TipoDoc), label: t.Nombre }));
   const rolesOpts    = roles.map(r => ({ value: String(r.Id_Rol), label: r.Nombre }));
 
-  const esAdminSistema = (emp) => emp.Rol === 'Administrador';
+  // "Sistema": solo el super admin protegido (Empleado.EsSistema o rol Super Administrador).
+  // Sus filas no muestran acciones (eliminar/cambiar estado). Los demás admin sí se gestionan.
+  const esAdminSistema = (emp) => emp?.EsSistema === true || emp?.Rol === 'Super Administrador';
 
   const columns = [
     { key: '#', label: '#', width: '50px', render: (_, __, i) => i + 1 },
@@ -359,7 +361,7 @@ export default function EmpleadosPage() {
               value={String(formData.Id_Rol)}
               onChange={v => { setField('Id_Rol', v); markTouched('Id_Rol'); }}
               placeholder="Seleccionar rol..."
-              disabled={!!(editingId && items.find(e => e.Id_Empleado === editingId)?.Rol === 'Administrador')}
+              disabled={!!(editingId && esAdminSistema(items.find(e => e.Id_Empleado === editingId)))}
             />
             {fieldError('Id_Rol') && <p className="form-error">{fieldError('Id_Rol')}</p>}
           </div>
