@@ -1,6 +1,9 @@
 ﻿import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { MdAdd, MdVisibility, MdEdit } from 'react-icons/md';
+import { MdAdd, MdVisibility, MdEdit, MdDeleteForever } from 'react-icons/md';
+import { useBorradoReal } from '../../../shared/hooks/useBorradoReal.js';
+import { novedadesService } from '../services/novedadesService.js';
+import EliminarRealModal from '../../../shared/components/EliminarRealModal/EliminarRealModal.jsx';
 import { usePermiso } from '../../../shared/hooks/usePermiso.js';
 import SearchableSelect from '../../../shared/components/SearchableSelect/SearchableSelect.jsx';
 import ToggleSwitch from '../../../shared/components/ToggleSwitch/ToggleSwitch.jsx';
@@ -29,6 +32,8 @@ export default function NovedadesPage() {
   const puedeCrear   = usePermiso('NOVEDADES.REGISTRAR');
   const puedeEditar  = usePermiso('NOVEDADES.EDITAR');
   const puedeToggle  = usePermiso('NOVEDADES.CAMBIAR_ESTADO');
+  const esSuperadmin = useSelector(s => s.auth.empleado?.EsSuperAdmin === true);
+  const del = useBorradoReal(novedadesService, { entidadLabel: 'novedad', onDeleted: () => dispatch(fetchNovedades()) });
   const [empleados, setEmpleados] = useState([]);
   const [search, setSearch]       = useState('');
   const [pageSize, setPageSize]   = useState(5);
@@ -108,6 +113,9 @@ export default function NovedadesPage() {
         <div className="table-actions">
           <button className="btn btn--ghost btn--icon btn--sm" onClick={() => setDetailItem(row)}><MdVisibility size={17} /></button>
           <button className="btn btn--ghost btn--icon btn--sm" disabled={!puedeEditar} onClick={() => openEdit(row)}><MdEdit size={17} /></button>
+          {esSuperadmin && (
+            <button className="btn btn--ghost btn--icon btn--sm btn--danger-ghost" title="Eliminar definitivamente" onClick={() => del.open(row.Id_Novedad)}><MdDeleteForever size={17} /></button>
+          )}
         </div>
       )
     },
@@ -178,6 +186,9 @@ export default function NovedadesPage() {
           </div>
         </form>
       </Modal>
+
+      <EliminarRealModal isOpen={del.isOpen} onClose={del.close} entidadLabel="novedad"
+        preview={del.preview} loadingPreview={del.loadingPreview} deleting={del.deleting} error={del.error} onConfirm={del.confirm} />
     </div>
   );
 }

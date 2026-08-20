@@ -6,4 +6,6 @@ export const novedadesService = {
   create: (data) => api.post(BASE, data).then(r => r.data),
   update: (id, data) => api.put(`${BASE}/${id}`, data).then(r => r.data),
   toggleEstado: (id, Estado) => api.patch(`${BASE}/${id}/estado`, { Estado }).then(r => r.data),
+  getDependencias: (id) => api.get(`${BASE}/${id}/dependencias`).then(r => r.data?.data),
+  eliminar: (id, confirmacion) => api.delete(`${BASE}/${id}`, { data: { confirmacion } }).then(r => r.data),
 };
