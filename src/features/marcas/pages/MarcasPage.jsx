@@ -1,8 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { MdAdd, MdEdit, MdListAlt } from 'react-icons/md';
+import { MdAdd, MdEdit, MdListAlt, MdDeleteForever } from 'react-icons/md';
 import { usePermiso } from '../../../shared/hooks/usePermiso.js';
+import { useBorradoReal } from '../../../shared/hooks/useBorradoReal.js';
+import { marcasService } from '../services/marcasService.js';
 import ToggleSwitch from '../../../shared/components/ToggleSwitch/ToggleSwitch.jsx';
+import EliminarRealModal from '../../../shared/components/EliminarRealModal/EliminarRealModal.jsx';
 import Modal from '../../../shared/components/Modal/Modal.jsx';
 import Table from '../../../shared/components/Table/Table.jsx';
 import SearchBar from '../../../shared/components/SearchBar/SearchBar.jsx';
@@ -21,6 +24,8 @@ export default function MarcasPage() {
   const puedeCrear  = usePermiso('VEHICULOS.REGISTRAR');
   const puedeEditar = usePermiso('VEHICULOS.EDITAR');
   const puedeToggle = usePermiso('VEHICULOS.CAMBIAR_ESTADO');
+  const esSuperadmin = useSelector(s => s.auth.empleado?.EsSuperAdmin === true);
+  const del = useBorradoReal(marcasService, { entidadLabel: 'marca', onDeleted: () => dispatch(fetchMarcas()) });
 
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('todos');
@@ -89,6 +94,9 @@ export default function MarcasPage() {
           <button className="btn btn--ghost btn--icon btn--sm" onClick={() => openGestion(row)} title="Gestionar modelos"><MdListAlt size={17} /></button>
           <button className="btn btn--ghost btn--icon btn--sm" disabled={!puedeEditar} onClick={() => openEditMarca(row)} title="Editar marca"><MdEdit size={17} /></button>
           <ToggleSwitch checked={row.Estado === 1} onChange={() => dispatch(toggleMarcaEstado({ id: row.Id_Marca, Estado: row.Estado === 1 ? 0 : 1 }))} disabled={!puedeToggle} />
+          {esSuperadmin && (
+            <button className="btn btn--ghost btn--icon btn--sm btn--danger-ghost" title="Eliminar marca definitivamente" onClick={() => del.open(row.Id_Marca)}><MdDeleteForever size={17} /></button>
+          )}
         </div>
       )
     },
@@ -181,6 +189,9 @@ export default function MarcasPage() {
           </>
         )}
       </Modal>
+
+      <EliminarRealModal isOpen={del.isOpen} onClose={del.close} entidadLabel="marca"
+        preview={del.preview} loadingPreview={del.loadingPreview} deleting={del.deleting} error={del.error} onConfirm={del.confirm} />
     </div>
   );
 }
