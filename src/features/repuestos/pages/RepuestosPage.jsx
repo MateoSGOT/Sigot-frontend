@@ -1,6 +1,9 @@
 ﻿import React, { useEffect, useState, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { MdAdd, MdVisibility, MdEdit, MdWarning, MdTableChart } from 'react-icons/md';
+import { MdAdd, MdVisibility, MdEdit, MdWarning, MdTableChart, MdDeleteForever } from 'react-icons/md';
+import { useBorradoReal } from '../../../shared/hooks/useBorradoReal.js';
+import { repuestosService } from '../services/repuestosService.js';
+import EliminarRealModal from '../../../shared/components/EliminarRealModal/EliminarRealModal.jsx';
 import { usePermiso } from '../../../shared/hooks/usePermiso.js';
 import * as XLSX from 'xlsx';
 import ToggleSwitch from '../../../shared/components/ToggleSwitch/ToggleSwitch.jsx';
@@ -78,6 +81,9 @@ export default function RepuestosPage() {
   const fetchStockBajo = useCallback(async () => {
     try { const r = await api.get('/api/repuestos/stock-bajo'); setStockBajoItems(r.data?.data || r.data || []); } catch { /* silent */ }
   }, []);
+
+  const esSuperadmin = useSelector(s => s.auth.empleado?.EsSuperAdmin === true);
+  const del = useBorradoReal(repuestosService, { entidadLabel: 'repuesto', onDeleted: () => { fetchPage(); fetchStockBajo(); } });
 
   useEffect(() => {
     api.get('/api/categoria-repuestos').then(r => setCategorias(r.data?.data || r.data || [])).catch(() => {});
@@ -206,6 +212,9 @@ export default function RepuestosPage() {
           <button className="btn btn--ghost btn--icon btn--sm" onClick={() => setDetailItem(row)}><MdVisibility size={17} /></button>
           <button className="btn btn--ghost btn--icon btn--sm" disabled={!puedeEditar} onClick={() => openEdit(row)}><MdEdit size={17} /></button>
           <ToggleSwitch checked={row.Estado === 1} onChange={() => handleToggle(row)} disabled={!puedeToggle} />
+          {esSuperadmin && (
+            <button className="btn btn--ghost btn--icon btn--sm btn--danger-ghost" title="Eliminar definitivamente" onClick={() => del.open(row.Id_Repuesto)}><MdDeleteForever size={17} /></button>
+          )}
         </div>
       )
     },
@@ -326,6 +335,9 @@ export default function RepuestosPage() {
           )}
         </form>
       </Modal>
+
+      <EliminarRealModal isOpen={del.isOpen} onClose={del.close} entidadLabel="repuesto"
+        preview={del.preview} loadingPreview={del.loadingPreview} deleting={del.deleting} error={del.error} onConfirm={del.confirm} />
     </div>
   );
 }
