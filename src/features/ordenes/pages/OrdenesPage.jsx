@@ -11,6 +11,7 @@ import {
 import Modal from '../../../shared/components/Modal/Modal.jsx';
 import Table from '../../../shared/components/Table/Table.jsx';
 import SearchBar from '../../../shared/components/SearchBar/SearchBar.jsx';
+import SearchableSelect from '../../../shared/components/SearchableSelect/SearchableSelect.jsx';
 import FilterDropdown from '../../../shared/components/FilterDropdown/FilterDropdown.jsx';
 import Badge from '../../../shared/components/Badge/Badge.jsx';
 import { filterItems, sortNewestFirst, formatDate, formatCurrency } from '../../../shared/utils/helpers.js';
@@ -242,8 +243,8 @@ export default function OrdenesPage() {
   // Auto-fill price when selecting a repuesto. Al cliente se le cobra el PRECIO DE VENTA
   // (con IVA y margen), no el costo. Si aún no tiene precio de venta (nunca comprado),
   // cae al costo como respaldo.
-  const handleRepuestoSelect = (e) => {
-    const id = e.target.value;
+  // Recibe el id directamente (SearchableSelect entrega el value, no un evento).
+  const handleRepuestoSelect = (id) => {
     const rep = repuestosOpts.find(r => String(r.Id_Repuesto) === String(id));
     const precio = rep?.PrecioVenta ?? rep?.Precio;
     setAddRepForm(p => ({ ...p, Id_Repuesto: id, precio_unitario: precio != null ? String(precio) : '' }));
@@ -612,10 +613,14 @@ export default function OrdenesPage() {
                     </div>
                     {addRepError && <div className="form-error-box u-mb-sm">{addRepError}</div>}
                     <div className="orden-add-row">
-                      <select className="form-control" value={addRepForm.Id_Repuesto} onChange={handleRepuestoSelect}>
-                        <option value="">Seleccionar repuesto...</option>
-                        {repuestosOpts.map(r => <option key={r.Id_Repuesto} value={r.Id_Repuesto}>{r.NombreRepuesto ?? r.Nombre}</option>)}
-                      </select>
+                      <SearchableSelect
+                        options={repuestosOpts.map(r => ({ ...r, _label: r.NombreRepuesto ?? r.Nombre ?? '' }))}
+                        value={addRepForm.Id_Repuesto}
+                        onChange={handleRepuestoSelect}
+                        labelKey="_label"
+                        valueKey="Id_Repuesto"
+                        placeholder="Buscar repuesto..."
+                      />
                       <input type="number" min="1" className="form-control" placeholder="Cantidad" value={addRepForm.cantidad} onChange={e => setAddRepForm(p => ({ ...p, cantidad: e.target.value }))} />
                       <input
                         type="number" min="0" className="form-control"
