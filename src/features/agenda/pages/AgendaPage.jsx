@@ -137,6 +137,12 @@ export default function AgendaPage() {
     return '';
   })();
 
+  // Validez de la cita en tiempo real: habilita "Guardar" solo cuando está completa
+  // y sin conflictos (fecha válida y empleado sin novedad activa).
+  const citaValida = !!formData.Id_Cliente && !!formData.Id_Vehiculo && !!formData.id_empleado
+    && !!formData.FechaAgendamiento && !!formData.Hora
+    && !fechaError && !novedadesActivas.has(String(formData.id_empleado));
+
   // Se incluye el Documento en la etiqueta (no solo el Nombre) para poder distinguir
   // clientes/empleados que comparten el mismo nombre.
   const clientesOpts  = clientes.filter(esActivo).map(c => ({ value: String(c.Id_Cliente), label: `${c.Nombre} — ${c.Documento}` }));
@@ -350,7 +356,7 @@ export default function AgendaPage() {
       </Modal>
 
       <Modal isOpen={showForm} onClose={() => setShowForm(false)} title={editingId ? 'Editar cita' : 'Nueva cita'} size="md"
-        footer={<><button className="btn btn--outline" onClick={() => setShowForm(false)}>Cancelar</button><button className="btn btn--primary" onClick={handleSubmit} disabled={actionLoading}>{actionLoading ? 'Guardando...' : 'Guardar'}</button></>}
+        footer={<><button className="btn btn--outline" onClick={() => setShowForm(false)}>Cancelar</button><button className="btn btn--primary" onClick={handleSubmit} disabled={actionLoading || !citaValida}>{actionLoading ? 'Guardando...' : 'Guardar'}</button></>}
       >
         {formError && <div className="form-error-box">{formError}</div>}
         <form className="form-grid" onSubmit={handleSubmit} noValidate>

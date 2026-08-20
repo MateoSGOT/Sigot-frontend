@@ -12,6 +12,7 @@ import SearchBar from '../../../shared/components/SearchBar/SearchBar.jsx';
 import FilterDropdown from '../../../shared/components/FilterDropdown/FilterDropdown.jsx';
 import { StatusBadge } from '../../../shared/components/Badge/Badge.jsx';
 import { sortByStatus, sortNewestFirst, filterItems } from '../../../shared/utils/helpers.js';
+import * as V from '../../../shared/utils/validators.js';
 import {
   fetchMarcas, createMarca, updateMarca, toggleMarcaEstado,
   createModelo, updateModelo, toggleModeloEstado,
@@ -118,6 +119,10 @@ export default function MarcasPage() {
 
   const modelosData = gestionMarca?.modelos ? [...gestionMarca.modelos].sort((a, b) => (a.Nombre || '').localeCompare(b.Nombre || '')) : [];
 
+  // Validación en tiempo real (se recomputa en cada tecla desde el estado del form).
+  const marcaNombreError = marcaForm ? V.nombre(marcaForm.Nombre, 2, 60) : '';
+  const modeloNombreError = modeloForm ? V.nombre(modeloForm.Nombre, 1, 60) : '';
+
   return (
     <div className="page">
       <div className="page__header">
@@ -146,15 +151,16 @@ export default function MarcasPage() {
 
       {/* Modal crear/editar marca */}
       <Modal isOpen={!!marcaForm} onClose={() => setMarcaForm(null)} title={marcaForm?.id ? 'Editar marca' : 'Nueva marca'} size="sm"
-        footer={<><button className="btn btn--outline" onClick={() => setMarcaForm(null)}>Cancelar</button><button className="btn btn--primary" onClick={submitMarca} disabled={actionLoading}>{actionLoading ? 'Guardando...' : 'Guardar'}</button></>}
+        footer={<><button className="btn btn--outline" onClick={() => setMarcaForm(null)}>Cancelar</button><button className="btn btn--primary" onClick={submitMarca} disabled={actionLoading || !!marcaNombreError}>{actionLoading ? 'Guardando...' : 'Guardar'}</button></>}
       >
         {marcaError && <div className="form-error-box">{marcaError}</div>}
         <div className="form-group">
           <label className="form-label">Nombre <span className="required">*</span></label>
-          <input className="form-control" value={marcaForm?.Nombre || ''} autoFocus maxLength={60}
+          <input className={`form-control ${marcaForm?.Nombre && marcaNombreError ? 'is-error' : ''}`} value={marcaForm?.Nombre || ''} autoFocus maxLength={60}
             onChange={e => setMarcaForm(f => ({ ...f, Nombre: e.target.value }))}
-            onKeyDown={e => { if (e.key === 'Enter') submitMarca(); }}
+            onKeyDown={e => { if (e.key === 'Enter' && !marcaNombreError) submitMarca(); }}
             placeholder="Ej. Toyota" />
+          {marcaForm?.Nombre && marcaNombreError && <p className="form-error">{marcaNombreError}</p>}
         </div>
       </Modal>
 
@@ -175,13 +181,14 @@ export default function MarcasPage() {
               <div className="modelo-inline-form">
                 {modeloError && <div className="form-error-box">{modeloError}</div>}
                 <div className="modelo-inline-form__row">
-                  <input className="form-control" autoFocus value={modeloForm.Nombre} maxLength={60}
+                  <input className={`form-control ${modeloForm.Nombre && modeloNombreError ? 'is-error' : ''}`} autoFocus value={modeloForm.Nombre} maxLength={60}
                     onChange={e => setModeloForm(f => ({ ...f, Nombre: e.target.value }))}
-                    onKeyDown={e => { if (e.key === 'Enter') submitModelo(); if (e.key === 'Escape') setModeloForm(null); }}
+                    onKeyDown={e => { if (e.key === 'Enter' && !modeloNombreError) submitModelo(); if (e.key === 'Escape') setModeloForm(null); }}
                     placeholder={modeloForm.id ? 'Editar modelo' : 'Nombre del nuevo modelo (ej. Corolla)'} />
-                  <button className="btn btn--primary btn--sm" onClick={submitModelo} disabled={actionLoading}>{actionLoading ? '...' : 'Guardar'}</button>
+                  <button className="btn btn--primary btn--sm" onClick={submitModelo} disabled={actionLoading || !!modeloNombreError}>{actionLoading ? '...' : 'Guardar'}</button>
                   <button className="btn btn--outline btn--sm" onClick={() => { setModeloForm(null); setModeloError(''); }}>Cancelar</button>
                 </div>
+                {modeloForm.Nombre && modeloNombreError && <p className="form-error">{modeloNombreError}</p>}
               </div>
             )}
 

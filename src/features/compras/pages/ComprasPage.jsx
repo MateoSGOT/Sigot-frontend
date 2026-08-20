@@ -159,6 +159,11 @@ export default function ComprasPage() {
     (sum, i) => sum + Number(i.Cantidad || 0) * Number(i.PrecioUnitario || 0), 0
   );
 
+  // Validez en tiempo real: habilita "Guardar" solo cuando todo está completo.
+  const compraValida = !!formData.Id_Proveedor && !!formData.Fecha
+    && formData.productos.length > 0
+    && formData.productos.every(it => it.Id_Repuesto && Number(it.Cantidad) > 0 && Number(it.PrecioUnitario) >= 0 && it.PrecioUnitario !== '');
+
   const columns = [
     { key: '#', label: '#', width: '50px', render: (_, __, i) => i + 1 },
     { key: 'Proveedor', label: 'Proveedor', render: (v, row) => v || getNombre(proveedores, 'Id_Proveedor', row.Id_Proveedor) },
@@ -270,7 +275,7 @@ export default function ComprasPage() {
         footer={
           <>
             <button className="btn btn--outline" onClick={() => setShowForm(false)}>Cancelar</button>
-            <button className="btn btn--primary" onClick={handleSubmit} disabled={actionLoading}>
+            <button className="btn btn--primary" onClick={handleSubmit} disabled={actionLoading || !compraValida}>
               {actionLoading ? 'Guardando...' : 'Registrar'}
             </button>
           </>
