@@ -1,6 +1,9 @@
 ﻿import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { MdAdd, MdVisibility, MdEdit } from 'react-icons/md';
+import { MdAdd, MdVisibility, MdEdit, MdDeleteForever } from 'react-icons/md';
+import { useBorradoReal } from '../../../shared/hooks/useBorradoReal.js';
+import { serviciosService } from '../services/serviciosService.js';
+import EliminarRealModal from '../../../shared/components/EliminarRealModal/EliminarRealModal.jsx';
 import { usePermiso } from '../../../shared/hooks/usePermiso.js';
 import ToggleSwitch from '../../../shared/components/ToggleSwitch/ToggleSwitch.jsx';
 import { fetchServicios, createServicio, updateServicio, toggleServicioEstado } from '../slices/serviciosSlice.js';
@@ -34,6 +37,8 @@ export default function ServiciosPage() {
   const puedeCrear   = usePermiso('SERVICIOS.REGISTRAR');
   const puedeEditar  = usePermiso('SERVICIOS.EDITAR');
   const puedeToggle  = usePermiso('SERVICIOS.CAMBIAR_ESTADO');
+  const esSuperadmin = useSelector(s => s.auth.empleado?.EsSuperAdmin === true);
+  const del = useBorradoReal(serviciosService, { entidadLabel: 'servicio', onDeleted: () => dispatch(fetchServicios()) });
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('todos');
   const [pageSize, setPageSize] = useState(5);
@@ -95,6 +100,9 @@ export default function ServiciosPage() {
           <button className="btn btn--ghost btn--icon btn--sm" onClick={() => setDetailItem(row)}><MdVisibility size={17} /></button>
           <button className="btn btn--ghost btn--icon btn--sm" disabled={!puedeEditar} onClick={() => openEdit(row)}><MdEdit size={17} /></button>
           <ToggleSwitch checked={row.Estado === 1} onChange={() => dispatch(toggleServicioEstado({ id: row.Id_Servicio, Estado: row.Estado === 1 ? 0 : 1 }))} disabled={!puedeToggle} />
+          {esSuperadmin && (
+            <button className="btn btn--ghost btn--icon btn--sm btn--danger-ghost" title="Eliminar definitivamente" onClick={() => del.open(row.Id_Servicio)}><MdDeleteForever size={17} /></button>
+          )}
         </div>
       )
     },
@@ -158,6 +166,9 @@ export default function ServiciosPage() {
           </div>
         </form>
       </Modal>
+
+      <EliminarRealModal isOpen={del.isOpen} onClose={del.close} entidadLabel="servicio"
+        preview={del.preview} loadingPreview={del.loadingPreview} deleting={del.deleting} error={del.error} onConfirm={del.confirm} />
     </div>
   );
 }
