@@ -62,6 +62,34 @@
   color: var(--color-text-muted);
 }
 
+/* Acción alternativa dentro del panel de bloqueo (p. ej. reasignar y eliminar) */
+.reasignar-box {
+  margin-top: var(--space-md);
+  padding-top: var(--space-md);
+  border-top: 1px dashed var(--color-border, #e5e7eb);
+}
+.reasignar-box__head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  font-weight: var(--weight-semibold, 600);
+  color: var(--color-text);
+  margin-bottom: var(--space-xs);
+}
+.reasignar-box__intro {
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+  margin: 0 0 var(--space-sm);
+}
+.reasignar-box__resumen {
+  font-size: 0.875rem;
+  color: var(--color-text);
+  background: var(--color-warning-soft);
+  border-radius: var(--radius-sm, 6px);
+  padding: var(--space-sm);
+  margin: var(--space-sm) 0 0;
+}
+
 .del-modal__confirm-label { display: block; margin-bottom: var(--space-xs); }
 .del-modal__confirm-label code {
   background: var(--color-border-light, #f1f5f9);

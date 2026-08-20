@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { MdAdd, MdVisibility, MdEdit, MdWarning, MdVisibilityOff, MdCheck, MdDeleteForever } from 'react-icons/md';
+import { MdAdd, MdVisibility, MdEdit, MdWarning, MdVisibilityOff, MdCheck, MdDeleteForever, MdSwapHoriz } from 'react-icons/md';
+import { useToast } from '../../../shared/components/Toast/ToastContext.jsx';
 import { usePermiso } from '../../../shared/hooks/usePermiso.js';
 import { useBorradoReal } from '../../../shared/hooks/useBorradoReal.js';
 import { empleadosService } from '../services/empleadosService.js';
@@ -32,6 +33,32 @@ export default function EmpleadosPage() {
   const puedeToggle  = usePermiso('EMPLEADOS.CAMBIAR_ESTADO');
   const esSuperadmin = useSelector(s => s.auth.empleado?.EsSuperAdmin === true);
   const del = useBorradoReal(empleadosService, { entidadLabel: 'empleado', onDeleted: () => dispatch(fetchEmpleados()) });
+  const { addToast } = useToast();
+  // Estado de la vía "Reasignar y eliminar" (dentro del modal de bloqueo).
+  const [reasignarDestino, setReasignarDestino] = useState('');
+  const [reasignarTexto, setReasignarTexto]     = useState('');
+  const [reasignarLoading, setReasignarLoading] = useState(false);
+  const [reasignarError, setReasignarError]     = useState('');
+  useEffect(() => {
+    setReasignarDestino(''); setReasignarTexto(''); setReasignarError(''); setReasignarLoading(false);
+  }, [del.isOpen, del.preview?.id]);
+
+  const handleReasignar = async () => {
+    if (!reasignarDestino) { setReasignarError('Elige un empleado destino.'); return; }
+    if (reasignarTexto.trim() !== del.preview?.textoConfirmacion) {
+      setReasignarError(`Para confirmar, escribe exactamente: ${del.preview?.textoConfirmacion}`); return;
+    }
+    setReasignarLoading(true); setReasignarError('');
+    try {
+      await empleadosService.reasignarYEliminar(del.preview.id, Number(reasignarDestino), reasignarTexto.trim());
+      addToast({ type: 'success', message: 'Empleado reasignado y eliminado correctamente.' });
+      del.close();
+      dispatch(fetchEmpleados());
+    } catch (e) {
+      setReasignarError(e?.response?.data?.message || 'No se pudo reasignar y eliminar.');
+      setReasignarLoading(false);
+    }
+  };
   const [tiposDoc, setTiposDoc] = useState([]);
   const [roles, setRoles] = useState([]);
   const [novedades, setNovedades] = useState([]);
@@ -216,6 +243,46 @@ export default function EmpleadosPage() {
     else setDeleteError(result.payload || 'No se pudo eliminar el empleado.');
   };
 
+  // Vía "Reasignar y eliminar": solo cuando el bloqueo es por órdenes/novedades
+  // (no cuando es un empleado protegido). Se inyecta en el modal de bloqueo.
+  const _bloq = del.preview?.bloqueantes || [];
+  const _ordCount = _bloq.find(b => b.tabla === 'Orden_de_Trabajo')?.cantidad ?? 0;
+  const _novCount = _bloq.find(b => b.tabla === 'Novedades')?.cantidad ?? 0;
+  const puedeReasignar = !!del.preview?.bloqueado && (_ordCount > 0 || _novCount > 0);
+  const destinoOpts = items
+    .filter(e => e.Estado === 1 && String(e.Id_Empleado) !== String(del.preview?.id) && !esAdminSistema(e))
+    .map(e => ({ value: String(e.Id_Empleado), label: `${e.Nombre} — ${e.Documento}` }));
+  const destinoNombre = items.find(e => String(e.Id_Empleado) === String(reasignarDestino))?.Nombre;
+  const textoOk = reasignarTexto.trim() === del.preview?.textoConfirmacion;
+
+  const reasignarNode = puedeReasignar ? (
+    <div className="reasignar-box">
+      <div className="reasignar-box__head"><MdSwapHoriz size={17} /> Reasignar y eliminar</div>
+      <p className="reasignar-box__intro">Mové su trabajo a otro empleado y eliminá este. Las novedades se descartan.</p>
+      <label className="form-label">Reasignar a</label>
+      <SearchableSelect
+        options={destinoOpts}
+        value={reasignarDestino}
+        onChange={setReasignarDestino}
+        placeholder="Empleado activo destino..."
+      />
+      {reasignarDestino && (
+        <p className="reasignar-box__resumen">
+          Se reasignarán <strong>{_ordCount}</strong> orden(es) a <strong>{destinoNombre}</strong> y se eliminarán <strong>{_novCount}</strong> novedad(es).
+        </p>
+      )}
+      <label className="form-label" style={{ marginTop: '0.5rem' }}>Para confirmar, escribe: <code>{del.preview?.textoConfirmacion}</code></label>
+      <input className="form-control" value={reasignarTexto} autoComplete="off" spellCheck={false}
+        onChange={e => setReasignarTexto(e.target.value)} placeholder={del.preview?.textoConfirmacion} />
+      {reasignarError && <div className="form-error-box" style={{ marginTop: '0.5rem' }}>{reasignarError}</div>}
+      <button className="btn btn--danger" style={{ marginTop: '0.625rem' }}
+        disabled={reasignarLoading || !reasignarDestino || !textoOk}
+        onClick={handleReasignar}>
+        <MdSwapHoriz size={16} /> {reasignarLoading ? 'Reasignando…' : 'Reasignar y eliminar'}
+      </button>
+    </div>
+  ) : null;
+
   return (
     <div className="page">
       <div className="page__header">
@@ -381,7 +448,8 @@ export default function EmpleadosPage() {
       />
 
       <EliminarRealModal isOpen={del.isOpen} onClose={del.close} entidadLabel="empleado"
-        preview={del.preview} loadingPreview={del.loadingPreview} deleting={del.deleting} error={del.error} onConfirm={del.confirm} />
+        preview={del.preview} loadingPreview={del.loadingPreview} deleting={del.deleting} error={del.error} onConfirm={del.confirm}
+        accionBloqueado={reasignarNode} />
     </div>
   );
 }

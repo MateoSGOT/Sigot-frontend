@@ -10,4 +10,7 @@ export const empleadosService = {
   // Borrado real bloqueo-duro (superadmin), endpoint separado del remove operativo.
   getDependencias: (id) => api.get(`${BASE}/${id}/dependencias`).then(r => r.data?.data),
   eliminar: (id, confirmacion) => api.delete(`${BASE}/${id}/borrado-real`, { data: { confirmacion } }).then(r => r.data),
+  // Reasignar agendas/órdenes a otro empleado y luego eliminar.
+  reasignarYEliminar: (id, Id_EmpleadoDestino, confirmacion) =>
+    api.post(`${BASE}/${id}/reasignar-y-eliminar`, { Id_EmpleadoDestino, confirmacion }).then(r => r.data),
 };

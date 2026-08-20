@@ -23,6 +23,7 @@ export default function EliminarRealModal({
   deleting,
   error,
   onConfirm,
+  accionBloqueado = null, // slot opcional: acción alternativa cuando está bloqueado
 }) {
   const [texto, setTexto] = useState('');
 
@@ -69,6 +70,7 @@ export default function EliminarRealModal({
               <p className="del-modal__hint">
                 Debe conservarse por su historial. Resuelve lo anterior e inténtalo de nuevo.
               </p>
+              {accionBloqueado}
             </div>
           ) : (
             <>
