@@ -1,6 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { MdAdd, MdVisibility, MdEdit } from 'react-icons/md';
+import { MdAdd, MdVisibility, MdEdit, MdDeleteForever } from 'react-icons/md';
+import { useBorradoReal } from '../../../shared/hooks/useBorradoReal.js';
+import { proveedoresService } from '../services/proveedoresService.js';
+import EliminarRealModal from '../../../shared/components/EliminarRealModal/EliminarRealModal.jsx';
 import { usePermiso } from '../../../shared/hooks/usePermiso.js';
 import ToggleSwitch from '../../../shared/components/ToggleSwitch/ToggleSwitch.jsx';
 import { fetchProveedores, createProveedor, updateProveedor, toggleProveedorEstado } from '../slices/proveedoresSlice.js';
@@ -46,6 +49,8 @@ export default function ProveedoresPage() {
   const puedeCrear   = usePermiso('PROVEEDORES.REGISTRAR');
   const puedeEditar  = usePermiso('PROVEEDORES.EDITAR');
   const puedeToggle  = usePermiso('PROVEEDORES.CAMBIAR_ESTADO');
+  const esSuperadmin = useSelector(s => s.auth.empleado?.EsSuperAdmin === true);
+  const del = useBorradoReal(proveedoresService, { entidadLabel: 'proveedor', onDeleted: () => dispatch(fetchProveedores()) });
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('todos');
   const [pageSize, setPageSize] = useState(5);
@@ -129,6 +134,9 @@ export default function ProveedoresPage() {
           <button className="btn btn--ghost btn--icon btn--sm" onClick={() => setDetailItem(row)}><MdVisibility size={17} /></button>
           <button className="btn btn--ghost btn--icon btn--sm" disabled={!puedeEditar} onClick={() => openEdit(row)}><MdEdit size={17} /></button>
           <ToggleSwitch checked={row.Estado === 1} onChange={() => dispatch(toggleProveedorEstado({ id: row.Id_Proveedor, Estado: row.Estado === 1 ? 0 : 1 }))} disabled={!puedeToggle} />
+          {esSuperadmin && (
+            <button className="btn btn--ghost btn--icon btn--sm btn--danger-ghost" title="Eliminar definitivamente" onClick={() => del.open(row.Id_Proveedor)}><MdDeleteForever size={17} /></button>
+          )}
         </div>
       )
     },
@@ -235,6 +243,9 @@ export default function ProveedoresPage() {
           </div>
         </form>
       </Modal>
+
+      <EliminarRealModal isOpen={del.isOpen} onClose={del.close} entidadLabel="proveedor"
+        preview={del.preview} loadingPreview={del.loadingPreview} deleting={del.deleting} error={del.error} onConfirm={del.confirm} />
     </div>
   );
 }
