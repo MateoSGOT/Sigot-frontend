@@ -229,7 +229,10 @@ export default function AgendaPage() {
     const veh = vehiculos.find(v => String(v.Id_Vehiculo) === String(item.Id_Vehiculo));
     const kmActual = veh && veh.Kilometraje != null ? Number(veh.Kilometraje) : null;
     setOrdenVehiculoKm(kmActual);
-    setOrdenData({ ...EMPTY_ORDEN, FechaIngreso: new Date().toISOString().split('T')[0], Kilometraje: kmActual != null ? String(kmActual) : '' });
+    // La fecha de ingreso de la orden ES la fecha de la cita de origen (no editable):
+    // la orden nace de esa cita. El backend la fija autoritativamente igual.
+    const fechaCita = (item.FechaAgendamiento || '').split('T')[0] || new Date().toISOString().split('T')[0];
+    setOrdenData({ ...EMPTY_ORDEN, FechaIngreso: fechaCita, Kilometraje: kmActual != null ? String(kmActual) : '' });
     setOrdenError(''); setShowOrdenModal(true);
   };
   const handleOrdenChange = e => setOrdenData(p => ({ ...p, [e.target.name]: e.target.value }));
@@ -394,7 +397,7 @@ export default function AgendaPage() {
       >
         {ordenError && <div className="form-error-box">{ordenError}</div>}
         <form className="form-grid" onSubmit={handleOrdenSubmit} noValidate>
-          <div className="form-group"><label className="form-label">Fecha de ingreso <span className="required">*</span></label><input name="FechaIngreso" type="date" className="form-control" value={ordenData.FechaIngreso} onChange={handleOrdenChange} min={TODAY} /></div>
+          <div className="form-group"><label className="form-label">Fecha de ingreso</label><input type="text" className="form-control" value={ordenData.FechaIngreso ? formatDate(ordenData.FechaIngreso) : '—'} readOnly disabled title="Tomada de la fecha de la cita; no editable" /><p className="form-hint">Es la fecha de la cita de origen.</p></div>
           <div className="form-group"><label className="form-label">Fecha de entrega <span className="required">*</span></label><input name="FechaEntrega" type="date" className="form-control" value={ordenData.FechaEntrega} onChange={handleOrdenChange} min={ordenData.FechaIngreso || TODAY} /></div>
           <div className="form-group span-2"><label className="form-label">Diagnóstico <span className="required">*</span></label><textarea name="Diagnostico" className="form-control" value={ordenData.Diagnostico} onChange={handleOrdenChange} rows={3} maxLength={500} placeholder="Describe el diagnóstico..." /></div>
           <div className="form-group span-2"><label className="form-label">Kilometraje <span className="required">*</span></label><input name="Kilometraje" type="number" min={ordenVehiculoKm ?? 0} className="form-control" value={ordenData.Kilometraje} onChange={handleOrdenChange} placeholder="km actuales del vehículo" />{ordenVehiculoKm != null && <p className="form-hint">Último registrado del vehículo: {ordenVehiculoKm.toLocaleString('es-CO')} km. No puede ser menor.</p>}</div>
