@@ -7,4 +7,7 @@ export const empleadosService = {
   update: (id, data) => api.put(`${BASE}/${id}`, data).then(r => r.data),
   toggleEstado: (id, Estado) => api.patch(`${BASE}/${id}/estado`, { Estado }).then(r => r.data),
   remove: (id) => api.delete(`${BASE}/${id}`).then(r => r.data),
+  // Borrado real bloqueo-duro (superadmin), endpoint separado del remove operativo.
+  getDependencias: (id) => api.get(`${BASE}/${id}/dependencias`).then(r => r.data?.data),
+  eliminar: (id, confirmacion) => api.delete(`${BASE}/${id}/borrado-real`, { data: { confirmacion } }).then(r => r.data),
 };

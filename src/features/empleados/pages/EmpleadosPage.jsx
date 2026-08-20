@@ -2,7 +2,10 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { MdAdd, MdVisibility, MdEdit, MdWarning, MdVisibilityOff, MdCheck, MdDeleteForever } from 'react-icons/md';
 import { usePermiso } from '../../../shared/hooks/usePermiso.js';
+import { useBorradoReal } from '../../../shared/hooks/useBorradoReal.js';
+import { empleadosService } from '../services/empleadosService.js';
 import ToggleSwitch from '../../../shared/components/ToggleSwitch/ToggleSwitch.jsx';
+import EliminarRealModal from '../../../shared/components/EliminarRealModal/EliminarRealModal.jsx';
 import { fetchEmpleados, createEmpleado, updateEmpleado, toggleEmpleadoEstado, deleteEmpleado } from '../slices/empleadosSlice.js';
 import Modal from '../../../shared/components/Modal/Modal.jsx';
 import ConfirmDialog from '../../../shared/components/ConfirmDialog/ConfirmDialog.jsx';
@@ -27,6 +30,8 @@ export default function EmpleadosPage() {
   const puedeCrear   = usePermiso('EMPLEADOS.REGISTRAR');
   const puedeEditar  = usePermiso('EMPLEADOS.EDITAR');
   const puedeToggle  = usePermiso('EMPLEADOS.CAMBIAR_ESTADO');
+  const esSuperadmin = useSelector(s => s.auth.empleado?.EsSuperAdmin === true);
+  const del = useBorradoReal(empleadosService, { entidadLabel: 'empleado', onDeleted: () => dispatch(fetchEmpleados()) });
   const [tiposDoc, setTiposDoc] = useState([]);
   const [roles, setRoles] = useState([]);
   const [novedades, setNovedades] = useState([]);
@@ -176,7 +181,14 @@ export default function EmpleadosPage() {
             <>
               <button className="btn btn--ghost btn--icon btn--sm" disabled={!puedeEditar} onClick={() => openEdit(row)}><MdEdit size={17} /></button>
               <ToggleSwitch checked={row.Estado === 1} onChange={() => dispatch(toggleEmpleadoEstado({ id: row.Id_Empleado, Estado: row.Estado === 1 ? 0 : 1 }))} disabled={!puedeToggle} />
-              {row.Estado === 0 && (
+              {esSuperadmin ? (
+                /* Superadmin: borrado real con bloqueo duro (muestra dependencias;
+                   no exige desactivar primero). Reemplaza al borrado operativo. */
+                <button className="btn btn--danger btn--icon btn--sm" title="Eliminar definitivamente (superadmin)"
+                  onClick={() => del.open(row.Id_Empleado)}>
+                  <MdDeleteForever size={17} />
+                </button>
+              ) : row.Estado === 0 && (
                 <button className="btn btn--danger btn--icon btn--sm" title="Eliminar por completo" disabled={!puedeToggle}
                   onClick={() => { setDeleteError(''); setDeleteId(row.Id_Empleado); }}>
                   <MdDeleteForever size={17} />
@@ -365,6 +377,9 @@ export default function EmpleadosPage() {
         danger
         loading={actionLoading}
       />
+
+      <EliminarRealModal isOpen={del.isOpen} onClose={del.close} entidadLabel="empleado"
+        preview={del.preview} loadingPreview={del.loadingPreview} deleting={del.deleting} error={del.error} onConfirm={del.confirm} />
     </div>
   );
 }
