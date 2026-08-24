@@ -18,22 +18,28 @@
 
 .form-control {
   width: 100%;
-  padding: 0.5625rem 0.875rem;
+  padding: 0.65rem 0.9rem;
   border: 1.5px solid var(--color-border);
   border-radius: var(--radius-sm);
   font-size: var(--text-body);
   color: var(--color-text);
   background: var(--color-input-bg);
-  transition: border-color var(--duration-base) var(--ease), box-shadow var(--duration-base) var(--ease);
+  transition: border-color var(--duration-base) var(--ease), box-shadow var(--duration-base) var(--ease), background var(--duration-base) var(--ease);
   outline: none;
   font-family: inherit;
   -webkit-appearance: none;
   appearance: none;
 }
 
+/* Hover sutil antes de enfocar: el borde se marca un poco */
+.form-control:hover:not(:focus):not(:disabled) {
+  border-color: rgba(0, 0, 0, 0.18);
+}
+
+/* Campo activo: se vuelve blanco y resalta con anillo verde de marca */
 .form-control:focus {
   border-color: var(--color-focus);
-  background: var(--color-input-bg);
+  background: var(--color-surface);
   box-shadow: 0 0 0 3px var(--color-focus-ring);
 }
 
@@ -67,7 +73,7 @@ select.form-control {
 }
 
 select.form-control:focus {
-  background-color: var(--color-input-bg);
+  background-color: var(--color-surface);
 }
 
 select.form-control option {
@@ -82,14 +88,16 @@ textarea.form-control {
 
 .form-avatar-row {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 1rem;
+  padding-bottom: 0.9rem;
+  border-bottom: 1px solid var(--color-border);
 }
 
 .form-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 0.75rem;
+  gap: 1.1rem 0.85rem;
 }
 
 .form-grid--3 {

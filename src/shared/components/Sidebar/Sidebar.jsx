@@ -132,7 +132,6 @@ export default function Sidebar() {
       {/* Logo */}
       <div className="sidebar__header">
         <div className="sidebar__logo">
-          <div className="sidebar__logo-icon">S</div>
           <span className="sidebar__logo-text">SIGOT</span>
         </div>
         <div className="sidebar__header-bells">

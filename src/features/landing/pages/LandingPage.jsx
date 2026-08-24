@@ -147,7 +147,6 @@ export default function LandingPage() {
       <nav className={`landing-nav${scrolled ? ' landing-nav--scrolled' : ''}`}>
         <div className="landing-nav__inner">
           <div className="landing-nav__brand" onClick={() => scrollTo('hero')}>
-            <div className="landing-nav__logo">S</div>
             <span className="landing-nav__name">SIGOT</span>
           </div>
 
@@ -198,9 +197,12 @@ export default function LandingPage() {
         <div className="landing-hero__visual">
           <div className="landing-hero__card">
             <div className="landing-hero__card-header">
-              <div className="landing-hero__dot landing-hero__dot--red" />
-              <div className="landing-hero__dot landing-hero__dot--yellow" />
-              <div className="landing-hero__dot landing-hero__dot--green" />
+              <div className="landing-hero__dots">
+                <span className="landing-hero__dot landing-hero__dot--red" />
+                <span className="landing-hero__dot landing-hero__dot--yellow" />
+                <span className="landing-hero__dot landing-hero__dot--green" />
+              </div>
+              <span className="landing-hero__card-title">Panel del taller</span>
             </div>
             <div className="landing-hero__card-body">
               <div className="landing-hero__stat-row">
@@ -477,7 +479,6 @@ export default function LandingPage() {
           <div className="landing-footer__inner">
             <div className="landing-footer__brand">
               <div className="landing-footer__logo">
-                <div className="landing-nav__logo">S</div>
                 <span className="landing-nav__name">SIGOT</span>
               </div>
               <p className="landing-footer__desc">

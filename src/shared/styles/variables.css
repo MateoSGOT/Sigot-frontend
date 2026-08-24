@@ -64,8 +64,8 @@
   --color-danger-light:  rgba(239, 68, 68, 0.10);
   --color-success-light: rgba(22, 163, 74, 0.12);
 
-  /* === Sidebar (Deep Forest Green) === */
-  --sidebar-bg: #0d1f0d;
+  /* === Sidebar (Deep Navy → Emerald) === */
+  --sidebar-bg: #0e1a2c;
   --sidebar-hover: rgba(181, 242, 61, 0.08);
   --sidebar-active-bg: #1a3a1a;
   --sidebar-text: rgba(255, 255, 255, 0.78);
@@ -205,12 +205,15 @@
     var(--pattern-dots-light),
     linear-gradient(135deg, rgba(22, 163, 74, 0.10) 0%, rgba(181, 242, 61, 0.06) 100%);
 
-  /* Panel decorativo del login: verde profundo con brillo esmeralda + puntos. */
+  /* Panel decorativo del login: mismo esquema del sidebar (azul marino →
+     esmeralda) con brillo esmeralda + puntos. */
   --bg-login-panel:
     var(--pattern-dots-dark),
-    radial-gradient(900px 600px at 22% 18%, rgba(22, 163, 74, 0.55), transparent 62%),
-    linear-gradient(160deg, #0d1f0d 0%, #12331b 55%, #0a1a0a 100%);
+    radial-gradient(820px 560px at 82% 88%, rgba(22, 163, 74, 0.40), transparent 60%),
+    linear-gradient(150deg, #0e1a2c 0%, #0d2e2a 52%, #0a4735 100%);
 
-  /* Sidebar: degradado sutil (oscuro → más oscuro) con tinte de marca imperceptible. */
-  --sidebar-bg-gradient: linear-gradient(180deg, #0f2611 0%, #0d1f0d 52%, #0a190a 100%);
+  /* Sidebar: degradado de marca azul marino profundo → verde esmeralda,
+     horizontal (90deg) tal como la imagen de referencia: marino a la izquierda,
+     esmeralda a la derecha. */
+  --sidebar-bg-gradient: linear-gradient(90deg, #0e1a2c 0%, #0d2e2a 52%, #0a4735 100%);
 }

@@ -159,6 +159,7 @@
   .stats-grid { grid-template-columns: 1fr; padding: 1rem; }
   .dashboard-charts { grid-template-columns: 1fr; padding: 0 1rem 1rem; }
   .dashboard-chart-card--wide { grid-column: span 1; }
+  .dashboard-rango { padding: 1rem 1rem 0.25rem; }
 }
 
 /* Selector de rango (Tanda B) */
@@ -167,7 +168,8 @@
   align-items: center;
   gap: var(--space-3, 12px);
   flex-wrap: wrap;
-  padding: 0 var(--space-4, 16px) var(--space-3, 12px);
+  /* Separado del header y alineado con el título y los KPIs (2rem laterales) */
+  padding: 1.5rem 2rem 0.25rem;
 }
 .dashboard-rango__presets { display: flex; gap: 6px; flex-wrap: wrap; }
 .dashboard-rango__custom { display: flex; align-items: center; gap: 8px; }

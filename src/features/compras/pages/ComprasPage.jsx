@@ -312,43 +312,57 @@ export default function ComprasPage() {
             {formData.productos.map((item, idx) => (
               <div key={idx}>
                 <div className="compra-producto-row">
-                  <SearchableSelect
-                    options={repuestosFiltrados.map(r => ({ value: String(r.Id_Repuesto), label: r.NombreRepuesto ?? r.Nombre }))}
-                    value={String(item.Id_Repuesto)}
-                    onChange={v => handleItemChange(idx, 'Id_Repuesto', v)}
-                    placeholder="Seleccionar repuesto..."
-                  />
-                  <input
-                    type="number"
-                    min="1"
-                    className="form-control form-control--sm"
-                    value={item.Cantidad}
-                    onChange={e => handleItemChange(idx, 'Cantidad', e.target.value)}
-                    placeholder="0"
-                  />
-                  <div className="price-input-wrap">
+                  <div className="compra-field">
+                    <span className="compra-field-label">Repuesto</span>
+                    <SearchableSelect
+                      options={repuestosFiltrados.map(r => ({ value: String(r.Id_Repuesto), label: r.NombreRepuesto ?? r.Nombre }))}
+                      value={String(item.Id_Repuesto)}
+                      onChange={v => handleItemChange(idx, 'Id_Repuesto', v)}
+                      placeholder="Seleccionar repuesto..."
+                    />
+                  </div>
+                  <div className="compra-field">
+                    <span className="compra-field-label">Cantidad</span>
                     <input
                       type="number"
-                      min="0"
-                      className={`form-control form-control--sm${priceWarnings[idx] ? ' form-control--warn' : ''}`}
-                      value={item.PrecioUnitario}
-                      onChange={e => handleItemChange(idx, 'PrecioUnitario', e.target.value)}
+                      min="1"
+                      className="form-control form-control--sm"
+                      value={item.Cantidad}
+                      onChange={e => handleItemChange(idx, 'Cantidad', e.target.value)}
                       placeholder="0"
                     />
-                    {item.PrecioUnitario && !priceWarnings[idx] ? <small className="price-preview">{formatCurrency(item.PrecioUnitario)}</small> : null}
                   </div>
-                  <span className="compra-subtotal">
-                    {formatCurrency(Number(item.Cantidad || 0) * Number(item.PrecioUnitario || 0))}
-                  </span>
-                  <button
-                    type="button"
-                    className="btn btn--ghost btn--icon btn--sm compra-remove-btn"
-                    disabled={formData.productos.length === 1}
-                    onClick={() => removeItem(idx)}
-                    title="Eliminar fila"
-                  >
-                    <MdDeleteOutline size={17} />
-                  </button>
+                  <div className="compra-field">
+                    <span className="compra-field-label">Precio unitario</span>
+                    <div className="price-input-wrap">
+                      <input
+                        type="number"
+                        min="0"
+                        className={`form-control form-control--sm${priceWarnings[idx] ? ' form-control--warn' : ''}`}
+                        value={item.PrecioUnitario}
+                        onChange={e => handleItemChange(idx, 'PrecioUnitario', e.target.value)}
+                        placeholder="0"
+                      />
+                      {item.PrecioUnitario && !priceWarnings[idx] ? <small className="price-preview">{formatCurrency(item.PrecioUnitario)}</small> : null}
+                    </div>
+                  </div>
+                  <div className="compra-field">
+                    <span className="compra-field-label">Subtotal</span>
+                    <span className="compra-subtotal">
+                      {formatCurrency(Number(item.Cantidad || 0) * Number(item.PrecioUnitario || 0))}
+                    </span>
+                  </div>
+                  <div className="compra-field compra-field--action">
+                    <button
+                      type="button"
+                      className="btn btn--ghost btn--icon btn--sm compra-remove-btn"
+                      disabled={formData.productos.length === 1}
+                      onClick={() => removeItem(idx)}
+                      title="Eliminar fila"
+                    >
+                      <MdDeleteOutline size={17} />
+                    </button>
+                  </div>
                 </div>
                 {priceWarnings[idx] && (
                   <div className="price-warning">

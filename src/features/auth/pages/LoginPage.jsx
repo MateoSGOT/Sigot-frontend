@@ -128,9 +128,11 @@ export default function LoginPage() {
         </div>
 
         <div className="login-left__content">
-          <div className="login-left__logo"><span>S</span></div>
-          <h1 className="login-left__title">Bienvenido<br />de nuevo</h1>
-          <p className="login-left__subtitle">Sistema de Gestión de Órdenes y Taller</p>
+          <div className="login-left__top">
+            <span className="login-left__wordmark">SIGOT</span>
+            <h1 className="login-left__title">Bienvenido<br /><span className="login-left__title-accent">de nuevo</span></h1>
+            <p className="login-left__subtitle">Sistema de Gestión de Órdenes y Taller</p>
+          </div>
 
           <div className="login-left__cards">
             {FEATURES.map(({ icon: Icon, title, desc }) => (

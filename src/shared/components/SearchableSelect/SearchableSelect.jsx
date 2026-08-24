@@ -10,6 +10,9 @@ export default function SearchableSelect({
   labelKey = 'label',
   valueKey = 'value',
   disabled = false,
+  // El buscador solo aparece cuando la lista es larga; en catálogos cortos
+  // (tipo de documento, rol, estado…) sobra, así que se oculta.
+  searchThreshold = 8,
 }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
@@ -20,6 +23,8 @@ export default function SearchableSelect({
 
   const selectedOpt = options.find(o => String(o[valueKey]) === String(value));
   const displayLabel = selectedOpt ? String(selectedOpt[labelKey]) : '';
+
+  const showSearch = options.length > searchThreshold;
 
   const filtered = query.trim()
     ? options.filter(o => String(o[labelKey]).toLowerCase().includes(query.toLowerCase()))
@@ -39,8 +44,8 @@ export default function SearchableSelect({
 
   useEffect(() => {
     if (!open) { setQuery(''); setActiveIdx(-1); }
-    else setTimeout(() => inputRef.current?.focus(), 0);
-  }, [open]);
+    else if (showSearch) setTimeout(() => inputRef.current?.focus(), 0);
+  }, [open, showSearch]);
 
   useEffect(() => {
     if (activeIdx >= 0 && listRef.current) {
@@ -84,17 +89,19 @@ export default function SearchableSelect({
 
       {open && (
         <div className="ss__dropdown">
-          <div className="ss__search-wrap">
-            <MdSearch size={15} className="ss__search-icon" />
-            <input
-              ref={inputRef}
-              className="ss__search-input"
-              value={query}
-              onChange={e => { setQuery(e.target.value); setActiveIdx(-1); }}
-              placeholder="Buscar..."
-              autoComplete="off"
-            />
-          </div>
+          {showSearch && (
+            <div className="ss__search-wrap">
+              <MdSearch size={15} className="ss__search-icon" />
+              <input
+                ref={inputRef}
+                className="ss__search-input"
+                value={query}
+                onChange={e => { setQuery(e.target.value); setActiveIdx(-1); }}
+                placeholder="Buscar..."
+                autoComplete="off"
+              />
+            </div>
+          )}
           <ul className="ss__list" ref={listRef}>
             {filtered.length === 0 ? (
               <li className="ss__empty">Sin resultados</li>

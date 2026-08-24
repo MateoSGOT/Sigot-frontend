@@ -37,6 +37,11 @@
 
 .compra-producto-row:last-child { border-bottom: none; }
 
+/* Cada campo: en escritorio es "transparente" (display:contents) y sus
+   controles caen directo en el grid; en móvil se vuelve bloque etiquetado. */
+.compra-field { display: contents; }
+.compra-field-label { display: none; }
+
 /* Tamaño reducido para controles dentro de la tabla */
 .form-control--sm {
   padding: 0.375rem 0.625rem;
@@ -123,3 +128,22 @@ select.form-control--sm {
   border-top: 1px solid var(--color-border);
 }
 .compra-detail__total-value { font-weight: var(--weight-bold); font-size: var(--text-h3); }
+
+/* === Móvil: las líneas de producto se apilan con etiqueta por campo === */
+@media (max-width: 640px) {
+  .compra-productos__header { display: none; }
+  .compra-producto-row {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+    padding: 0.875rem;
+  }
+  .compra-field { display: flex; flex-direction: column; gap: 0.3rem; }
+  .compra-field-label {
+    display: block;
+    font-size: 0.72rem; font-weight: 700;
+    color: var(--color-text-muted); letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+  .compra-subtotal { padding-top: 0; }
+  .compra-field--action { align-items: flex-start; }
+}
