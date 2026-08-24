@@ -30,6 +30,13 @@
   margin-bottom: 1.25rem;
 }
 
+/* Las tarjetas del portal quitan su margen lateral (el .page ya aporta 2rem),
+   para quedar alineadas con el header — antes quedaban 2rem más adentro. */
+.portal-layout__main .page > .card {
+  margin-left: 0;
+  margin-right: 0;
+}
+
 /* ── Portal sidebar overrides ───────────────────────────────*/
 .portal-sidebar__subtitle {
   font-size: 0.6875rem;
