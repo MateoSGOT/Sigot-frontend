@@ -203,7 +203,7 @@
   /* Header del dashboard: velo de marca + puntos discretos. */
   --bg-header:
     var(--pattern-dots-light),
-    linear-gradient(135deg, rgba(22, 163, 74, 0.10) 0%, rgba(181, 242, 61, 0.06) 100%);
+    linear-gradient(135deg, rgba(22, 163, 74, 0.10) 0%, rgba(74, 222, 128, 0.06) 100%);
 
   /* Panel decorativo del login: mismo esquema del sidebar (azul marino →
      esmeralda) con brillo esmeralda + puntos. */

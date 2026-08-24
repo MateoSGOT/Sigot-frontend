@@ -16,8 +16,10 @@
   justify-content: space-between;
   gap: 1rem;
   padding: 1.75rem 2rem 1.25rem;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.07);
-  background: var(--color-bg);
+  /* Fondo sutil de marca (verde tenue + textura) en todos los módulos */
+  background: var(--bg-header);
+  background-size: 22px 22px, cover;
+  border-bottom: 1px solid var(--color-primary-soft);
   position: sticky;
   top: 0;
   z-index: 10;
