@@ -328,7 +328,9 @@ export default function RolesPage() {
       </div>
 
       {/* ── Primary role summary cards ── */}
-      <div className="roles-primary-cards">
+      <div className="roles-summary">
+        <span className="roles-summary__label">Resumen por rol</span>
+        <div className="roles-primary-cards">
         {primaryCards.map(card => (
           <div key={card.nombre} className={`roles-primary-card roles-primary-card--${card.color}`}>
             <div className={`roles-primary-icon role-icon--${card.color}`}>
@@ -357,6 +359,7 @@ export default function RolesPage() {
             </div>
           </div>
         )}
+        </div>
       </div>
 
       {/* ── Roles table ── */}
