@@ -23,12 +23,21 @@
   padding: 1.5rem 2rem;
 }
 
+/* Header del portal: separado del contenido con espacio, y el padding
+   alineado a las tarjetas (antes el título quedaba más indentado y pegado). */
+.portal-layout__main .page__header {
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 1.25rem;
+}
+
 /* ── Portal sidebar overrides ───────────────────────────────*/
 .portal-sidebar__subtitle {
-  font-size: 0.625rem;
-  color: rgba(74, 222, 128, 0.6);
-  font-weight: 600;
-  letter-spacing: 0.04em;
+  font-size: 0.6875rem;
+  color: rgba(74, 222, 128, 0.78);
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin-top: 3px;
 }
 
 .portal-sidebar .portal-sidebar__item {
@@ -145,6 +154,10 @@
   gap: 1.25rem;
   position: relative;
   border-left: 3px solid var(--color-primary);
+}
+.portal-profile-header-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
 }
 
 .portal-profile-avatar {

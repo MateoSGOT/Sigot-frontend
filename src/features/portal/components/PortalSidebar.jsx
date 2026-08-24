@@ -41,8 +41,7 @@ export default function PortalSidebar({ activeTab, onTabChange }) {
       <aside className={`sidebar portal-sidebar${mobileOpen ? ' portal-sidebar--open' : ''}`}>
         <div className="sidebar__header">
           <div className="sidebar__logo">
-            <div className="sidebar__logo-icon">S</div>
-            <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.2 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.25 }}>
               <span className="sidebar__logo-text">SIGOT</span>
               <span className="portal-sidebar__subtitle">Portal del Cliente</span>
             </div>
