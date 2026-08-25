@@ -144,7 +144,7 @@ export default function LandingPage() {
     <div className="landing">
 
       {/* ── NAVBAR ──────────────────────────────────────────── */}
-      <nav className={`landing-nav${scrolled ? ' landing-nav--scrolled' : ''}`}>
+      <nav className={`landing-nav${scrolled || menuOpen ? ' landing-nav--scrolled' : ''}`}>
         <div className="landing-nav__inner">
           <div className="landing-nav__brand" onClick={() => scrollTo('hero')}>
             <span className="landing-nav__name">SIGOT</span>
