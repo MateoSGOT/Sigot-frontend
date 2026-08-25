@@ -185,3 +185,71 @@
   .table__td { padding: var(--space-sm) var(--space-md); height: 44px; }
   .table-pagination { padding: var(--space-sm) var(--space-md); }
 }
+
+/* ═══════════════════════════════════════════════════════════
+   Responsive (≤768px): cada fila se convierte en una TARJETA apilada,
+   y cada celda muestra la etiqueta de su columna. Mucho más legible que
+   el scroll horizontal en tablas con muchas columnas.
+   ═══════════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+  .table-wrapper {
+    overflow-x: visible;
+    border: none;
+    background: none;
+  }
+  .table { font-size: var(--text-body); }
+  .table__head { display: none; }
+  .table, .table tbody, .table tr { display: block; width: 100%; }
+
+  /* Fila de datos = tarjeta */
+  .table__row {
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    background: var(--color-surface);
+    box-shadow: var(--shadow-sm);
+    padding: 0.25rem 0.875rem;
+    margin-bottom: 0.75rem;
+    animation: none;
+  }
+  .table__row:hover { background: var(--color-surface); }
+
+  /* Celda = fila "etiqueta : valor" */
+  .table__td {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    height: auto;
+    min-height: 42px;
+    padding: 0.55rem 0;
+    border: none;
+    border-top: 1px solid var(--color-border-light);
+    text-align: right;
+    overflow-wrap: anywhere;
+  }
+  .table__row .table__td:first-child { border-top: none; }
+  .table__td::before {
+    content: attr(data-label);
+    flex-shrink: 0;
+    max-width: 42%;
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--color-text-muted);
+    text-align: left;
+  }
+  /* Columna índice "#" y celdas sin etiqueta: sin prefijo */
+  .table__td[data-label="#"] { display: none; }
+  .table__td[data-label=""]::before { content: none; }
+
+  /* Separadores y estado vacío: sin formato de tarjeta */
+  .table__row--separator {
+    border: none; background: none; box-shadow: none;
+    padding: 0; margin: 0.35rem 0;
+  }
+  .table__td--separator { display: block; text-align: center; border: none; }
+  .table__td--separator::before { content: none; }
+  .table__empty-cell { display: block; border: none; padding: 0; }
+  .table__empty-cell::before { content: none; }
+}

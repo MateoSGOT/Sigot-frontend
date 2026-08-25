@@ -24,16 +24,20 @@
 
   .layout__hamburger {
     position: fixed; top: 14px; left: 14px; z-index: 1000;
-    width: 44px; height: 44px; border-radius: 12px;
+    width: 46px; height: 46px; border-radius: 14px;
     display: flex; align-items: center; justify-content: center;
-    background: linear-gradient(180deg, #0f2611, #0a190a);
+    background: linear-gradient(135deg, #0e1a2c 0%, #0a4735 100%);
     color: #4ade80;
-    border: 1px solid rgba(74, 222, 128, 0.20);
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+    border: 1px solid rgba(74, 222, 128, 0.28);
+    box-shadow: 0 6px 18px rgba(10, 71, 53, 0.35), inset 0 1px 0 rgba(74, 222, 128, 0.12);
     cursor: pointer;
-    transition: transform var(--duration-fast) var(--ease), box-shadow var(--duration-fast) var(--ease);
+    transition: transform var(--duration-fast) var(--ease), box-shadow var(--duration-base) var(--ease), filter var(--duration-fast) var(--ease);
   }
-  .layout__hamburger:hover  { box-shadow: 0 6px 20px rgba(0, 0, 0, 0.32); }
+  .layout__hamburger:hover  {
+    transform: translateY(-1px);
+    box-shadow: 0 10px 24px rgba(10, 71, 53, 0.45), inset 0 1px 0 rgba(74, 222, 128, 0.18);
+    filter: brightness(1.08);
+  }
   .layout__hamburger:active { transform: scale(0.94); }
   .layout__hamburger:focus-visible { outline: 2px solid #4ade80; outline-offset: 2px; }
 

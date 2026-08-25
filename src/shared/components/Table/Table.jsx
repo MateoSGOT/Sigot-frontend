@@ -120,7 +120,7 @@ export default function Table({
                     className={`table__row ${row.Estado === 0 ? 'table__row--inactive' : ''}`}
                   >
                     {columns.map((col) => (
-                      <td key={col.key} className={`table__td ${col.numeric ? 'table__td--num' : ''}`}>
+                      <td key={col.key} data-label={typeof col.label === 'string' ? col.label : ''} className={`table__td ${col.numeric ? 'table__td--num' : ''}`}>
                         {col.render ? col.render(row[col.key], row, rowIndex) : (row[col.key] ?? '—')}
                       </td>
                     ))}
