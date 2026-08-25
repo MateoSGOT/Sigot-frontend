@@ -18,9 +18,9 @@
 
 /* ── Primary Role Cards ── */
 .roles-primary-cards {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
   gap: 1rem;
-  flex-wrap: wrap;
   margin-bottom: 1.5rem;
 }
 
@@ -32,9 +32,7 @@
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
-  flex: 1;
-  min-width: 150px;
-  max-width: 220px;
+  min-width: 0;
   transition: box-shadow 0.2s ease, transform 0.2s ease;
   color: var(--color-text);
 }
@@ -59,12 +57,15 @@
   flex-direction: column;
   gap: 2px;
   min-width: 0;
+  flex: 1;
 }
 
 .roles-primary-name {
   font-size: 0.9rem;
   font-weight: 700;
   color: var(--color-text);
+  overflow-wrap: anywhere;
+  line-height: 1.2;
 }
 
 .roles-primary-count {

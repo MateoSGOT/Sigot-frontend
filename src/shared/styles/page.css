@@ -184,7 +184,9 @@
 /* En tablet/móvil (<1024) la hamburguesa flota arriba-izquierda:
    dejamos espacio para que no tape el título de la página. */
 @media (max-width: 1023px) {
-  .page__header { padding-left: 72px; }
+  /* La hamburguesa flota arriba-izquierda: dejamos espacio ARRIBA (no a la
+     izquierda) para que el header quede alineado y no todo indentado. */
+  .page__header { padding: 3.75rem 1.25rem 1rem; }
 }
 
 @media (max-width: 768px) {
@@ -193,4 +195,10 @@
   /* Las cards (tablas, etc.) quitan su margen lateral extra para quedar
      alineadas con el header de la página (el .page ya aporta el margen). */
   .page > .card { margin-left: 0; margin-right: 0; }
+  /* Botones de acción del header a ancho completo (organizados) — cubre tanto
+     el wrapper .page__actions como un botón puesto directo en el header. */
+  .page__actions,
+  .page__header > .btn { width: 100%; }
+  .page__actions > .btn { flex: 1 1 auto; justify-content: center; }
+  .page__header > .btn { justify-content: center; }
 }
