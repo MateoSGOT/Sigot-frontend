@@ -190,4 +190,7 @@
 @media (max-width: 768px) {
   .page { padding: 1rem; }
   .detail-grid { grid-template-columns: 1fr; }
+  /* Las cards (tablas, etc.) quitan su margen lateral extra para quedar
+     alineadas con el header de la página (el .page ya aporta el margen). */
+  .page > .card { margin-left: 0; margin-right: 0; }
 }

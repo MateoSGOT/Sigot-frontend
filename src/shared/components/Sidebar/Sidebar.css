@@ -335,4 +335,11 @@
     transform: translateX(0);
     box-shadow: 8px 0 40px rgba(0, 0, 0, 0.45);
   }
+
+  /* Móvil: compactar el menú para que quepa sin necesidad de scroll */
+  .sidebar__nav { gap: 1px; }
+  .sidebar__section-label { padding: 0.6rem 0.5rem 0.25rem; }
+  .sidebar__item,
+  .sidebar__group-header { padding-top: 0.5rem; padding-bottom: 0.5rem; }
+  .sidebar__header { min-height: 60px; padding-top: 1rem; padding-bottom: 0.75rem; }
 }
