@@ -17,10 +17,17 @@ function LayoutInner() {
     return () => document.removeEventListener('keydown', onKey);
   }, [closeMobile]);
 
+  // Con el drawer abierto (móvil) bloqueamos el scroll del body para que la
+  // página de atrás no se mueva mientras el menú está abierto.
+  useEffect(() => {
+    document.body.style.overflow = mobileOpen ? 'hidden' : '';
+    return () => { document.body.style.overflow = ''; };
+  }, [mobileOpen]);
+
   return (
     <div className="layout">
       <button className="layout__hamburger" onClick={toggleMobile} aria-label="Abrir menú">
-        <MdMenu size={24} />
+        <MdMenu size={22} />
       </button>
       <Sidebar />
       <div
