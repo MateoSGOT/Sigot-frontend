@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -20,6 +20,13 @@ export default function PortalSidebar({ activeTab, onTabChange }) {
   const navigate    = useNavigate();
   const { cliente } = useSelector(s => s.auth);
   const [mobileOpen, setMobileOpen] = useState(false);
+
+  // Con el drawer abierto (móvil) bloqueamos el scroll del body para que la
+  // página de atrás no se mueva mientras el menú está abierto.
+  useEffect(() => {
+    document.body.style.overflow = mobileOpen ? 'hidden' : '';
+    return () => { document.body.style.overflow = ''; };
+  }, [mobileOpen]);
 
   const handleLogout = () => { dispatch(logout()); window.location.replace('/'); };
 
