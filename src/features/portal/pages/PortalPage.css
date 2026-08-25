@@ -370,6 +370,8 @@
   }
 
   .portal-hamburger { display: flex; }
+  /* Al abrir el sidebar, la hamburguesa se oculta para no tapar "SIGOT" */
+  .portal-hamburger--hidden { display: none; }
 
   .portal-sidebar {
     transform: translateX(-100%);

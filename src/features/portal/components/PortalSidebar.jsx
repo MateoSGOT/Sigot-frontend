@@ -30,7 +30,7 @@ export default function PortalSidebar({ activeTab, onTabChange }) {
 
   return (
     <>
-      <button className="portal-hamburger" onClick={() => setMobileOpen(true)} aria-label="Abrir menú">
+      <button className={`portal-hamburger${mobileOpen ? ' portal-hamburger--hidden' : ''}`} onClick={() => setMobileOpen(true)} aria-label="Abrir menú">
         <MdMenu size={22} />
       </button>
 

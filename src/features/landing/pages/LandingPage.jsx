@@ -154,6 +154,9 @@ export default function LandingPage() {
             {[['servicios','Servicios'],['nosotros','Nosotros'],['equipo','Equipo'],['ubicacion','Ubicación'],['contacto','Contacto']].map(([id,label]) => (
               <button key={id} className="landing-nav__link" onClick={() => scrollTo(id)}>{label}</button>
             ))}
+            <button className="landing-nav__link landing-nav__link--login" onClick={() => { setMenuOpen(false); navigate('/login'); }}>
+              Ingresar al sistema
+            </button>
           </div>
 
           <div className="landing-nav__cta">
