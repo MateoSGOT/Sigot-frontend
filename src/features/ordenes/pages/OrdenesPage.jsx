@@ -6,8 +6,9 @@ import { usePermiso } from '../../../shared/hooks/usePermiso.js';
 import {
   fetchOrdenes, fetchOrdenById, updateOrden, toggleOrdenEstado,
   addServicioToOrden, addRepuestoToOrden, setManoDeObra, clearSelected,
-  deleteServicioFromOrden, deleteRepuestoFromOrden
+  deleteServicioFromOrden, deleteRepuestoFromOrden, reasignarEmpleadoOrden
 } from '../slices/ordenesSlice.js';
+import { ordenesService } from '../services/ordenesService.js';
 import Modal from '../../../shared/components/Modal/Modal.jsx';
 import Table from '../../../shared/components/Table/Table.jsx';
 import SearchBar from '../../../shared/components/SearchBar/SearchBar.jsx';
@@ -139,6 +140,11 @@ export default function OrdenesPage() {
   const [editingMano, setEditingMano]     = useState(false);
   const [servPage, setServPage]           = useState(0);
   const [repPage, setRepPage]             = useState(0);
+  const [editingEmpleado, setEditingEmpleado] = useState(false);
+  const [empleadosLibres, setEmpleadosLibres] = useState([]);
+  const [loadingLibres, setLoadingLibres]     = useState(false);
+  const [empleadoSel, setEmpleadoSel]         = useState('');
+  const [empleadoError, setEmpleadoError]     = useState('');
 
   useEffect(() => {
     dispatch(fetchOrdenes());
@@ -155,6 +161,9 @@ export default function OrdenesPage() {
       setServPage(0);
       setRepPage(0);
       setFlujoError('');
+      setEditingEmpleado(false);
+      setEmpleadoSel('');
+      setEmpleadoError('');
     } else {
       dispatch(clearSelected());
     }
@@ -275,6 +284,36 @@ export default function OrdenesPage() {
     dispatch(fetchOrdenById(detailId));
   };
 
+  // Abre el selector de "reasignar empleado": carga en fresco los empleados sin ninguna
+  // orden activa (puede haber cambiado desde la última carga de la página).
+  const openEditarEmpleado = async () => {
+    setEmpleadoError('');
+    setEmpleadoSel('');
+    setEditingEmpleado(true);
+    setLoadingLibres(true);
+    try {
+      const r = await ordenesService.getEmpleadosLibres();
+      setEmpleadosLibres(r?.data || r || []);
+    } catch {
+      setEmpleadoError('No se pudo cargar la lista de empleados libres.');
+    } finally {
+      setLoadingLibres(false);
+    }
+  };
+
+  const handleReasignarEmpleado = async () => {
+    if (!empleadoSel) { setEmpleadoError('Selecciona un empleado.'); return; }
+    setEmpleadoError('');
+    const result = await dispatch(reasignarEmpleadoOrden({ id: detailId, id_empleado: Number(empleadoSel) }));
+    if (!result.error) {
+      setEditingEmpleado(false);
+      setEmpleadoSel('');
+      dispatch(fetchOrdenes());
+    } else {
+      setEmpleadoError(result.payload || 'No se pudo reasignar el empleado.');
+    }
+  };
+
   const columns = [
     { key: '#', label: '#', width: '50px', render: (_, __, i) => i + 1 },
     { key: 'Vehiculo', label: 'Vehículo', render: (v, row) => <span className="font-medium">{v || row.vehiculo || row.Placa || '—'}</span> },
@@ -376,7 +415,39 @@ export default function OrdenesPage() {
                   <div className="detail-item"><span className="detail-label">Cliente</span><span className="detail-value">{selected.Cliente || '—'}</span></div>
                   <div className="detail-item"><span className="detail-label">Documento del cliente</span><span className="detail-value">{selected.ClienteDoc || '—'}</span></div>
                   <div className="detail-item"><span className="detail-label">Correo del cliente</span><span className="detail-value">{selected.ClienteCorreo || '—'}</span></div>
-                  <div className="detail-item"><span className="detail-label">Empleado asignado</span><span className="detail-value">{selected.Empleado || '—'}</span></div>
+                  <div className="detail-item">
+                    <span className="detail-label">Empleado asignado</span>
+                    {editingEmpleado ? (
+                      <div className="empleado-edit-row">
+                        {loadingLibres ? (
+                          <p className="u-hint">Buscando empleados libres…</p>
+                        ) : (
+                          <SearchableSelect
+                            options={empleadosLibres.map(e => ({ value: String(e.id_empleado), label: `${e.Nombre} — ${e.Documento}` }))}
+                            value={empleadoSel}
+                            onChange={setEmpleadoSel}
+                            placeholder={empleadosLibres.length ? 'Empleado libre...' : 'No hay empleados libres ahora mismo'}
+                          />
+                        )}
+                        {empleadoError && <p className="form-error">{empleadoError}</p>}
+                        <div className="empleado-edit-actions">
+                          <button className="btn btn--outline btn--sm" onClick={() => { setEditingEmpleado(false); setEmpleadoError(''); }} disabled={actionLoading}>Cancelar</button>
+                          <button className="btn btn--primary btn--sm" onClick={handleReasignarEmpleado} disabled={actionLoading || loadingLibres || !empleadoSel}>
+                            {actionLoading ? 'Guardando...' : 'Guardar'}
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <span className="detail-value empleado-value-row">
+                        {selected.Empleado || '—'}
+                        {!contenidoBloqueado && puedeEditar && (
+                          <button className="btn btn--ghost btn--icon btn--sm" title="Cambiar empleado asignado" onClick={openEditarEmpleado}>
+                            <MdEdit size={15} />
+                          </button>
+                        )}
+                      </span>
+                    )}
+                  </div>
                   <div className="detail-item"><span className="detail-label">Vehículo</span><span className="detail-value">{selected.Vehiculo || selected.Placa || '—'}{selected.Marca ? ` · ${selected.Marca}${selected.Modelo ? ` ${selected.Modelo}` : ''}` : ''}</span></div>
                   <div className="detail-item"><span className="detail-label">Fecha de ingreso</span><span className="detail-value">{formatDate(selected.FechaIngreso)}</span></div>
                   <div className="detail-item"><span className="detail-label">Fecha de entrega</span><span className="detail-value">{formatDate(selected.FechaEntrega)}</span></div>

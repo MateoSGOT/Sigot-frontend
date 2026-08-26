@@ -37,6 +37,10 @@ export const deleteRepuestoFromOrden = createAsyncThunk('ordenes/deleteRepuesto'
   try { await ordenesService.deleteRepuesto(id, repuestoId); return { id, repuestoId }; }
   catch (e) { return rejectWithValue(e?.response?.data?.message || 'Error'); }
 });
+export const reasignarEmpleadoOrden = createAsyncThunk('ordenes/reasignarEmpleado', async ({ id, id_empleado }, { rejectWithValue }) => {
+  try { const r = await ordenesService.reasignarEmpleado(id, id_empleado); return r.data || r; }
+  catch (e) { return rejectWithValue(e?.response?.data?.message || 'Error'); }
+});
 
 const ordenesSlice = createSlice({
   name: 'ordenes',
@@ -65,7 +69,10 @@ const ordenesSlice = createSlice({
      .addCase(deleteServicioFromOrden.rejected, (s,a) => { s.actionLoading=false; s.error=a.payload; })
      .addCase(deleteRepuestoFromOrden.pending, s => { s.actionLoading=true; })
      .addCase(deleteRepuestoFromOrden.fulfilled, s => { s.actionLoading=false; })
-     .addCase(deleteRepuestoFromOrden.rejected, (s,a) => { s.actionLoading=false; s.error=a.payload; });
+     .addCase(deleteRepuestoFromOrden.rejected, (s,a) => { s.actionLoading=false; s.error=a.payload; })
+     .addCase(reasignarEmpleadoOrden.pending, s => { s.actionLoading=true; })
+     .addCase(reasignarEmpleadoOrden.fulfilled, (s,a) => { s.actionLoading=false; if(a.payload) s.selected=a.payload; })
+     .addCase(reasignarEmpleadoOrden.rejected, (s,a) => { s.actionLoading=false; s.error=a.payload; });
   },
 });
 export const { clearError, clearSelected } = ordenesSlice.actions;

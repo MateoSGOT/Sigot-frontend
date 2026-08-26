@@ -10,4 +10,8 @@ export const ordenesService = {
   setManoDeObra:  (id, valor)    => api.patch(`${BASE}/${id}/mano-de-obra`, { mano_de_obra: valor }).then(r => r.data),
   deleteServicio: (id, sId)      => api.delete(`${BASE}/${id}/servicios/${sId}`).then(r => r.data),
   deleteRepuesto: (id, rId)      => api.delete(`${BASE}/${id}/repuestos/${rId}`).then(r => r.data),
+  // Reasignar el técnico de la orden (actualiza la Agenda de origen).
+  reasignarEmpleado: (id, id_empleado) => api.patch(`${BASE}/${id}/empleado`, { id_empleado }).then(r => r.data),
+  // Empleados activos sin ninguna orden activa asignada (candidatos para reasignar).
+  getEmpleadosLibres: () => api.get('/api/empleados/libres').then(r => r.data),
 };

@@ -393,6 +393,11 @@
   align-items: center;
 }
 
+/* Empleado asignado — lápiz para reasignar (dentro de "Información general") */
+.empleado-value-row { display: flex; align-items: center; gap: 0.375rem; }
+.empleado-edit-row { display: flex; flex-direction: column; gap: 0.5rem; margin-top: 0.25rem; }
+.empleado-edit-actions { display: flex; gap: 0.5rem; justify-content: flex-end; }
+
 .mano-de-obra-form .form-control {
   flex: 1;
   max-width: 200px;
