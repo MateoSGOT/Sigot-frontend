@@ -1,13 +1,15 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { MdAdd, MdVisibility, MdEdit, MdVisibilityOff, MdDeleteForever } from 'react-icons/md';
+import { MdAdd, MdVisibility, MdEdit, MdVisibilityOff, MdDeleteForever, MdSwapHoriz } from 'react-icons/md';
 import { usePermiso } from '../../../shared/hooks/usePermiso.js';
 import { useFormValidation } from '../../../shared/hooks/useFormValidation.js';
 import { useBorradoReal } from '../../../shared/hooks/useBorradoReal.js';
+import { useToast } from '../../../shared/components/Toast/ToastContext.jsx';
 import { clientesService } from '../services/clientesService.js';
 import ImageUploader from '../../../shared/components/ImageUploader/ImageUploader.jsx';
 import ToggleSwitch from '../../../shared/components/ToggleSwitch/ToggleSwitch.jsx';
 import EliminarRealModal from '../../../shared/components/EliminarRealModal/EliminarRealModal.jsx';
+import ConvertirAEmpleadoModal from '../components/ConvertirAEmpleadoModal.jsx';
 import { fetchClientes, createCliente, updateCliente, toggleClienteEstado } from '../slices/clientesSlice.js';
 import Modal from '../../../shared/components/Modal/Modal.jsx';
 import Table from '../../../shared/components/Table/Table.jsx';
@@ -33,7 +35,10 @@ export default function ClientesPage() {
     entidadLabel: 'cliente',
     onDeleted: () => dispatch(fetchClientes()),
   });
+  const { addToast } = useToast();
+  const [showConvertir, setShowConvertir] = useState(false);
   const [tiposDoc, setTiposDoc] = useState([]);
+  const [roles, setRoles] = useState([]);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('todos');
   const [pageSize, setPageSize] = useState(5);
@@ -49,6 +54,7 @@ export default function ClientesPage() {
   useEffect(() => {
     dispatch(fetchClientes());
     api.get('/api/catalogos/tipos-documento').then(r => setTiposDoc(r.data?.data || r.data || [])).catch(() => {});
+    api.get('/api/roles').then(r => setRoles(r.data?.data || r.data || [])).catch(() => {});
   }, [dispatch]);
 
   const filtered = (() => {
@@ -341,8 +347,34 @@ export default function ClientesPage() {
               </div>
             </>
           )}
+
+          {editingId && esSuperadmin && (
+            <div className="form-group span-2 convertir-box">
+              <div className="convertir-box__head"><MdSwapHoriz size={17} /> Convertir en empleado</div>
+              <p className="convertir-box__intro">
+                Da de baja a este cliente y crea una cuenta de empleado con sus mismos datos.
+                Requiere confirmación por texto y no se puede deshacer.
+              </p>
+              <button type="button" className="btn btn--outline" onClick={() => setShowConvertir(true)}>
+                <MdSwapHoriz size={16} /> Convertir a empleado…
+              </button>
+            </div>
+          )}
         </form>
       </Modal>
+
+      <ConvertirAEmpleadoModal
+        isOpen={showConvertir}
+        onClose={() => setShowConvertir(false)}
+        cliente={editingId ? items.find(i => i.Id_Cliente === editingId) : null}
+        roles={roles}
+        onSuccess={() => {
+          setShowConvertir(false);
+          setShowForm(false);
+          addToast({ type: 'success', message: 'Cliente convertido en empleado correctamente.' });
+          dispatch(fetchClientes());
+        }}
+      />
 
       <EliminarRealModal
         isOpen={del.isOpen}

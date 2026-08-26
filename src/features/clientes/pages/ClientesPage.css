@@ -29,6 +29,26 @@
 .file-upload-label { font-size: 0.875rem; font-weight: 500; color: var(--color-text-muted); }
 .file-upload-hint { font-size: 0.7rem; color: rgba(255,255,255,0.28); }
 
+/* Convertir a empleado (dentro del form de edición, solo superadmin) */
+.convertir-box {
+  margin-top: var(--space-sm);
+  padding-top: var(--space-md);
+  border-top: 1px dashed var(--color-border, #e5e7eb);
+}
+.convertir-box__head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  font-weight: var(--weight-semibold, 600);
+  color: var(--color-text);
+  margin-bottom: var(--space-xs);
+}
+.convertir-box__intro {
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+  margin: 0 0 var(--space-sm);
+}
+
 /* Client search dropdown */
 .client-search-wrap { position: relative; }
 .client-dropdown { position: absolute; top: calc(100% + 4px); left: 0; right: 0; background: var(--color-surface, #1a2e1a); border: 1px solid rgba(181,242,61,0.18); border-radius: 10px; box-shadow: 0 8px 24px rgba(0,0,0,0.3); z-index: 50; max-height: 220px; overflow-y: auto; }
