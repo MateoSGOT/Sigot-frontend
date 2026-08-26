@@ -33,9 +33,9 @@ const categoriasSlice = createSlice({
      .addCase(createCategoria.fulfilled, (s,a) => { s.actionLoading=false; if(a.payload) s.items.push(norm(a.payload)); })
      .addCase(createCategoria.rejected, (s,a) => { s.actionLoading=false; s.error=a.payload; })
      .addCase(updateCategoria.pending, s => { s.actionLoading=true; })
-     .addCase(updateCategoria.fulfilled, (s,a) => { s.actionLoading=false; const n=norm(a.payload||{}); const idx=s.items.findIndex(i=>i.Id_Categoria===n.Id_Categoria); if(idx>=0) s.items[idx]=n; })
+     .addCase(updateCategoria.fulfilled, (s,a) => { s.actionLoading=false; const n=norm(a.payload||{}); const idx=s.items.findIndex(i=>i.Id_categoria===n.Id_categoria); if(idx>=0) s.items[idx]=n; })
      .addCase(updateCategoria.rejected, (s,a) => { s.actionLoading=false; s.error=a.payload; })
-     .addCase(toggleCategoriaEstado.fulfilled, (s,a) => { const item=s.items.find(i=>i.Id_Categoria===a.payload.id); if(item) item.Estado=normEstado(a.payload.Estado); });
+     .addCase(toggleCategoriaEstado.fulfilled, (s,a) => { const item=s.items.find(i=>i.Id_categoria===a.payload.id); if(item) item.Estado=normEstado(a.payload.Estado); });
   },
 });
 export const { clearError } = categoriasSlice.actions;

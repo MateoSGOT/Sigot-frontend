@@ -47,11 +47,11 @@ export default function CategoriasPage() {
     if (statusFilter === 'activos') list = list.filter(i => i.Estado !== 0);
     else if (statusFilter === 'inactivos') list = list.filter(i => i.Estado === 0);
     list = filterItems(list, search, ['Nombre']);
-    return sortByStatus(sortNewestFirst(list, 'Id_Categoria'));
+    return sortByStatus(sortNewestFirst(list, 'Id_categoria'));
   })();
 
   const openCreate = () => { setFormData(EMPTY); setEditingId(null); setFormError(''); reset(); setShowForm(true); };
-  const openEdit = (item) => { setFormData({ Nombre: item.Nombre || '' }); setEditingId(item.Id_Categoria); setFormError(''); reset(); setShowForm(true); };
+  const openEdit = (item) => { setFormData({ Nombre: item.Nombre || '' }); setEditingId(item.Id_categoria); setFormError(''); reset(); setShowForm(true); };
   const handleChange = e => {
     const next = { ...formData, [e.target.name]: e.target.value };
     setFormData(next);
@@ -79,9 +79,9 @@ export default function CategoriasPage() {
       key: 'acciones', label: 'Acciones', render: (_, row) => (
         <div className="table-actions">
           <button className="btn btn--ghost btn--icon btn--sm" disabled={!puedeEditar} onClick={() => openEdit(row)}><MdEdit size={17} /></button>
-          <ToggleSwitch checked={row.Estado === 1} onChange={() => dispatch(toggleCategoriaEstado({ id: row.Id_Categoria, Estado: row.Estado === 1 ? 0 : 1 }))} disabled={!puedeToggle} />
+          <ToggleSwitch checked={row.Estado === 1} onChange={() => dispatch(toggleCategoriaEstado({ id: row.Id_categoria, Estado: row.Estado === 1 ? 0 : 1 }))} disabled={!puedeToggle} />
           {esSuperadmin && (
-            <button className="btn btn--ghost btn--icon btn--sm btn--danger-ghost" title="Eliminar definitivamente" onClick={() => del.open(row.Id_Categoria)}><MdDeleteForever size={17} /></button>
+            <button className="btn btn--ghost btn--icon btn--sm btn--danger-ghost" title="Eliminar definitivamente" onClick={() => del.open(row.Id_categoria)}><MdDeleteForever size={17} /></button>
           )}
         </div>
       )
@@ -110,7 +110,7 @@ export default function CategoriasPage() {
             }
           />
         </div>
-        <Table columns={columns} rowKey="Id_Categoria" data={filtered} loading={loading} pageSize={pageSize} emptyMessage="No se encontraron categorías" />
+        <Table columns={columns} rowKey="Id_categoria" data={filtered} loading={loading} pageSize={pageSize} emptyMessage="No se encontraron categorías" />
       </div>
 
       <Modal isOpen={showForm} onClose={() => setShowForm(false)} title={editingId ? 'Editar categoría' : 'Nueva categoría'} size="sm"
