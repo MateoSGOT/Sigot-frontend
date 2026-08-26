@@ -23,6 +23,26 @@
   display: flex; align-items: center; justify-content: center;
   font-size: var(--text-caption); font-weight: var(--weight-bold);
 }
+/* Convertir a cliente (dentro del form de edición, solo superadmin) */
+.convertir-box {
+  margin-top: var(--space-sm);
+  padding-top: var(--space-md);
+  border-top: 1px dashed var(--color-border, #e5e7eb);
+}
+.convertir-box__head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  font-weight: var(--weight-semibold, 600);
+  color: var(--color-text);
+  margin-bottom: var(--space-xs);
+}
+.convertir-box__intro {
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+  margin: 0 0 var(--space-sm);
+}
+
 /* Banner de novedades activas */
 .emp-novedad-banner {
   margin: var(--space-md) var(--space-2xl) 0;

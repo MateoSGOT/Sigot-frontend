@@ -13,4 +13,6 @@ export const empleadosService = {
   // Reasignar agendas/órdenes a otro empleado y luego eliminar.
   reasignarYEliminar: (id, Id_EmpleadoDestino, confirmacion) =>
     api.post(`${BASE}/${id}/reasignar-y-eliminar`, { Id_EmpleadoDestino, confirmacion }).then(r => r.data),
+  // Conversión Empleado→Cliente (super admin): bloquea si tiene Órdenes/Novedades.
+  convertirACliente: (id, data) => api.post(`${BASE}/${id}/convertir-a-cliente`, data).then(r => r.data),
 };

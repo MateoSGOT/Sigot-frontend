@@ -7,6 +7,7 @@ import { useBorradoReal } from '../../../shared/hooks/useBorradoReal.js';
 import { empleadosService } from '../services/empleadosService.js';
 import ToggleSwitch from '../../../shared/components/ToggleSwitch/ToggleSwitch.jsx';
 import EliminarRealModal from '../../../shared/components/EliminarRealModal/EliminarRealModal.jsx';
+import ConvertirAClienteModal from '../components/ConvertirAClienteModal.jsx';
 import { fetchEmpleados, createEmpleado, updateEmpleado, toggleEmpleadoEstado, deleteEmpleado } from '../slices/empleadosSlice.js';
 import Modal from '../../../shared/components/Modal/Modal.jsx';
 import ConfirmDialog from '../../../shared/components/ConfirmDialog/ConfirmDialog.jsx';
@@ -77,6 +78,7 @@ export default function EmpleadosPage() {
   const [fotoPreview, setFotoPreview] = useState(null);
   const [photoFile, setPhotoFile] = useState(null);
   const [savedOk, setSavedOk] = useState(false);
+  const [showConvertir, setShowConvertir] = useState(false);
 
   const rules = useMemo(() => {
     const r = {
@@ -433,8 +435,34 @@ export default function EmpleadosPage() {
             {fieldError('Id_Rol') && <p className="form-error">{fieldError('Id_Rol')}</p>}
           </div>
 
+          {editingId && esSuperadmin && !esAdminSistema(items.find(e => e.Id_Empleado === editingId)) && (
+            <div className="form-group span-2 convertir-box">
+              <div className="convertir-box__head"><MdSwapHoriz size={17} /> Convertir en cliente</div>
+              <p className="convertir-box__intro">
+                Da de baja a este empleado y crea una cuenta de cliente con sus mismos datos.
+                Se bloquea si tiene órdenes de trabajo o novedades asignadas. Requiere
+                confirmación por texto y no se puede deshacer.
+              </p>
+              <button type="button" className="btn btn--outline" onClick={() => setShowConvertir(true)}>
+                <MdSwapHoriz size={16} /> Convertir a cliente…
+              </button>
+            </div>
+          )}
+
         </form>
       </Modal>
+
+      <ConvertirAClienteModal
+        isOpen={showConvertir}
+        onClose={() => setShowConvertir(false)}
+        empleado={editingId ? items.find(e => e.Id_Empleado === editingId) : null}
+        onSuccess={() => {
+          setShowConvertir(false);
+          setShowForm(false);
+          addToast({ type: 'success', message: 'Empleado convertido en cliente correctamente.' });
+          dispatch(fetchEmpleados());
+        }}
+      />
 
       <ConfirmDialog
         isOpen={!!deleteId}
