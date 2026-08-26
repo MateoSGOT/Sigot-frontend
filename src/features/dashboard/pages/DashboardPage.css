@@ -156,10 +156,15 @@
 }
 
 @media (max-width: 768px) {
-  .stats-grid { grid-template-columns: 1fr; padding: 1rem; }
-  .dashboard-charts { grid-template-columns: 1fr; padding: 0 1rem 1rem; }
+  /* Contenido alineado (parejo) con el inset del header (1.25rem en móvil):
+     título, chips y tarjetas comparten el mismo borde izquierdo/derecho. */
+  .stats-grid { grid-template-columns: 1fr; padding: 1rem 1.25rem 0; }
+  .dashboard-charts { grid-template-columns: 1fr; padding: 0 1.25rem 1rem; }
   .dashboard-chart-card--wide { grid-column: span 1; }
-  .dashboard-rango { padding: 1rem 1rem 0.25rem; }
+  /* Mayor especificidad para ganarle a la regla base .dashboard-rango que
+     aparece después en el archivo (si no, el padding de 2rem se impondría). */
+  .dashboard-page .dashboard-rango { padding: 1rem 1.25rem 0.25rem; }
+  .dashboard-stock-alerta { margin: 0 1.25rem 1.5rem; }
 }
 
 /* Selector de rango (Tanda B) */

@@ -7,7 +7,11 @@
 .login-page {
   display: grid;
   grid-template-columns: 1.05fr 1fr;
+  /* 100dvh = alto del viewport VISIBLE (respeta la barra del navegador en
+     móvil). Con 100vh la página era más alta que la pantalla y se podía
+     scrollear. Fallback a 100vh donde no haya dvh. */
   min-height: 100vh;
+  min-height: 100dvh;
   background: var(--color-bg);
 }
 
@@ -350,12 +354,26 @@
 
 /* ── Responsive: en angosto, el panel decorativo pasa a franja superior ── */
 @media (max-width: 900px) {
-  .login-page { grid-template-columns: 1fr; }
-  .login-left { padding: var(--space-xl); min-height: auto; }
+  /* Móvil SIN scroll: alto fijo al viewport visible y overflow oculto.
+     El contenido se compacta para caber; el panel del formulario (fila 1fr)
+     centra el form y su fondo blanco llena hasta abajo. */
+  .login-page {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr;
+    height: 100dvh;
+    overflow: hidden;
+  }
+  .login-left { padding: var(--space-lg) var(--space-xl); min-height: auto; }
+  .login-left__wordmark { margin-bottom: var(--space-sm); }
   .login-left__title { font-size: var(--text-h1); }
   .login-left__cards { display: none; }
   .login-left__footer { display: none; }
   .login-left__subtitle { margin-bottom: 0; }
-  .login-right { padding: var(--space-2xl) var(--space-lg); }
-  .login-form-footer { margin-top: var(--space-xl); }
+  .login-right { padding: var(--space-xl) var(--space-lg); min-height: 0; }
+  .login-form { gap: var(--space-md); }
+  .login-form-header { margin-bottom: var(--space-md); }
+  .login-form-links { margin-top: var(--space-md); }
+  /* Pie con márgenes compactos: se conserva la nota y, gracias al overflow
+     oculto, en pantallas muy bajas solo se recorta (nunca genera scroll). */
+  .login-form-footer { margin-top: var(--space-md); padding-top: var(--space-sm); }
 }
