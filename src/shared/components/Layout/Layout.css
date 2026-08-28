@@ -13,6 +13,15 @@
   overflow-x: hidden;
   min-height: 100vh;
   color: var(--color-text);
+  /* Sin transición: el margen sigue al ancho del sidebar al instante. Con el
+     "all" por defecto, transicionar margin-left entre valores var() lo deja
+     "pegado" en el valor anterior en algunos motores. */
+  transition: none;
+}
+
+/* Sidebar colapsado (solo escritorio): el contenido usa el ancho reducido */
+@media (min-width: 1024px) {
+  .layout--collapsed .layout__main { margin-left: var(--sidebar-collapsed-width, 76px); }
 }
 
 /* Hamburguesa + overlay: solo en tablet/móvil (<1024) */

@@ -6,7 +6,7 @@ import { SidebarProvider, useSidebar } from '../../contexts/SidebarContext.jsx';
 import './Layout.css';
 
 function LayoutInner() {
-  const { mobileOpen, toggleMobile, closeMobile } = useSidebar();
+  const { mobileOpen, toggleMobile, closeMobile, collapsed } = useSidebar();
   const location = useLocation();
 
   // Cerrar el drawer al cambiar de ruta y con la tecla Escape.
@@ -25,7 +25,7 @@ function LayoutInner() {
   }, [mobileOpen]);
 
   return (
-    <div className="layout">
+    <div className={`layout${collapsed ? ' layout--collapsed' : ''}`}>
       <button className="layout__hamburger" onClick={toggleMobile} aria-label="Abrir menú">
         <MdMenu size={22} />
       </button>

@@ -7,6 +7,7 @@ import {
   MdNewReleases, MdSecurity, MdCategory, MdLocalShipping,
   MdLogout, MdPerson, MdBrandingWatermark,
   MdPeopleAlt, MdStorage, MdChevronRight, MdAdminPanelSettings,
+  MdMenuOpen,
 } from 'react-icons/md';
 import { logout } from '../../../features/auth/slices/authSlice';
 import StockAlertBell from '../StockAlertBell/StockAlertBell.jsx';
@@ -82,7 +83,7 @@ export default function Sidebar() {
   const navigate  = useNavigate();
   const location  = useLocation();
   const { empleado, cliente, permisos } = useSelector((state) => state.auth);
-  const { mobileOpen } = useSidebar();
+  const { mobileOpen, collapsed, toggleCollapsed, setCollapsed } = useSidebar();
   const [profileOpen, setProfileOpen] = useState(false);
   const profileRef = React.useRef(null);
   const esSuperAdmin = !!(empleado?.EsSuperAdmin || cliente?.EsSuperAdmin);
@@ -116,7 +117,12 @@ export default function Sidebar() {
     return groups;
   });
 
-  const toggleGroup = (name) => setOpenGroups(p => ({ ...p, [name]: !p[name] }));
+  const toggleGroup = (name) => {
+    // Colapsado: al tocar un grupo, expandimos el sidebar y abrimos ese grupo
+    // (si no, no habría dónde mostrar los hijos).
+    if (collapsed) { setCollapsed(false); setOpenGroups(p => ({ ...p, [name]: true })); return; }
+    setOpenGroups(p => ({ ...p, [name]: !p[name] }));
+  };
 
   const handleLogout = () => {
     // Limpia sesión y hace una navegación DURA a la landing pública. Un
@@ -128,15 +134,26 @@ export default function Sidebar() {
   };
 
   return (
-    <aside className={`sidebar${mobileOpen ? ' sidebar--open' : ''}`}>
+    <aside className={`sidebar${mobileOpen ? ' sidebar--open' : ''}${collapsed ? ' sidebar--collapsed' : ''}`}>
       {/* Logo */}
       <div className="sidebar__header">
         <div className="sidebar__logo">
           <span className="sidebar__logo-text">SIGOT</span>
         </div>
-        <div className="sidebar__header-bells">
-          <StockAlertBell />
-          {esAdminOSuperAdmin && <NovedadAlertBell />}
+        <div className="sidebar__header-actions">
+          <div className="sidebar__header-bells">
+            <StockAlertBell />
+            {esAdminOSuperAdmin && <NovedadAlertBell />}
+          </div>
+          {/* Botón de colapso — solo escritorio (en móvil el sidebar es drawer) */}
+          <button
+            className="sidebar__collapse-btn"
+            onClick={toggleCollapsed}
+            title={collapsed ? 'Expandir menú' : 'Colapsar menú'}
+            aria-label={collapsed ? 'Expandir menú' : 'Colapsar menú'}
+          >
+            <MdMenuOpen size={20} />
+          </button>
         </div>
       </div>
 
@@ -154,6 +171,7 @@ export default function Sidebar() {
               <NavLink
                 key={item.to}
                 to={item.to}
+                title={item.label}
                 className={({ isActive }) => `sidebar__item${isActive ? ' sidebar__item--active' : ''}`}
               >
                 <item.icon size={20} className="sidebar__item-icon" />
@@ -171,6 +189,7 @@ export default function Sidebar() {
                 <button
                   className={`sidebar__group-header${isGroupActive ? ' sidebar__group-header--active' : ''}`}
                   onClick={() => toggleGroup(item.name)}
+                  title={item.name}
                 >
                   <item.icon size={20} className="sidebar__item-icon" />
                   <span className="sidebar__item-label">{item.name}</span>

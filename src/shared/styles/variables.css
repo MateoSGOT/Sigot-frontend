@@ -1,4 +1,8 @@
 :root {
+  /* Layout — ancho del sidebar (normal y colapsado a solo iconos) */
+  --sidebar-width: 240px;
+  --sidebar-collapsed-width: 76px;
+
   /* ============================================================
      ROLES DE COLOR — cada color con su foreground OBLIGATORIO.
      Regla dura: nunca uses un color de fondo sin su `-on` encima.

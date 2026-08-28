@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { MdAdd, MdVisibility, MdCheck, MdCameraAlt, MdDirectionsCar, MdEventBusy } from 'react-icons/md';
+import { MdAdd, MdVisibility, MdCheck, MdCameraAlt, MdDirectionsCar, MdEventBusy, MdEdit } from 'react-icons/md';
 import { logout, updateCliente } from '../../auth/slices/authSlice.js';
 import PortalSidebar from '../components/PortalSidebar.jsx';
 import Modal from '../../../shared/components/Modal/Modal.jsx';
@@ -77,6 +77,7 @@ export default function PortalPage() {
   const [citaEstado,    setCitaEstado]    = useState('todos');
   const [citaPageSize,  setCitaPageSize]  = useState(5);
   const [showCitaModal, setShowCitaModal] = useState(false);
+  const [editingCitaId, setEditingCitaId] = useState(null);
   const [citaForm,      setCitaForm]      = useState({ Id_Vehiculo: '', Fecha: '', Hora: '', Descripcion: '', Id_Empleado: '' });
   const [citaError,     setCitaError]     = useState('');
   const [citaLoading,   setCitaLoading]   = useState(false);
@@ -113,8 +114,25 @@ export default function PortalPage() {
     EmpleadoNombre: c.empleado?.Nombre || 'Sin asignar',
   }));
 
+  // Regla de negocio: el cliente solo puede cancelar (o editar) con MÁS de 24 h
+  // de anticipación respecto a la fecha/hora de la cita.
+  const HORAS_MIN_ANTICIPACION = 24;
+  const horasHastaCita = (cita) => {
+    const fecha = (cita?.FechaAgendamiento || '').split('T')[0];
+    if (!fecha) return Infinity;               // sin fecha: no bloqueamos
+    const dt = new Date(`${fecha}T${cita.Hora || '00:00'}:00`);
+    if (Number.isNaN(dt.getTime())) return Infinity;
+    return (dt.getTime() - Date.now()) / 3_600_000;
+  };
+  const puedeGestionarCita = (cita) => horasHastaCita(cita) >= HORAS_MIN_ANTICIPACION;
+
   const doCancelarCita = async () => {
     if (!confirmCancelarCita) return;
+    if (!puedeGestionarCita(confirmCancelarCita)) {
+      addToast({ type: 'error', message: 'Solo puedes cancelar con más de 24 horas de anticipación. Comunícate con el taller.' });
+      setConfirmCancelarCita(null);
+      return;
+    }
     setCancelando(true);
     try {
       const h = { Authorization: `Bearer ${token}` };
@@ -186,23 +204,54 @@ export default function PortalPage() {
     finally { setLoadingEmpl(false); }
   };
 
-  const handleCrearCita = async e => {
+  const openCrearCita = () => {
+    setEditingCitaId(null);
+    setCitaForm({ Id_Vehiculo: '', Fecha: '', Hora: '', Descripcion: '', Id_Empleado: '' });
+    setCitaError(''); setEmpleadosDisp([]); setShowCitaModal(true);
+  };
+
+  const openEditarCita = (cita) => {
+    setEditingCitaId(cita.Id_Agenda ?? cita.id);
+    const fecha = (cita.FechaAgendamiento || '').split('T')[0];
+    setCitaForm({
+      Id_Vehiculo: String(cita.Id_Vehiculo ?? ''),
+      Fecha: fecha,
+      Hora: cita.Hora || '',
+      Descripcion: cita.Descripcion || '',
+      Id_Empleado: String(cita.Id_Empleado ?? cita.id_empleado ?? ''),
+    });
+    setCitaError('');
+    if (fecha) fetchEmpleadosDisp(fecha);
+    setShowCitaModal(true);
+  };
+
+  const handleGuardarCita = async e => {
     e.preventDefault();
     setCitaError('');
     if (!citaForm.Id_Vehiculo || !citaForm.Fecha || !citaForm.Hora) {
       setCitaError('Vehículo, fecha y hora son obligatorios.'); return;
     }
+    // Validación de tiempo (item 1): la fecha y hora deben ser futuras.
+    const dt = new Date(`${citaForm.Fecha}T${citaForm.Hora}:00`);
+    if (Number.isNaN(dt.getTime()) || dt.getTime() <= Date.now()) {
+      setCitaError('La fecha y la hora de la cita deben ser futuras.'); return;
+    }
     setCitaLoading(true);
     try {
-      await api.post('/api/portal/citas', citaForm, { headers: { Authorization: `Bearer ${token}` } });
+      if (editingCitaId) {
+        await api.put(`/api/portal/citas/${editingCitaId}`, citaForm, { headers: { Authorization: `Bearer ${token}` } });
+      } else {
+        await api.post('/api/portal/citas', citaForm, { headers: { Authorization: `Bearer ${token}` } });
+      }
       setShowCitaModal(false);
+      setEditingCitaId(null);
       setCitaForm({ Id_Vehiculo: '', Fecha: '', Hora: '', Descripcion: '', Id_Empleado: '' });
       setEmpleadosDisp([]);
       await refetchCitas();
       setCitaToast(true);
       setTimeout(() => setCitaToast(false), 3000);
     } catch (err) {
-      setCitaError(err.response?.data?.message || 'Error al crear la cita.');
+      setCitaError(err.response?.data?.message || 'Error al guardar la cita.');
     } finally { setCitaLoading(false); }
   };
 
@@ -279,11 +328,18 @@ export default function PortalPage() {
     { key: 'Descripcion',      label: 'Descripción', render: v => v ? <span className="diag-cell">{v}</span> : '—' },
     { key: 'EstadoCita',       label: 'Estado',    render: v => <CitaEstadoBadge estado={v || 'Pendiente'} /> },
     {
-      key: 'acciones', label: '', render: (_, row) => (
-        ['Pendiente', 'Confirmada'].includes(row.EstadoCita || 'Pendiente')
-          ? <button className="btn btn--ghost btn--icon btn--sm" title="Cancelar cita" onClick={() => setConfirmCancelarCita(row)}><MdEventBusy size={17} /></button>
-          : null
-      ),
+      key: 'acciones', label: '', render: (_, row) => {
+        const estado = row.EstadoCita || 'Pendiente';
+        if (!['Pendiente', 'Confirmada'].includes(estado)) return null;
+        const gestionable = puedeGestionarCita(row);
+        const hint24 = 'Solo se puede gestionar con más de 24 h de anticipación';
+        return (
+          <div className="table-actions">
+            <button className="btn btn--ghost btn--icon btn--sm" title={gestionable ? 'Editar cita' : hint24} disabled={!gestionable} onClick={() => openEditarCita(row)}><MdEdit size={17} /></button>
+            <button className="btn btn--ghost btn--icon btn--sm" title={gestionable ? 'Cancelar cita' : hint24} disabled={!gestionable} onClick={() => setConfirmCancelarCita(row)}><MdEventBusy size={17} /></button>
+          </div>
+        );
+      },
     },
   ];
 
@@ -482,10 +538,7 @@ export default function PortalPage() {
                 <h1 className="page__title">Mis Citas</h1>
                 <p className="page__subtitle">{citas.length} cita(s) registrada(s)</p>
               </div>
-              <button className="btn btn--primary" onClick={() => {
-                setCitaForm({ Id_Vehiculo: '', Fecha: '', Hora: '', Descripcion: '', Id_Empleado: '' });
-                setCitaError(''); setEmpleadosDisp([]); setShowCitaModal(true);
-              }}>
+              <button className="btn btn--primary" onClick={openCrearCita}>
                 <MdAdd size={18} /> Agendar cita
               </button>
             </div>
@@ -630,20 +683,20 @@ export default function PortalPage() {
       {/* ══════════════ MODAL: Nueva cita ════════════════════ */}
       <Modal
         isOpen={showCitaModal}
-        onClose={() => { setShowCitaModal(false); setEmpleadosDisp([]); }}
-        title="Agendar nueva cita"
+        onClose={() => { setShowCitaModal(false); setEditingCitaId(null); setEmpleadosDisp([]); }}
+        title={editingCitaId ? 'Editar cita' : 'Agendar nueva cita'}
         size="md"
         footer={
           <>
-            <button className="btn btn--outline" onClick={() => { setShowCitaModal(false); setEmpleadosDisp([]); }}>Cancelar</button>
-            <button className="btn btn--primary" onClick={handleCrearCita} disabled={citaLoading}>
-              {citaLoading ? 'Guardando...' : 'Agendar cita'}
+            <button className="btn btn--outline" onClick={() => { setShowCitaModal(false); setEditingCitaId(null); setEmpleadosDisp([]); }}>Cancelar</button>
+            <button className="btn btn--primary" onClick={handleGuardarCita} disabled={citaLoading}>
+              {citaLoading ? 'Guardando...' : (editingCitaId ? 'Guardar cambios' : 'Agendar cita')}
             </button>
           </>
         }
       >
         {citaError && <div className="form-error-box">{citaError}</div>}
-        <form className="form-grid" onSubmit={handleCrearCita} noValidate>
+        <form className="form-grid" onSubmit={handleGuardarCita} noValidate>
           <div className="form-group">
             <label className="form-label">Vehículo <span className="required">*</span></label>
             <select className="form-control" value={citaForm.Id_Vehiculo} onChange={e => setCitaForm(p => ({ ...p, Id_Vehiculo: e.target.value }))} required>
@@ -665,14 +718,20 @@ export default function PortalPage() {
             <label className="form-label">Hora <span className="required">*</span></label>
             <select className="form-control" value={citaForm.Hora} onChange={e => setCitaForm(p => ({ ...p, Hora: e.target.value }))} required>
               <option value="">Seleccionar hora...</option>
-              {Array.from({ length: 21 }, (_, i) => {
-                const mins  = 480 + i * 30;
-                const h     = Math.floor(mins / 60);
-                const m     = mins % 60;
-                const label = `${h > 12 ? h - 12 : h}:${String(m).padStart(2, '0')} ${h >= 12 ? 'PM' : 'AM'}`;
-                const value = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
-                return <option key={value} value={value}>{label}</option>;
-              })}
+              {(() => {
+                // Si la fecha elegida es hoy, deshabilita las horas ya pasadas.
+                const esHoy  = citaForm.Fecha === new Date().toISOString().split('T')[0];
+                const nowMin = new Date().getHours() * 60 + new Date().getMinutes();
+                return Array.from({ length: 21 }, (_, i) => {
+                  const mins  = 480 + i * 30;
+                  const h     = Math.floor(mins / 60);
+                  const m     = mins % 60;
+                  const label = `${h > 12 ? h - 12 : h}:${String(m).padStart(2, '0')} ${h >= 12 ? 'PM' : 'AM'}`;
+                  const value = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+                  const pasada = esHoy && mins <= nowMin;
+                  return <option key={value} value={value} disabled={pasada}>{label}{pasada ? ' (pasada)' : ''}</option>;
+                });
+              })()}
             </select>
           </div>
           <div className="form-group">

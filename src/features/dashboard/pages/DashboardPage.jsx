@@ -54,11 +54,13 @@ function computeRango(preset, cDesde, cHasta) {
   return { desde, hasta, agrupacion: dias > 62 ? 'mes' : 'dia' };
 }
 
-// 'YYYY-MM-DD' -> etiqueta corta según agrupación.
+// 'YYYY-MM-DD' -> etiqueta corta según agrupación. Defensivo: si el backend
+// devuelve un periodo nulo/no-string no debe romper toda la pantalla.
 const etiquetaPeriodo = (ymd, agrupacion) => {
-  const [y, m, d] = ymd.split('-');
-  if (agrupacion === 'month') return `${MESES[Number(m) - 1]} ${y}`;
-  if (agrupacion === 'week')  return `Sem ${d}/${m}`;
+  const [y, m, d] = String(ymd ?? '').split('-');
+  if (!y || !m) return String(ymd ?? '');
+  if (agrupacion === 'month' || agrupacion === 'mes')    return `${MESES[Number(m) - 1] ?? m} ${y}`;
+  if (agrupacion === 'week'  || agrupacion === 'semana') return `Sem ${d}/${m}`;
   return `${d}/${m}`;
 };
 
@@ -90,8 +92,9 @@ export default function DashboardPage() {
   const [rep, setRep] = useState({ resumen: null, ingresos: null, topServicios: [], topRepuestos: [], productividad: [] });
   const [loading, setLoading] = useState(true);
   const [buscarMecanico, setBuscarMecanico] = useState('');
+  const [refreshKey, setRefreshKey] = useState(0);   // "Actualizar" fuerza un re-fetch
 
-  useEffect(() => { dispatch(fetchDashboard()); }, [dispatch]);
+  useEffect(() => { dispatch(fetchDashboard()); }, [dispatch, refreshKey]);
 
   useEffect(() => {
     let vivo = true;
@@ -115,7 +118,7 @@ export default function DashboardPage() {
       setLoading(false);
     });
     return () => { vivo = false; };
-  }, [rango.desde, rango.hasta, rango.agrupacion, preset]);
+  }, [rango.desde, rango.hasta, rango.agrupacion, preset, refreshKey]);
 
   const resumen = rep.resumen || {};
   const ingresosSerie = (rep.ingresos?.series || []).map((s) => ({ name: etiquetaPeriodo(s.periodo, rep.ingresos.agrupacion), total: Number(s.total || 0) }));
@@ -135,7 +138,7 @@ export default function DashboardPage() {
           <h1 className="page__title">Dashboard</h1>
           <p className="page__subtitle">Reportes del taller · {rango.desde} → {rango.hasta}</p>
         </div>
-        <button className="btn btn--outline" onClick={() => setPreset(p => p)} disabled={loading}>
+        <button className="btn btn--outline" onClick={() => setRefreshKey(k => k + 1)} disabled={loading}>
           <MdRefresh size={18} className={loading ? 'spin' : ''} /> Actualizar
         </button>
       </div>

@@ -78,6 +78,24 @@ export default function NovedadesPage() {
     const errs = validateNow(formData);
     setErrors(errs); touchAll();
     if (V.hasErrors(errs)) { setFormError('Corrige los campos marcados antes de guardar.'); return; }
+
+    // Regla: un empleado no puede tener 3 o más novedades en la MISMA fecha.
+    // Se cuentan las novedades ya registradas para ese empleado en ese día
+    // (excluyendo la que se está editando). Si ya hay 2, se bloquea la 3.ª.
+    const empSel   = String(formData.id_empleado);
+    const fechaSel = formData.Fecha_Novedad;
+    const mismasDelDia = items.filter(n => {
+      const nId = n.Id_Novedad ?? n.id;
+      if (editingId && String(nId) === String(editingId)) return false;
+      const nEmp   = String(n.id_empleado ?? n.Id_Empleado);
+      const nFecha = (n.Fecha_Novedad || '').split('T')[0];
+      return nEmp === empSel && nFecha === fechaSel;
+    });
+    if (mismasDelDia.length >= 2) {
+      setFormError('Este empleado ya tiene 2 novedades registradas en esa fecha. No se permiten 3 o más el mismo día.');
+      return;
+    }
+
     setFormError('');
     const payload = {
       id_empleado:   Number(formData.id_empleado),

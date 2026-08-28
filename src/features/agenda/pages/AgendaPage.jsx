@@ -49,7 +49,7 @@ export default function AgendaPage() {
   const [clientes, setClientes]   = useState([]);
   const [vehiculos, setVehiculos] = useState([]);
   const [empleados, setEmpleados] = useState([]);
-  const [novedadesActivas, setNovedadesActivas] = useState(new Set());
+  const [novedades, setNovedades] = useState([]);
   const [confirmCancelar, setConfirmCancelar] = useState(null); // cita a cancelar (ConfirmDialog)
   const [confirmEliminar, setConfirmEliminar] = useState(null); // cita cancelada a eliminar (ConfirmDialog)
   const [search, setSearch]             = useState('');
@@ -75,20 +75,24 @@ export default function AgendaPage() {
     api.get('/api/vehiculos').then(r => setVehiculos(r.data?.data || r.data || [])).catch(() => {});
     api.get('/api/empleados').then(r => setEmpleados(r.data?.data || r.data || [])).catch(() => {});
     api.get('/api/novedades').then(r => {
-      const list = r.data?.data || r.data || [];
-      const today = new Date().toISOString().split('T')[0];
-      const ids = new Set(
-        list
-          .filter(n => {
-            const inicio = n.Fecha_Novedad?.split('T')[0];
-            const fin    = n.FechaRealizacion?.split('T')[0];
-            return inicio && fin && today >= inicio && today <= fin;
-          })
-          .map(n => String(n.id_empleado || n.Id_Empleado))
-      );
-      setNovedadesActivas(ids);
+      setNovedades(r.data?.data || r.data || []);
     }).catch(() => {});
   }, [dispatch]);
+
+  // ── Novedades por FECHA (no solo "hoy") ──────────────────────────────
+  // Bloquea asignar un empleado que tenga una novedad que cubra la fecha del
+  // agendamiento, aunque sea futura. Si no hay FechaRealizacion, la novedad se
+  // considera de un solo día (= Fecha_Novedad).
+  const fechaEnNovedad = (n, ymd) => {
+    const inicio = (n.Fecha_Novedad || '').split('T')[0];
+    const fin    = (n.FechaRealizacion || '').split('T')[0] || inicio;
+    return !!inicio && ymd >= inicio && ymd <= fin;
+  };
+  const empleadosBloqueadosEnFecha = (ymd) => new Set(
+    (ymd ? novedades : [])
+      .filter(n => n.Estado !== 0 && n.Estado !== false && fechaEnNovedad(n, ymd))
+      .map(n => String(n.id_empleado ?? n.Id_Empleado))
+  );
 
   const esActivo = (x) => x?.Estado !== false && x?.Estado !== 0; // excluye inactivos (B4)
   const vehiculosFiltered = (formData.Id_Cliente
@@ -137,11 +141,15 @@ export default function AgendaPage() {
     return '';
   })();
 
+  // Empleados con novedad en la FECHA elegida del agendamiento (o hoy si aún no
+  // se elige fecha). Bloquea asignar a alguien que estará ausente ese día.
+  const empleadosBloqueados = empleadosBloqueadosEnFecha(formData.FechaAgendamiento || TODAY);
+
   // Validez de la cita en tiempo real: habilita "Guardar" solo cuando está completa
-  // y sin conflictos (fecha válida y empleado sin novedad activa).
+  // y sin conflictos (fecha válida y empleado sin novedad en esa fecha).
   const citaValida = !!formData.Id_Cliente && !!formData.Id_Vehiculo && !!formData.id_empleado
     && !!formData.FechaAgendamiento && !!formData.Hora
-    && !fechaError && !novedadesActivas.has(String(formData.id_empleado));
+    && !fechaError && !empleadosBloqueados.has(String(formData.id_empleado));
 
   // Se incluye el Documento en la etiqueta (no solo el Nombre) para poder distinguir
   // clientes/empleados que comparten el mismo nombre.
@@ -149,7 +157,7 @@ export default function AgendaPage() {
   const vehiculosOpts = vehiculosFiltered.map(v => ({ value: String(v.Id_Vehiculo), label: `${v.Placa} — ${v.Modelo}` }));
   const empleadosOpts = empleados.filter(esActivo).map(e => {
     const id = String(e.Id_Empleado ?? e.id_empleado);
-    const conNovedad = novedadesActivas.has(id);
+    const conNovedad = empleadosBloqueados.has(id);
     return { value: id, label: `${e.Nombre} — ${e.Documento}${conNovedad ? ' — Con novedad' : ''}`, disabled: conNovedad };
   });
 
@@ -218,8 +226,8 @@ export default function AgendaPage() {
       setFormError('Completa todos los campos obligatorios.'); return;
     }
     if (fechaError) { setFormError(fechaError); return; }
-    if (novedadesActivas.has(String(formData.id_empleado))) {
-      setFormError('El empleado seleccionado tiene una novedad activa y no puede ser asignado.'); return;
+    if (empleadosBloqueados.has(String(formData.id_empleado))) {
+      setFormError('El empleado seleccionado tiene una novedad en esa fecha y no puede ser asignado.'); return;
     }
     const dur = Number(formData.DuracionEstimadaMin);
     const payload = { ...formData, DuracionEstimadaMin: Number.isInteger(dur) && dur > 0 ? dur : 60 };
@@ -371,8 +379,8 @@ export default function AgendaPage() {
           <div className="form-group span-2">
             <label className="form-label">Empleado <span className="required">*</span></label>
             <SearchableSelect options={empleadosOpts} value={String(formData.id_empleado)} onChange={v => setFormData(p => ({ ...p, id_empleado: v }))} placeholder="Seleccionar empleado..." />
-            {formData.id_empleado && novedadesActivas.has(String(formData.id_empleado)) && (
-              <p className="novedad-warning">⚠ Este empleado tiene una novedad activa y no puede ser asignado.</p>
+            {formData.id_empleado && empleadosBloqueados.has(String(formData.id_empleado)) && (
+              <p className="novedad-warning">⚠ Este empleado tiene una novedad en la fecha seleccionada y no puede ser asignado.</p>
             )}
           </div>
           <div className="form-group"><label className="form-label">Fecha de agendamiento <span className="required">*</span></label><input name="FechaAgendamiento" type="date" className={`form-control ${fechaError ? 'is-error' : ''}`} value={formData.FechaAgendamiento} onChange={handleChange} min={TODAY} />
