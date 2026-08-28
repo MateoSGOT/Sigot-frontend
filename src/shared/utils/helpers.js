@@ -1,6 +1,12 @@
 export const formatDate = (dateStr) => {
   if (!dateStr) return '—';
-  const date = new Date(dateStr);
+  const s = String(dateStr);
+  // Una fecha "YYYY-MM-DD" (o ISO) se debe leer en horario LOCAL. Con
+  // `new Date('2026-08-28')` JS asume UTC medianoche y, al mostrarla en
+  // Colombia (UTC-5), se corría un día atrás (aparecía 27 en vez de 28).
+  const m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  const date = m ? new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3])) : new Date(s);
+  if (Number.isNaN(date.getTime())) return '—';
   return date.toLocaleDateString('es-CO', { day: '2-digit', month: '2-digit', year: 'numeric' });
 };
 

@@ -1,5 +1,6 @@
 ﻿import React, { useEffect, useState, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
+import { useLocation } from 'react-router-dom';
 import { MdVisibility, MdEdit, MdAdd, MdBuild, MdCheck, MdArrowForward, MdDeleteOutline } from 'react-icons/md';
 import { usePermiso } from '../../../shared/hooks/usePermiso.js';
 import {
@@ -119,6 +120,7 @@ const fmtDuracion = (min) => {
 
 export default function OrdenesPage() {
   const dispatch = useDispatch();
+  const location = useLocation();
   const { items, selected, loading, actionLoading } = useSelector(s => s.ordenes);
   const puedeEditar  = usePermiso('ORDENES.EDITAR');
   const puedeToggle  = usePermiso('ORDENES.CAMBIAR_ESTADO');
@@ -161,6 +163,14 @@ export default function OrdenesPage() {
     api.get('/api/repuestos').then(r => setRepuestosOpts(r.data?.data || r.data || [])).catch(() => {});
     api.get('/api/categorias').then(r => setCategoriasOpts(r.data?.data || r.data || [])).catch(() => {});
   }, [dispatch]);
+
+  // Item 16: al llegar desde "generar orden" en la agenda, abrimos esa orden.
+  useEffect(() => {
+    if (location.state?.openOrdenId) {
+      setDetailId(location.state.openOrdenId);
+      window.history.replaceState({}, document.title);  // evita reabrir al re-navegar
+    }
+  }, [location.state]);
 
   useEffect(() => {
     if (detailId) {
@@ -668,8 +678,8 @@ export default function OrdenesPage() {
                     <div className="orden-add-form__head">
                       <h4>Agregar servicio</h4>
                       <div className="orden-add-toggle">
-                        <button type="button" className={`btn btn--sm ${modoServ === 'existente' ? 'btn--primary' : 'btn--outline'}`} onClick={() => { setModoServ('existente'); setAddServError(''); }}>Existente</button>
-                        <button type="button" className={`btn btn--sm ${modoServ === 'nuevo' ? 'btn--primary' : 'btn--outline'}`} onClick={() => { setModoServ('nuevo'); setAddServError(''); }}>Crear nuevo</button>
+                        <button type="button" className={`orden-seg-btn${modoServ === 'existente' ? ' orden-seg-btn--active' : ''}`} onClick={() => { setModoServ('existente'); setAddServError(''); }}>Existente</button>
+                        <button type="button" className={`orden-seg-btn${modoServ === 'nuevo' ? ' orden-seg-btn--active' : ''}`} onClick={() => { setModoServ('nuevo'); setAddServError(''); }}>Crear nuevo</button>
                       </div>
                     </div>
                     {addServError && <div className="form-error-box u-mb-sm">{addServError}</div>}
@@ -693,7 +703,7 @@ export default function OrdenesPage() {
                         <input className="form-control" placeholder="Nombre del servicio" value={nuevoServ.Nombre} onChange={e => setNuevoServ(p => ({ ...p, Nombre: e.target.value }))} maxLength={80} />
                         <input type="number" min="0" className="form-control" placeholder="Precio" value={nuevoServ.Precio} onChange={e => setNuevoServ(p => ({ ...p, Precio: e.target.value }))} />
                         <input type="number" min="1" className="form-control" placeholder="Duración (min, opcional)" value={nuevoServ.DuracionMinutos} onChange={e => setNuevoServ(p => ({ ...p, DuracionMinutos: e.target.value }))} />
-                        <button className="btn btn--primary btn--sm" onClick={handleCrearServicioInline} disabled={actionLoading}><MdAdd size={16} />Crear y agregar</button>
+                        <button className="btn btn--primary btn--sm" onClick={handleCrearServicioInline} disabled={actionLoading || !nuevoServ.Nombre.trim() || !(Number(nuevoServ.Precio) > 0)}><MdAdd size={16} />Crear y agregar</button>
                       </div>
                     )}
                   </div>
@@ -756,8 +766,8 @@ export default function OrdenesPage() {
                     <div className="orden-add-form__head">
                       <h4>Agregar repuesto</h4>
                       <div className="orden-add-toggle">
-                        <button type="button" className={`btn btn--sm ${modoRep === 'existente' ? 'btn--primary' : 'btn--outline'}`} onClick={() => { setModoRep('existente'); setAddRepError(''); }}>Existente</button>
-                        <button type="button" className={`btn btn--sm ${modoRep === 'nuevo' ? 'btn--primary' : 'btn--outline'}`} onClick={() => { setModoRep('nuevo'); setAddRepError(''); }}>Crear nuevo</button>
+                        <button type="button" className={`orden-seg-btn${modoRep === 'existente' ? ' orden-seg-btn--active' : ''}`} onClick={() => { setModoRep('existente'); setAddRepError(''); }}>Existente</button>
+                        <button type="button" className={`orden-seg-btn${modoRep === 'nuevo' ? ' orden-seg-btn--active' : ''}`} onClick={() => { setModoRep('nuevo'); setAddRepError(''); }}>Crear nuevo</button>
                       </div>
                     </div>
                     {addRepError && <div className="form-error-box u-mb-sm">{addRepError}</div>}
@@ -798,7 +808,7 @@ export default function OrdenesPage() {
                           </select>
                           <input type="number" min="1" className="form-control" placeholder="Cantidad" value={nuevoRep.cantidad} onChange={e => setNuevoRep(p => ({ ...p, cantidad: e.target.value }))} />
                           <input type="number" min="0" className="form-control" placeholder="Precio unitario" value={nuevoRep.precio_unitario} onChange={e => setNuevoRep(p => ({ ...p, precio_unitario: e.target.value }))} />
-                          <button className="btn btn--primary btn--sm" onClick={handleCrearRepuestoInline} disabled={actionLoading}><MdAdd size={16} />Crear y agregar</button>
+                          <button className="btn btn--primary btn--sm" onClick={handleCrearRepuestoInline} disabled={actionLoading || !nuevoRep.NombreRepuesto.trim() || !nuevoRep.Id_categoria || !(Number(nuevoRep.cantidad) > 0) || !(Number(nuevoRep.precio_unitario) >= 0) || nuevoRep.precio_unitario === ''}><MdAdd size={16} />Crear y agregar</button>
                         </div>
                         <p className="u-hint u-mt-xs">Se crea la ficha del repuesto (stock y costo se ajustan luego con las compras). El precio unitario es el de venta para esta orden.</p>
                       </>

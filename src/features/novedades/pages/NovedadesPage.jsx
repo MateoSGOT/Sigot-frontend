@@ -57,8 +57,8 @@ export default function NovedadesPage() {
 
   const filtered = sortNewestFirst(filterItems(items, search, ['Descripcion']), 'Id_Novedad');
 
-  // Al crear, la fecha de la novedad es HOY automáticamente (no la elige el usuario).
-  const openCreate = () => { setFormData({ ...EMPTY, Fecha_Novedad: TODAY }); setEditingId(null); setFormError(''); reset(); setShowForm(true); };
+  // La fecha de la novedad se ingresa manualmente (puede ser futura: incapacidad/permiso).
+  const openCreate = () => { setFormData(EMPTY); setEditingId(null); setFormError(''); reset(); setShowForm(true); };
   const openEdit   = (item) => {
     setFormData({
       id_empleado:     item.id_empleado || item.Id_Empleado || '',
@@ -199,7 +199,7 @@ export default function NovedadesPage() {
             <label className="form-label">Fecha de la novedad <span className="required">*</span></label>
             <input name="Fecha_Novedad" type="date" className={`form-control ${fieldError('Fecha_Novedad') ? 'is-error' : ''}`} value={formData.Fecha_Novedad} onChange={handleChange} onBlur={handleBlur} min={TODAY} />
             {fieldError('Fecha_Novedad') && <p className="form-error">{fieldError('Fecha_Novedad')}</p>}
-            <p className="form-hint">Por defecto es hoy. Cámbiala a una fecha futura para una incapacidad o permiso.</p>
+            <p className="form-hint">Puede ser hoy o una fecha futura (incapacidad o permiso).</p>
           </div>
           <div className="form-group">
             <label className="form-label">Fecha de fin (realización)</label>

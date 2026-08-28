@@ -9,7 +9,8 @@ import './LoginPage.css';
 
 const RULES = {
   passwordActual: (v) => (V.isBlank(v) ? 'Ingresa tu contraseña actual.' : ''),
-  passwordNueva:  (v) => V.passwordFuerte(v),
+  // La nueva debe ser fuerte y distinta a la actual (no repetir la temporal).
+  passwordNueva:  (v, all) => V.passwordFuerte(v) || (v && v === all.passwordActual ? 'La nueva contraseña no puede ser igual a la actual.' : ''),
   confirmar:      (v, all) => V.confirmarPassword(v, all.passwordNueva),
 };
 

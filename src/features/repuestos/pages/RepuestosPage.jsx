@@ -1,6 +1,6 @@
-﻿import React, { useEffect, useState, useCallback } from 'react';
+﻿import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { MdAdd, MdVisibility, MdEdit, MdWarning, MdTableChart, MdDeleteForever } from 'react-icons/md';
+import { MdAdd, MdVisibility, MdEdit, MdWarning, MdTableChart, MdDeleteForever, MdUploadFile } from 'react-icons/md';
 import { useBorradoReal } from '../../../shared/hooks/useBorradoReal.js';
 import { repuestosService } from '../services/repuestosService.js';
 import EliminarRealModal from '../../../shared/components/EliminarRealModal/EliminarRealModal.jsx';
@@ -128,6 +128,49 @@ export default function RepuestosPage() {
     } catch { /* silent */ }
   };
 
+  // Importar repuestos desde Excel (item 6). Formato: columnas "Nombre" y
+  // "Categoría" (por nombre); opcional "Margen %" y "Stock mínimo". La categoría
+  // debe existir ya (se mapea por nombre).
+  const fileImportRef = useRef(null);
+  const [importando, setImportando] = useState(false);
+  const [importMsg, setImportMsg] = useState(null); // { ok, fail, faltantes: [] }
+
+  const handleImportFile = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = ''; // permite reimportar el mismo archivo
+    if (!file) return;
+    setImportando(true);
+    setImportMsg(null);
+    try {
+      const buf = await file.arrayBuffer();
+      const wb = XLSX.read(buf, { type: 'array' });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const filas = XLSX.utils.sheet_to_json(ws, { defval: '' });
+      const catByName = {};
+      categorias.forEach(c => { const n = String(c.Nombre ?? c.nombre ?? '').trim().toLowerCase(); if (n) catByName[n] = c.Id_categoria ?? c.Id_Categoria; });
+      let ok = 0, fail = 0; const faltantes = [];
+      for (const fila of filas) {
+        const nombre    = String(fila.Nombre ?? fila.NombreRepuesto ?? fila.nombre ?? '').trim();
+        const catNombre = String(fila['Categoría'] ?? fila.Categoria ?? fila.categoria ?? '').trim().toLowerCase();
+        const idCat = catByName[catNombre];
+        if (!nombre || !idCat) { fail++; if (nombre) faltantes.push(nombre); continue; }
+        const r = await dispatch(createRepuesto({
+          NombreRepuesto: nombre,
+          Id_categoria: idCat,
+          StockMinimo: Number(fila['Stock mínimo'] ?? fila.StockMinimo ?? 5) || 5,
+          MargenPorcentaje: Number(fila['Margen %'] ?? fila.MargenPorcentaje ?? 50) || 50,
+        }));
+        if (r.error) { fail++; faltantes.push(nombre); } else ok++;
+      }
+      setImportMsg({ ok, fail, faltantes: faltantes.slice(0, 8) });
+      fetchPage();
+    } catch {
+      setImportMsg({ ok: 0, fail: 0, error: 'No se pudo leer el archivo. Verifica que sea un Excel válido.' });
+    } finally {
+      setImportando(false);
+    }
+  };
+
   const openCreate = () => { setFormData(EMPTY); setEditingId(null); setFormError(''); reset(); setShowForm(true); };
   const openEdit = (item) => {
     setFormData({
@@ -227,10 +270,29 @@ export default function RepuestosPage() {
       <div className="page__header">
         <div><h1 className="page__title">Repuestos</h1><p className="page__subtitle">{total} repuesto(s) en inventario</p></div>
         <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+          <input ref={fileImportRef} type="file" accept=".xlsx,.xls" style={{ display: 'none' }} onChange={handleImportFile} />
+          <button className="btn btn--outline" onClick={() => fileImportRef.current?.click()} disabled={!puedeCrear || importando} title="Importar repuestos desde Excel (columnas: Nombre, Categoría)"><MdUploadFile size={17} />{importando ? 'Importando...' : 'Importar Excel'}</button>
           <button className="btn btn--outline" onClick={exportarExcel} style={{ color: '#16a34a', borderColor: '#16a34a' }}><MdTableChart size={17} />Exportar Excel</button>
           <button className="btn btn--primary" onClick={openCreate} disabled={!puedeCrear}><MdAdd size={18} />Nuevo repuesto</button>
         </div>
       </div>
+      {importMsg && (() => {
+        const hayError = !!importMsg.error || importMsg.fail > 0;
+        return (
+          <div style={{
+            margin: '0 2rem 1rem', padding: '0.75rem 1rem', borderRadius: '10px', fontSize: '0.875rem',
+            display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap',
+            background: hayError ? 'rgba(220,38,38,0.08)' : 'rgba(22,163,74,0.10)',
+            border: `1px solid ${hayError ? 'rgba(220,38,38,0.3)' : 'rgba(22,163,74,0.3)'}`,
+            color: hayError ? '#b91c1c' : '#136a32',
+          }}>
+            <span>{importMsg.error
+              ? importMsg.error
+              : `Importación: ${importMsg.ok} creado(s), ${importMsg.fail} con error.${importMsg.faltantes?.length ? ` No se pudieron: ${importMsg.faltantes.join(', ')} (revisa que la categoría exista).` : ''}`}</span>
+            <button className="btn btn--ghost btn--sm" onClick={() => setImportMsg(null)} style={{ marginLeft: 'auto' }}>Cerrar</button>
+          </div>
+        );
+      })()}
       {itemsConStockBajo.length > 0 && (
         <div className={`stock-alerta-banner ${itemsConStockBajo.some(i => i.Stock === 0) ? 'stock-alerta-banner--critico' : 'stock-alerta-banner--bajo'}`}>
           <MdWarning size={18} />

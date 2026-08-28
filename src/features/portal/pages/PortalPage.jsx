@@ -85,6 +85,9 @@ export default function PortalPage() {
   const [citaToast,     setCitaToast]     = useState(false);
   const [empleadosDisp, setEmpleadosDisp] = useState([]);
   const [loadingEmpl,   setLoadingEmpl]   = useState(false);
+  // Horario de atención del taller (configurable). Se usa para generar las horas
+  // del select en vez de dejarlas quemadas (8–18).
+  const [horario, setHorario] = useState({ apertura: '08:00', cierre: '18:00', diasLaborales: [1, 2, 3, 4, 5, 6] });
 
   /* ── Fetch inicial ───────────────────────────────────────── */
   useEffect(() => {
@@ -98,6 +101,11 @@ export default function PortalPage() {
     if (!cliente || !token || tipo !== 'cliente') return;
     setLoading(true);
     const h = { Authorization: `Bearer ${token}` };
+    // Horario del taller (si el backend lo expone al portal); si no, quedan los
+    // valores por defecto.
+    api.get('/api/agenda/horario', { headers: h })
+      .then(r => { const hr = r.data?.data || r.data; if (hr?.apertura) setHorario(hr); })
+      .catch(() => {});
     Promise.all([
       api.get('/api/portal/vehiculos', { headers: h }),
       api.get('/api/portal/ordenes',   { headers: h }),
@@ -115,17 +123,34 @@ export default function PortalPage() {
     EmpleadoNombre: c.empleado?.Nombre || 'Sin asignar',
   }));
 
-  // Regla de negocio: el cliente solo puede cancelar (o editar) con MÁS de 24 h
-  // de anticipación respecto a la fecha/hora de la cita.
-  const HORAS_MIN_ANTICIPACION = 24;
+  // Reglas de negocio para gestionar una cita desde el portal del cliente:
+  //  · Cancelar: solo dentro de las 24 h posteriores a haberla RESERVADO y
+  //    siempre que falten MÁS de 2 h para la cita.
+  //  · Editar: hasta 2 h antes de la cita.
+  // Las citas creadas por el admin también se pueden cancelar (si no traen la
+  // fecha de reserva, no aplicamos la ventana de 24 h, solo el mínimo de 2 h).
+  const HORAS_MIN_ANTES = 2;
+  const VENTANA_RESERVA_H = 24;
   const horasHastaCita = (cita) => {
     const fecha = (cita?.FechaAgendamiento || '').split('T')[0];
-    if (!fecha) return Infinity;               // sin fecha: no bloqueamos
+    if (!fecha) return Infinity;               // sin fecha: no bloqueamos por esto
     const dt = new Date(`${fecha}T${cita.Hora || '00:00'}:00`);
     if (Number.isNaN(dt.getTime())) return Infinity;
     return (dt.getTime() - Date.now()) / 3_600_000;
   };
-  const puedeGestionarCita = (cita) => horasHastaCita(cita) >= HORAS_MIN_ANTICIPACION;
+  const horasDesdeReserva = (cita) => {
+    const creada = cita?.createdAt || cita?.FechaCreacion || cita?.fecha_creacion || cita?.Fecha_Creacion;
+    if (!creada) return null;                  // desconocida: no aplicamos la ventana
+    const t = new Date(creada).getTime();
+    return Number.isNaN(t) ? null : (Date.now() - t) / 3_600_000;
+  };
+  const puedeCancelarCita = (cita) => {
+    const faltanMasDe2h = horasHastaCita(cita) > HORAS_MIN_ANTES;
+    const desde = horasDesdeReserva(cita);
+    const dentroVentana = desde == null ? true : desde <= VENTANA_RESERVA_H;
+    return faltanMasDe2h && dentroVentana;
+  };
+  const puedeEditarCita = (cita) => horasHastaCita(cita) > HORAS_MIN_ANTES;
 
   const openCancelarCita = (cita) => {
     setConfirmCancelarCita(cita);
@@ -135,8 +160,8 @@ export default function PortalPage() {
 
   const doCancelarCita = async () => {
     if (!confirmCancelarCita) return;
-    if (!puedeGestionarCita(confirmCancelarCita)) {
-      addToast({ type: 'error', message: 'Solo puedes cancelar con más de 24 horas de anticipación. Comunícate con el taller.' });
+    if (!puedeCancelarCita(confirmCancelarCita)) {
+      addToast({ type: 'error', message: 'Solo puedes cancelar dentro de las 24 h de haber reservado y con más de 2 h de anticipación. Comunícate con el taller.' });
       setConfirmCancelarCita(null);
       return;
     }
@@ -348,12 +373,12 @@ export default function PortalPage() {
       key: 'acciones', label: 'Acciones', render: (_, row) => {
         const estado = row.EstadoCita || 'Pendiente';
         if (!['Pendiente', 'Confirmada'].includes(estado)) return null;
-        const gestionable = puedeGestionarCita(row);
-        const hint24 = 'Solo se puede gestionar con más de 24 h de anticipación';
+        const editable   = puedeEditarCita(row);
+        const cancelable = puedeCancelarCita(row);
         return (
           <div className="table-actions">
-            <button className="btn btn--ghost btn--icon btn--sm" title={gestionable ? 'Editar cita' : hint24} disabled={!gestionable} onClick={() => openEditarCita(row)}><MdEdit size={17} /></button>
-            <button className="btn btn--ghost btn--icon btn--sm" title={gestionable ? 'Cancelar cita' : hint24} disabled={!gestionable} onClick={() => openCancelarCita(row)}><MdEventBusy size={17} /></button>
+            <button className="btn btn--ghost btn--icon btn--sm" title={editable ? 'Editar cita' : 'Solo hasta 2 h antes de la cita'} disabled={!editable} onClick={() => openEditarCita(row)}><MdEdit size={17} /></button>
+            <button className="btn btn--ghost btn--icon btn--sm" title={cancelable ? 'Cancelar cita' : 'Solo dentro de 24 h de reservada y con +2 h de anticipación'} disabled={!cancelable} onClick={() => openCancelarCita(row)}><MdEventBusy size={17} /></button>
           </div>
         );
       },
@@ -736,18 +761,23 @@ export default function PortalPage() {
             <select className="form-control" value={citaForm.Hora} onChange={e => setCitaForm(p => ({ ...p, Hora: e.target.value }))} required>
               <option value="">Seleccionar hora...</option>
               {(() => {
-                // Si la fecha elegida es hoy, deshabilita las horas ya pasadas.
+                // Horas dentro del horario configurado del taller. Si la fecha es
+                // hoy, se deshabilitan las horas ya pasadas.
+                const toMin = (hhmm) => { const [hh, mm] = String(hhmm).split(':').map(Number); return (hh || 0) * 60 + (mm || 0); };
+                const ap = toMin(horario.apertura || '08:00');
+                const ci = toMin(horario.cierre || '18:00');
                 const esHoy  = citaForm.Fecha === new Date().toISOString().split('T')[0];
                 const nowMin = new Date().getHours() * 60 + new Date().getMinutes();
-                return Array.from({ length: 21 }, (_, i) => {
-                  const mins  = 480 + i * 30;
-                  const h     = Math.floor(mins / 60);
-                  const m     = mins % 60;
-                  const label = `${h > 12 ? h - 12 : h}:${String(m).padStart(2, '0')} ${h >= 12 ? 'PM' : 'AM'}`;
+                const opts = [];
+                for (let mins = ap; mins <= ci && !Number.isNaN(mins); mins += 30) {
+                  const h = Math.floor(mins / 60), m = mins % 60;
+                  const h12 = h % 12 === 0 ? 12 : h % 12;
+                  const label = `${h12}:${String(m).padStart(2, '0')} ${h >= 12 ? 'PM' : 'AM'}`;
                   const value = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
                   const pasada = esHoy && mins <= nowMin;
-                  return <option key={value} value={value} disabled={pasada}>{label}{pasada ? ' (pasada)' : ''}</option>;
-                });
+                  opts.push(<option key={value} value={value} disabled={pasada}>{label}{pasada ? ' (pasada)' : ''}</option>);
+                }
+                return opts;
               })()}
             </select>
           </div>

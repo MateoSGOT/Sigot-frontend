@@ -1,5 +1,6 @@
 ﻿import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
+import { useNavigate } from 'react-router-dom';
 import { MdAdd, MdVisibility, MdEdit, MdAssignment, MdEventBusy, MdEventRepeat, MdDeleteForever } from 'react-icons/md';
 import { usePermiso } from '../../../shared/hooks/usePermiso.js';
 import { useBorradoReal } from '../../../shared/hooks/useBorradoReal.js';
@@ -39,6 +40,7 @@ const toMinHelper = (h) => { const [hh, mm] = String(h).split(':').map(Number); 
 
 export default function AgendaPage() {
   const dispatch = useDispatch();
+  const navigate = useNavigate();
   const { addToast } = useToast();
   const { items, loading, actionLoading } = useSelector(s => s.agenda);
   const puedeCrear   = usePermiso('AGENDA.REGISTRAR');
@@ -261,7 +263,14 @@ export default function AgendaPage() {
       setOrdenError(`El kilometraje no puede ser menor al último registrado del vehículo (${ordenVehiculoKm.toLocaleString('es-CO')} km).`); return;
     }
     const result = await dispatch(generarOrdenDeCita({ id: ordenCitaId, data: ordenData }));
-    if (!result.error) { setShowOrdenModal(false); addToast({ type: 'success', message: 'Orden de trabajo generada exitosamente.' }); dispatch(fetchAgenda()); }
+    if (!result.error) {
+      setShowOrdenModal(false);
+      addToast({ type: 'success', message: 'Orden de trabajo generada exitosamente.' });
+      dispatch(fetchAgenda());
+      // Item 16: redirigir a la orden recién creada (Ordenes la abre por el state).
+      const nuevaId = result.payload?.Id_Orden ?? result.payload?.data?.Id_Orden ?? result.payload?.id;
+      navigate('/ordenes', nuevaId ? { state: { openOrdenId: nuevaId } } : undefined);
+    }
     else setOrdenError(result.payload || 'Error al generar orden.');
   };
 
@@ -389,10 +398,16 @@ export default function AgendaPage() {
           <div className="form-group"><label className="form-label">Hora <span className="required">*</span></label>
             <select name="Hora" className="form-control" value={formData.Hora} onChange={handleChange}>
               <option value="">Seleccionar hora...</option>
-              {horaOptions.map(h => {
-                const ocupada = h !== formData.Hora && horaOcupada(h);
-                return <option key={h} value={h} disabled={ocupada}>{h}{ocupada ? ' (ocupado)' : ''}</option>;
-              })}
+              {(() => {
+                const esHoy  = formData.FechaAgendamiento === TODAY;
+                const nowMin = new Date().getHours() * 60 + new Date().getMinutes();
+                return horaOptions.map(h => {
+                  const pasada  = esHoy && toMinHelper(h) <= nowMin;
+                  const ocupada = h !== formData.Hora && horaOcupada(h);
+                  const bloqueada = pasada || ocupada;
+                  return <option key={h} value={h} disabled={bloqueada}>{h}{pasada ? ' (pasada)' : ocupada ? ' (ocupado)' : ''}</option>;
+                });
+              })()}
             </select>
             <p className="form-hint">Atención: {horario.apertura}–{horario.cierre} · {diasLaboralesLabel}</p>
             {formData.id_empleado && formData.FechaAgendamiento && !formData.Hora && citasDelDiaEmpleado.length > 0 && (
