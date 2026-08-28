@@ -14,10 +14,18 @@ export default function SearchableSelect({
   // El buscador solo aparece cuando la lista es larga; en catálogos cortos
   // (tipo de documento, rol, estado…) sobra, así que se oculta.
   searchThreshold = 8,
+  // Permite crear una opción nueva al vuelo cuando la búsqueda no tiene una
+  // coincidencia exacta (ej. "+ Crear marca "Toyota""). `onCreateOption(query)`
+  // debe devolver (o resolver a) el objeto opción { [valueKey], [labelKey] }
+  // ya creado en el backend; si lanza/rechaza, el dropdown queda abierto para
+  // reintentar y el error lo maneja quien use el componente (ej. con un toast).
+  onCreateOption,
+  createLabel = (q) => `+ Crear "${q}"`,
 }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [activeIdx, setActiveIdx] = useState(-1);
+  const [creating, setCreating] = useState(false);
   // Posición del dropdown (se renderiza en un portal en <body> con position:fixed
   // para que NO lo recorte el overflow del modal y quede por encima de todo).
   const [pos, setPos] = useState(null);
@@ -83,6 +91,26 @@ export default function SearchableSelect({
     setActiveIdx(-1);
   }, [onChange, valueKey]);
 
+  const trimmedQuery = query.trim();
+  const hasExactMatch = trimmedQuery
+    ? options.some(o => String(o[labelKey]).toLowerCase() === trimmedQuery.toLowerCase())
+    : true;
+  const showCreate = !!onCreateOption && trimmedQuery.length > 0 && !hasExactMatch;
+
+  const handleCreate = useCallback(async () => {
+    if (!onCreateOption || creating) return;
+    setCreating(true);
+    try {
+      const opt = await onCreateOption(trimmedQuery);
+      if (opt) handleSelect(opt);
+    } catch {
+      // El propio onCreateOption es responsable de notificar el error (ej. toast);
+      // aquí solo evitamos que quede como rechazo de promesa sin manejar.
+    } finally {
+      setCreating(false);
+    }
+  }, [onCreateOption, trimmedQuery, creating, handleSelect]);
+
   const handleKeyDown = (e) => {
     if (!open) { if (e.key === 'Enter' || e.key === ' ') setOpen(true); return; }
     if (e.key === 'ArrowDown') { e.preventDefault(); setActiveIdx(i => Math.min(i + 1, filtered.length - 1)); }
@@ -131,7 +159,7 @@ export default function SearchableSelect({
             </div>
           )}
           <ul className="ss__list" ref={listRef}>
-            {filtered.length === 0 ? (
+            {filtered.length === 0 && !showCreate ? (
               <li className="ss__empty">Sin resultados</li>
             ) : (
               filtered.map((opt, idx) => (
@@ -146,6 +174,15 @@ export default function SearchableSelect({
                   {opt[labelKey]}
                 </li>
               ))
+            )}
+            {showCreate && (
+              <li
+                className="ss__option ss__option--create"
+                onPointerUp={handleCreate}
+                onClick={handleCreate}
+              >
+                {creating ? 'Creando...' : createLabel(trimmedQuery)}
+              </li>
             )}
           </ul>
         </div>,

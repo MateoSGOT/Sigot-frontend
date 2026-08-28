@@ -2,6 +2,7 @@
 import { useDispatch, useSelector } from 'react-redux';
 import { MdAdd, MdVisibility, MdEdit, MdDeleteForever } from 'react-icons/md';
 import { useBorradoReal } from '../../../shared/hooks/useBorradoReal.js';
+import { useAutoRefresh } from '../../../shared/hooks/useAutoRefresh.js';
 import { novedadesService } from '../services/novedadesService.js';
 import EliminarRealModal from '../../../shared/components/EliminarRealModal/EliminarRealModal.jsx';
 import { usePermiso } from '../../../shared/hooks/usePermiso.js';
@@ -18,7 +19,7 @@ import { useFormValidation } from '../../../shared/hooks/useFormValidation.js';
 import api from '../../../shared/services/api.js';
 import './NovedadesPage.css';
 
-const EMPTY = { id_empleado: '', Descripcion: '', Fecha_Novedad: '', FechaRealizacion: '' };
+const EMPTY = { id_empleado: '', Descripcion: '', Fecha_Novedad: '', FechaRealizacion: '', HoraInicio: '', HoraFin: '' };
 const TODAY = new Date().toISOString().split('T')[0];
 const RULES = {
   id_empleado: (v) => V.requiredSelect(v, 'El empleado'),
@@ -50,6 +51,8 @@ export default function NovedadesPage() {
     api.get('/api/empleados').then(r => setEmpleados(r.data?.data || r.data || [])).catch(() => {});
   }, [dispatch]);
 
+  useAutoRefresh(() => dispatch(fetchNovedades()), { intervalMs: 20000, enabled: !showForm && !del.isOpen });
+
   const getEmpleadoNombre = (id) => {
     const e = empleados.find(e => String(e.id_empleado ?? e.Id_Empleado) === String(id));
     return e?.Nombre || `Empleado #${id}`;
@@ -65,6 +68,8 @@ export default function NovedadesPage() {
       Descripcion:     item.Descripcion || '',
       Fecha_Novedad:   item.Fecha_Novedad   ? item.Fecha_Novedad.split('T')[0]   : '',
       FechaRealizacion: item.FechaRealizacion ? item.FechaRealizacion.split('T')[0] : '',
+      HoraInicio: item.HoraInicio || '',
+      HoraFin:    item.HoraFin    || '',
     });
     setEditingId(item.Id_Novedad || item.id); setFormError(''); reset(); setShowForm(true);
   };
@@ -83,6 +88,14 @@ export default function NovedadesPage() {
 
     if (formData.FechaRealizacion && formData.FechaRealizacion < formData.Fecha_Novedad) {
       setFormError('La fecha de fin no puede ser anterior a la fecha de la novedad.'); return;
+    }
+
+    // Rango horario opcional: ambas horas o ninguna, y fin > inicio (misma regla del backend).
+    if ((formData.HoraInicio && !formData.HoraFin) || (!formData.HoraInicio && formData.HoraFin)) {
+      setFormError('Indica la hora de inicio y la hora de fin, o deja ambas vacías.'); return;
+    }
+    if (formData.HoraInicio && formData.HoraFin && formData.HoraFin <= formData.HoraInicio) {
+      setFormError('La hora de fin debe ser posterior a la hora de inicio.'); return;
     }
 
     // Regla: un empleado no puede tener 3 o más novedades en la MISMA fecha.
@@ -110,6 +123,9 @@ export default function NovedadesPage() {
       ...(formData.FechaRealizacion
         ? { FechaRealizacion: new Date(formData.FechaRealizacion).toISOString() }
         : {}),
+      // null limpia el rango horario al editar (backend: HoraInicio/HoraFin ambas o ninguna).
+      HoraInicio: formData.HoraInicio || null,
+      HoraFin:    formData.HoraFin    || null,
     };
     const action = editingId ? updateNovedad({ id: editingId, data: payload }) : createNovedad(payload);
     const result = await dispatch(action);
@@ -172,6 +188,7 @@ export default function NovedadesPage() {
           <div className="detail-item"><span className="detail-label">Fecha novedad</span><span className="detail-value">{formatDate(detailItem.Fecha_Novedad)}</span></div>
           <div className="detail-item" style={{ gridColumn: 'span 2' }}><span className="detail-label">Descripción</span><span className="detail-value">{detailItem.Descripcion}</span></div>
           <div className="detail-item"><span className="detail-label">Fecha realización</span><span className="detail-value">{formatDate(detailItem.FechaRealizacion)}</span></div>
+          <div className="detail-item"><span className="detail-label">Rango horario</span><span className="detail-value">{detailItem.HoraInicio && detailItem.HoraFin ? `${detailItem.HoraInicio} – ${detailItem.HoraFin}` : 'Día completo'}</span></div>
         </div>}
       </Modal>
 
@@ -205,6 +222,15 @@ export default function NovedadesPage() {
             <label className="form-label">Fecha de fin (realización)</label>
             <input name="FechaRealizacion" type="date" className="form-control" value={formData.FechaRealizacion} onChange={handleChange} min={formData.Fecha_Novedad || TODAY} />
             <p className="form-hint">Fin de la incapacidad o permiso (opcional).</p>
+          </div>
+          <div className="form-group">
+            <label className="form-label">Hora de inicio</label>
+            <input name="HoraInicio" type="time" className="form-control" value={formData.HoraInicio} onChange={handleChange} />
+          </div>
+          <div className="form-group">
+            <label className="form-label">Hora de fin</label>
+            <input name="HoraFin" type="time" className="form-control" value={formData.HoraFin} onChange={handleChange} />
+            <p className="form-hint">Opcional: si indicas un rango de horas, la novedad solo bloquea esas horas ese día (si lo dejas vacío, bloquea el día completo).</p>
           </div>
         </form>
       </Modal>

@@ -6,7 +6,7 @@ export const agendaService = {
   create: (data) => api.post(BASE, data).then(r => r.data),
   update: (id, data) => api.put(`${BASE}/${id}`, data).then(r => r.data),
   toggleEstado: (id, Estado) => api.patch(`${BASE}/${id}/estado`, { Estado }).then(r => r.data),
-  cancelar: (id) => api.patch(`${BASE}/${id}/cancelar`).then(r => r.data),
+  cancelar: (id, motivo) => api.patch(`${BASE}/${id}/cancelar`, { Motivo: motivo }).then(r => r.data),
   generarOrden: (id, data) => api.post(`${BASE}/${id}/orden`, data).then(r => r.data),
   remove: (id) => api.delete(`${BASE}/${id}`).then(r => r.data),
   // Borrado real de una cita (superadmin), endpoint separado del remove operativo.

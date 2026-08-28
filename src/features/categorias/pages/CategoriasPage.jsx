@@ -1,8 +1,10 @@
-﻿import React, { useEffect, useState } from 'react';
+﻿import React, { useEffect, useState, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { MdAdd, MdEdit, MdDeleteForever } from 'react-icons/md';
+import { MdAdd, MdEdit, MdDeleteForever, MdUploadFile } from 'react-icons/md';
+import * as XLSX from 'xlsx';
 import { usePermiso } from '../../../shared/hooks/usePermiso.js';
 import { useBorradoReal } from '../../../shared/hooks/useBorradoReal.js';
+import { useAutoRefresh } from '../../../shared/hooks/useAutoRefresh.js';
 import { categoriasService } from '../services/categoriasService.js';
 import ToggleSwitch from '../../../shared/components/ToggleSwitch/ToggleSwitch.jsx';
 import EliminarRealModal from '../../../shared/components/EliminarRealModal/EliminarRealModal.jsx';
@@ -41,6 +43,42 @@ export default function CategoriasPage() {
   const { errors, touched, setErrors, revalidate, markTouched, touchAll, fieldError, isInvalid, validateNow, reset } = useFormValidation(RULES);
 
   useEffect(() => { dispatch(fetchCategorias()); }, [dispatch]);
+
+  // Importar categorías desde Excel (mismo patrón que Repuestos). Columnas
+  // esperadas: "Nombre" (obligatoria) y "Descripcion" (opcional).
+  const fileImportRef = useRef(null);
+  const [importando, setImportando] = useState(false);
+  const [importMsg, setImportMsg] = useState(null); // { ok, fail, faltantes: [] }
+
+  useAutoRefresh(() => dispatch(fetchCategorias()), { intervalMs: 20000, enabled: !showForm && !del.isOpen && !importando });
+
+  const handleImportFile = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = ''; // permite reimportar el mismo archivo
+    if (!file) return;
+    setImportando(true);
+    setImportMsg(null);
+    try {
+      const buf = await file.arrayBuffer();
+      const wb = XLSX.read(buf, { type: 'array' });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const filas = XLSX.utils.sheet_to_json(ws, { defval: '' });
+      let ok = 0, fail = 0; const faltantes = [];
+      for (const fila of filas) {
+        const nombre = String(fila.Nombre ?? fila.nombre ?? '').trim();
+        const descripcion = String(fila.Descripcion ?? fila.descripcion ?? '').trim();
+        if (!nombre) { fail++; continue; }
+        const r = await dispatch(createCategoria({ Nombre: nombre, Descripcion: descripcion || undefined }));
+        if (r.error) { fail++; faltantes.push(nombre); } else ok++;
+      }
+      setImportMsg({ ok, fail, faltantes: faltantes.slice(0, 8) });
+      dispatch(fetchCategorias());
+    } catch {
+      setImportMsg({ ok: 0, fail: 0, error: 'No se pudo leer el archivo. Verifica que sea un Excel válido.' });
+    } finally {
+      setImportando(false);
+    }
+  };
 
   const filtered = (() => {
     let list = items;
@@ -92,8 +130,29 @@ export default function CategoriasPage() {
     <div className="page">
       <div className="page__header">
         <div><h1 className="page__title">Categorías de repuesto</h1><p className="page__subtitle">{items.length} categoría(s) registrada(s)</p></div>
-        <button className="btn btn--primary" onClick={openCreate} disabled={!puedeCrear}><MdAdd size={18} />Nueva categoría</button>
+        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+          <input ref={fileImportRef} type="file" accept=".xlsx,.xls" style={{ display: 'none' }} onChange={handleImportFile} />
+          <button className="btn btn--outline" onClick={() => fileImportRef.current?.click()} disabled={!puedeCrear || importando} title="Importar categorías desde Excel (columnas: Nombre, Descripcion)"><MdUploadFile size={17} />{importando ? 'Importando...' : 'Importar Excel'}</button>
+          <button className="btn btn--primary" onClick={openCreate} disabled={!puedeCrear}><MdAdd size={18} />Nueva categoría</button>
+        </div>
       </div>
+      {importMsg && (() => {
+        const hayError = !!importMsg.error || importMsg.fail > 0;
+        return (
+          <div style={{
+            margin: '0 2rem 1rem', padding: '0.75rem 1rem', borderRadius: '10px', fontSize: '0.875rem',
+            display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap',
+            background: hayError ? 'rgba(220,38,38,0.08)' : 'rgba(22,163,74,0.10)',
+            border: `1px solid ${hayError ? 'rgba(220,38,38,0.3)' : 'rgba(22,163,74,0.3)'}`,
+            color: hayError ? '#b91c1c' : '#136a32',
+          }}>
+            <span>{importMsg.error
+              ? importMsg.error
+              : `Importación: ${importMsg.ok} creada(s), ${importMsg.fail} con error.${importMsg.faltantes?.length ? ` No se pudieron: ${importMsg.faltantes.join(', ')}.` : ''}`}</span>
+            <button className="btn btn--ghost btn--sm" onClick={() => setImportMsg(null)} style={{ marginLeft: 'auto' }}>Cerrar</button>
+          </div>
+        );
+      })()}
       <div className="card">
         <div className="card__header">
           <SearchBar

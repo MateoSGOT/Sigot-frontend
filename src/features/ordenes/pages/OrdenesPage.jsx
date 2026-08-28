@@ -3,6 +3,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { useLocation } from 'react-router-dom';
 import { MdVisibility, MdEdit, MdAdd, MdBuild, MdCheck, MdArrowForward, MdDeleteOutline } from 'react-icons/md';
 import { usePermiso } from '../../../shared/hooks/usePermiso.js';
+import { useAutoRefresh } from '../../../shared/hooks/useAutoRefresh.js';
 import {
   fetchOrdenes, fetchOrdenById, updateOrden, toggleOrdenEstado,
   addServicioToOrden, addRepuestoToOrden, setManoDeObra, clearSelected,
@@ -17,8 +18,39 @@ import FilterDropdown from '../../../shared/components/FilterDropdown/FilterDrop
 import Badge from '../../../shared/components/Badge/Badge.jsx';
 import { filterItems, sortNewestFirst, formatDate, formatCurrency } from '../../../shared/utils/helpers.js';
 import { generarFacturaOrden } from '../../../shared/utils/generarFacturaPDF.js';
+import * as V from '../../../shared/utils/validators.js';
+import { useFormValidation } from '../../../shared/hooks/useFormValidation.js';
+import { useToast } from '../../../shared/components/Toast/ToastContext.jsx';
 import api from '../../../shared/services/api.js';
 import './OrdenesPage.css';
+
+// Reglas de validación en tiempo real para crear un servicio/repuesto NUEVO
+// desde la orden (mismo patrón que ServiciosPage/RepuestosPage).
+const RULES_NUEVO_SERV = {
+  Nombre: (v) => V.nombre(v, 3, 80),
+  Precio: (v) => {
+    if (v === '' || v == null) return 'El precio es obligatorio.';
+    const n = Number(v);
+    if (Number.isNaN(n) || n <= 0) return 'El precio debe ser mayor a 0.';
+    return '';
+  },
+};
+const RULES_NUEVO_REP = {
+  NombreRepuesto: (v) => V.nombre(v, 3, 120),
+  Id_categoria:   (v) => V.requiredSelect(v, 'La categoría'),
+  cantidad: (v) => {
+    if (v === '' || v == null) return 'La cantidad es obligatoria.';
+    const n = Number(v);
+    if (!Number.isInteger(n) || n <= 0) return 'La cantidad debe ser un entero mayor a 0.';
+    return '';
+  },
+  precio_unitario: (v) => {
+    if (v === '' || v == null) return 'El precio unitario es obligatorio.';
+    const n = Number(v);
+    if (Number.isNaN(n) || n < 0) return 'El precio no puede ser negativo.';
+    return '';
+  },
+};
 
 const ESTADO_CONFIG = {
   0: { label: 'Inactivo',   variant: 'gray',    bg: 'rgba(255,255,255,0.08)', color: '#888888', border: 'rgba(255,255,255,0.12)' },
@@ -121,6 +153,7 @@ const fmtDuracion = (min) => {
 export default function OrdenesPage() {
   const dispatch = useDispatch();
   const location = useLocation();
+  const { addToast } = useToast();
   const { items, selected, loading, actionLoading } = useSelector(s => s.ordenes);
   const puedeEditar  = usePermiso('ORDENES.EDITAR');
   const puedeToggle  = usePermiso('ORDENES.CAMBIAR_ESTADO');
@@ -132,6 +165,22 @@ export default function OrdenesPage() {
   const [nuevoServ, setNuevoServ] = useState({ Nombre: '', Precio: '', DuracionMinutos: '' });
   const [modoRep, setModoRep] = useState('existente');
   const [nuevoRep, setNuevoRep] = useState({ NombreRepuesto: '', Id_categoria: '', cantidad: '', precio_unitario: '' });
+  const servVal = useFormValidation(RULES_NUEVO_SERV);
+  const repVal  = useFormValidation(RULES_NUEVO_REP);
+  const setServField = (name, value) => {
+    const next = { ...nuevoServ, [name]: value };
+    setNuevoServ(next);
+    if (servVal.touched[name] || servVal.errors[name]) servVal.revalidate(next);
+  };
+  const handleServChange = (e) => setServField(e.target.name, e.target.value);
+  const handleServBlur = (e) => { servVal.markTouched(e.target.name); servVal.revalidate(nuevoServ); };
+  const setRepField = (name, value) => {
+    const next = { ...nuevoRep, [name]: value };
+    setNuevoRep(next);
+    if (repVal.touched[name] || repVal.errors[name]) repVal.revalidate(next);
+  };
+  const handleRepChange = (e) => setRepField(e.target.name, e.target.value);
+  const handleRepBlur = (e) => { repVal.markTouched(e.target.name); repVal.revalidate(nuevoRep); };
   const [search, setSearch]               = useState('');
   const [estadoFilter, setEstadoFilter]   = useState('todos');
   const [pageSize, setPageSize]           = useState(5);
@@ -162,8 +211,9 @@ export default function OrdenesPage() {
     dispatch(fetchOrdenes());
     api.get('/api/servicios').then(r => setServiciosOpts(r.data?.data || r.data || [])).catch(() => {});
     api.get('/api/repuestos').then(r => setRepuestosOpts(r.data?.data || r.data || [])).catch(() => {});
-    api.get('/api/categoria-repuestos').then(r => setCategoriasOpts(r.data?.data || r.data || [])).catch(() => {});
-  }, [dispatch]);
+    api.get('/api/categoria-repuestos').then(r => setCategoriasOpts(r.data?.data || r.data || []))
+      .catch(() => addToast({ type: 'error', message: 'No se pudieron cargar las categorías de repuesto. Verifica tus permisos o intenta de nuevo.' }));
+  }, [dispatch, addToast]);
 
   // Item 16: al llegar desde "generar orden" en la agenda, abrimos esa orden.
   useEffect(() => {
@@ -190,6 +240,14 @@ export default function OrdenesPage() {
       dispatch(clearSelected());
     }
   }, [detailId, dispatch]);
+
+  // Actualización en tiempo real: refresca la lista y (si está abierta) la orden en
+  // detalle, salvo con algún modal/formulario de edición activo.
+  const hayEdicionAbierta = showEdit || editingEmpleado || obsEdit !== null;
+  useAutoRefresh(() => {
+    dispatch(fetchOrdenes());
+    if (detailId) dispatch(fetchOrdenById(detailId));
+  }, { intervalMs: 20000, enabled: !hayEdicionAbierta });
 
   const filtered = (() => {
     let list = items;
@@ -274,7 +332,9 @@ export default function OrdenesPage() {
 
   // Item 3: crear un servicio nuevo y agregarlo a la orden, sin salir a Servicios.
   const handleCrearServicioInline = async () => {
-    if (!nuevoServ.Nombre.trim() || !nuevoServ.Precio) { setAddServError('Nombre y precio del nuevo servicio son obligatorios.'); return; }
+    const errs = servVal.validateNow(nuevoServ);
+    servVal.setErrors(errs); servVal.touchAll();
+    if (V.hasErrors(errs)) { setAddServError('Corrige los campos marcados antes de crear el servicio.'); return; }
     setAddServError('');
     try {
       const res = await api.post('/api/servicios', {
@@ -289,6 +349,7 @@ export default function OrdenesPage() {
       const result = await dispatch(addServicioToOrden({ id: detailId, data: { Id_Servicio: newId, precio_unitario: nuevoServ.Precio } }));
       if (!result.error) {
         setNuevoServ({ Nombre: '', Precio: '', DuracionMinutos: '' });
+        servVal.reset();
         setModoServ('existente');
         dispatch(fetchOrdenById(detailId));
       } else setAddServError(result.payload || 'Servicio creado, pero no se pudo agregar a la orden.');
@@ -319,9 +380,9 @@ export default function OrdenesPage() {
   // sin salir a Repuestos. Stock/costo se llenan con la compra; aquí solo nombre,
   // categoría y el precio de venta para esta orden.
   const handleCrearRepuestoInline = async () => {
-    if (!nuevoRep.NombreRepuesto.trim() || !nuevoRep.Id_categoria || !nuevoRep.cantidad || !nuevoRep.precio_unitario) {
-      setAddRepError('Nombre, categoría, cantidad y precio del nuevo repuesto son obligatorios.'); return;
-    }
+    const errs = repVal.validateNow(nuevoRep);
+    repVal.setErrors(errs); repVal.touchAll();
+    if (V.hasErrors(errs)) { setAddRepError('Corrige los campos marcados antes de crear el repuesto.'); return; }
     setAddRepError('');
     try {
       const res = await api.post('/api/repuestos', {
@@ -337,6 +398,7 @@ export default function OrdenesPage() {
       const result = await dispatch(addRepuestoToOrden({ id: detailId, data: { Id_Repuesto: newId, cantidad: nuevoRep.cantidad, precio_unitario: nuevoRep.precio_unitario } }));
       if (!result.error) {
         setNuevoRep({ NombreRepuesto: '', Id_categoria: '', cantidad: '', precio_unitario: '' });
+        repVal.reset();
         setModoRep('existente');
         dispatch(fetchOrdenById(detailId));
       } else setAddRepError(result.payload || 'Repuesto creado, pero no se pudo agregar a la orden.');
@@ -726,10 +788,18 @@ export default function OrdenesPage() {
                       </div>
                     ) : (
                       <div className="orden-add-row">
-                        <input className="form-control" placeholder="Nombre del servicio" value={nuevoServ.Nombre} onChange={e => setNuevoServ(p => ({ ...p, Nombre: e.target.value }))} maxLength={80} />
-                        <input type="number" min="0" className="form-control" placeholder="Precio" value={nuevoServ.Precio} onChange={e => setNuevoServ(p => ({ ...p, Precio: e.target.value }))} />
-                        <input type="number" min="1" className="form-control" placeholder="Duración (min, opcional)" value={nuevoServ.DuracionMinutos} onChange={e => setNuevoServ(p => ({ ...p, DuracionMinutos: e.target.value }))} />
-                        <button className="btn btn--primary btn--sm" onClick={handleCrearServicioInline} disabled={actionLoading || !nuevoServ.Nombre.trim() || !(Number(nuevoServ.Precio) > 0)}><MdAdd size={16} />Crear y agregar</button>
+                        <div className="orden-add-field">
+                          <input name="Nombre" className={`form-control ${servVal.fieldError('Nombre') ? 'is-error' : ''}`} placeholder="Nombre del servicio" value={nuevoServ.Nombre} onChange={handleServChange} onBlur={handleServBlur} maxLength={80} />
+                          {servVal.fieldError('Nombre') && <p className="form-error">{servVal.fieldError('Nombre')}</p>}
+                        </div>
+                        <div className="orden-add-field">
+                          <input name="Precio" type="number" min="0" className={`form-control ${servVal.fieldError('Precio') ? 'is-error' : ''}`} placeholder="Precio" value={nuevoServ.Precio} onChange={handleServChange} onBlur={handleServBlur} />
+                          {servVal.fieldError('Precio') && <p className="form-error">{servVal.fieldError('Precio')}</p>}
+                        </div>
+                        <div className="orden-add-field">
+                          <input name="DuracionMinutos" type="number" min="1" className="form-control" placeholder="Duración (min, opcional)" value={nuevoServ.DuracionMinutos} onChange={handleServChange} />
+                        </div>
+                        <button className="btn btn--primary btn--sm" onClick={handleCrearServicioInline} disabled={actionLoading || servVal.isInvalid(nuevoServ)}><MdAdd size={16} />Crear y agregar</button>
                       </div>
                     )}
                   </div>
@@ -827,14 +897,26 @@ export default function OrdenesPage() {
                     ) : (
                       <>
                         <div className="orden-add-row">
-                          <input className="form-control" placeholder="Nombre del repuesto" value={nuevoRep.NombreRepuesto} onChange={e => setNuevoRep(p => ({ ...p, NombreRepuesto: e.target.value }))} maxLength={120} />
-                          <select className="form-control" value={nuevoRep.Id_categoria} onChange={e => setNuevoRep(p => ({ ...p, Id_categoria: e.target.value }))}>
-                            <option value="">Categoría...</option>
-                            {categoriasOpts.map(c => <option key={c.Id_categoria ?? c.Id_Categoria} value={c.Id_categoria ?? c.Id_Categoria}>{c.Nombre ?? c.nombre}</option>)}
-                          </select>
-                          <input type="number" min="1" className="form-control" placeholder="Cantidad" value={nuevoRep.cantidad} onChange={e => setNuevoRep(p => ({ ...p, cantidad: e.target.value }))} />
-                          <input type="number" min="0" className="form-control" placeholder="Precio unitario" value={nuevoRep.precio_unitario} onChange={e => setNuevoRep(p => ({ ...p, precio_unitario: e.target.value }))} />
-                          <button className="btn btn--primary btn--sm" onClick={handleCrearRepuestoInline} disabled={actionLoading || !nuevoRep.NombreRepuesto.trim() || !nuevoRep.Id_categoria || !(Number(nuevoRep.cantidad) > 0) || !(Number(nuevoRep.precio_unitario) >= 0) || nuevoRep.precio_unitario === ''}><MdAdd size={16} />Crear y agregar</button>
+                          <div className="orden-add-field">
+                            <input name="NombreRepuesto" className={`form-control ${repVal.fieldError('NombreRepuesto') ? 'is-error' : ''}`} placeholder="Nombre del repuesto" value={nuevoRep.NombreRepuesto} onChange={handleRepChange} onBlur={handleRepBlur} maxLength={120} />
+                            {repVal.fieldError('NombreRepuesto') && <p className="form-error">{repVal.fieldError('NombreRepuesto')}</p>}
+                          </div>
+                          <div className="orden-add-field">
+                            <select name="Id_categoria" className={`form-control ${repVal.fieldError('Id_categoria') ? 'is-error' : ''}`} value={nuevoRep.Id_categoria} onChange={handleRepChange} onBlur={handleRepBlur}>
+                              <option value="">Categoría...</option>
+                              {categoriasOpts.map(c => <option key={c.Id_categoria ?? c.Id_Categoria} value={c.Id_categoria ?? c.Id_Categoria}>{c.Nombre ?? c.nombre}</option>)}
+                            </select>
+                            {repVal.fieldError('Id_categoria') && <p className="form-error">{repVal.fieldError('Id_categoria')}</p>}
+                          </div>
+                          <div className="orden-add-field">
+                            <input name="cantidad" type="number" min="1" className={`form-control ${repVal.fieldError('cantidad') ? 'is-error' : ''}`} placeholder="Cantidad" value={nuevoRep.cantidad} onChange={handleRepChange} onBlur={handleRepBlur} />
+                            {repVal.fieldError('cantidad') && <p className="form-error">{repVal.fieldError('cantidad')}</p>}
+                          </div>
+                          <div className="orden-add-field">
+                            <input name="precio_unitario" type="number" min="0" className={`form-control ${repVal.fieldError('precio_unitario') ? 'is-error' : ''}`} placeholder="Precio unitario" value={nuevoRep.precio_unitario} onChange={handleRepChange} onBlur={handleRepBlur} />
+                            {repVal.fieldError('precio_unitario') && <p className="form-error">{repVal.fieldError('precio_unitario')}</p>}
+                          </div>
+                          <button className="btn btn--primary btn--sm" onClick={handleCrearRepuestoInline} disabled={actionLoading || repVal.isInvalid(nuevoRep)}><MdAdd size={16} />Crear y agregar</button>
                         </div>
                         <p className="u-hint u-mt-xs">Se crea la ficha del repuesto (stock y costo se ajustan luego con las compras). El precio unitario es el de venta para esta orden.</p>
                       </>

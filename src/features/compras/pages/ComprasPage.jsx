@@ -2,6 +2,7 @@
 import { useDispatch, useSelector } from 'react-redux';
 import { MdAdd, MdVisibility, MdBlock, MdDeleteOutline, MdWarning } from 'react-icons/md';
 import { usePermiso } from '../../../shared/hooks/usePermiso.js';
+import { useAutoRefresh } from '../../../shared/hooks/useAutoRefresh.js';
 import SearchableSelect from '../../../shared/components/SearchableSelect/SearchableSelect.jsx';
 import { fetchCompras, createCompra, anularCompra } from '../slices/comprasSlice.js';
 import Modal from '../../../shared/components/Modal/Modal.jsx';
@@ -37,9 +38,17 @@ export default function ComprasPage() {
 
   useEffect(() => {
     dispatch(fetchCompras());
-    api.get('/api/proveedores').then(r => setProveedores(r.data?.data || r.data || [])).catch(() => {});
+    // Solo proveedores activos: un proveedor inactivo no debe poder recibir compras nuevas.
+    api.get('/api/proveedores?estado=activos')
+      .then(r => {
+        const data = r.data?.data || r.data || [];
+        setProveedores(data.filter(p => p.Estado !== false && p.Estado !== 0));
+      })
+      .catch(() => {});
     api.get('/api/repuestos').then(r => setRepuestos(r.data?.data || r.data || [])).catch(() => {});
   }, [dispatch]);
+
+  useAutoRefresh(() => dispatch(fetchCompras()), { intervalMs: 20000, enabled: !showForm && !confirmAnular });
 
   const getNombre = (arr, idKey, id) => {
     const lowKey = idKey === 'Id_Proveedor' ? 'id_proveedor' : idKey;
@@ -92,6 +101,12 @@ export default function ComprasPage() {
           productos[idx] = { ...productos[idx], PrecioUnitario: String(precioRef) };
         } else {
           productos[idx] = { ...productos[idx], PrecioUnitario: '' };
+        }
+        // Autocompleta la cantidad con 1 si aún no se había puesto ninguna: sin esto,
+        // el botón "Registrar" seguía deshabilitado tras elegir el repuesto y parecía
+        // que el select "no hacía nada" hasta tocar otro campo.
+        if (!productos[idx].Cantidad) {
+          productos[idx] = { ...productos[idx], Cantidad: '1' };
         }
         setPriceWarnings(prev => { const next = { ...prev }; delete next[idx]; return next; });
       }

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { MdAdd, MdVisibility, MdCheck, MdCameraAlt, MdDirectionsCar, MdEventBusy, MdEdit } from 'react-icons/md';
 import { logout, updateCliente } from '../../auth/slices/authSlice.js';
+import { useAutoRefresh } from '../../../shared/hooks/useAutoRefresh.js';
 import PortalSidebar from '../components/PortalSidebar.jsx';
 import Modal from '../../../shared/components/Modal/Modal.jsx';
 import { useToast } from '../../../shared/components/Toast/ToastContext.jsx';
@@ -85,6 +86,7 @@ export default function PortalPage() {
   const [citaToast,     setCitaToast]     = useState(false);
   const [empleadosDisp, setEmpleadosDisp] = useState([]);
   const [loadingEmpl,   setLoadingEmpl]   = useState(false);
+  const [horasOcupadas, setHorasOcupadas] = useState([]); // franjas ocupadas del técnico elegido, esa fecha
   // Horario de atención del taller (configurable). Se usa para generar las horas
   // del select en vez de dejarlas quemadas (8–18).
   const [horario, setHorario] = useState({ apertura: '08:00', cierre: '18:00', diasLaborales: [1, 2, 3, 4, 5, 6] });
@@ -116,6 +118,23 @@ export default function PortalPage() {
       setCitas(flattenCitas(cRes.data?.data || []));
     }).catch(() => {}).finally(() => setLoading(false));
   }, [cliente?.Id_Cliente, token]);
+
+  // Actualización en tiempo real: refresca vehículos/órdenes/citas solas, salvo con
+  // el modal de "nueva cita" o de "cancelar cita" abierto.
+  const refetchTodo = () => {
+    if (!cliente || !token || tipo !== 'cliente') return;
+    const h = { Authorization: `Bearer ${token}` };
+    Promise.all([
+      api.get('/api/portal/vehiculos', { headers: h }),
+      api.get('/api/portal/ordenes',   { headers: h }),
+      api.get('/api/portal/citas',     { headers: h }),
+    ]).then(([vRes, oRes, cRes]) => {
+      setVehiculos(vRes.data?.data || []);
+      setOrdenes(oRes.data?.data || []);
+      setCitas(flattenCitas(cRes.data?.data || []));
+    }).catch(() => {});
+  };
+  useAutoRefresh(refetchTodo, { intervalMs: 20000, enabled: !showCitaModal && !confirmCancelarCita });
 
   const flattenCitas = list => list.map(c => ({
     ...c,
@@ -246,24 +265,38 @@ export default function PortalPage() {
     finally { setLoadingEmpl(false); }
   };
 
+  // Horas ya ocupadas del técnico elegido, esa fecha (citas + novedades puntuales).
+  // Sin técnico o sin fecha no hay nada que consultar: solo se filtran horas pasadas.
+  const fetchHorasOcupadas = async (fecha, idEmpleado) => {
+    if (!fecha || !idEmpleado) { setHorasOcupadas([]); return; }
+    try {
+      const r = await api.get(`/api/portal/horas-ocupadas?id_empleado=${idEmpleado}&fecha=${fecha}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setHorasOcupadas(r.data?.data || []);
+    } catch { setHorasOcupadas([]); }
+  };
+
   const openCrearCita = () => {
     setEditingCitaId(null);
     setCitaForm({ Id_Vehiculo: '', Fecha: '', Hora: '', Descripcion: '', Id_Empleado: '' });
-    setCitaError(''); setEmpleadosDisp([]); setShowCitaModal(true);
+    setCitaError(''); setEmpleadosDisp([]); setHorasOcupadas([]); setShowCitaModal(true);
   };
 
   const openEditarCita = (cita) => {
     setEditingCitaId(cita.Id_Agenda ?? cita.id);
     const fecha = (cita.FechaAgendamiento || '').split('T')[0];
+    const idEmpleado = String(cita.Id_Empleado ?? cita.id_empleado ?? '');
     setCitaForm({
       Id_Vehiculo: String(cita.Id_Vehiculo ?? ''),
       Fecha: fecha,
       Hora: cita.Hora || '',
       Descripcion: cita.Descripcion || '',
-      Id_Empleado: String(cita.Id_Empleado ?? cita.id_empleado ?? ''),
+      Id_Empleado: idEmpleado,
     });
     setCitaError('');
     if (fecha) fetchEmpleadosDisp(fecha);
+    if (fecha && idEmpleado) fetchHorasOcupadas(fecha, idEmpleado);
     setShowCitaModal(true);
   };
 
@@ -753,6 +786,7 @@ export default function PortalPage() {
               onChange={e => {
                 const f = e.target.value;
                 setCitaForm(p => ({ ...p, Fecha: f, Id_Empleado: '' }));
+                setHorasOcupadas([]);
                 fetchEmpleadosDisp(f);
               }} required />
           </div>
@@ -762,12 +796,15 @@ export default function PortalPage() {
               <option value="">Seleccionar hora...</option>
               {(() => {
                 // Horas dentro del horario configurado del taller. Si la fecha es
-                // hoy, se deshabilitan las horas ya pasadas.
+                // hoy, se deshabilitan las horas ya pasadas. Si hay técnico elegido,
+                // también se deshabilitan las horas que choquen con una cita/novedad
+                // ya registrada para ese técnico ese día (fuente: horas-ocupadas).
                 const toMin = (hhmm) => { const [hh, mm] = String(hhmm).split(':').map(Number); return (hh || 0) * 60 + (mm || 0); };
                 const ap = toMin(horario.apertura || '08:00');
                 const ci = toMin(horario.cierre || '18:00');
                 const esHoy  = citaForm.Fecha === new Date().toISOString().split('T')[0];
                 const nowMin = new Date().getHours() * 60 + new Date().getMinutes();
+                const DURACION_DEFAULT = 60;
                 const opts = [];
                 for (let mins = ap; mins <= ci && !Number.isNaN(mins); mins += 30) {
                   const h = Math.floor(mins / 60), m = mins % 60;
@@ -775,7 +812,13 @@ export default function PortalPage() {
                   const label = `${h12}:${String(m).padStart(2, '0')} ${h >= 12 ? 'PM' : 'AM'}`;
                   const value = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
                   const pasada = esHoy && mins <= nowMin;
-                  opts.push(<option key={value} value={value} disabled={pasada}>{label}{pasada ? ' (pasada)' : ''}</option>);
+                  const ocupada = !!citaForm.Id_Empleado && horasOcupadas.some(o => {
+                    const oIni = toMin(o.Hora);
+                    const oFin = oIni + Number(o.DuracionEstimadaMin || DURACION_DEFAULT);
+                    return mins < oFin && oIni < mins + DURACION_DEFAULT;
+                  });
+                  const bloqueada = pasada || ocupada;
+                  opts.push(<option key={value} value={value} disabled={bloqueada}>{label}{pasada ? ' (pasada)' : ocupada ? ' (ocupado)' : ''}</option>);
                 }
                 return opts;
               })()}
@@ -788,7 +831,11 @@ export default function PortalPage() {
             ) : loadingEmpl ? (
               <p className="u-hint-sm">Cargando técnicos...</p>
             ) : (
-              <select className="form-control" value={citaForm.Id_Empleado} onChange={e => setCitaForm(p => ({ ...p, Id_Empleado: e.target.value }))}>
+              <select className="form-control" value={citaForm.Id_Empleado} onChange={e => {
+                const idEmpleado = e.target.value;
+                setCitaForm(p => ({ ...p, Id_Empleado: idEmpleado, Hora: '' }));
+                fetchHorasOcupadas(citaForm.Fecha, idEmpleado);
+              }}>
                 <option value="">Sin preferencia</option>
                 {empleadosDisp.map(e => (
                   <option key={e.id_empleado} value={e.id_empleado} disabled={!e.disponible}>

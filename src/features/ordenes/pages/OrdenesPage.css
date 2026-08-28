@@ -295,6 +295,26 @@
 
 .orden-add-row .btn {
   flex-shrink: 0;
+  align-self: flex-start;
+}
+
+/* Campo con validación en tiempo real dentro de una fila de alta inline
+   (crear servicio/repuesto nuevo desde la orden): el input y su mensaje de
+   error quedan agrupados sin romper el layout en fila. */
+.orden-add-field {
+  flex: 1;
+  min-width: 120px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.orden-add-field .form-control {
+  width: 100%;
+}
+
+.orden-add-field .form-error {
+  margin: 0;
 }
 
 /* Totals */

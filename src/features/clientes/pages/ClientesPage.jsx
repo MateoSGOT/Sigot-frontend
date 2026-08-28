@@ -4,6 +4,7 @@ import { MdAdd, MdVisibility, MdEdit, MdVisibilityOff, MdDeleteForever, MdSwapHo
 import { usePermiso } from '../../../shared/hooks/usePermiso.js';
 import { useFormValidation } from '../../../shared/hooks/useFormValidation.js';
 import { useBorradoReal } from '../../../shared/hooks/useBorradoReal.js';
+import { useAutoRefresh } from '../../../shared/hooks/useAutoRefresh.js';
 import { useToast } from '../../../shared/components/Toast/ToastContext.jsx';
 import { clientesService } from '../services/clientesService.js';
 import ImageUploader from '../../../shared/components/ImageUploader/ImageUploader.jsx';
@@ -56,6 +57,8 @@ export default function ClientesPage() {
     api.get('/api/catalogos/tipos-documento').then(r => setTiposDoc(r.data?.data || r.data || [])).catch(() => {});
     api.get('/api/roles').then(r => setRoles(r.data?.data || r.data || [])).catch(() => {});
   }, [dispatch]);
+
+  useAutoRefresh(() => dispatch(fetchClientes()), { intervalMs: 20000, enabled: !showForm && !showConvertir && !del.isOpen });
 
   const filtered = (() => {
     let list = items;

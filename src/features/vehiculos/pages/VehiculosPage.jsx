@@ -5,6 +5,7 @@ import { useBorradoReal } from '../../../shared/hooks/useBorradoReal.js';
 import { vehiculosService } from '../services/vehiculosService.js';
 import EliminarRealModal from '../../../shared/components/EliminarRealModal/EliminarRealModal.jsx';
 import { usePermiso } from '../../../shared/hooks/usePermiso.js';
+import { useAutoRefresh } from '../../../shared/hooks/useAutoRefresh.js';
 import SearchableSelect from '../../../shared/components/SearchableSelect/SearchableSelect.jsx';
 import ToggleSwitch from '../../../shared/components/ToggleSwitch/ToggleSwitch.jsx';
 import { fetchVehiculos, createVehiculo, updateVehiculo, toggleVehiculoEstado } from '../slices/vehiculosSlice.js';
@@ -16,6 +17,7 @@ import { StatusBadge } from '../../../shared/components/Badge/Badge.jsx';
 import { sortByStatus, sortNewestFirst, filterItems } from '../../../shared/utils/helpers.js';
 import * as V from '../../../shared/utils/validators.js';
 import { useFormValidation } from '../../../shared/hooks/useFormValidation.js';
+import { useToast } from '../../../shared/components/Toast/ToastContext.jsx';
 import api from '../../../shared/services/api.js';
 import './VehiculosPage.css';
 
@@ -46,6 +48,7 @@ export default function VehiculosPage() {
   const puedeEditar  = usePermiso('VEHICULOS.EDITAR');
   const puedeToggle  = usePermiso('VEHICULOS.CAMBIAR_ESTADO');
   const esSuperadmin = useSelector(s => s.auth.empleado?.EsSuperAdmin === true);
+  const { addToast } = useToast();
   const del = useBorradoReal(vehiculosService, { entidadLabel: 'vehículo', onDeleted: () => dispatch(fetchVehiculos()) });
   const [marcas, setMarcas] = useState([]);
   const [clientes, setClientes] = useState([]);
@@ -68,6 +71,8 @@ export default function VehiculosPage() {
     api.get('/api/clientes').then(r => setClientes(r.data?.data || r.data || [])).catch(() => {});
   }, [dispatch]);
 
+  useAutoRefresh(() => dispatch(fetchVehiculos()), { intervalMs: 20000, enabled: !showForm && !del.isOpen });
+
   // Carga los modelos de una marca (selector dependiente). incluir = Id_Modelo actual
   // a conservar aunque esté inactivo (caso edición).
   const loadModelos = (idMarca, incluir = null) => {
@@ -82,6 +87,22 @@ export default function VehiculosPage() {
       })
       .catch(() => setModelos([]))
       .finally(() => setModelosLoading(false));
+  };
+
+  // Crea una marca nueva al vuelo desde el select del formulario (sin salir a la
+  // pantalla de Marcas). Requiere el mismo permiso que crear vehículos (backend:
+  // POST /api/marcas exige VEHICULOS.REGISTRAR).
+  const handleCrearMarca = async (nombre) => {
+    try {
+      const r = await api.post('/api/marcas', { Nombre: nombre });
+      const nueva = r.data?.data || r.data;
+      setMarcas(prev => [...prev, nueva]);
+      addToast({ type: 'success', message: `Marca "${nueva.Nombre}" creada.` });
+      return { value: String(nueva.Id_Marca), label: nueva.Nombre };
+    } catch (e) {
+      addToast({ type: 'error', message: e?.response?.data?.message || 'No se pudo crear la marca.' });
+      throw e;
+    }
   };
 
   const marcasOpts   = marcas.map(m => ({ value: String(m.Id_Marca), label: m.Nombre }));
@@ -225,6 +246,8 @@ export default function VehiculosPage() {
               value={String(formData.Id_Marca)}
               onChange={v => { setField('Id_Marca', v, { Id_Modelo: '' }); loadModelos(v); markTouched('Id_Marca'); }}
               placeholder="Seleccionar marca..."
+              onCreateOption={puedeCrear ? handleCrearMarca : undefined}
+              createLabel={q => `+ Crear marca "${q}"`}
             />
             {fieldError('Id_Marca') && <p className="form-error">{fieldError('Id_Marca')}</p>}
           </div>

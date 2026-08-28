@@ -20,8 +20,8 @@ export const generarOrdenDeCita = createAsyncThunk('agenda/generarOrden', async 
   try { const r = await agendaService.generarOrden(id, data); return r.data || r; }
   catch (e) { return rejectWithValue(e?.response?.data?.message || 'Error al generar orden'); }
 });
-export const cancelarCita = createAsyncThunk('agenda/cancelar', async (id, { rejectWithValue }) => {
-  try { const r = await agendaService.cancelar(id); return r.data || r; }
+export const cancelarCita = createAsyncThunk('agenda/cancelar', async ({ id, motivo }, { rejectWithValue }) => {
+  try { const r = await agendaService.cancelar(id, motivo); return r.data || r; }
   catch (e) { return rejectWithValue(e?.response?.data?.message || 'No se pudo cancelar la cita'); }
 });
 export const deleteCita = createAsyncThunk('agenda/delete', async (id, { rejectWithValue }) => {

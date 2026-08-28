@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { MdAdd, MdVisibility, MdEdit, MdDeleteForever } from 'react-icons/md';
 import { useBorradoReal } from '../../../shared/hooks/useBorradoReal.js';
+import { useAutoRefresh } from '../../../shared/hooks/useAutoRefresh.js';
 import { proveedoresService } from '../services/proveedoresService.js';
 import EliminarRealModal from '../../../shared/components/EliminarRealModal/EliminarRealModal.jsx';
 import { usePermiso } from '../../../shared/hooks/usePermiso.js';
@@ -90,6 +91,8 @@ export default function ProveedoresPage() {
   const { errors, touched, setErrors, revalidate, markTouched, touchAll, fieldError, isInvalid, validateNow, reset } = useFormValidation(RULES);
 
   useEffect(() => { dispatch(fetchProveedores()); }, [dispatch]);
+
+  useAutoRefresh(() => dispatch(fetchProveedores()), { intervalMs: 20000, enabled: !showForm && !del.isOpen });
 
   // Etiquetas/placeholder del documento y del nombre según el tipo de proveedor.
   const esJuridico  = formData.TipoProveedor === 'Juridico';

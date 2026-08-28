@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { MdSecurity, MdPerson, MdPeople } from 'react-icons/md';
 import { cuentasService } from '../services/cuentasService.js';
+import { useAutoRefresh } from '../../../shared/hooks/useAutoRefresh.js';
 import { rolesService } from '../../roles/services/rolesService.js';
 import Table from '../../../shared/components/Table/Table.jsx';
 import SearchBar from '../../../shared/components/SearchBar/SearchBar.jsx';
@@ -36,6 +37,8 @@ export default function CuentasPage() {
   };
 
   useEffect(() => { cargar(); }, []);
+
+  useAutoRefresh(() => cargar(), { intervalMs: 20000, enabled: !busyKey });
 
   const rolesOpts = useMemo(() => roles.map(r => ({ value: String(r.Id_Rol), label: r.Nombre })), [roles]);
 

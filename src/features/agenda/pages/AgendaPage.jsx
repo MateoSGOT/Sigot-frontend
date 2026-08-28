@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { MdAdd, MdVisibility, MdEdit, MdAssignment, MdEventBusy, MdEventRepeat, MdDeleteForever } from 'react-icons/md';
 import { usePermiso } from '../../../shared/hooks/usePermiso.js';
 import { useBorradoReal } from '../../../shared/hooks/useBorradoReal.js';
+import { useAutoRefresh } from '../../../shared/hooks/useAutoRefresh.js';
 import { agendaService } from '../services/agendaService.js';
 import SearchableSelect from '../../../shared/components/SearchableSelect/SearchableSelect.jsx';
 import ToggleSwitch from '../../../shared/components/ToggleSwitch/ToggleSwitch.jsx';
@@ -52,7 +53,9 @@ export default function AgendaPage() {
   const [vehiculos, setVehiculos] = useState([]);
   const [empleados, setEmpleados] = useState([]);
   const [novedades, setNovedades] = useState([]);
-  const [confirmCancelar, setConfirmCancelar] = useState(null); // cita a cancelar (ConfirmDialog)
+  const [confirmCancelar, setConfirmCancelar] = useState(null); // cita a cancelar
+  const [motivoCancelar, setMotivoCancelar] = useState('');
+  const [cancelarError, setCancelarError]   = useState('');
   const [confirmEliminar, setConfirmEliminar] = useState(null); // cita cancelada a eliminar (ConfirmDialog)
   const [search, setSearch]             = useState('');
   const [statusFilter, setStatusFilter] = useState('todos');
@@ -80,6 +83,11 @@ export default function AgendaPage() {
       setNovedades(r.data?.data || r.data || []);
     }).catch(() => {});
   }, [dispatch]);
+
+  // Actualización en tiempo real: refresca la lista sola, salvo con algún
+  // modal de creación/edición/cancelación abierto (no interrumpe al usuario).
+  const hayModalAbierto = showForm || showOrdenModal || !!confirmCancelar || !!confirmEliminar || del.isOpen;
+  useAutoRefresh(() => dispatch(fetchAgenda()), { intervalMs: 20000, enabled: !hayModalAbierto });
 
   // ── Novedades por FECHA (no solo "hoy") ──────────────────────────────
   // Bloquea asignar un empleado que tenga una novedad que cubra la fecha del
@@ -157,7 +165,10 @@ export default function AgendaPage() {
   // clientes/empleados que comparten el mismo nombre.
   const clientesOpts  = clientes.filter(esActivo).map(c => ({ value: String(c.Id_Cliente), label: `${c.Nombre} — ${c.Documento}` }));
   const vehiculosOpts = vehiculosFiltered.map(v => ({ value: String(v.Id_Vehiculo), label: `${v.Placa} — ${v.Modelo}` }));
-  const empleadosOpts = empleados.filter(esActivo).map(e => {
+  // Solo empleados con rol mecánico/técnico pueden asignarse a una cita (igual que
+  // ya filtra el portal del cliente en /api/portal/empleados-disponibles).
+  const esMecanicoOTecnico = (e) => /mec|tec/i.test(e.Rol || e.rol?.Nombre || '');
+  const empleadosOpts = empleados.filter(esActivo).filter(esMecanicoOTecnico).map(e => {
     const id = String(e.Id_Empleado ?? e.id_empleado);
     const conNovedad = empleadosBloqueados.has(id);
     return { value: id, label: `${e.Nombre} — ${e.Documento}${conNovedad ? ' — Con novedad' : ''}`, disabled: conNovedad };
@@ -274,11 +285,13 @@ export default function AgendaPage() {
     else setOrdenError(result.payload || 'Error al generar orden.');
   };
 
+  const openCancelar = (row) => { setConfirmCancelar(row); setMotivoCancelar(''); setCancelarError(''); };
+  const closeCancelar = () => { setConfirmCancelar(null); setMotivoCancelar(''); setCancelarError(''); };
   const doCancelar = async () => {
     if (!confirmCancelar) return;
-    const r = await dispatch(cancelarCita(confirmCancelar.Id_Agenda || confirmCancelar.id));
-    setConfirmCancelar(null);
-    if (!r.error) { addToast({ type: 'success', message: 'Cita cancelada.' }); dispatch(fetchAgenda()); }
+    if (!motivoCancelar.trim()) { setCancelarError('Indica el motivo de la cancelación.'); return; }
+    const r = await dispatch(cancelarCita({ id: confirmCancelar.Id_Agenda || confirmCancelar.id, motivo: motivoCancelar.trim() }));
+    if (!r.error) { closeCancelar(); addToast({ type: 'success', message: 'Cita cancelada. Se notificó al cliente por correo.' }); dispatch(fetchAgenda()); }
     else addToast({ type: 'error', message: r.payload || 'No se pudo cancelar la cita.' });
   };
 
@@ -306,7 +319,7 @@ export default function AgendaPage() {
             <button className="btn btn--ghost btn--icon btn--sm" title="Editar" disabled={!puedeEditar || atendida} onClick={() => openEdit(row)}><MdEdit size={17} /></button>
             <button className="btn btn--ghost btn--icon btn--sm agenda-order-btn" title="Generar orden" disabled={atendida || estadoCita === 'Cancelada'} onClick={() => openGenerarOrden(row)}><MdAssignment size={17} /></button>
             {CITA_CANCELABLE(estadoCita) && (
-              <button className="btn btn--ghost btn--icon btn--sm" title="Cancelar cita" disabled={!puedeToggle} onClick={() => setConfirmCancelar(row)}><MdEventBusy size={17} /></button>
+              <button className="btn btn--ghost btn--icon btn--sm" title="Cancelar cita" disabled={!puedeToggle} onClick={() => openCancelar(row)}><MdEventBusy size={17} /></button>
             )}
             {esSuperadmin && (
               <button className="btn btn--ghost btn--icon btn--sm btn--danger-ghost" title="Eliminar cita definitivamente (superadmin)" onClick={() => del.open(row.Id_Agenda ?? row.id)}><MdDeleteForever size={17} /></button>
@@ -433,16 +446,30 @@ export default function AgendaPage() {
         </form>
       </Modal>
 
-      <ConfirmDialog
+      <Modal
         isOpen={!!confirmCancelar}
-        onClose={() => setConfirmCancelar(null)}
-        onConfirm={doCancelar}
+        onClose={closeCancelar}
         title="Cancelar cita"
-        message="¿Cancelar esta cita? El vehículo quedará libre para reagendar."
-        confirmLabel="Sí, cancelar"
-        danger
-        loading={actionLoading}
-      />
+        size="sm"
+        footer={<>
+          <button className="btn btn--outline" onClick={closeCancelar}>Volver</button>
+          <button className="btn btn--danger" onClick={doCancelar} disabled={actionLoading}>{actionLoading ? 'Cancelando...' : 'Sí, cancelar'}</button>
+        </>}
+      >
+        {cancelarError && <div className="form-error-box">{cancelarError}</div>}
+        <p className="u-mb-md">¿Cancelar esta cita? El vehículo quedará libre para reagendar y se notificará al cliente por correo.</p>
+        <div className="form-group">
+          <label className="form-label">Motivo de la cancelación <span className="required">*</span></label>
+          <textarea
+            className="form-control"
+            rows={3}
+            maxLength={300}
+            value={motivoCancelar}
+            onChange={e => { setMotivoCancelar(e.target.value); if (cancelarError) setCancelarError(''); }}
+            placeholder="Ej. El técnico no estará disponible, el cliente solicitó reprogramar..."
+          />
+        </div>
+      </Modal>
 
       <ConfirmDialog
         isOpen={!!confirmEliminar}
