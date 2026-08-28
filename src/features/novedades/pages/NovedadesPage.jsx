@@ -23,7 +23,8 @@ const TODAY = new Date().toISOString().split('T')[0];
 const RULES = {
   id_empleado: (v) => V.requiredSelect(v, 'El empleado'),
   Descripcion: (v) => V.required(v, 'La descripción') || V.maxLen(v, 500, 'La descripción'),
-  // Fecha_Novedad ya no se valida: se asigna automáticamente (hoy) al crear.
+  // Por defecto es hoy, pero editable hacia el futuro (incapacidad/permiso).
+  Fecha_Novedad: (v) => V.requiredSelect(v, 'La fecha de la novedad'),
 };
 
 export default function NovedadesPage() {
@@ -79,6 +80,10 @@ export default function NovedadesPage() {
     const errs = validateNow(formData);
     setErrors(errs); touchAll();
     if (V.hasErrors(errs)) { setFormError('Corrige los campos marcados antes de guardar.'); return; }
+
+    if (formData.FechaRealizacion && formData.FechaRealizacion < formData.Fecha_Novedad) {
+      setFormError('La fecha de fin no puede ser anterior a la fecha de la novedad.'); return;
+    }
 
     // Regla: un empleado no puede tener 3 o más novedades en la MISMA fecha.
     // Se cuentan las novedades ya registradas para ese empleado en ese día
@@ -191,13 +196,15 @@ export default function NovedadesPage() {
             {fieldError('Descripcion') && <p className="form-error">{fieldError('Descripcion')}</p>}
           </div>
           <div className="form-group">
-            <label className="form-label">Fecha de la novedad</label>
-            <input type="date" className="form-control" value={formData.Fecha_Novedad} disabled readOnly />
-            <p className="form-hint">Se asigna automáticamente con la fecha de hoy.</p>
+            <label className="form-label">Fecha de la novedad <span className="required">*</span></label>
+            <input name="Fecha_Novedad" type="date" className={`form-control ${fieldError('Fecha_Novedad') ? 'is-error' : ''}`} value={formData.Fecha_Novedad} onChange={handleChange} onBlur={handleBlur} min={TODAY} />
+            {fieldError('Fecha_Novedad') && <p className="form-error">{fieldError('Fecha_Novedad')}</p>}
+            <p className="form-hint">Por defecto es hoy. Cámbiala a una fecha futura para una incapacidad o permiso.</p>
           </div>
           <div className="form-group">
-            <label className="form-label">Fecha de realización</label>
-            <input name="FechaRealizacion" type="date" className="form-control" value={formData.FechaRealizacion} onChange={handleChange} min={TODAY} />
+            <label className="form-label">Fecha de fin (realización)</label>
+            <input name="FechaRealizacion" type="date" className="form-control" value={formData.FechaRealizacion} onChange={handleChange} min={formData.Fecha_Novedad || TODAY} />
+            <p className="form-hint">Fin de la incapacidad o permiso (opcional).</p>
           </div>
         </form>
       </Modal>

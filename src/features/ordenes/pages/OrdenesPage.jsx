@@ -87,7 +87,9 @@ function ProgresoEstado({ estadoActual, onAvanzar, loading, disabled, sinTrabajo
         {estadoNum === 3 && (
           <p className="progreso-done">✓ Orden completada</p>
         )}
-        {estadoNum !== 0 && estadoNum !== 3 && (
+        {/* Inactivar solo desde Pendiente: una orden En proceso ya está en
+            trabajo y no debe poder inactivarse (item 5a). */}
+        {estadoNum === 1 && (
           <button className="btn btn--sm progreso-btn--inactivo" onClick={() => onAvanzar(0)} disabled={loading || disabled} title="Marcar como inactiva">
             Poner como Inactivo
           </button>

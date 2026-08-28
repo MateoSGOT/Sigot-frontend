@@ -99,7 +99,10 @@ export default function DashboardPage() {
   useEffect(() => {
     let vivo = true;
     setLoading(true);
-    const r = { desde: rango.desde, hasta: rango.hasta, agrupacion: preset === 'anio' ? 'mes' : (rango.agrupacion === 'month' ? 'mes' : 'dia'), limit: 6 };
+    // computeRango ya entrega la agrupación correcta ('dia' o 'mes') para cada
+    // rango; antes se comparaba con 'month' (inglés) y nunca acertaba, así que
+    // los rangos largos personalizados salían en granularidad diaria.
+    const r = { desde: rango.desde, hasta: rango.hasta, agrupacion: rango.agrupacion, limit: 6 };
     Promise.all([
       dashboardService.getResumen(r).catch(() => null),
       dashboardService.getIngresos(r).catch(() => null),
@@ -143,19 +146,38 @@ export default function DashboardPage() {
         </button>
       </div>
 
-      {/* Selector de rango */}
+      {/* Selector de rango — control segmentado */}
       <div className="dashboard-rango">
-        <div className="dashboard-rango__presets">
+        <div className="dashboard-rango__seg" role="tablist" aria-label="Rango de fechas">
           {RANGOS.map(r => (
-            <button key={r.key} className={`btn btn--sm ${preset === r.key ? 'btn--primary' : 'btn--outline'}`} onClick={() => setPreset(r.key)}>{r.label}</button>
+            <button
+              key={r.key}
+              role="tab"
+              aria-selected={preset === r.key}
+              className={`dashboard-seg-btn${preset === r.key ? ' dashboard-seg-btn--active' : ''}`}
+              onClick={() => {
+                // Al pasar a "Personalizado" precargamos el mes actual para que
+                // el rango sea usable de una vez (y no quede en blanco).
+                if (r.key === 'custom' && !cDesde) {
+                  const h = new Date();
+                  setCDesde(fmt(new Date(h.getFullYear(), h.getMonth(), 1)));
+                  setCHasta(fmt(h));
+                }
+                setPreset(r.key);
+              }}
+            >
+              {r.label}
+            </button>
           ))}
         </div>
-        {preset === 'custom' && (
+        {preset === 'custom' ? (
           <div className="dashboard-rango__custom">
             <input type="date" className="form-control" value={cDesde} max={cHasta || undefined} onChange={e => setCDesde(e.target.value)} />
-            <span>→</span>
+            <span className="dashboard-rango__arrow">→</span>
             <input type="date" className="form-control" value={cHasta} min={cDesde || undefined} onChange={e => setCHasta(e.target.value)} />
           </div>
+        ) : (
+          <span className="dashboard-rango__summary">{rango.desde} → {rango.hasta}</span>
         )}
       </div>
 
