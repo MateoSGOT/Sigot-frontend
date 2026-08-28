@@ -92,9 +92,9 @@ export default function MarcasPage() {
     {
       key: 'acciones', label: 'Acciones', render: (_, row) => (
         <div className="table-actions">
+          <ToggleSwitch checked={row.Estado === 1} onChange={() => dispatch(toggleMarcaEstado({ id: row.Id_Marca, Estado: row.Estado === 1 ? 0 : 1 }))} disabled={!puedeToggle} />
           <button className="btn btn--ghost btn--icon btn--sm" onClick={() => openGestion(row)} title="Gestionar modelos"><MdListAlt size={17} /></button>
           <button className="btn btn--ghost btn--icon btn--sm" disabled={!puedeEditar} onClick={() => openEditMarca(row)} title="Editar marca"><MdEdit size={17} /></button>
-          <ToggleSwitch checked={row.Estado === 1} onChange={() => dispatch(toggleMarcaEstado({ id: row.Id_Marca, Estado: row.Estado === 1 ? 0 : 1 }))} disabled={!puedeToggle} />
           {esSuperadmin && (
             <button className="btn btn--ghost btn--icon btn--sm btn--danger-ghost" title="Eliminar marca definitivamente" onClick={() => del.open(row.Id_Marca)}><MdDeleteForever size={17} /></button>
           )}
@@ -110,8 +110,8 @@ export default function MarcasPage() {
     {
       key: 'acciones', label: 'Acciones', render: (_, row) => (
         <div className="table-actions">
-          <button className="btn btn--ghost btn--icon btn--sm" disabled={!puedeEditar} onClick={() => startEditarModelo(row)} title="Editar modelo"><MdEdit size={16} /></button>
           <ToggleSwitch checked={row.Estado === 1} onChange={() => dispatch(toggleModeloEstado({ id: row.Id_Modelo, Estado: row.Estado === 1 ? 0 : 1 }))} disabled={!puedeToggle} />
+          <button className="btn btn--ghost btn--icon btn--sm" disabled={!puedeEditar} onClick={() => startEditarModelo(row)} title="Editar modelo"><MdEdit size={16} /></button>
         </div>
       )
     },

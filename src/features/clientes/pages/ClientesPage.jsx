@@ -180,9 +180,9 @@ export default function ClientesPage() {
     {
       key: 'acciones', label: 'Acciones', render: (_, row) => (
         <div className="table-actions">
+          <ToggleSwitch checked={row.Estado === 1} onChange={() => handleToggle(row)} disabled={!puedeToggle} />
           <button className="btn btn--ghost btn--icon btn--sm" title="Ver detalle" onClick={() => setDetailId(row.Id_Cliente)}><MdVisibility size={17} /></button>
           <button className="btn btn--ghost btn--icon btn--sm" title="Editar" disabled={!puedeEditar} onClick={() => openEdit(row)}><MdEdit size={17} /></button>
-          <ToggleSwitch checked={row.Estado === 1} onChange={() => handleToggle(row)} disabled={!puedeToggle} />
           {esSuperadmin && (
             <button className="btn btn--ghost btn--icon btn--sm btn--danger-ghost" title="Eliminar definitivamente" onClick={() => del.open(row.Id_Cliente)}><MdDeleteForever size={17} /></button>
           )}

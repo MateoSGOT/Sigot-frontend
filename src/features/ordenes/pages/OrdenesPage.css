@@ -432,3 +432,6 @@
   min-width: 160px;
   text-align: center;
 }
+
+/* Toggle existente/crear-nuevo en agregar servicio/repuesto (items 3 y 4) */
+.orden-add-toggle { display: flex; gap: 0.375rem; flex-shrink: 0; }

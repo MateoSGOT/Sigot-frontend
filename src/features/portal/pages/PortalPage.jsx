@@ -4,7 +4,6 @@ import { MdAdd, MdVisibility, MdCheck, MdCameraAlt, MdDirectionsCar, MdEventBusy
 import { logout, updateCliente } from '../../auth/slices/authSlice.js';
 import PortalSidebar from '../components/PortalSidebar.jsx';
 import Modal from '../../../shared/components/Modal/Modal.jsx';
-import ConfirmDialog from '../../../shared/components/ConfirmDialog/ConfirmDialog.jsx';
 import { useToast } from '../../../shared/components/Toast/ToastContext.jsx';
 import Table from '../../../shared/components/Table/Table.jsx';
 import SearchBar from '../../../shared/components/SearchBar/SearchBar.jsx';
@@ -50,6 +49,8 @@ export default function PortalPage() {
   const [loading, setLoading]     = useState(false);
   const [confirmCancelarCita, setConfirmCancelarCita] = useState(null);
   const [cancelando, setCancelando] = useState(false);
+  const [motivoCancelacion, setMotivoCancelacion] = useState('');
+  const [cancelError, setCancelError] = useState('');
 
   /* ── MI CUENTA ───────────────────────────────────────────── */
   const [editData,    setEditData]    = useState({});
@@ -126,6 +127,12 @@ export default function PortalPage() {
   };
   const puedeGestionarCita = (cita) => horasHastaCita(cita) >= HORAS_MIN_ANTICIPACION;
 
+  const openCancelarCita = (cita) => {
+    setConfirmCancelarCita(cita);
+    setMotivoCancelacion('');
+    setCancelError('');
+  };
+
   const doCancelarCita = async () => {
     if (!confirmCancelarCita) return;
     if (!puedeGestionarCita(confirmCancelarCita)) {
@@ -133,14 +140,24 @@ export default function PortalPage() {
       setConfirmCancelarCita(null);
       return;
     }
+    if (!motivoCancelacion.trim()) {
+      setCancelError('Indica el motivo de la cancelación.');
+      return;
+    }
     setCancelando(true);
+    setCancelError('');
     try {
       const h = { Authorization: `Bearer ${token}` };
-      await api.patch(`/api/portal/citas/${confirmCancelarCita.Id_Agenda || confirmCancelarCita.id}/cancelar`, {}, { headers: h });
+      await api.patch(
+        `/api/portal/citas/${confirmCancelarCita.Id_Agenda || confirmCancelarCita.id}/cancelar`,
+        { motivo: motivoCancelacion.trim() },
+        { headers: h },
+      );
       const cRes = await api.get('/api/portal/citas', { headers: h });
       setCitas(flattenCitas(cRes.data?.data || []));
       addToast({ type: 'success', message: 'Cita cancelada.' });
       setConfirmCancelarCita(null);
+      setMotivoCancelacion('');
     } catch (e) {
       addToast({ type: 'error', message: e?.response?.data?.message || 'No se pudo cancelar la cita.' });
     } finally {
@@ -328,7 +345,7 @@ export default function PortalPage() {
     { key: 'Descripcion',      label: 'Descripción', render: v => v ? <span className="diag-cell">{v}</span> : '—' },
     { key: 'EstadoCita',       label: 'Estado',    render: v => <CitaEstadoBadge estado={v || 'Pendiente'} /> },
     {
-      key: 'acciones', label: '', render: (_, row) => {
+      key: 'acciones', label: 'Acciones', render: (_, row) => {
         const estado = row.EstadoCita || 'Pendiente';
         if (!['Pendiente', 'Confirmada'].includes(estado)) return null;
         const gestionable = puedeGestionarCita(row);
@@ -336,7 +353,7 @@ export default function PortalPage() {
         return (
           <div className="table-actions">
             <button className="btn btn--ghost btn--icon btn--sm" title={gestionable ? 'Editar cita' : hint24} disabled={!gestionable} onClick={() => openEditarCita(row)}><MdEdit size={17} /></button>
-            <button className="btn btn--ghost btn--icon btn--sm" title={gestionable ? 'Cancelar cita' : hint24} disabled={!gestionable} onClick={() => setConfirmCancelarCita(row)}><MdEventBusy size={17} /></button>
+            <button className="btn btn--ghost btn--icon btn--sm" title={gestionable ? 'Cancelar cita' : hint24} disabled={!gestionable} onClick={() => openCancelarCita(row)}><MdEventBusy size={17} /></button>
           </div>
         );
       },
@@ -760,16 +777,32 @@ export default function PortalPage() {
         </form>
       </Modal>
 
-      <ConfirmDialog
+      <Modal
         isOpen={!!confirmCancelarCita}
-        onClose={() => setConfirmCancelarCita(null)}
-        onConfirm={doCancelarCita}
+        onClose={() => { setConfirmCancelarCita(null); setMotivoCancelacion(''); setCancelError(''); }}
         title="Cancelar cita"
-        message="¿Cancelar esta cita?"
-        confirmLabel="Sí, cancelar"
-        danger
-        loading={cancelando}
-      />
+        size="sm"
+        footer={
+          <>
+            <button className="btn btn--outline" onClick={() => { setConfirmCancelarCita(null); setMotivoCancelacion(''); setCancelError(''); }}>Volver</button>
+            <button className="btn btn--danger" onClick={doCancelarCita} disabled={cancelando}>{cancelando ? 'Cancelando...' : 'Sí, cancelar'}</button>
+          </>
+        }
+      >
+        {cancelError && <div className="form-error-box">{cancelError}</div>}
+        <p className="u-mb-md">¿Seguro que deseas cancelar esta cita? Cuéntanos el motivo.</p>
+        <div className="form-group">
+          <label className="form-label">Motivo de la cancelación <span className="required">*</span></label>
+          <textarea
+            className="form-control"
+            rows={3}
+            maxLength={300}
+            value={motivoCancelacion}
+            onChange={e => { setMotivoCancelacion(e.target.value); if (cancelError) setCancelError(''); }}
+            placeholder="Ej. Surgió un imprevisto y no podré asistir..."
+          />
+        </div>
+      </Modal>
     </div>
   );
 }

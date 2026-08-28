@@ -23,7 +23,7 @@ const TODAY = new Date().toISOString().split('T')[0];
 const RULES = {
   id_empleado: (v) => V.requiredSelect(v, 'El empleado'),
   Descripcion: (v) => V.required(v, 'La descripción') || V.maxLen(v, 500, 'La descripción'),
-  Fecha_Novedad: (v) => V.requiredSelect(v, 'La fecha de la novedad'),
+  // Fecha_Novedad ya no se valida: se asigna automáticamente (hoy) al crear.
 };
 
 export default function NovedadesPage() {
@@ -56,7 +56,8 @@ export default function NovedadesPage() {
 
   const filtered = sortNewestFirst(filterItems(items, search, ['Descripcion']), 'Id_Novedad');
 
-  const openCreate = () => { setFormData(EMPTY); setEditingId(null); setFormError(''); reset(); setShowForm(true); };
+  // Al crear, la fecha de la novedad es HOY automáticamente (no la elige el usuario).
+  const openCreate = () => { setFormData({ ...EMPTY, Fecha_Novedad: TODAY }); setEditingId(null); setFormError(''); reset(); setShowForm(true); };
   const openEdit   = (item) => {
     setFormData({
       id_empleado:     item.id_empleado || item.Id_Empleado || '',
@@ -118,19 +119,15 @@ export default function NovedadesPage() {
     { key: 'Fecha_Novedad',    label: 'Fecha novedad',    render: v => formatDate(v) },
     { key: 'FechaRealizacion', label: 'Fecha realización', render: v => formatDate(v) },
     {
-      key: 'Estado', label: 'Estado', render: (_, row) => (
-        <ToggleSwitch
-          checked={row.Estado === 1}
-          onChange={() => dispatch(toggleNovedadEstado({ id: row.Id_Novedad || row.id, Estado: row.Estado === 1 ? 0 : 1 }))}
-          disabled={!puedeToggle}
-        />
-      )
-    },
-    {
       key: 'acciones', label: 'Acciones', render: (_, row) => (
         <div className="table-actions">
-          <button className="btn btn--ghost btn--icon btn--sm" onClick={() => setDetailItem(row)}><MdVisibility size={17} /></button>
-          <button className="btn btn--ghost btn--icon btn--sm" disabled={!puedeEditar} onClick={() => openEdit(row)}><MdEdit size={17} /></button>
+          <ToggleSwitch
+            checked={row.Estado === 1}
+            onChange={() => dispatch(toggleNovedadEstado({ id: row.Id_Novedad || row.id, Estado: row.Estado === 1 ? 0 : 1 }))}
+            disabled={!puedeToggle}
+          />
+          <button className="btn btn--ghost btn--icon btn--sm" title="Ver" onClick={() => setDetailItem(row)}><MdVisibility size={17} /></button>
+          <button className="btn btn--ghost btn--icon btn--sm" title="Editar" disabled={!puedeEditar} onClick={() => openEdit(row)}><MdEdit size={17} /></button>
           {esSuperadmin && (
             <button className="btn btn--ghost btn--icon btn--sm btn--danger-ghost" title="Eliminar definitivamente" onClick={() => del.open(row.Id_Novedad)}><MdDeleteForever size={17} /></button>
           )}
@@ -194,9 +191,9 @@ export default function NovedadesPage() {
             {fieldError('Descripcion') && <p className="form-error">{fieldError('Descripcion')}</p>}
           </div>
           <div className="form-group">
-            <label className="form-label">Fecha de la novedad <span className="required">*</span></label>
-            <input name="Fecha_Novedad" type="date" className={`form-control ${fieldError('Fecha_Novedad') ? 'is-error' : ''}`} value={formData.Fecha_Novedad} onChange={handleChange} onBlur={handleBlur} min={TODAY} />
-            {fieldError('Fecha_Novedad') && <p className="form-error">{fieldError('Fecha_Novedad')}</p>}
+            <label className="form-label">Fecha de la novedad</label>
+            <input type="date" className="form-control" value={formData.Fecha_Novedad} disabled readOnly />
+            <p className="form-hint">Se asigna automáticamente con la fecha de hoy.</p>
           </div>
           <div className="form-group">
             <label className="form-label">Fecha de realización</label>

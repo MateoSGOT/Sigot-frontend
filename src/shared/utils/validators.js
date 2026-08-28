@@ -3,6 +3,10 @@
 
 const RE_EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const RE_SOLO_DIGITOS = /^\d+$/;
+// Placa colombiana: carro = 3 letras + 3 dígitos (ABC123); moto = 3 letras +
+// 2 dígitos + 1 letra (ABC12D). Se ignoran guion, espacios y mayúsc/minúsc.
+const RE_PLACA_CARRO = /^[A-Z]{3}\d{3}$/;
+const RE_PLACA_MOTO  = /^[A-Z]{3}\d{2}[A-Z]$/;
 
 export const isBlank = (v) => v == null || String(v).trim() === '';
 
@@ -64,6 +68,19 @@ export const confirmarPassword = (v, original) => {
 
 export const requiredSelect = (v, label = 'Este campo') =>
   isBlank(v) ? `${label} es obligatorio.` : '';
+
+// Normaliza una placa: mayúsculas y sin guion/espacios (ABC-123 -> ABC123).
+export const normalizarPlaca = (v) => String(v ?? '').trim().toUpperCase().replace(/[\s-]/g, '');
+
+// Valida el formato de placa colombiana (carro o moto).
+export const placa = (v) => {
+  const s = normalizarPlaca(v);
+  if (!s) return 'La placa es obligatoria.';
+  if (!RE_PLACA_CARRO.test(s) && !RE_PLACA_MOTO.test(s)) {
+    return 'Placa inválida. Usa el formato ABC123 (carro) o ABC12D (moto).';
+  }
+  return '';
+};
 
 // Número > 0 (precios).
 export const numeroPositivo = (v, label = 'El valor') => {

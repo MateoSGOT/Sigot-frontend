@@ -78,8 +78,8 @@ export default function CategoriasPage() {
     {
       key: 'acciones', label: 'Acciones', render: (_, row) => (
         <div className="table-actions">
-          <button className="btn btn--ghost btn--icon btn--sm" disabled={!puedeEditar} onClick={() => openEdit(row)}><MdEdit size={17} /></button>
           <ToggleSwitch checked={row.Estado === 1} onChange={() => dispatch(toggleCategoriaEstado({ id: row.Id_categoria, Estado: row.Estado === 1 ? 0 : 1 }))} disabled={!puedeToggle} />
+          <button className="btn btn--ghost btn--icon btn--sm" title="Editar" disabled={!puedeEditar} onClick={() => openEdit(row)}><MdEdit size={17} /></button>
           {esSuperadmin && (
             <button className="btn btn--ghost btn--icon btn--sm btn--danger-ghost" title="Eliminar definitivamente" onClick={() => del.open(row.Id_categoria)}><MdDeleteForever size={17} /></button>
           )}

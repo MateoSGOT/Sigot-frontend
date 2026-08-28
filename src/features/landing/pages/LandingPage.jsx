@@ -101,8 +101,6 @@ function AnimSection({ children, className = '', delay = 0 }) {
 export default function LandingPage() {
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
-  const [formData, setFormData] = useState({ nombre: '', correo: '', telefono: '', mensaje: '' });
-  const [formSent, setFormSent] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [stats, setStats] = useState(null);
   const [statsLoading, setStatsLoading] = useState(true);
@@ -132,14 +130,6 @@ export default function LandingPage() {
     document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  const handleFormChange = e => setFormData(p => ({ ...p, [e.target.name]: e.target.value }));
-  const handleFormSubmit = e => {
-    e.preventDefault();
-    setFormSent(true);
-    setTimeout(() => setFormSent(false), 4000);
-    setFormData({ nombre: '', correo: '', telefono: '', mensaje: '' });
-  };
-
   return (
     <div className="landing">
 
@@ -151,7 +141,7 @@ export default function LandingPage() {
           </div>
 
           <div className={`landing-nav__links${menuOpen ? ' landing-nav__links--open' : ''}`}>
-            {[['servicios','Servicios'],['nosotros','Nosotros'],['equipo','Equipo'],['ubicacion','Ubicación'],['contacto','Contacto']].map(([id,label]) => (
+            {[['servicios','Servicios'],['nosotros','Nosotros'],['equipo','Equipo'],['ubicacion','Ubicación']].map(([id,label]) => (
               <button key={id} className="landing-nav__link" onClick={() => scrollTo(id)}>{label}</button>
             ))}
             <button className="landing-nav__link landing-nav__link--login" onClick={() => { setMenuOpen(false); navigate('/login'); }}>
@@ -188,7 +178,7 @@ export default function LandingPage() {
             de vehículos en La Balladera. Tecnología de punta, técnicos certificados.
           </p>
           <div className="landing-hero__actions">
-            <button className="landing-btn landing-btn--primary landing-btn--lg" onClick={() => scrollTo('contacto')}>
+            <button className="landing-btn landing-btn--primary landing-btn--lg" onClick={() => navigate('/login')}>
               Agendar cita
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7,7 17,7 17,17"/></svg>
             </button>
@@ -278,8 +268,8 @@ export default function LandingPage() {
                 </li>
               ))}
             </ul>
-            <button className="landing-btn landing-btn--primary" onClick={() => scrollTo('contacto')}>
-              Contáctanos
+            <button className="landing-btn landing-btn--primary" onClick={() => navigate('/login')}>
+              Agendar una cita
             </button>
           </AnimSection>
           <AnimSection className="landing-about__visual" delay={150}>
@@ -429,53 +419,6 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ── CONTACTO ─────────────────────────────────────────── */}
-      <section id="contacto" className="landing-section landing-contact">
-        <div className="landing-container">
-          <AnimSection>
-            <div className="landing-section__tag">Contáctanos</div>
-            <h2 className="landing-section__title landing-section__title--center">¿Listo para agendar?</h2>
-            <p className="landing-section__subtitle">Escríbenos y nos comunicamos en menos de 24 horas</p>
-          </AnimSection>
-          <AnimSection delay={100}>
-            <div className="landing-contact__card">
-              {formSent ? (
-                <div className="landing-contact__success">
-                  <div className="landing-contact__success-icon"><MdCheck size={28} /></div>
-                  <h3>¡Mensaje enviado!</h3>
-                  <p>Nos pondremos en contacto contigo pronto.</p>
-                </div>
-              ) : (
-                <form className="landing-contact__form" onSubmit={handleFormSubmit} noValidate>
-                  <div className="landing-contact__row">
-                    <div className="landing-contact__group">
-                      <label>Nombre completo</label>
-                      <input name="nombre" value={formData.nombre} onChange={handleFormChange} placeholder="Tu nombre" required />
-                    </div>
-                    <div className="landing-contact__group">
-                      <label>Correo electrónico</label>
-                      <input name="correo" type="email" value={formData.correo} onChange={handleFormChange} placeholder="correo@ejemplo.com" required />
-                    </div>
-                  </div>
-                  <div className="landing-contact__group">
-                    <label>Teléfono</label>
-                    <input name="telefono" value={formData.telefono} onChange={handleFormChange} placeholder="3XX XXX XXXX" />
-                  </div>
-                  <div className="landing-contact__group">
-                    <label>Mensaje</label>
-                    <textarea name="mensaje" value={formData.mensaje} onChange={handleFormChange} rows={4} placeholder="Cuéntanos sobre tu vehículo y el servicio que necesitas..." required />
-                  </div>
-                  <button type="submit" className="landing-btn landing-btn--primary landing-btn--full">
-                    Enviar mensaje
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22,2 15,22 11,13 2,9"/></svg>
-                  </button>
-                </form>
-              )}
-            </div>
-          </AnimSection>
-        </div>
-      </section>
-
       {/* ── FOOTER ──────────────────────────────────────────── */}
       <footer className="landing-footer">
         <div className="landing-container">
@@ -491,7 +434,7 @@ export default function LandingPage() {
             </div>
             <div className="landing-footer__links">
               <strong>Navegación</strong>
-              {[['servicios','Servicios'],['nosotros','Nosotros'],['equipo','Equipo'],['ubicacion','Ubicación'],['contacto','Contacto']].map(([id,label]) => (
+              {[['servicios','Servicios'],['nosotros','Nosotros'],['equipo','Equipo'],['ubicacion','Ubicación']].map(([id,label]) => (
                 <button key={id} onClick={() => scrollTo(id)}>{label}</button>
               ))}
             </div>

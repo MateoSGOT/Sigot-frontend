@@ -20,7 +20,7 @@ import api from '../../../shared/services/api.js';
 import './VehiculosPage.css';
 
 const RULES = {
-  Placa:      (v) => V.required(v, 'La placa') || V.maxLen(v, 10, 'La placa'),
+  Placa:      V.placa,
   VIN:        (v) => V.maxLen(v, 30, 'El VIN'),
   Color:      (v) => V.maxLen(v, 30, 'El color'),
   Id_Marca:   (v) => V.requiredSelect(v, 'La marca'),
@@ -131,7 +131,7 @@ export default function VehiculosPage() {
     if (V.hasErrors(errs)) { setFormError('Corrige los campos marcados antes de guardar.'); return; }
     setFormError('');
     const km = String(formData.Kilometraje ?? '').trim();
-    const payload = { ...formData, Kilometraje: km === '' ? null : Number(km) };
+    const payload = { ...formData, Placa: V.normalizarPlaca(formData.Placa), Kilometraje: km === '' ? null : Number(km) };
     const action = editingId ? updateVehiculo({ id: editingId, data: payload }) : createVehiculo(payload);
     const result = await dispatch(action);
     if (!result.error) { setShowForm(false); dispatch(fetchVehiculos()); }
@@ -152,9 +152,9 @@ export default function VehiculosPage() {
     {
       key: 'acciones', label: 'Acciones', render: (_, row) => (
         <div className="table-actions">
-          <button className="btn btn--ghost btn--icon btn--sm" onClick={() => setDetailId(row.Id_Vehiculo)}><MdVisibility size={17} /></button>
-          <button className="btn btn--ghost btn--icon btn--sm" disabled={!puedeEditar} onClick={() => openEdit(row)}><MdEdit size={17} /></button>
           <ToggleSwitch checked={row.Estado === 1} onChange={() => dispatch(toggleVehiculoEstado({ id: row.Id_Vehiculo, Estado: row.Estado === 1 ? 0 : 1 }))} disabled={!puedeToggle} />
+          <button className="btn btn--ghost btn--icon btn--sm" title="Ver" onClick={() => setDetailId(row.Id_Vehiculo)}><MdVisibility size={17} /></button>
+          <button className="btn btn--ghost btn--icon btn--sm" title="Editar" disabled={!puedeEditar} onClick={() => openEdit(row)}><MdEdit size={17} /></button>
           {esSuperadmin && (
             <button className="btn btn--ghost btn--icon btn--sm btn--danger-ghost" title="Eliminar definitivamente" onClick={() => del.open(row.Id_Vehiculo)}><MdDeleteForever size={17} /></button>
           )}

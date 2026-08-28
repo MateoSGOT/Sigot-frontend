@@ -38,8 +38,10 @@ export default function SearchableSelect({
         setActiveIdx(-1);
       }
     };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
+    // pointerdown cubre mouse Y touch de forma unificada (en móvil, mousedown
+    // no siempre se dispara y el cierre/selección fallaba).
+    document.addEventListener('pointerdown', handler);
+    return () => document.removeEventListener('pointerdown', handler);
   }, []);
 
   useEffect(() => {
@@ -110,7 +112,9 @@ export default function SearchableSelect({
                 <li
                   key={opt[valueKey]}
                   className={`ss__option${String(opt[valueKey]) === String(value) ? ' ss__option--selected' : ''}${idx === activeIdx ? ' ss__option--active' : ''}`}
-                  onMouseDown={() => handleSelect(opt)}
+                  // pointerup selecciona en mouse y touch; onClick queda de respaldo.
+                  onPointerUp={() => handleSelect(opt)}
+                  onClick={() => handleSelect(opt)}
                   onMouseEnter={() => setActiveIdx(idx)}
                 >
                   {opt[labelKey]}

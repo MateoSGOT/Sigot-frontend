@@ -1,7 +1,6 @@
 ﻿import React, { useEffect, useState, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { useNavigate } from 'react-router-dom';
-import { MdVisibility, MdEdit, MdAdd, MdBuild, MdCheck, MdArrowForward, MdDeleteOutline, MdOpenInNew } from 'react-icons/md';
+import { MdVisibility, MdEdit, MdAdd, MdBuild, MdCheck, MdArrowForward, MdDeleteOutline } from 'react-icons/md';
 import { usePermiso } from '../../../shared/hooks/usePermiso.js';
 import {
   fetchOrdenes, fetchOrdenById, updateOrden, toggleOrdenEstado,
@@ -48,12 +47,15 @@ function ProgresoEstado({ estadoActual, onAvanzar, loading, disabled, sinTrabajo
     <div className="progreso-container">
       <div className="progreso-steps">
         {PASOS.map((paso, idx) => {
-          const completado = estadoNum > paso.estado;
+          const completado = estadoNum > paso.estado;   // el paso ya quedó atrás (check)
+          const alcanzado  = estadoNum >= paso.estado;  // el flujo ya llegó a este paso
           const actual     = estadoNum === paso.estado;
           return (
             <React.Fragment key={paso.estado}>
               {idx > 0 && (
-                <div className={`progreso-line${completado ? ' progreso-line--done' : ''}`} />
+                // La franja se pinta verde cuando el flujo ALCANZA el paso (>=),
+                // así la última (proceso → finalizado) también se completa.
+                <div className={`progreso-line${alcanzado ? ' progreso-line--done' : ''}`} />
               )}
               <div className={`progreso-step${actual ? ' progreso-step--active' : ''}${completado ? ' progreso-step--done' : ''}`}>
                 <div className="progreso-dot">
@@ -97,7 +99,7 @@ function ProgresoEstado({ estadoActual, onAvanzar, loading, disabled, sinTrabajo
 
 // FechaIngreso ya no se edita aquí (se fija una sola vez al generar la orden desde Agenda).
 // FechaEntrega solo es editable mientras la orden está Pendiente, y siempre hacia el futuro.
-const EMPTY_EDIT = { Diagnostico: '', Kilometraje: '', FechaEntrega: '' };
+const EMPTY_EDIT = { Diagnostico: '', Kilometraje: '', FechaEntrega: '', Observacion: '' };
 const ITEMS_PER_PAGE = 5;
 const TODAY = new Date().toISOString().split('T')[0];
 
@@ -115,12 +117,17 @@ const fmtDuracion = (min) => {
 
 export default function OrdenesPage() {
   const dispatch = useDispatch();
-  const navigate = useNavigate();
   const { items, selected, loading, actionLoading } = useSelector(s => s.ordenes);
   const puedeEditar  = usePermiso('ORDENES.EDITAR');
   const puedeToggle  = usePermiso('ORDENES.CAMBIAR_ESTADO');
   const [serviciosOpts, setServiciosOpts] = useState([]);
   const [repuestosOpts, setRepuestosOpts] = useState([]);
+  const [categoriasOpts, setCategoriasOpts] = useState([]);
+  // Alta inline (crear servicio/repuesto SIN salir de la orden — items 3 y 4)
+  const [modoServ, setModoServ] = useState('existente'); // 'existente' | 'nuevo'
+  const [nuevoServ, setNuevoServ] = useState({ Nombre: '', Precio: '', DuracionMinutos: '' });
+  const [modoRep, setModoRep] = useState('existente');
+  const [nuevoRep, setNuevoRep] = useState({ NombreRepuesto: '', Id_categoria: '', cantidad: '', precio_unitario: '' });
   const [search, setSearch]               = useState('');
   const [estadoFilter, setEstadoFilter]   = useState('todos');
   const [pageSize, setPageSize]           = useState(5);
@@ -150,6 +157,7 @@ export default function OrdenesPage() {
     dispatch(fetchOrdenes());
     api.get('/api/servicios').then(r => setServiciosOpts(r.data?.data || r.data || [])).catch(() => {});
     api.get('/api/repuestos').then(r => setRepuestosOpts(r.data?.data || r.data || [])).catch(() => {});
+    api.get('/api/categorias').then(r => setCategoriasOpts(r.data?.data || r.data || [])).catch(() => {});
   }, [dispatch]);
 
   useEffect(() => {
@@ -202,6 +210,7 @@ export default function OrdenesPage() {
       Diagnostico:  item.Diagnostico  || '',
       Kilometraje:  item.Kilometraje  || '',
       FechaEntrega: item.FechaEntrega ? item.FechaEntrega.split('T')[0] : '',
+      Observacion:  item.Observacion  || '',
     });
     setEditFechaBloqueada(item.EstadoFlujo === 'En proceso');
     setEditingId(item.Id_Orden);
@@ -249,6 +258,31 @@ export default function OrdenesPage() {
     else setAddServError(result.payload || 'Error al agregar servicio.');
   };
 
+  // Item 3: crear un servicio nuevo y agregarlo a la orden, sin salir a Servicios.
+  const handleCrearServicioInline = async () => {
+    if (!nuevoServ.Nombre.trim() || !nuevoServ.Precio) { setAddServError('Nombre y precio del nuevo servicio son obligatorios.'); return; }
+    setAddServError('');
+    try {
+      const res = await api.post('/api/servicios', {
+        Nombre: nuevoServ.Nombre.trim(),
+        Precio: Number(nuevoServ.Precio),
+        DuracionMinutos: nuevoServ.DuracionMinutos ? Number(nuevoServ.DuracionMinutos) : null,
+      });
+      const creado = res.data?.data || res.data;
+      const newId = creado?.Id_Servicio ?? creado?.id;
+      const list = await api.get('/api/servicios');
+      setServiciosOpts(list.data?.data || list.data || []);
+      const result = await dispatch(addServicioToOrden({ id: detailId, data: { Id_Servicio: newId, precio_unitario: nuevoServ.Precio } }));
+      if (!result.error) {
+        setNuevoServ({ Nombre: '', Precio: '', DuracionMinutos: '' });
+        setModoServ('existente');
+        dispatch(fetchOrdenById(detailId));
+      } else setAddServError(result.payload || 'Servicio creado, pero no se pudo agregar a la orden.');
+    } catch (err) {
+      setAddServError(err.response?.data?.message || 'No se pudo crear el servicio.');
+    }
+  };
+
   // Auto-fill price when selecting a repuesto. Al cliente se le cobra el PRECIO DE VENTA
   // (con IVA y margen), no el costo. Si aún no tiene precio de venta (nunca comprado),
   // cae al costo como respaldo.
@@ -265,6 +299,36 @@ export default function OrdenesPage() {
     const result = await dispatch(addRepuestoToOrden({ id: detailId, data: addRepForm }));
     if (!result.error) { setAddRepForm({ Id_Repuesto: '', cantidad: '', precio_unitario: '' }); setAddRepError(''); dispatch(fetchOrdenById(detailId)); }
     else setAddRepError(result.payload || 'Error al agregar repuesto.');
+  };
+
+  // Item 4: crear un repuesto nuevo (ficha de catálogo) y agregarlo a la orden,
+  // sin salir a Repuestos. Stock/costo se llenan con la compra; aquí solo nombre,
+  // categoría y el precio de venta para esta orden.
+  const handleCrearRepuestoInline = async () => {
+    if (!nuevoRep.NombreRepuesto.trim() || !nuevoRep.Id_categoria || !nuevoRep.cantidad || !nuevoRep.precio_unitario) {
+      setAddRepError('Nombre, categoría, cantidad y precio del nuevo repuesto son obligatorios.'); return;
+    }
+    setAddRepError('');
+    try {
+      const res = await api.post('/api/repuestos', {
+        NombreRepuesto: nuevoRep.NombreRepuesto.trim(),
+        Id_categoria: nuevoRep.Id_categoria,
+        StockMinimo: 5,
+        MargenPorcentaje: 50,
+      });
+      const creado = res.data?.data || res.data;
+      const newId = creado?.Id_Repuesto ?? creado?.id;
+      const list = await api.get('/api/repuestos');
+      setRepuestosOpts(list.data?.data || list.data || []);
+      const result = await dispatch(addRepuestoToOrden({ id: detailId, data: { Id_Repuesto: newId, cantidad: nuevoRep.cantidad, precio_unitario: nuevoRep.precio_unitario } }));
+      if (!result.error) {
+        setNuevoRep({ NombreRepuesto: '', Id_categoria: '', cantidad: '', precio_unitario: '' });
+        setModoRep('existente');
+        dispatch(fetchOrdenById(detailId));
+      } else setAddRepError(result.payload || 'Repuesto creado, pero no se pudo agregar a la orden.');
+    } catch (err) {
+      setAddRepError(err.response?.data?.message || 'No se pudo crear el repuesto.');
+    }
   };
 
   const handleSetMano = async () => {
@@ -454,6 +518,7 @@ export default function OrdenesPage() {
                   <div className="detail-item"><span className="detail-label">Kilometraje</span><span className="detail-value">{selected.Kilometraje ? `${Number(selected.Kilometraje).toLocaleString('es-CO')} km` : '—'}</span></div>
                   <div className="detail-item"><span className="detail-label">Estado</span><span className="detail-value"><EstadoBadge estado={selected.Estado} /></span></div>
                   <div className="detail-item u-span-2"><span className="detail-label">Diagnóstico</span><span className="detail-value">{selected.Diagnostico || '—'}</span></div>
+                  <div className="detail-item u-span-2"><span className="detail-label">Observación</span><span className="detail-value">{selected.Observacion || '—'}</span></div>
                 </div>
 
                 {/* Estado de la orden — siempre visible para poder activar/inactivar
@@ -600,25 +665,35 @@ export default function OrdenesPage() {
                   <div className="orden-add-form">
                     <div className="orden-add-form__head">
                       <h4>Agregar servicio</h4>
-                      <button type="button" className="btn btn--outline btn--sm" onClick={() => navigate('/servicios')} title="Crear o gestionar servicios en su propia página">
-                        <MdOpenInNew size={14} /> Ir a Servicios
-                      </button>
+                      <div className="orden-add-toggle">
+                        <button type="button" className={`btn btn--sm ${modoServ === 'existente' ? 'btn--primary' : 'btn--outline'}`} onClick={() => { setModoServ('existente'); setAddServError(''); }}>Existente</button>
+                        <button type="button" className={`btn btn--sm ${modoServ === 'nuevo' ? 'btn--primary' : 'btn--outline'}`} onClick={() => { setModoServ('nuevo'); setAddServError(''); }}>Crear nuevo</button>
+                      </div>
                     </div>
                     {addServError && <div className="form-error-box u-mb-sm">{addServError}</div>}
-                    <div className="orden-add-row">
-                      <select className="form-control" value={addServForm.Id_Servicio}
-                        onChange={e => {
-                          const id = e.target.value;
-                          const serv = serviciosOpts.find(s => String(s.Id_Servicio) === String(id));
-                          setAddServForm(p => ({ ...p, Id_Servicio: id, precio_unitario: serv ? String(serv.Precio ?? '') : p.precio_unitario }));
-                        }}>
-                        <option value="">Seleccionar servicio...</option>
-                        {serviciosOpts.map(s => <option key={s.Id_Servicio} value={s.Id_Servicio}>{s.Nombre}</option>)}
-                      </select>
-                      <input type="number" min="0" className="form-control" placeholder="Precio unitario" value={addServForm.precio_unitario} onChange={e => setAddServForm(p => ({ ...p, precio_unitario: e.target.value }))} />
-                      {addServForm.precio_unitario && <span className="u-muted-nowrap">= {formatCurrency(addServForm.precio_unitario)}</span>}
-                      <button className="btn btn--primary btn--sm" onClick={handleAddServicio} disabled={actionLoading}><MdAdd size={16} />Agregar</button>
-                    </div>
+                    {modoServ === 'existente' ? (
+                      <div className="orden-add-row">
+                        <select className="form-control" value={addServForm.Id_Servicio}
+                          onChange={e => {
+                            const id = e.target.value;
+                            const serv = serviciosOpts.find(s => String(s.Id_Servicio) === String(id));
+                            setAddServForm(p => ({ ...p, Id_Servicio: id, precio_unitario: serv ? String(serv.Precio ?? '') : p.precio_unitario }));
+                          }}>
+                          <option value="">Seleccionar servicio...</option>
+                          {serviciosOpts.map(s => <option key={s.Id_Servicio} value={s.Id_Servicio}>{s.Nombre}</option>)}
+                        </select>
+                        <input type="number" min="0" className="form-control" placeholder="Precio unitario" value={addServForm.precio_unitario} onChange={e => setAddServForm(p => ({ ...p, precio_unitario: e.target.value }))} />
+                        {addServForm.precio_unitario && <span className="u-muted-nowrap">= {formatCurrency(addServForm.precio_unitario)}</span>}
+                        <button className="btn btn--primary btn--sm" onClick={handleAddServicio} disabled={actionLoading}><MdAdd size={16} />Agregar</button>
+                      </div>
+                    ) : (
+                      <div className="orden-add-row">
+                        <input className="form-control" placeholder="Nombre del servicio" value={nuevoServ.Nombre} onChange={e => setNuevoServ(p => ({ ...p, Nombre: e.target.value }))} maxLength={80} />
+                        <input type="number" min="0" className="form-control" placeholder="Precio" value={nuevoServ.Precio} onChange={e => setNuevoServ(p => ({ ...p, Precio: e.target.value }))} />
+                        <input type="number" min="1" className="form-control" placeholder="Duración (min, opcional)" value={nuevoServ.DuracionMinutos} onChange={e => setNuevoServ(p => ({ ...p, DuracionMinutos: e.target.value }))} />
+                        <button className="btn btn--primary btn--sm" onClick={handleCrearServicioInline} disabled={actionLoading}><MdAdd size={16} />Crear y agregar</button>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -678,34 +753,53 @@ export default function OrdenesPage() {
                   <div className="orden-add-form">
                     <div className="orden-add-form__head">
                       <h4>Agregar repuesto</h4>
-                      <button type="button" className="btn btn--outline btn--sm" onClick={() => navigate('/repuestos')} title="Crear o gestionar repuestos en su propia página">
-                        <MdOpenInNew size={14} /> Ir a Repuestos
-                      </button>
+                      <div className="orden-add-toggle">
+                        <button type="button" className={`btn btn--sm ${modoRep === 'existente' ? 'btn--primary' : 'btn--outline'}`} onClick={() => { setModoRep('existente'); setAddRepError(''); }}>Existente</button>
+                        <button type="button" className={`btn btn--sm ${modoRep === 'nuevo' ? 'btn--primary' : 'btn--outline'}`} onClick={() => { setModoRep('nuevo'); setAddRepError(''); }}>Crear nuevo</button>
+                      </div>
                     </div>
                     {addRepError && <div className="form-error-box u-mb-sm">{addRepError}</div>}
-                    <div className="orden-add-row">
-                      <SearchableSelect
-                        options={repuestosOpts.map(r => ({ ...r, _label: r.NombreRepuesto ?? r.Nombre ?? '' }))}
-                        value={addRepForm.Id_Repuesto}
-                        onChange={handleRepuestoSelect}
-                        labelKey="_label"
-                        valueKey="Id_Repuesto"
-                        placeholder="Buscar repuesto..."
-                      />
-                      <input type="number" min="1" className="form-control" placeholder="Cantidad" value={addRepForm.cantidad} onChange={e => setAddRepForm(p => ({ ...p, cantidad: e.target.value }))} />
-                      <input
-                        type="number" min="0" className="form-control"
-                        placeholder="Precio unitario"
-                        value={addRepForm.precio_unitario}
-                        onChange={e => setAddRepForm(p => ({ ...p, precio_unitario: e.target.value }))}
-                        title="Precio por defecto del repuesto, editable para esta orden"
-                      />
-                      <button className="btn btn--primary btn--sm" onClick={handleAddRepuesto} disabled={actionLoading}><MdAdd size={16} />Agregar</button>
-                    </div>
-                    {addRepForm.Id_Repuesto && addRepForm.precio_unitario && (
-                      <p className="u-hint u-mt-xs">
-                        Precio por defecto: {formatCurrency(addRepForm.precio_unitario)} — puedes modificarlo para esta orden.
-                      </p>
+                    {modoRep === 'existente' ? (
+                      <>
+                        <div className="orden-add-row">
+                          <SearchableSelect
+                            options={repuestosOpts.map(r => ({ ...r, _label: r.NombreRepuesto ?? r.Nombre ?? '' }))}
+                            value={addRepForm.Id_Repuesto}
+                            onChange={handleRepuestoSelect}
+                            labelKey="_label"
+                            valueKey="Id_Repuesto"
+                            placeholder="Buscar repuesto..."
+                          />
+                          <input type="number" min="1" className="form-control" placeholder="Cantidad" value={addRepForm.cantidad} onChange={e => setAddRepForm(p => ({ ...p, cantidad: e.target.value }))} />
+                          <input
+                            type="number" min="0" className="form-control"
+                            placeholder="Precio unitario"
+                            value={addRepForm.precio_unitario}
+                            onChange={e => setAddRepForm(p => ({ ...p, precio_unitario: e.target.value }))}
+                            title="Precio por defecto del repuesto, editable para esta orden"
+                          />
+                          <button className="btn btn--primary btn--sm" onClick={handleAddRepuesto} disabled={actionLoading}><MdAdd size={16} />Agregar</button>
+                        </div>
+                        {addRepForm.Id_Repuesto && addRepForm.precio_unitario && (
+                          <p className="u-hint u-mt-xs">
+                            Precio por defecto: {formatCurrency(addRepForm.precio_unitario)} — puedes modificarlo para esta orden.
+                          </p>
+                        )}
+                      </>
+                    ) : (
+                      <>
+                        <div className="orden-add-row">
+                          <input className="form-control" placeholder="Nombre del repuesto" value={nuevoRep.NombreRepuesto} onChange={e => setNuevoRep(p => ({ ...p, NombreRepuesto: e.target.value }))} maxLength={120} />
+                          <select className="form-control" value={nuevoRep.Id_categoria} onChange={e => setNuevoRep(p => ({ ...p, Id_categoria: e.target.value }))}>
+                            <option value="">Categoría...</option>
+                            {categoriasOpts.map(c => <option key={c.Id_categoria ?? c.Id_Categoria} value={c.Id_categoria ?? c.Id_Categoria}>{c.Nombre ?? c.nombre}</option>)}
+                          </select>
+                          <input type="number" min="1" className="form-control" placeholder="Cantidad" value={nuevoRep.cantidad} onChange={e => setNuevoRep(p => ({ ...p, cantidad: e.target.value }))} />
+                          <input type="number" min="0" className="form-control" placeholder="Precio unitario" value={nuevoRep.precio_unitario} onChange={e => setNuevoRep(p => ({ ...p, precio_unitario: e.target.value }))} />
+                          <button className="btn btn--primary btn--sm" onClick={handleCrearRepuestoInline} disabled={actionLoading}><MdAdd size={16} />Crear y agregar</button>
+                        </div>
+                        <p className="u-hint u-mt-xs">Se crea la ficha del repuesto (stock y costo se ajustan luego con las compras). El precio unitario es el de venta para esta orden.</p>
+                      </>
                     )}
                   </div>
                 )}
@@ -732,6 +826,7 @@ export default function OrdenesPage() {
           </div>
           <div className="form-group"><label className="form-label">Kilometraje <span className="required">*</span></label><input name="Kilometraje" type="number" min="0" className="form-control" value={editForm.Kilometraje} onChange={e => setEditForm(p => ({ ...p, Kilometraje: e.target.value }))} /></div>
           <div className="form-group span-2"><label className="form-label">Diagnóstico <span className="required">*</span></label><textarea name="Diagnostico" className="form-control" value={editForm.Diagnostico} onChange={e => setEditForm(p => ({ ...p, Diagnostico: e.target.value }))} rows={4} maxLength={500} /></div>
+          <div className="form-group span-2"><label className="form-label">Observación</label><textarea name="Observacion" className="form-control" value={editForm.Observacion} onChange={e => setEditForm(p => ({ ...p, Observacion: e.target.value }))} rows={3} maxLength={500} placeholder="Observaciones adicionales (opcional)" /></div>
         </form>
       </Modal>
     </div>

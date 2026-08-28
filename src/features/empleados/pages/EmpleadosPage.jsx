@@ -207,11 +207,13 @@ export default function EmpleadosPage() {
     {
       key: 'acciones', label: 'Acciones', render: (_, row) => (
         <div className="table-actions">
-          <button className="btn btn--ghost btn--icon btn--sm" onClick={() => setDetailId(row.Id_Empleado)}><MdVisibility size={17} /></button>
+          {!esAdminSistema(row) && (
+            <ToggleSwitch checked={row.Estado === 1} onChange={() => dispatch(toggleEmpleadoEstado({ id: row.Id_Empleado, Estado: row.Estado === 1 ? 0 : 1 }))} disabled={!puedeToggle} />
+          )}
+          <button className="btn btn--ghost btn--icon btn--sm" title="Ver" onClick={() => setDetailId(row.Id_Empleado)}><MdVisibility size={17} /></button>
           {!esAdminSistema(row) && (
             <>
-              <button className="btn btn--ghost btn--icon btn--sm" disabled={!puedeEditar} onClick={() => openEdit(row)}><MdEdit size={17} /></button>
-              <ToggleSwitch checked={row.Estado === 1} onChange={() => dispatch(toggleEmpleadoEstado({ id: row.Id_Empleado, Estado: row.Estado === 1 ? 0 : 1 }))} disabled={!puedeToggle} />
+              <button className="btn btn--ghost btn--icon btn--sm" title="Editar" disabled={!puedeEditar} onClick={() => openEdit(row)}><MdEdit size={17} /></button>
               {esSuperadmin ? (
                 /* Superadmin: borrado real con bloqueo duro (muestra dependencias;
                    no exige desactivar primero). Reemplaza al borrado operativo. */

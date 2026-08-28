@@ -292,13 +292,13 @@ export default function AgendaPage() {
         const atendida = estadoCita === 'Atendida';
         return (
           <div className="table-actions">
+            <ToggleSwitch checked={row.Estado === 1} onChange={() => dispatch(toggleCitaEstado({ id: row.Id_Agenda || row.id, Estado: row.Estado === 1 ? 0 : 1 }))} disabled={!puedeToggle} />
             <button className="btn btn--ghost btn--icon btn--sm" title="Ver detalle" onClick={() => setDetailId(row.Id_Agenda ?? row.id)}><MdVisibility size={17} /></button>
             <button className="btn btn--ghost btn--icon btn--sm" title="Editar" disabled={!puedeEditar || atendida} onClick={() => openEdit(row)}><MdEdit size={17} /></button>
             <button className="btn btn--ghost btn--icon btn--sm agenda-order-btn" title="Generar orden" disabled={atendida || estadoCita === 'Cancelada'} onClick={() => openGenerarOrden(row)}><MdAssignment size={17} /></button>
             {CITA_CANCELABLE(estadoCita) && (
               <button className="btn btn--ghost btn--icon btn--sm" title="Cancelar cita" disabled={!puedeToggle} onClick={() => setConfirmCancelar(row)}><MdEventBusy size={17} /></button>
             )}
-            <ToggleSwitch checked={row.Estado === 1} onChange={() => dispatch(toggleCitaEstado({ id: row.Id_Agenda || row.id, Estado: row.Estado === 1 ? 0 : 1 }))} disabled={!puedeToggle} />
             {esSuperadmin && (
               <button className="btn btn--ghost btn--icon btn--sm btn--danger-ghost" title="Eliminar cita definitivamente (superadmin)" onClick={() => del.open(row.Id_Agenda ?? row.id)}><MdDeleteForever size={17} /></button>
             )}
