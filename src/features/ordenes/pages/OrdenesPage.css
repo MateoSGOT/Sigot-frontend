@@ -465,3 +465,6 @@
   background: var(--color-primary-strong, #15803d);
   color: #fff;
 }
+
+.orden-obs-edit { display: flex; flex-direction: column; gap: 0.5rem; margin-top: 0.25rem; }
+.orden-obs-edit__actions { display: flex; gap: 0.5rem; }

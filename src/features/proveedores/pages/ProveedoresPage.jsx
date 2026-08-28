@@ -60,7 +60,14 @@ const RULES = {
   detalles:      (v) => V.maxLen(v, 200, 'Los detalles'),
   Representante:          representanteRequerido('El nombre del representante'),
   RepresentanteDocumento: representanteDocumento,
-  RepresentanteTelefono:  representanteRequerido('El teléfono del representante'),
+  RepresentanteTelefono:  (v, values = {}) => {
+    if (values.TipoProveedor !== 'Juridico') return '';
+    const s = String(v ?? '').trim();
+    if (!s) return 'El teléfono del representante es obligatorio.';
+    if (!/^\d+$/.test(s)) return 'El teléfono del representante solo puede contener números.';
+    if (s.length < 7 || s.length > 10) return 'El teléfono del representante debe tener entre 7 y 10 dígitos.';
+    return '';
+  },
   RepresentanteCorreo:    (v, values = {}) => (values.TipoProveedor === 'Juridico' ? (V.correo(v, false) || V.maxLen(v, 120, 'El correo del representante')) : ''),
 };
 
@@ -302,7 +309,7 @@ export default function ProveedoresPage() {
               </div>
               <div className="form-group">
                 <label className="form-label">Teléfono del representante <span className="required">*</span></label>
-                <input name="RepresentanteTelefono" className={`form-control ${fieldError('RepresentanteTelefono') ? 'is-error' : ''}`} value={formData.RepresentanteTelefono} onChange={handleChange} onBlur={handleBlur} maxLength={20} placeholder="Teléfono de contacto" />
+                <input name="RepresentanteTelefono" className={`form-control ${fieldError('RepresentanteTelefono') ? 'is-error' : ''}`} value={formData.RepresentanteTelefono} onChange={e => handleChange({ target: { name: 'RepresentanteTelefono', value: e.target.value.replace(/\D/g, '').slice(0, 10) } })} onBlur={handleBlur} inputMode="numeric" maxLength={10} placeholder="Teléfono de contacto (solo números)" />
                 {fieldError('RepresentanteTelefono') && <p className="form-error">{fieldError('RepresentanteTelefono')}</p>}
               </div>
               <div className="form-group span-2">

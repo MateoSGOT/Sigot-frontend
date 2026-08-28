@@ -52,6 +52,13 @@
   overflow: hidden;
 }
 
+/* En portal (dentro de <body>): posición fija por encima de modales y sin que
+   el overflow de ningún contenedor lo recorte. */
+.ss__dropdown--portal {
+  right: auto;
+  z-index: 9999;
+}
+
 .ss__search-wrap {
   display: flex;
   align-items: center;

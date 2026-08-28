@@ -152,6 +152,7 @@ export default function OrdenesPage() {
   const [servPage, setServPage]           = useState(0);
   const [repPage, setRepPage]             = useState(0);
   const [editingEmpleado, setEditingEmpleado] = useState(false);
+  const [obsEdit, setObsEdit] = useState(null);   // null = no editando; string = editando observación
   const [empleadosLibres, setEmpleadosLibres] = useState([]);
   const [loadingLibres, setLoadingLibres]     = useState(false);
   const [empleadoSel, setEmpleadoSel]         = useState('');
@@ -161,7 +162,7 @@ export default function OrdenesPage() {
     dispatch(fetchOrdenes());
     api.get('/api/servicios').then(r => setServiciosOpts(r.data?.data || r.data || [])).catch(() => {});
     api.get('/api/repuestos').then(r => setRepuestosOpts(r.data?.data || r.data || [])).catch(() => {});
-    api.get('/api/categorias').then(r => setCategoriasOpts(r.data?.data || r.data || [])).catch(() => {});
+    api.get('/api/categoria-repuestos').then(r => setCategoriasOpts(r.data?.data || r.data || [])).catch(() => {});
   }, [dispatch]);
 
   // Item 16: al llegar desde "generar orden" en la agenda, abrimos esa orden.
@@ -184,6 +185,7 @@ export default function OrdenesPage() {
       setEditingEmpleado(false);
       setEmpleadoSel('');
       setEmpleadoError('');
+      setObsEdit(null);
     } else {
       dispatch(clearSelected());
     }
@@ -341,6 +343,12 @@ export default function OrdenesPage() {
     } catch (err) {
       setAddRepError(err.response?.data?.message || 'No se pudo crear el repuesto.');
     }
+  };
+
+  // La observación se puede editar SIEMPRE, incluso con la orden Realizada.
+  const handleSaveObservacion = async () => {
+    const result = await dispatch(updateOrden({ id: detailId, data: { Observacion: obsEdit } }));
+    if (!result.error) { setObsEdit(null); dispatch(fetchOrdenById(detailId)); }
   };
 
   const handleSetMano = async () => {
@@ -530,7 +538,25 @@ export default function OrdenesPage() {
                   <div className="detail-item"><span className="detail-label">Kilometraje</span><span className="detail-value">{selected.Kilometraje ? `${Number(selected.Kilometraje).toLocaleString('es-CO')} km` : '—'}</span></div>
                   <div className="detail-item"><span className="detail-label">Estado</span><span className="detail-value"><EstadoBadge estado={selected.Estado} /></span></div>
                   <div className="detail-item u-span-2"><span className="detail-label">Diagnóstico</span><span className="detail-value">{selected.Diagnostico || '—'}</span></div>
-                  <div className="detail-item u-span-2"><span className="detail-label">Observación</span><span className="detail-value">{selected.Observacion || '—'}</span></div>
+                  <div className="detail-item u-span-2">
+                    <span className="detail-label">Observación</span>
+                    {obsEdit === null ? (
+                      <span className="detail-value empleado-value-row">
+                        {selected.Observacion || '—'}
+                        {puedeEditar && (
+                          <button className="btn btn--ghost btn--icon btn--sm" title="Editar observación" onClick={() => setObsEdit(selected.Observacion || '')}><MdEdit size={15} /></button>
+                        )}
+                      </span>
+                    ) : (
+                      <div className="orden-obs-edit">
+                        <textarea className="form-control" rows={2} maxLength={500} value={obsEdit} onChange={e => setObsEdit(e.target.value)} placeholder="Observaciones de la orden..." />
+                        <div className="orden-obs-edit__actions">
+                          <button className="btn btn--outline btn--sm" onClick={() => setObsEdit(null)} disabled={actionLoading}>Cancelar</button>
+                          <button className="btn btn--primary btn--sm" onClick={handleSaveObservacion} disabled={actionLoading}>{actionLoading ? 'Guardando...' : 'Guardar'}</button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 {/* Estado de la orden — siempre visible para poder activar/inactivar

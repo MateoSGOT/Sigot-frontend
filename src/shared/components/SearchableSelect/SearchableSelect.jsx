@@ -1,4 +1,5 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useLayoutEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { MdSearch } from 'react-icons/md';
 import './SearchableSelect.css';
 
@@ -17,7 +18,12 @@ export default function SearchableSelect({
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [activeIdx, setActiveIdx] = useState(-1);
+  // Posición del dropdown (se renderiza en un portal en <body> con position:fixed
+  // para que NO lo recorte el overflow del modal y quede por encima de todo).
+  const [pos, setPos] = useState(null);
   const containerRef = useRef(null);
+  const triggerRef = useRef(null);
+  const dropdownRef = useRef(null);
   const inputRef = useRef(null);
   const listRef = useRef(null);
 
@@ -30,19 +36,33 @@ export default function SearchableSelect({
     ? options.filter(o => String(o[labelKey]).toLowerCase().includes(query.toLowerCase()))
     : options;
 
+  const computePos = useCallback(() => {
+    if (!triggerRef.current) return;
+    const r = triggerRef.current.getBoundingClientRect();
+    setPos({ top: r.bottom + 4, left: r.left, width: r.width });
+  }, []);
+
+  // Cierre al hacer clic fuera. Consideramos tanto el contenedor (trigger) como
+  // el dropdown del portal, porque este vive fuera del contenedor en el DOM.
   useEffect(() => {
     const handler = (e) => {
-      if (containerRef.current && !containerRef.current.contains(e.target)) {
-        setOpen(false);
-        setQuery('');
-        setActiveIdx(-1);
-      }
+      const inContainer = containerRef.current?.contains(e.target);
+      const inDropdown = dropdownRef.current?.contains(e.target);
+      if (!inContainer && !inDropdown) { setOpen(false); setQuery(''); setActiveIdx(-1); }
     };
-    // pointerdown cubre mouse Y touch de forma unificada (en móvil, mousedown
-    // no siempre se dispara y el cierre/selección fallaba).
     document.addEventListener('pointerdown', handler);
     return () => document.removeEventListener('pointerdown', handler);
   }, []);
+
+  // Posicionar al abrir y reposicionar si se hace scroll o cambia el tamaño.
+  useLayoutEffect(() => { if (open) computePos(); }, [open, computePos]);
+  useEffect(() => {
+    if (!open) return;
+    const onMove = () => computePos();
+    window.addEventListener('scroll', onMove, true);
+    window.addEventListener('resize', onMove);
+    return () => { window.removeEventListener('scroll', onMove, true); window.removeEventListener('resize', onMove); };
+  }, [open, computePos]);
 
   useEffect(() => {
     if (!open) { setQuery(''); setActiveIdx(-1); }
@@ -80,6 +100,7 @@ export default function SearchableSelect({
       <button
         type="button"
         className="ss__trigger form-control"
+        ref={triggerRef}
         onClick={() => !disabled && setOpen(o => !o)}
         disabled={disabled}
       >
@@ -89,8 +110,13 @@ export default function SearchableSelect({
         <span className="ss__arrow">{open ? '▴' : '▾'}</span>
       </button>
 
-      {open && (
-        <div className="ss__dropdown">
+      {open && pos && createPortal(
+        <div
+          className="ss__dropdown ss__dropdown--portal"
+          ref={dropdownRef}
+          onKeyDown={handleKeyDown}
+          style={{ position: 'fixed', top: pos.top, left: pos.left, width: pos.width }}
+        >
           {showSearch && (
             <div className="ss__search-wrap">
               <MdSearch size={15} className="ss__search-icon" />
@@ -122,7 +148,8 @@ export default function SearchableSelect({
               ))
             )}
           </ul>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
