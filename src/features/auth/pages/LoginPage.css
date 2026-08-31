@@ -352,6 +352,29 @@
 .login-recovery__resend-btn:hover:not(:disabled) { background: var(--color-neutral-soft); }
 .login-recovery__resend-btn:disabled { opacity: 0.6; cursor: not-allowed; }
 
+/* Enlace "volver a la página principal": discreto, arriba del formulario.
+   Separado de "¿Olvidaste tu contraseña?" (acción del form) porque esto es
+   navegación (salir del login), con el patrón clásico de "atrás" arriba.
+   Va ANTES del @media para que el margen compacto de móvil pueda sobrescribirlo. */
+.login-back-top {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  margin-bottom: var(--space-xl);
+  padding: var(--space-xs) 0;
+  background: none;
+  border: none;
+  color: var(--color-text-muted);
+  font-size: var(--text-small);
+  font-weight: var(--weight-medium);
+  border-radius: var(--radius-sm);
+  transition: color var(--duration-fast) var(--ease);
+}
+.login-back-top svg { transition: transform var(--duration-fast) var(--ease); }
+.login-back-top:hover { color: var(--color-primary); }
+.login-back-top:hover svg { transform: translateX(-3px); }
+.login-back-top:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }
+
 /* ── Responsive: en angosto, el panel decorativo pasa a franja superior ── */
 @media (max-width: 900px) {
   /* Móvil SIN scroll: alto fijo al viewport visible y overflow oculto.
@@ -371,13 +394,10 @@
   .login-left__subtitle { margin-bottom: 0; }
   .login-right { padding: var(--space-xl) var(--space-lg); min-height: 0; }
   .login-form { gap: var(--space-md); }
+  .login-back-top { margin-bottom: var(--space-md); }
   .login-form-header { margin-bottom: var(--space-md); }
   .login-form-links { margin-top: var(--space-md); }
   /* Pie con márgenes compactos: se conserva la nota y, gracias al overflow
      oculto, en pantallas muy bajas solo se recorta (nunca genera scroll). */
   .login-form-footer { margin-top: var(--space-md); padding-top: var(--space-sm); }
 }
-
-/* Enlace "volver a la landing" en el login */
-.login-back-link { display: block; margin-top: 0.6rem; color: var(--color-text-muted); }
-.login-back-link:hover { color: var(--color-primary); text-decoration: underline; }

@@ -3,7 +3,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { loginThunk, clearError } from '../slices/authSlice.js';
 import { authService } from '../services/authService.js';
-import { MdLock, MdEmail, MdVisibility, MdVisibilityOff, MdClose, MdBuild, MdAssignment, MdEventNote, MdSend, MdInsights, MdLocationOn } from 'react-icons/md';
+import { MdLock, MdEmail, MdVisibility, MdVisibilityOff, MdClose, MdBuild, MdAssignment, MdEventNote, MdSend, MdInsights, MdLocationOn, MdArrowBack } from 'react-icons/md';
 import { correo as validarCorreo } from '../../../shared/utils/validators.js';
 import './LoginPage.css';
 
@@ -156,6 +156,11 @@ export default function LoginPage() {
       {/* ── Right: Form ── */}
       <div className="login-right">
         <div className="login-form-wrap">
+          <button type="button" className="login-back-top" onClick={() => navigate('/')}>
+            <MdArrowBack size={16} />
+            Volver a la página principal
+          </button>
+
           <div className="login-form-header">
             <h2 className="login-form-header__title">Iniciar Sesión</h2>
             <p className="login-form-header__subtitle">Ingresa tus credenciales para continuar</p>
@@ -205,9 +210,6 @@ export default function LoginPage() {
           <div className="login-form-links">
             <button className="login-recovery-link" onClick={openRecovery}>
               ¿Olvidaste tu contraseña?
-            </button>
-            <button className="login-recovery-link login-back-link" onClick={() => navigate('/')}>
-              ← Volver a la página principal
             </button>
           </div>
 
