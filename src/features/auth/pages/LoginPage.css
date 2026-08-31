@@ -377,3 +377,7 @@
      oculto, en pantallas muy bajas solo se recorta (nunca genera scroll). */
   .login-form-footer { margin-top: var(--space-md); padding-top: var(--space-sm); }
 }
+
+/* Enlace "volver a la landing" en el login */
+.login-back-link { display: block; margin-top: 0.6rem; color: var(--color-text-muted); }
+.login-back-link:hover { color: var(--color-primary); text-decoration: underline; }

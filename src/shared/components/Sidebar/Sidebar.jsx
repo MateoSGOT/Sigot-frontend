@@ -125,12 +125,11 @@ export default function Sidebar() {
   };
 
   const handleLogout = () => {
-    // Limpia sesión y hace una navegación DURA a la landing pública. Un
-    // window.location.replace es determinista: recarga la página, aborta la
-    // petición de /logout en vuelo (el interceptor 401 ni corre) y no depende
-    // del timing de React Router. Así el cierre de sesión nunca cae en /login.
+    // Limpia sesión y hace una navegación DURA al login. Un window.location.replace
+    // es determinista: recarga la página, aborta la petición de /logout en vuelo
+    // (el interceptor 401 ni corre) y no depende del timing de React Router.
     dispatch(logout());
-    window.location.replace('/');
+    window.location.replace('/login');
   };
 
   return (

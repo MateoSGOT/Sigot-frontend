@@ -100,7 +100,7 @@ export default function CambiarPasswordInicialPage() {
           </button>
         </form>
 
-        <button className="btn btn--ghost cpi-logout" onClick={() => { dispatch(logout()); window.location.replace('/'); }}>
+        <button className="btn btn--ghost cpi-logout" onClick={() => { dispatch(logout()); window.location.replace('/login'); }}>
           Cerrar sesión
         </button>
       </div>

@@ -36,7 +36,7 @@ const REASONS = [
 ];
 
 const TEAM = [
-  { name: 'Carlos Rodríguez', role: 'Jefe de Taller', initials: 'CR' },
+  { name: 'Jair Calle', role: 'Jefe Mecánico', initials: 'JC' },
   { name: 'Ana Martínez', role: 'Técnica Especialista', initials: 'AM' },
   { name: 'Luis Herrera', role: 'Diagnóstico Electrónico', initials: 'LH' },
   { name: 'Diana Torres', role: 'Recepcionista', initials: 'DT' },
@@ -386,14 +386,14 @@ export default function LandingPage() {
                 <div className="landing-location__icon"><MdPhone size={20} /></div>
                 <div>
                   <strong>Teléfono</strong>
-                  <p>+57 300 123 4567</p>
+                  <p>312 758 2709</p>
                 </div>
               </div>
               <div className="landing-location__detail">
                 <div className="landing-location__icon"><MdEmail size={20} /></div>
                 <div>
                   <strong>Correo</strong>
-                  <p>sigot@taller.com</p>
+                  <p>jaircallevega@gmail.com</p>
                 </div>
               </div>
             </AnimSection>

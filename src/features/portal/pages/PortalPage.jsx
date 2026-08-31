@@ -224,8 +224,11 @@ export default function PortalPage() {
     try {
       const res = await api.put('/api/portal/perfil', {
         Correo: editData.Correo, Contacto: editData.Telefono,
+        ...(fotoPreview ? { Foto: fotoPreview } : {}),
       }, { headers: { Authorization: `Bearer ${token}` } });
-      dispatch(updateCliente({ ...(res.data?.data || {}), Foto: fotoPreview }));
+      // Refleja el cliente guardado (incluye la foto); si el backend no la
+      // devolviera, conservamos la previsualización para que se vea al instante.
+      dispatch(updateCliente({ ...(res.data?.data || {}), ...(fotoPreview ? { Foto: fotoPreview } : {}) }));
       setSaveOk(true);
       setTimeout(() => setSaveOk(false), 3000);
     } catch { } finally { setSaving(false); }
@@ -444,10 +447,14 @@ export default function PortalPage() {
 
               {/* Card 1: avatar + nombre + doc + botón cambiar foto */}
               <div className="portal-profile-card portal-profile-header-card">
-                {(cliente?.Foto_url && cliente.Foto_url.startsWith('http'))
-                  ? <img src={cliente.Foto_url} alt="avatar" className="portal-profile-avatar" />
-                  : <div className="portal-profile-avatar portal-profile-avatar--init">{cliente?.Nombre?.charAt(0)?.toUpperCase()}</div>
-                }
+                {(() => {
+                  // La foto se guarda en el campo `Foto` del cliente (data URL o
+                  // URL). Mostramos la previsualización recién elegida si existe.
+                  const foto = fotoPreview || cliente?.Foto || cliente?.Foto_url;
+                  return foto
+                    ? <img src={foto} alt="avatar" className="portal-profile-avatar" />
+                    : <div className="portal-profile-avatar portal-profile-avatar--init">{cliente?.Nombre?.charAt(0)?.toUpperCase()}</div>;
+                })()}
                 <div className="portal-profile-user-info">
                   <span className="portal-profile-user-name">{cliente?.Nombre}</span>
                   <span className="portal-profile-user-subdoc">{cliente?.TipoDocumento}</span>

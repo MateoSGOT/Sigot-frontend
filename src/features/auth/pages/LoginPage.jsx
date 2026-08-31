@@ -206,6 +206,9 @@ export default function LoginPage() {
             <button className="login-recovery-link" onClick={openRecovery}>
               ¿Olvidaste tu contraseña?
             </button>
+            <button className="login-recovery-link login-back-link" onClick={() => navigate('/')}>
+              ← Volver a la página principal
+            </button>
           </div>
 
           <div className="login-form-footer">

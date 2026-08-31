@@ -258,17 +258,26 @@ export function buildFacturaCompra(compra) {
     ...tableBase,
     startY: y,
     head: [['Repuesto', 'Cantidad', 'Precio unitario', 'Subtotal']],
-    body: detalles.map(d => [
-      d.NombreRepuesto || d.Nombre || '—',
-      d.cantidad ?? d.Cantidad ?? 1,
-      fmt(d.valor_unidad ?? d.PrecioUnitario),
-      fmt(d.subtotal ?? (Number(d.cantidad ?? 1) * Number(d.valor_unidad ?? 0))),
-    ]),
+    body: detalles.map(d => {
+      const cant   = Number(d.cantidad ?? d.Cantidad ?? 1);
+      const precio = Number(d.valor_unidad ?? d.PrecioUnitario ?? d.Precio ?? 0);
+      const sub    = d.subtotal != null ? Number(d.subtotal) : cant * precio;
+      return [
+        d.NombreRepuesto || d.Nombre || d.Repuesto || '—',
+        cant,
+        fmt(precio),
+        fmt(sub),
+      ];
+    }),
     columnStyles: { 1: { halign: 'center' }, 2: { halign: 'right' }, 3: { halign: 'right' } },
   });
   y = doc.lastAutoTable.finalY + 8;
 
-  const total = Number(compra.Total || detalles.reduce((s, d) => s + Number(d.subtotal ?? 0), 0));
+  const total = Number(compra.Total ?? detalles.reduce((s, d) => {
+    const cant   = Number(d.cantidad ?? d.Cantidad ?? 1);
+    const precio = Number(d.valor_unidad ?? d.PrecioUnitario ?? d.Precio ?? 0);
+    return s + (d.subtotal != null ? Number(d.subtotal) : cant * precio);
+  }, 0));
   totalBox(doc, y, total);
 
   addFooter(doc);

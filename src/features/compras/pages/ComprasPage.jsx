@@ -243,7 +243,19 @@ export default function ComprasPage() {
 
       {/* Modal de detalle — muestra TODOS los productos de esa compra */}
       <Modal isOpen={!!detailItem} onClose={() => setDetailItem(null)} title="Detalle de la compra" size="lg"
-        footer={detailItem ? <button className="btn btn--primary" onClick={() => generarFacturaCompra({ ...detailItem, detalles: detailItems })}>Factura (PDF)</button> : null}
+        footer={detailItem ? <button className="btn btn--primary" onClick={() => generarFacturaCompra({
+          ...detailItem,
+          Proveedor: detailItem.Proveedor || getNombre(proveedores, 'Id_Proveedor', detailItem.Id_Proveedor),
+          // Mapeamos cada producto a los nombres de campo que espera el PDF y
+          // resolvemos el nombre del repuesto desde el catálogo cargado.
+          detalles: detailItems.map(d => ({
+            NombreRepuesto: d.Repuesto || getNombre(repuestos, 'Id_Repuesto', d.Id_Repuesto),
+            cantidad:     Number(d.Cantidad || 0),
+            valor_unidad: Number(d.PrecioUnitario || 0),
+            subtotal:     Number(d.Cantidad || 0) * Number(d.PrecioUnitario || 0),
+          })),
+          Total: detailTotal,
+        })}>Factura (PDF)</button> : null}
       >
         {detailItem && (
           <div>

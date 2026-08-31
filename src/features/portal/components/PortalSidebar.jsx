@@ -28,7 +28,7 @@ export default function PortalSidebar({ activeTab, onTabChange }) {
     return () => { document.body.style.overflow = ''; };
   }, [mobileOpen]);
 
-  const handleLogout = () => { dispatch(logout()); window.location.replace('/'); };
+  const handleLogout = () => { dispatch(logout()); window.location.replace('/login'); };
 
   const handleNav = (key) => {
     onTabChange(key);
