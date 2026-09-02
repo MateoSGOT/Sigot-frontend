@@ -444,12 +444,16 @@ export default function AgendaPage() {
               {(() => {
                 const esHoy  = formData.FechaAgendamiento === TODAY;
                 const nowMin = new Date().getHours() * 60 + new Date().getMinutes();
-                return horaOptions.map(h => {
-                  const pasada  = esHoy && toMinHelper(h) <= nowMin;
-                  const ocupada = h !== formData.Hora && horaOcupada(h);
-                  const bloqueada = pasada || ocupada;
-                  return <option key={h} value={h} disabled={bloqueada}>{h}{pasada ? ' (pasada)' : ocupada ? ' (ocupado)' : ''}</option>;
-                });
+                // Las horas ya pasadas del día de hoy no se muestran (antes solo se
+                // deshabilitaban con la etiqueta "(pasada)", pero seguían apareciendo
+                // en la lista); las ocupadas sí se listan, deshabilitadas, para que se
+                // vea por qué no se pueden elegir.
+                return horaOptions
+                  .filter(h => !(esHoy && toMinHelper(h) <= nowMin))
+                  .map(h => {
+                    const ocupada = h !== formData.Hora && horaOcupada(h);
+                    return <option key={h} value={h} disabled={ocupada}>{h}{ocupada ? ' (ocupado)' : ''}</option>;
+                  });
               })()}
             </select>
             <p className="form-hint">Atención: {horario.apertura}–{horario.cierre} · {diasLaboralesLabel}</p>
