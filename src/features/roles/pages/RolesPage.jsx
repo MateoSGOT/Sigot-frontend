@@ -26,8 +26,8 @@ import './RolesPage.css';
 const PRIMARY_ROLES = [
   { nombre: 'Administrador', color: 'success' },
   { nombre: 'Secretario',    color: 'info'    },
+  { nombre: 'Mecánico',      color: 'danger'  },
   { nombre: 'Bodeguero',     color: 'warning' },
-  { nombre: 'Técnico',  color: 'danger'  }, // Técnico — explicit Unicode escape to avoid encoding issues
 ];
 
 const ROLE_COLORS = ['success', 'info', 'warning', 'danger', 'default'];
@@ -53,8 +53,12 @@ const MODULE_META = {
   'Roles':       { icon: MdSecurity,              label: 'Roles',              color: '#b5f23d' },
 };
 
+// 'Dashboard' no está aquí a propósito: sus permisos (DASHBOARD.VER_COMPRAS,
+// VER_STOCK, etc.) no siguen el patrón Ver/Crear/Editar/Eliminar de este
+// matriz, así que cualquier checkbox que se marcara en esa fila nunca se
+// guardaba (el backend la ignoraba en silencio).
 const MODULES_ORDER = [
-  'Dashboard', 'Clientes', 'Vehículos', 'Empleados', 'Repuestos',
+  'Clientes', 'Vehículos', 'Empleados', 'Repuestos',
   'Categorías', 'Proveedores', 'Compras', 'Servicios', 'Agenda',
   'Órdenes', 'Novedades', 'Roles',
 ];

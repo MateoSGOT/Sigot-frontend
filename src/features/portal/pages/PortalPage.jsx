@@ -94,7 +94,7 @@ export default function PortalPage() {
   /* ── Fetch inicial ───────────────────────────────────────── */
   useEffect(() => {
     if (cliente) {
-      setEditData({ Correo: cliente.Correo || '', Telefono: cliente.Telefono || cliente.Contacto || '' });
+      setEditData({ Correo: cliente.Correo || '', Telefono: cliente.Telefono || cliente.Contacto || '', Documento: cliente.Documento || '' });
       setFotoPreview(cliente.Foto || null);
     }
   }, [cliente?.Id_Cliente]);
@@ -223,7 +223,7 @@ export default function PortalPage() {
     setSaving(true);
     try {
       const res = await api.put('/api/portal/perfil', {
-        Correo: editData.Correo, Contacto: editData.Telefono,
+        Correo: editData.Correo, Contacto: editData.Telefono, Documento: editData.Documento,
         ...(fotoPreview ? { Foto: fotoPreview } : {}),
       }, { headers: { Authorization: `Bearer ${token}` } });
       // Refleja el cliente guardado (incluye la foto); si el backend no la
@@ -473,7 +473,6 @@ export default function PortalPage() {
                   {[
                     ['Nombre completo',     cliente?.Nombre],
                     ['Tipo de documento',   cliente?.TipoDocumento],
-                    ['Número de documento', cliente?.Documento],
                   ].map(([label, value]) => (
                     <div key={label} className="portal-profile-field">
                       <span className="portal-profile-field-label">{label}</span>
@@ -493,6 +492,15 @@ export default function PortalPage() {
                 <div className="portal-profile-card">
                   <div className="portal-profile-card-title">Datos de contacto</div>
                   <div className="portal-profile-fields">
+                    <div className="portal-profile-field">
+                      <span className="portal-profile-field-label">Número de documento</span>
+                      <input
+                        className="portal-profile-field-input"
+                        value={editData.Documento || ''}
+                        onChange={e => setEditData(p => ({ ...p, Documento: e.target.value }))}
+                        placeholder="Número de documento"
+                      />
+                    </div>
                     <div className="portal-profile-field">
                       <span className="portal-profile-field-label">Correo electrónico</span>
                       <input

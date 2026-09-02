@@ -60,6 +60,7 @@ export default function AgendaPage() {
   const [search, setSearch]             = useState('');
   const [statusFilter, setStatusFilter] = useState('todos');
   const [empleadoFilter, setEmpleadoFilter] = useState('');
+  const [citaEstadoFilter, setCitaEstadoFilter] = useState('todas');
   const [pageSize, setPageSize]         = useState(5);
   const [detailId, setDetailId]       = useState(null);
   const [formData, setFormData]       = useState(EMPTY_CITA);
@@ -174,12 +175,30 @@ export default function AgendaPage() {
     return { value: id, label: `${e.Nombre} — ${e.Documento}${conNovedad ? ' — Con novedad' : ''}`, disabled: conNovedad };
   });
 
+  // Agrupa los 5 estados reales de la cita en los 3 baldes del filtro:
+  // Pendientes (incluye Confirmada), Realizadas (Atendida) y Canceladas
+  // (incluye NoAsistio).
+  const bucketEstadoCita = (item) => {
+    const e = item.EstadoCita || 'Pendiente';
+    if (e === 'Atendida') return 2;
+    if (e === 'Cancelada' || e === 'NoAsistio') return 3;
+    return 1;
+  };
+  const CITA_ESTADO_BUCKET = { pendientes: 1, realizadas: 2, canceladas: 3 };
+
   const filtered = (() => {
     let list = items;
     if (statusFilter === 'activos') list = list.filter(i => i.Estado !== 0);
     else if (statusFilter === 'inactivos') list = list.filter(i => i.Estado === 0);
     if (empleadoFilter) list = list.filter(i => String(i.id_empleado || i.Id_Empleado) === empleadoFilter);
-    return sortNewestFirst(filterItems(list, search, ['cliente', 'vehiculo', 'Cliente', 'Vehiculo']), 'Id_Agenda');
+    if (citaEstadoFilter !== 'todas') {
+      const bucket = CITA_ESTADO_BUCKET[citaEstadoFilter];
+      list = list.filter(i => bucketEstadoCita(i) === bucket);
+    }
+    const sorted = sortNewestFirst(filterItems(list, search, ['cliente', 'vehiculo', 'Cliente', 'Vehiculo']), 'Id_Agenda');
+    // Por defecto (sin filtro de estado): pendientes primero, luego realizadas, luego canceladas.
+    if (citaEstadoFilter === 'todas') sorted.sort((a, b) => bucketEstadoCita(a) - bucketEstadoCita(b));
+    return sorted;
   })();
 
   // Derivado de `items` en cada render (no un snapshot congelado): así el modal de
@@ -230,6 +249,11 @@ export default function AgendaPage() {
     setFormData(p => {
       const next = { ...p, [name]: value };
       if (name === 'Id_Cliente') next.Id_Vehiculo = '';
+      // Al cambiar de fecha (o de empleado) la hora elegida puede quedar
+      // "pasada" u "ocupada" para el nuevo día: se limpia para forzar a
+      // elegir una hora válida en vez de dejar el select en un estado
+      // bloqueado con un valor que ya no es seleccionable.
+      if (name === 'FechaAgendamiento' || name === 'id_empleado') next.Hora = '';
       return next;
     });
   };
@@ -348,6 +372,12 @@ export default function AgendaPage() {
                   <option value="">Todos los empleados</option>
                   {empleados.map(e => { const empId = e.Id_Empleado ?? e.id_empleado; return <option key={empId} value={empId}>{e.Nombre}</option>; })}
                 </select>
+                <select className="filter-select" value={citaEstadoFilter} onChange={e => setCitaEstadoFilter(e.target.value)}>
+                  <option value="todas">Todas las citas</option>
+                  <option value="pendientes">Pendientes</option>
+                  <option value="realizadas">Realizadas</option>
+                  <option value="canceladas">Canceladas</option>
+                </select>
                 <FilterDropdown
                   statusFilter={statusFilter}
                   onStatusChange={setStatusFilter}
@@ -400,7 +430,7 @@ export default function AgendaPage() {
           </div>
           <div className="form-group span-2">
             <label className="form-label">Empleado <span className="required">*</span></label>
-            <SearchableSelect options={empleadosOpts} value={String(formData.id_empleado)} onChange={v => setFormData(p => ({ ...p, id_empleado: v }))} placeholder="Seleccionar empleado..." />
+            <SearchableSelect options={empleadosOpts} value={String(formData.id_empleado)} onChange={v => setFormData(p => ({ ...p, id_empleado: v, Hora: '' }))} placeholder="Seleccionar empleado..." />
             {formData.id_empleado && empleadosBloqueados.has(String(formData.id_empleado)) && (
               <p className="novedad-warning">⚠ Este empleado tiene una novedad en la fecha seleccionada y no puede ser asignado.</p>
             )}
