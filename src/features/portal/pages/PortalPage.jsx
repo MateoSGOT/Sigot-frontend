@@ -856,10 +856,10 @@ export default function PortalPage() {
                 fetchHorasOcupadas(citaForm.Fecha, idEmpleado);
               }}>
                 <option value="">Sin preferencia</option>
-                {empleadosDisp.map(e => (
-                  <option key={e.id_empleado} value={e.id_empleado} disabled={!e.disponible}>
-                    {e.Nombre}{!e.disponible ? ' (No disponible)' : ''}
-                  </option>
+                {/* Con novedad ese día: no aparece en la lista (antes solo se
+                    deshabilitaba con "No disponible", pero seguía apareciendo). */}
+                {empleadosDisp.filter(e => e.disponible).map(e => (
+                  <option key={e.id_empleado} value={e.id_empleado}>{e.Nombre}</option>
                 ))}
               </select>
             )}

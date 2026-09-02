@@ -169,11 +169,14 @@ export default function AgendaPage() {
   // Solo empleados con rol mecánico/técnico pueden asignarse a una cita (igual que
   // ya filtra el portal del cliente en /api/portal/empleados-disponibles).
   const esMecanicoOTecnico = (e) => /mec|tec/i.test(e.Rol || e.rol?.Nombre || '');
-  const empleadosOpts = empleados.filter(esActivo).filter(esMecanicoOTecnico).map(e => {
-    const id = String(e.Id_Empleado ?? e.id_empleado);
-    const conNovedad = empleadosBloqueados.has(id);
-    return { value: id, label: `${e.Nombre} — ${e.Documento}${conNovedad ? ' — Con novedad' : ''}`, disabled: conNovedad };
-  });
+  // Con novedad en la fecha elegida: no aparece en la lista (antes solo se
+  // deshabilitaba con la etiqueta "— Con novedad", pero seguía apareciendo).
+  const empleadosOpts = empleados.filter(esActivo).filter(esMecanicoOTecnico)
+    .filter(e => !empleadosBloqueados.has(String(e.Id_Empleado ?? e.id_empleado)))
+    .map(e => {
+      const id = String(e.Id_Empleado ?? e.id_empleado);
+      return { value: id, label: `${e.Nombre} — ${e.Documento}` };
+    });
 
   // Agrupa los 5 estados reales de la cita en los 3 baldes del filtro:
   // Pendientes (incluye Confirmada), Realizadas (Atendida) y Canceladas
