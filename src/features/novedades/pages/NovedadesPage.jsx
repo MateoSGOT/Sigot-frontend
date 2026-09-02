@@ -13,14 +13,14 @@ import Modal from '../../../shared/components/Modal/Modal.jsx';
 import Table from '../../../shared/components/Table/Table.jsx';
 import SearchBar from '../../../shared/components/SearchBar/SearchBar.jsx';
 import FilterDropdown from '../../../shared/components/FilterDropdown/FilterDropdown.jsx';
-import { filterItems, sortNewestFirst, formatDate } from '../../../shared/utils/helpers.js';
+import { filterItems, sortNewestFirst, formatDate, todayLocalYMD } from '../../../shared/utils/helpers.js';
 import * as V from '../../../shared/utils/validators.js';
 import { useFormValidation } from '../../../shared/hooks/useFormValidation.js';
 import api from '../../../shared/services/api.js';
 import './NovedadesPage.css';
 
 const EMPTY = { id_empleado: '', Descripcion: '', Fecha_Novedad: '', FechaRealizacion: '', HoraInicio: '', HoraFin: '' };
-const TODAY = new Date().toISOString().split('T')[0];
+const TODAY = todayLocalYMD();
 const RULES = {
   id_empleado: (v) => V.requiredSelect(v, 'El empleado'),
   Descripcion: (v) => V.required(v, 'La descripción') || V.maxLen(v, 500, 'La descripción'),

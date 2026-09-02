@@ -14,7 +14,7 @@ import Table from '../../../shared/components/Table/Table.jsx';
 import SearchBar from '../../../shared/components/SearchBar/SearchBar.jsx';
 import FilterDropdown from '../../../shared/components/FilterDropdown/FilterDropdown.jsx';
 import { StatusBadge } from '../../../shared/components/Badge/Badge.jsx';
-import { formatCurrency } from '../../../shared/utils/helpers.js';
+import { formatCurrency, todayLocalYMD } from '../../../shared/utils/helpers.js';
 import * as V from '../../../shared/utils/validators.js';
 import { useFormValidation } from '../../../shared/hooks/useFormValidation.js';
 import api from '../../../shared/services/api.js';
@@ -124,7 +124,7 @@ export default function RepuestosPage() {
       const ws = XLSX.utils.json_to_sheet(exportRows);
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, 'Inventario');
-      const fecha = new Date().toISOString().split('T')[0];
+      const fecha = todayLocalYMD();
       XLSX.writeFile(wb, `inventario-repuestos-${fecha}.xlsx`);
     } catch { /* silent */ }
   };

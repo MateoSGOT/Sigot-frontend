@@ -16,7 +16,7 @@ import SearchBar from '../../../shared/components/SearchBar/SearchBar.jsx';
 import SearchableSelect from '../../../shared/components/SearchableSelect/SearchableSelect.jsx';
 import FilterDropdown from '../../../shared/components/FilterDropdown/FilterDropdown.jsx';
 import Badge from '../../../shared/components/Badge/Badge.jsx';
-import { filterItems, sortNewestFirst, formatDate, formatCurrency } from '../../../shared/utils/helpers.js';
+import { filterItems, sortNewestFirst, formatDate, formatCurrency, todayLocalYMD } from '../../../shared/utils/helpers.js';
 import { generarFacturaOrden } from '../../../shared/utils/generarFacturaPDF.js';
 import * as V from '../../../shared/utils/validators.js';
 import { useFormValidation } from '../../../shared/hooks/useFormValidation.js';
@@ -136,7 +136,7 @@ function ProgresoEstado({ estadoActual, onAvanzar, loading, disabled, sinTrabajo
 // FechaEntrega solo es editable mientras la orden está Pendiente, y siempre hacia el futuro.
 const EMPTY_EDIT = { Diagnostico: '', Kilometraje: '', FechaEntrega: '', Observacion: '' };
 const ITEMS_PER_PAGE = 5;
-const TODAY = new Date().toISOString().split('T')[0];
+const TODAY = todayLocalYMD();
 
 // Formatea minutos a algo legible: 90 -> "1h 30min", 45 -> "45min", 120 -> "2h".
 // null/sin estimar -> "—".

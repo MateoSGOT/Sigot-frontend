@@ -10,6 +10,16 @@ export const formatDate = (dateStr) => {
   return date.toLocaleDateString('es-CO', { day: '2-digit', month: '2-digit', year: 'numeric' });
 };
 
+// Fecha de hoy como 'YYYY-MM-DD' en horario LOCAL. NUNCA usar
+// `new Date().toISOString().split('T')[0]` para esto: toISOString() convierte
+// a UTC, y en Colombia (UTC-5) después de las 7pm ya cambió de día ahí,
+// haciendo que "hoy" deje de coincidir con la fecha local real (rompe validaciones
+// de fecha mínima y filtros de "es hoy" justo en las últimas horas del día).
+export const todayLocalYMD = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+};
+
 export const formatCurrency = (value) => {
   if (value == null) return '—';
   return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(value);

@@ -11,13 +11,13 @@ import SearchBar from '../../../shared/components/SearchBar/SearchBar.jsx';
 import ConfirmDialog from '../../../shared/components/ConfirmDialog/ConfirmDialog.jsx';
 import Badge from '../../../shared/components/Badge/Badge.jsx';
 import FilterDropdown from '../../../shared/components/FilterDropdown/FilterDropdown.jsx';
-import { filterItems, sortNewestFirst, formatDate, formatCurrency } from '../../../shared/utils/helpers.js';
+import { filterItems, sortNewestFirst, formatDate, formatCurrency, todayLocalYMD } from '../../../shared/utils/helpers.js';
 import { generarFacturaCompra } from '../../../shared/utils/generarFacturaPDF.js';
 import api from '../../../shared/services/api.js';
 import './ComprasPage.css';
 
 const EMPTY_ITEM = { Id_Repuesto: '', Cantidad: '', PrecioUnitario: '' };
-const newForm = () => ({ Id_Proveedor: '', Fecha: new Date().toISOString().split('T')[0], productos: [{ ...EMPTY_ITEM }] });
+const newForm = () => ({ Id_Proveedor: '', Fecha: todayLocalYMD(), productos: [{ ...EMPTY_ITEM }] });
 
 export default function ComprasPage() {
   const dispatch = useDispatch();

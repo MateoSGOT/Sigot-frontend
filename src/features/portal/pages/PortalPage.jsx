@@ -11,7 +11,7 @@ import SearchBar from '../../../shared/components/SearchBar/SearchBar.jsx';
 import FilterDropdown from '../../../shared/components/FilterDropdown/FilterDropdown.jsx';
 import Badge from '../../../shared/components/Badge/Badge.jsx';
 import { StatusBadge } from '../../../shared/components/Badge/Badge.jsx';
-import { filterItems, formatDate, formatCurrency } from '../../../shared/utils/helpers.js';
+import { filterItems, formatDate, formatCurrency, todayLocalYMD } from '../../../shared/utils/helpers.js';
 import api from '../../../shared/services/api.js';
 import './PortalPage.css';
 
@@ -37,6 +37,7 @@ function OrdenEstadoBadge({ estado }) {
   const cfg = ORDEN_ESTADO[estado] ?? ORDEN_ESTADO[1];
   return <Badge variant={cfg.variant}>{cfg.label}</Badge>;
 }
+
 
 export default function PortalPage() {
   const dispatch = useDispatch();
@@ -797,7 +798,7 @@ export default function PortalPage() {
           <div className="form-group">
             <label className="form-label">Fecha <span className="required">*</span></label>
             <input type="date" className="form-control" value={citaForm.Fecha}
-              min={new Date().toISOString().split('T')[0]}
+              min={todayLocalYMD()}
               onChange={e => {
                 const f = e.target.value;
                 setCitaForm(p => ({ ...p, Fecha: f, Id_Empleado: '' }));
@@ -811,29 +812,32 @@ export default function PortalPage() {
               <option value="">Seleccionar hora...</option>
               {(() => {
                 // Horas dentro del horario configurado del taller. Si la fecha es
-                // hoy, se deshabilitan las horas ya pasadas. Si hay técnico elegido,
-                // también se deshabilitan las horas que choquen con una cita/novedad
-                // ya registrada para ese técnico ese día (fuente: horas-ocupadas).
+                // hoy, las horas ya pasadas no se muestran. Si hay técnico elegido,
+                // se deshabilitan (sin ocultarlas) las horas que choquen con una
+                // cita/novedad ya registrada para ese técnico ese día (fuente:
+                // horas-ocupadas).
                 const toMin = (hhmm) => { const [hh, mm] = String(hhmm).split(':').map(Number); return (hh || 0) * 60 + (mm || 0); };
                 const ap = toMin(horario.apertura || '08:00');
                 const ci = toMin(horario.cierre || '18:00');
-                const esHoy  = citaForm.Fecha === new Date().toISOString().split('T')[0];
+                const esHoy  = citaForm.Fecha === todayLocalYMD();
                 const nowMin = new Date().getHours() * 60 + new Date().getMinutes();
                 const DURACION_DEFAULT = 60;
                 const opts = [];
                 for (let mins = ap; mins <= ci && !Number.isNaN(mins); mins += 30) {
+                  // Las horas ya pasadas del día de hoy no se muestran (antes solo
+                  // se deshabilitaban con la etiqueta "(pasada)", pero seguían
+                  // apareciendo en la lista).
+                  if (esHoy && mins <= nowMin) continue;
                   const h = Math.floor(mins / 60), m = mins % 60;
                   const h12 = h % 12 === 0 ? 12 : h % 12;
                   const label = `${h12}:${String(m).padStart(2, '0')} ${h >= 12 ? 'PM' : 'AM'}`;
                   const value = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
-                  const pasada = esHoy && mins <= nowMin;
                   const ocupada = !!citaForm.Id_Empleado && horasOcupadas.some(o => {
                     const oIni = toMin(o.Hora);
                     const oFin = oIni + Number(o.DuracionEstimadaMin || DURACION_DEFAULT);
                     return mins < oFin && oIni < mins + DURACION_DEFAULT;
                   });
-                  const bloqueada = pasada || ocupada;
-                  opts.push(<option key={value} value={value} disabled={bloqueada}>{label}{pasada ? ' (pasada)' : ocupada ? ' (ocupado)' : ''}</option>);
+                  opts.push(<option key={value} value={value} disabled={ocupada}>{label}{ocupada ? ' (ocupado)' : ''}</option>);
                 }
                 return opts;
               })()}

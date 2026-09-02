@@ -17,7 +17,7 @@ import Table from '../../../shared/components/Table/Table.jsx';
 import SearchBar from '../../../shared/components/SearchBar/SearchBar.jsx';
 import FilterDropdown from '../../../shared/components/FilterDropdown/FilterDropdown.jsx';
 import { StatusBadge } from '../../../shared/components/Badge/Badge.jsx';
-import { filterItems, sortNewestFirst, formatDate } from '../../../shared/utils/helpers.js';
+import { filterItems, sortNewestFirst, formatDate, todayLocalYMD } from '../../../shared/utils/helpers.js';
 import api from '../../../shared/services/api.js';
 import './AgendaPage.css';
 
@@ -36,7 +36,7 @@ function CitaEstadoBadge({ estado }) {
 }
 const CITA_CANCELABLE = (estado) => ['Pendiente', 'Confirmada'].includes(estado || 'Pendiente');
 const EMPTY_ORDEN = { FechaIngreso: '', FechaEntrega: '', Diagnostico: '', Kilometraje: '' };
-const TODAY = new Date().toISOString().split('T')[0];
+const TODAY = todayLocalYMD();
 const toMinHelper = (h) => { const [hh, mm] = String(h).split(':').map(Number); return hh * 60 + mm; };
 
 export default function AgendaPage() {
@@ -206,7 +206,7 @@ export default function AgendaPage() {
   const detailItem = detailId ? items.find(i => (i.Id_Agenda ?? i.id) === detailId) || null : null;
 
   const openCreate = () => {
-    setFormData({ ...EMPTY_CITA, FechaAgendamiento: new Date().toISOString().split('T')[0] });
+    setFormData({ ...EMPTY_CITA, FechaAgendamiento: TODAY });
     setEditingId(null); setFormError(''); setShowForm(true);
   };
   // Reagendar una cita cancelada: precarga cliente/vehículo/empleado en el formulario de
@@ -219,7 +219,7 @@ export default function AgendaPage() {
       Id_Cliente: item.Id_Cliente || '',
       Id_Vehiculo: item.Id_Vehiculo || '',
       id_empleado: item.id_empleado || item.Id_Empleado || '',
-      FechaAgendamiento: new Date().toISOString().split('T')[0],
+      FechaAgendamiento: TODAY,
       Hora: '',
       DuracionEstimadaMin: String(item.DuracionEstimadaMin ?? 60),
     });
@@ -282,7 +282,7 @@ export default function AgendaPage() {
     setOrdenVehiculoKm(kmActual);
     // La fecha de ingreso de la orden ES la fecha de la cita de origen (no editable):
     // la orden nace de esa cita. El backend la fija autoritativamente igual.
-    const fechaCita = (item.FechaAgendamiento || '').split('T')[0] || new Date().toISOString().split('T')[0];
+    const fechaCita = (item.FechaAgendamiento || '').split('T')[0] || TODAY;
     setOrdenData({ ...EMPTY_ORDEN, FechaIngreso: fechaCita, Kilometraje: kmActual != null ? String(kmActual) : '' });
     setOrdenError(''); setShowOrdenModal(true);
   };

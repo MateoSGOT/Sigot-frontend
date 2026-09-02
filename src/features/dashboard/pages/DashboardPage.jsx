@@ -6,13 +6,14 @@ import { dashboardService } from '../services/dashboardService.js';
 import { formatCurrency } from '../../../shared/utils/helpers.js';
 import {
   MdShoppingCart, MdMiscellaneousServices, MdPeople,
-  MdPayments, MdReceiptLong, MdRefresh, MdWarning, MdBuild,
+  MdPayments, MdReceiptLong, MdRefresh, MdWarning, MdBuild, MdLockOutline,
 } from 'react-icons/md';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend, Area, AreaChart,
 } from 'recharts';
 import { useAutoRefresh } from '../../../shared/hooks/useAutoRefresh.js';
+import { usePermiso } from '../../../shared/hooks/usePermiso.js';
 import EmptyState from '../../../shared/components/EmptyState/EmptyState.jsx';
 import Skeleton from '../../../shared/components/Skeleton/Skeleton.jsx';
 import CountUp from '../../../shared/components/CountUp/CountUp.jsx';
@@ -84,6 +85,11 @@ export default function DashboardPage() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { repuestos } = useSelector((s) => s.dashboard);
+  // Los reportes por rango (resumen, ingresos, top servicios/repuestos,
+  // productividad) requieren este permiso en el backend; antes, sin él, las
+  // llamadas fallaban en silencio (.catch(() => null)) y el dashboard se veía
+  // "vacío" (ingresos en $0, sin gráficas) sin ningún aviso de por qué.
+  const puedeVerFinanzas = usePermiso('DASHBOARD.VER_COMPRAS');
 
   const [preset, setPreset] = useState('mes');
   const [cDesde, setCDesde] = useState('');
@@ -101,6 +107,7 @@ export default function DashboardPage() {
   useAutoRefresh(() => setRefreshKey((k) => k + 1), { intervalMs: 30000 });
 
   useEffect(() => {
+    if (!puedeVerFinanzas) { setLoading(false); return undefined; }
     let vivo = true;
     setLoading(true);
     // computeRango ya entrega la agrupación correcta ('dia' o 'mes') para cada
@@ -125,7 +132,7 @@ export default function DashboardPage() {
       setLoading(false);
     });
     return () => { vivo = false; };
-  }, [rango.desde, rango.hasta, rango.agrupacion, preset, refreshKey]);
+  }, [rango.desde, rango.hasta, rango.agrupacion, preset, refreshKey, puedeVerFinanzas]);
 
   const resumen = rep.resumen || {};
   const ingresosSerie = (rep.ingresos?.series || []).map((s) => ({ name: etiquetaPeriodo(s.periodo, rep.ingresos.agrupacion), total: Number(s.total || 0) }));
@@ -137,6 +144,24 @@ export default function DashboardPage() {
   const EMPTY_CHART = (
     <EmptyState variant="empty" title="Aún no hay datos suficientes" description="No hay órdenes entregadas en el rango elegido." />
   );
+
+  if (!puedeVerFinanzas) {
+    return (
+      <div className="page dashboard-page">
+        <div className="page__header">
+          <div>
+            <h1 className="page__title">Dashboard</h1>
+            <p className="page__subtitle">Reportes del taller</p>
+          </div>
+        </div>
+        <EmptyState
+          icon={<MdLockOutline size={40} />}
+          title="No tienes permiso para ver el dashboard financiero"
+          description="Pídele a un administrador que te lo habilite."
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="page dashboard-page">

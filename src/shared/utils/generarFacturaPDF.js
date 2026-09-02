@@ -1,5 +1,6 @@
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { todayLocalYMD } from './helpers.js';
 
 /* ═══════════════════════════════════════════════════════════════════
    Facturas SIGOT — diseño alineado con la marca de la app
@@ -228,7 +229,7 @@ export function buildFacturaOrden(orden) {
 export function generarFacturaOrden(orden) {
   const doc = buildFacturaOrden(orden);
   const id = orden.Id_Orden || orden.id || '?';
-  doc.save(`factura-orden-${id}-${new Date().toISOString().split('T')[0]}.pdf`);
+  doc.save(`factura-orden-${id}-${todayLocalYMD()}.pdf`);
 }
 
 /* ═══════════════ FACTURA DE COMPRA DE REPUESTOS ═══════════════ */
@@ -287,5 +288,5 @@ export function buildFacturaCompra(compra) {
 export function generarFacturaCompra(compra) {
   const doc = buildFacturaCompra(compra);
   const id = compra.Id_Compra || compra.id || '?';
-  doc.save(`factura-compra-${id}-${new Date().toISOString().split('T')[0]}.pdf`);
+  doc.save(`factura-compra-${id}-${todayLocalYMD()}.pdf`);
 }
