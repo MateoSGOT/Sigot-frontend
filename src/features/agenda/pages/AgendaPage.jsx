@@ -99,10 +99,22 @@ export default function AgendaPage() {
     const fin    = (n.FechaRealizacion || '').split('T')[0] || inicio;
     return !!inicio && ymd >= inicio && ymd <= fin;
   };
+  // Solo la novedad de DÍA COMPLETO (sin HoraInicio/HoraFin) excluye al
+  // empleado por completo ese día; una novedad por rango de horas lo deja
+  // disponible y en cambio bloquea puntualmente esas horas (ver
+  // horaBloqueadaPorNovedad más abajo).
   const empleadosBloqueadosEnFecha = (ymd) => new Set(
     (ymd ? novedades : [])
-      .filter(n => n.Estado !== 0 && n.Estado !== false && fechaEnNovedad(n, ymd))
+      .filter(n => n.Estado !== 0 && n.Estado !== false && fechaEnNovedad(n, ymd) && !n.HoraInicio && !n.HoraFin)
       .map(n => String(n.id_empleado ?? n.Id_Empleado))
+  );
+
+  // Novedades por rango horario (no día completo) del empleado elegido, en la
+  // fecha elegida.
+  const novedadesParcialesDelEmpleado = (idEmpleado, ymd) => (!idEmpleado || !ymd) ? [] : novedades.filter(n =>
+    n.Estado !== 0 && n.Estado !== false && fechaEnNovedad(n, ymd) &&
+    n.HoraInicio && n.HoraFin &&
+    String(n.id_empleado ?? n.Id_Empleado) === String(idEmpleado)
   );
 
   const esActivo = (x) => x?.Estado !== false && x?.Estado !== 0; // excluye inactivos (B4)
@@ -134,6 +146,7 @@ export default function AgendaPage() {
         (c.Id_Agenda ?? c.id) !== editingId
       )
     : [];
+  const novedadesParciales = novedadesParcialesDelEmpleado(formData.id_empleado, formData.FechaAgendamiento);
   const horaOcupada = (h) => {
     const inicio = toMinHelper(h);
     const fin = inicio + duracionActual;
@@ -141,6 +154,18 @@ export default function AgendaPage() {
       const cIni = toMinHelper(c.Hora);
       const cFin = cIni + Number(c.DuracionEstimadaMin || 60);
       return inicio < cFin && cIni < fin;
+    });
+  };
+  // Hora dentro del rango de una novedad puntual del empleado (ej. una cita
+  // médica de 2 a 4pm): se muestra deshabilitada, igual que una hora ya
+  // ocupada por otra cita, para que se entienda por qué no se puede elegir.
+  const horaBloqueadaPorNovedad = (h) => {
+    const inicio = toMinHelper(h);
+    const fin = inicio + duracionActual;
+    return novedadesParciales.some(n => {
+      const nIni = toMinHelper(n.HoraInicio);
+      const nFin = toMinHelper(n.HoraFin);
+      return inicio < nFin && nIni < fin;
     });
   };
   // Validación de fecha EN TIEMPO REAL (se recalcula al cambiar el campo). Mensajes en español.
@@ -454,8 +479,11 @@ export default function AgendaPage() {
                 return horaOptions
                   .filter(h => !(esHoy && toMinHelper(h) <= nowMin))
                   .map(h => {
-                    const ocupada = h !== formData.Hora && horaOcupada(h);
-                    return <option key={h} value={h} disabled={ocupada}>{formatHora12(h)}{ocupada ? ' (ocupado)' : ''}</option>;
+                    const esActual = h === formData.Hora;
+                    const ocupada = !esActual && horaOcupada(h);
+                    const conNovedad = !esActual && !ocupada && horaBloqueadaPorNovedad(h);
+                    const etiqueta = ocupada ? ' (ocupado)' : conNovedad ? ' (novedad)' : '';
+                    return <option key={h} value={h} disabled={ocupada || conNovedad}>{formatHora12(h)}{etiqueta}</option>;
                   });
               })()}
             </select>
