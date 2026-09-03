@@ -179,7 +179,6 @@ export default function ClientesPage() {
     { key: 'Documento', label: 'Documento' },
     { key: 'Telefono', label: 'Teléfono' },
     { key: 'Correo', label: 'Correo' },
-    { key: 'Estado', label: 'Estado', render: (v) => <StatusBadge estado={v} /> },
     {
       key: 'acciones', label: 'Acciones', render: (_, row) => (
         <div className="table-actions">
@@ -229,10 +228,10 @@ export default function ClientesPage() {
             <div className="detail-item"><span className="detail-label">Nombre</span><span className="detail-value">{detailItem.Nombre}</span></div>
             <div className="detail-item"><span className="detail-label">Tipo de documento</span><span className="detail-value">{detailItem.TipoDoc || detailItem.Id_TipoDoc}</span></div>
             <div className="detail-item"><span className="detail-label">Documento</span><span className="detail-value">{detailItem.Documento}</span></div>
+            <div className="detail-item"><span className="detail-label">Estado</span><span className="detail-value"><StatusBadge estado={detailItem.Estado} /></span></div>
             <div className="detail-item"><span className="detail-label">Teléfono</span><span className="detail-value">{detailItem.Telefono || '—'}</span></div>
             <div className="detail-item" style={{ gridColumn: 'span 2' }}><span className="detail-label">Dirección</span><span className="detail-value">{detailItem.Direccion || '—'}</span></div>
             <div className="detail-item"><span className="detail-label">Correo</span><span className="detail-value">{detailItem.Correo || '—'}</span></div>
-            <div className="detail-item"><span className="detail-label">Estado</span><span className="detail-value"><StatusBadge estado={detailItem.Estado} /></span></div>
           </div>
         )}
       </Modal>

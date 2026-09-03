@@ -712,7 +712,6 @@ export default function PortalPage() {
                   <div className="detail-item"><span className="detail-label">Estado</span><span className="detail-value"><OrdenEstadoBadge estado={ordDetail.Estado} /></span></div>
                   <div className="detail-item"><span className="detail-label">Fecha ingreso</span><span className="detail-value">{formatDate(ordDetail.FechaIngreso)}</span></div>
                   <div className="detail-item"><span className="detail-label">Fecha entrega</span><span className="detail-value">{formatDate(ordDetail.FechaEntrega)}</span></div>
-                  <div className="detail-item"><span className="detail-label">Kilometraje</span><span className="detail-value">{ordDetail.Kilometraje ? `${Number(ordDetail.Kilometraje).toLocaleString('es-CO')} km` : '—'}</span></div>
                   <div className="detail-item u-span-2"><span className="detail-label">Diagnóstico</span><span className="detail-value">{ordDetail.Diagnostico || '—'}</span></div>
                 </div>
                 <div className="orden-total-card">

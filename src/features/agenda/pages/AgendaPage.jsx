@@ -407,7 +407,6 @@ export default function AgendaPage() {
     { key: 'Hora', label: 'Hora', render: v => formatHora12(v) },
     { key: 'TipoCita', label: 'Tipo', render: v => v === 'Diagnostico' ? 'Diagnóstico' : 'Mantenimiento' },
     { key: 'EstadoCita', label: 'Estado cita', render: v => <CitaEstadoBadge estado={v || 'Pendiente'} /> },
-    { key: 'Estado', label: 'Activa', render: v => <StatusBadge estado={v} /> },
     {
       key: 'acciones', label: 'Acciones', render: (_, row) => {
         const estadoCita = row.EstadoCita || 'Pendiente';

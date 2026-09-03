@@ -184,7 +184,6 @@ export default function VehiculosPage() {
     { key: 'Kilometraje', label: 'Kilometraje', render: v => (v != null && v !== '' ? `${Number(v).toLocaleString('es-CO')} km` : '—') },
     { key: 'Color', label: 'Color' },
     { key: 'Cliente', label: 'Cliente' },
-    { key: 'Estado', label: 'Estado', render: v => <StatusBadge estado={v} /> },
     {
       key: 'acciones', label: 'Acciones', render: (_, row) => (
         <div className="table-actions">

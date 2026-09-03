@@ -93,7 +93,6 @@ export default function ServiciosPage() {
     { key: 'Descripcion', label: 'Descripción', render: v => <span className="descripcion-cell">{v || '—'}</span> },
     { key: 'Precio', label: 'Precio', render: v => formatCurrency(v) },
     { key: 'DuracionMinutos', label: 'Duración', render: v => (v ? `${v} min` : '—') },
-    { key: 'Estado', label: 'Estado', render: v => <StatusBadge estado={v} /> },
     {
       key: 'acciones', label: 'Acciones', render: (_, row) => (
         <div className="table-actions">

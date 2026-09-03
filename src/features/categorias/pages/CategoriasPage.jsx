@@ -112,7 +112,6 @@ export default function CategoriasPage() {
   const columns = [
     { key: '#', label: '#', width: '50px', render: (_, __, i) => i + 1 },
     { key: 'Nombre', label: 'Nombre', render: v => <span className="font-medium">{v}</span> },
-    { key: 'Estado', label: 'Estado', render: v => <StatusBadge estado={v} /> },
     {
       key: 'acciones', label: 'Acciones', render: (_, row) => (
         <div className="table-actions">

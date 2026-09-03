@@ -284,10 +284,9 @@ export default function RolesPage() {
     {
       key: 'Estado',
       label: 'Estado',
-      render: (_, row) =>
-        isSistema(row)
-          ? <Badge variant="gray">Sistema</Badge>
-          : <Badge variant={row.Estado === 1 ? 'success' : 'gray'}>{row.Estado === 1 ? 'Activo' : 'Inactivo'}</Badge>,
+      // Solo se muestra para roles de sistema (no tienen ToggleSwitch porque no se
+      // pueden desactivar); en los demás el toggle de Acciones ya indica el estado.
+      render: (_, row) => isSistema(row) ? <Badge variant="gray">Sistema</Badge> : null,
     },
     {
       key: 'acciones',

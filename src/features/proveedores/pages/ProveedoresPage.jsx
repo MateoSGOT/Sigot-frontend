@@ -171,7 +171,6 @@ export default function ProveedoresPage() {
     { key: 'TipoProveedor', label: 'Tipo' },
     { key: 'contacto', label: 'Contacto', render: (v, row) => v || row.Contacto || '—' },
     { key: 'correo', label: 'Correo', render: (v, row) => v || row.Correo || '—' },
-    { key: 'Estado', label: 'Estado', render: v => <StatusBadge estado={v} /> },
     {
       key: 'acciones', label: 'Acciones', render: (_, row) => (
         <div className="table-actions">

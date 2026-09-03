@@ -253,7 +253,6 @@ export default function RepuestosPage() {
     { key: 'Precio', label: 'Costo', render: v => (v != null && Number(v) > 0 ? formatCurrency(v) : '—') },
     { key: 'MargenPorcentaje', label: 'Margen %', render: v => `${Number(v ?? 50)}%` },
     { key: 'PrecioVenta', label: 'Precio venta', render: v => (v != null ? formatCurrency(v) : '—') },
-    { key: 'Estado', label: 'Estado', render: v => <StatusBadge estado={v} /> },
     {
       key: 'acciones', label: 'Acciones', render: (_, row) => (
         <div className="table-actions">
