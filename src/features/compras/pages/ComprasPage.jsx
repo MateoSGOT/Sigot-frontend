@@ -73,6 +73,18 @@ export default function ComprasPage() {
 
   const detailTotal = detailItems.reduce((s, i) => s + Number(i.Cantidad || 0) * Number(i.PrecioUnitario || 0), 0);
 
+  // Ganancia estimada por línea: precio de venta VIGENTE del repuesto (ya
+  // incluye margen + IVA) menos el costo de ESTA compra. No es exactamente lo
+  // que se ganará en cada venta futura si el repuesto tuvo compras más
+  // recientes que cambiaron su costo/margen, pero da una referencia real de
+  // cuánto deja cada compra al precio actual.
+  const gananciaLinea = (row) => {
+    const rep = repuestos.find(r => String(r.Id_Repuesto) === String(row.Id_Repuesto));
+    if (!rep || rep.PrecioVenta == null) return null;
+    return (Number(rep.PrecioVenta) - Number(row.PrecioUnitario || 0)) * Number(row.Cantidad || 0);
+  };
+  const gananciaTotalDetalle = detailItems.reduce((s, i) => s + (gananciaLinea(i) || 0), 0);
+
   const filtered = (() => {
     let list = items;
     if (statusFilter === 'activas') list = list.filter(i => !i.Anulada);
@@ -260,8 +272,10 @@ export default function ComprasPage() {
             cantidad:     Number(d.Cantidad || 0),
             valor_unidad: Number(d.PrecioUnitario || 0),
             subtotal:     Number(d.Cantidad || 0) * Number(d.PrecioUnitario || 0),
+            ganancia:     gananciaLinea(d),
           })),
           Total: detailTotal,
+          GananciaTotal: gananciaTotalDetalle,
         })}>Factura (PDF)</button> : null}
       >
         {detailItem && (
@@ -277,25 +291,30 @@ export default function ComprasPage() {
               <table className="compra-detail-table">
                 <thead>
                   <tr>
-                    {['Repuesto', 'Cantidad', 'Precio unitario', 'Subtotal'].map(h => (
+                    {['Repuesto', 'Cantidad', 'Precio unitario', 'Subtotal', 'Ganancia'].map(h => (
                       <th key={h}>{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
-                  {detailItems.map((row, i) => (
-                    <tr key={i}>
-                      <td>{row.Repuesto || getNombre(repuestos, 'Id_Repuesto', row.Id_Repuesto)}</td>
-                      <td>{row.Cantidad}</td>
-                      <td>{formatCurrency(row.PrecioUnitario)}</td>
-                      <td className="is-total">{formatCurrency(Number(row.Cantidad) * Number(row.PrecioUnitario))}</td>
-                    </tr>
-                  ))}
+                  {detailItems.map((row, i) => {
+                    const ganancia = gananciaLinea(row);
+                    return (
+                      <tr key={i}>
+                        <td>{row.Repuesto || getNombre(repuestos, 'Id_Repuesto', row.Id_Repuesto)}</td>
+                        <td>{row.Cantidad}</td>
+                        <td>{formatCurrency(row.PrecioUnitario)}</td>
+                        <td className="is-total">{formatCurrency(Number(row.Cantidad) * Number(row.PrecioUnitario))}</td>
+                        <td>{ganancia != null ? formatCurrency(ganancia) : '—'}</td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
             <div className="compra-detail__total">
               <span className="compra-detail__total-value">Total: {formatCurrency(detailTotal)}</span>
+              <span className="compra-detail__total-value">Ganancia estimada: {formatCurrency(gananciaTotalDetalle)}</span>
             </div>
           </div>
         )}

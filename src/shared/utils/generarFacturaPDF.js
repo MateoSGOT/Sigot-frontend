@@ -258,23 +258,32 @@ export function buildFacturaCompra(compra) {
     subtotal: Number(compra.Cantidad) * Number(compra.PrecioUnitario),
   }] : []);
 
+  // Ganancia por línea: solo se muestra si viene calculada (precio de venta
+  // vigente del repuesto menos el costo de esta compra), no siempre disponible.
+  const hayGanancia = detalles.some(d => d.ganancia != null);
   sectionLabel(doc, 'Detalle de la compra', M, y); y += 2.5;
   autoTable(doc, {
     ...tableBase,
     startY: y,
-    head: [['Repuesto', 'Cantidad', 'Precio unitario', 'Subtotal']],
+    head: hayGanancia
+      ? [['Repuesto', 'Cantidad', 'Precio unitario', 'Subtotal', 'Ganancia']]
+      : [['Repuesto', 'Cantidad', 'Precio unitario', 'Subtotal']],
     body: detalles.map(d => {
       const cant   = Number(d.cantidad ?? d.Cantidad ?? 1);
       const precio = Number(d.valor_unidad ?? d.PrecioUnitario ?? d.Precio ?? 0);
       const sub    = d.subtotal != null ? Number(d.subtotal) : cant * precio;
-      return [
+      const fila = [
         d.NombreRepuesto || d.Nombre || d.Repuesto || '—',
         cant,
         fmt(precio),
         fmt(sub),
       ];
+      if (hayGanancia) fila.push(d.ganancia != null ? fmt(d.ganancia) : '—');
+      return fila;
     }),
-    columnStyles: { 1: { halign: 'center' }, 2: { halign: 'right' }, 3: { halign: 'right' } },
+    columnStyles: hayGanancia
+      ? { 1: { halign: 'center' }, 2: { halign: 'right' }, 3: { halign: 'right' }, 4: { halign: 'right' } }
+      : { 1: { halign: 'center' }, 2: { halign: 'right' }, 3: { halign: 'right' } },
   });
   y = doc.lastAutoTable.finalY + 8;
 
@@ -283,6 +292,11 @@ export function buildFacturaCompra(compra) {
     const precio = Number(d.valor_unidad ?? d.PrecioUnitario ?? d.Precio ?? 0);
     return s + (d.subtotal != null ? Number(d.subtotal) : cant * precio);
   }, 0));
+
+  if (hayGanancia && compra.GananciaTotal != null) {
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(9.5); doc.setTextColor(...MUTED);
+    doc.text(`Ganancia estimada: ${fmt(compra.GananciaTotal)}`, M, y + 5);
+  }
   totalBox(doc, y, total);
 
   addFooter(doc);
