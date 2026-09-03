@@ -7,7 +7,7 @@ import { useAutoRefresh } from '../../../shared/hooks/useAutoRefresh.js';
 import {
   fetchOrdenes, fetchOrdenById, updateOrden, toggleOrdenEstado,
   addServicioToOrden, addRepuestoToOrden, setManoDeObra, clearSelected,
-  deleteServicioFromOrden, deleteRepuestoFromOrden, reasignarEmpleadoOrden
+  deleteServicioFromOrden, deleteRepuestoFromOrden, reasignarEmpleadoOrden, extenderDuracionOrden
 } from '../slices/ordenesSlice.js';
 import { ordenesService } from '../services/ordenesService.js';
 import Modal from '../../../shared/components/Modal/Modal.jsx';
@@ -206,6 +206,9 @@ export default function OrdenesPage() {
   const [loadingLibres, setLoadingLibres]     = useState(false);
   const [empleadoSel, setEmpleadoSel]         = useState('');
   const [empleadoError, setEmpleadoError]     = useState('');
+  const [extendiendoTiempo, setExtendiendoTiempo] = useState(false);
+  const [minutosExtension, setMinutosExtension]   = useState('30');
+  const [extendError, setExtendError]             = useState('');
 
   useEffect(() => {
     dispatch(fetchOrdenes());
@@ -460,6 +463,33 @@ export default function OrdenesPage() {
     }
   };
 
+  // "Necesito más tiempo": el técnico avisa que el trabajo va a tardar más de lo estimado.
+  // El backend extiende la duración de la cita y, si eso choca con la siguiente cita del
+  // mismo técnico, avisa por correo al cliente afectado (no bloquea: el trabajo sigue).
+  const handleExtenderDuracion = async () => {
+    const minutos = Number(minutosExtension);
+    if (!Number.isInteger(minutos) || minutos <= 0) { setExtendError('Ingresa un número de minutos válido.'); return; }
+    setExtendError('');
+    const result = await dispatch(extenderDuracionOrden({ id: detailId, minutosAdicionales: minutos }));
+    if (!result.error) {
+      setExtendiendoTiempo(false);
+      setMinutosExtension('30');
+      const conflictos = result.payload?.conflictosDetectados || [];
+      if (conflictos.length > 0) {
+        addToast({
+          type: 'warning',
+          message: `Se detectó un choque con la siguiente cita del técnico (${conflictos.map(c => c.Hora).join(', ')}). ${conflictos.some(c => c.notificado) ? 'Se avisó al cliente por correo.' : ''}`,
+          duration: 6000,
+        });
+      } else {
+        addToast({ type: 'success', message: `Tiempo extendido en ${minutos} min. Sin choques con otras citas.` });
+      }
+      dispatch(fetchOrdenes());
+    } else {
+      setExtendError(result.payload || 'No se pudo extender el tiempo de la orden.');
+    }
+  };
+
   const columns = [
     { key: '#', label: '#', width: '50px', render: (_, __, i) => i + 1 },
     { key: 'Vehiculo', label: 'Vehículo', render: (v, row) => <span className="font-medium">{v || row.vehiculo || row.Placa || '—'}</span> },
@@ -639,6 +669,33 @@ export default function OrdenesPage() {
                     sinTrabajo={(selected.servicios?.length || 0) === 0 && (selected.repuestos?.length || 0) === 0}
                   />
                 </div>
+
+                {/* "Necesito más tiempo" — solo mientras la orden está En proceso. Avisa si la
+                    extensión choca con la siguiente cita del mismo técnico. */}
+                {selected.EstadoFlujo === 'En proceso' && puedeEditar && (
+                  <div className="u-mt-lg">
+                    {!extendiendoTiempo ? (
+                      <button className="btn btn--outline btn--sm" onClick={() => { setExtendiendoTiempo(true); setExtendError(''); }}>
+                        <MdArrowForward size={15} /> Necesito más tiempo
+                      </button>
+                    ) : (
+                      <div className="orden-obs-edit">
+                        <p className="detail-label u-mb-sm">¿Cuántos minutos adicionales necesitas?</p>
+                        <input
+                          type="number" min="1" max="240" step="1"
+                          className="form-control" style={{ maxWidth: 140 }}
+                          value={minutosExtension}
+                          onChange={e => setMinutosExtension(e.target.value)}
+                        />
+                        {extendError && <p className="form-error">{extendError}</p>}
+                        <div className="orden-obs-edit__actions">
+                          <button className="btn btn--outline btn--sm" onClick={() => { setExtendiendoTiempo(false); setExtendError(''); }} disabled={actionLoading}>Cancelar</button>
+                          <button className="btn btn--primary btn--sm" onClick={handleExtenderDuracion} disabled={actionLoading}>{actionLoading ? 'Guardando...' : 'Confirmar'}</button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 {/* Editar datos básicos (diagnóstico, km, fechas) — solo si editable */}
                 {!contenidoBloqueado && puedeEditar && (

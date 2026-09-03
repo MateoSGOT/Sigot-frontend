@@ -66,6 +66,7 @@ export default function AgendaPage() {
   const [vista, setVista] = useState('tabla'); // 'tabla' | 'calendario'
   const [mesCal, setMesCal] = useState(() => { const d = new Date(); return { anio: d.getFullYear(), mes: d.getMonth() }; });
   const [detailId, setDetailId]       = useState(null);
+  const [diaDetalle, setDiaDetalle]   = useState(null); // ymd del día expandido (vista calendario)
   const [formData, setFormData]       = useState(EMPTY_CITA);
   const [editingId, setEditingId]     = useState(null);
   const [showForm, setShowForm]       = useState(false);
@@ -77,21 +78,24 @@ export default function AgendaPage() {
   const [ordenVehiculoKm, setOrdenVehiculoKm] = useState(null); // km actual del vehículo (odómetro)
   const [horario, setHorario] = useState({ apertura: '08:00', cierre: '18:00', diasLaborales: [1, 2, 3, 4, 5, 6] });
 
+  const cargarNovedades = () => api.get('/api/novedades').then(r => setNovedades(r.data?.data || r.data || [])).catch(() => {});
+
   useEffect(() => {
     dispatch(fetchAgenda());
     api.get('/api/agenda/horario').then(r => { const h = r.data?.data || r.data; if (h?.apertura) setHorario(h); }).catch(() => {});
     api.get('/api/clientes').then(r => setClientes(r.data?.data || r.data || [])).catch(() => {});
     api.get('/api/vehiculos').then(r => setVehiculos(r.data?.data || r.data || [])).catch(() => {});
     api.get('/api/empleados').then(r => setEmpleados(r.data?.data || r.data || [])).catch(() => {});
-    api.get('/api/novedades').then(r => {
-      setNovedades(r.data?.data || r.data || []);
-    }).catch(() => {});
+    cargarNovedades();
   }, [dispatch]);
 
   // Actualización en tiempo real: refresca la lista sola, salvo con algún
   // modal de creación/edición/cancelación abierto (no interrumpe al usuario).
+  // Las novedades entran al mismo ciclo -- si un empleado queda con/sin novedad
+  // mientras la página está abierta, la disponibilidad (horas bloqueadas,
+  // calendario) se corrige sola sin necesitar recargar la página.
   const hayModalAbierto = showForm || showOrdenModal || !!confirmCancelar || !!confirmEliminar || del.isOpen;
-  useAutoRefresh(() => dispatch(fetchAgenda()), { intervalMs: 20000, enabled: !hayModalAbierto });
+  useAutoRefresh(() => { dispatch(fetchAgenda()); cargarNovedades(); }, { intervalMs: 20000, enabled: !hayModalAbierto });
 
   // ── Novedades por FECHA (no solo "hoy") ──────────────────────────────
   // Bloquea asignar un empleado que tenga una novedad que cubra la fecha del
@@ -487,7 +491,13 @@ export default function AgendaPage() {
             </div>
             <div className="agenda-calendario__grid">
               {celdasCalendario.map(celda => (
-                <div key={celda.ymd} className={`agenda-calendario__celda${celda.enMes ? '' : ' agenda-calendario__celda--fuera'}${celda.esHoy ? ' agenda-calendario__celda--hoy' : ''}`}>
+                <div
+                  key={celda.ymd}
+                  className={`agenda-calendario__celda${celda.enMes ? '' : ' agenda-calendario__celda--fuera'}${celda.esHoy ? ' agenda-calendario__celda--hoy' : ''}${celda.citas.length ? ' agenda-calendario__celda--clickable' : ''}`}
+                  onClick={() => celda.citas.length && setDiaDetalle(celda.ymd)}
+                  role={celda.citas.length ? 'button' : undefined}
+                  tabIndex={celda.citas.length ? 0 : undefined}
+                >
                   <span className="agenda-calendario__num">{celda.fecha.getDate()}</span>
                   <div className="agenda-calendario__citas">
                     {celda.citas.slice(0, 3).map(c => {
@@ -499,7 +509,7 @@ export default function AgendaPage() {
                           className="agenda-calendario__chip"
                           style={{ background: s.bg, color: s.fg }}
                           title={`${formatHora12(c.Hora)} · ${c.cliente || ''}`}
-                          onClick={() => setDetailId(c.Id_Agenda ?? c.id)}
+                          onClick={(e) => { e.stopPropagation(); setDetailId(c.Id_Agenda ?? c.id); }}
                         >
                           {formatHora12(c.Hora)} {c.cliente}
                         </button>
@@ -515,6 +525,30 @@ export default function AgendaPage() {
           </div>
         )}
       </div>
+
+      <Modal isOpen={!!diaDetalle} onClose={() => setDiaDetalle(null)} title={diaDetalle ? `Citas del ${formatDate(diaDetalle)}` : 'Citas del día'} size="md">
+        {diaDetalle && (
+          (citasPorDia[diaDetalle] || []).slice().sort((a, b) => (a.Hora || '').localeCompare(b.Hora || '')).length > 0 ? (
+            <div className="agenda-dia-lista">
+              {citasPorDia[diaDetalle].slice().sort((a, b) => (a.Hora || '').localeCompare(b.Hora || '')).map(c => {
+                const s = ESTADO_CITA_STYLE[c.EstadoCita] || ESTADO_CITA_STYLE.Pendiente;
+                return (
+                  <button
+                    key={c.Id_Agenda ?? c.id}
+                    type="button"
+                    className="agenda-dia-lista__item"
+                    onClick={() => { setDiaDetalle(null); setDetailId(c.Id_Agenda ?? c.id); }}
+                  >
+                    <span className="agenda-dia-lista__hora">{formatHora12(c.Hora)}</span>
+                    <span className="agenda-dia-lista__cliente">{c.cliente}</span>
+                    <span style={{ background: s.bg, color: s.fg, padding: '2px 10px', borderRadius: '999px', fontSize: '0.72rem', fontWeight: 600 }}>{s.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          ) : <p className="empty-list">No hay citas ese día.</p>
+        )}
+      </Modal>
 
       <Modal isOpen={!!detailItem} onClose={() => setDetailId(null)} title="Detalle de la cita" size="md">
         {detailItem && <div>

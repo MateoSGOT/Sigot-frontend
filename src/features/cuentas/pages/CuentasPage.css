@@ -23,3 +23,20 @@
 .cuentas-rol-cell select {
   min-width: 170px;
 }
+
+.cuentas-limpieza-lista { display: flex; flex-direction: column; gap: 6px; }
+.cuentas-limpieza-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
+}
+.cuentas-limpieza-item--omitida { opacity: 0.6; }
+.cuentas-limpieza-item__nombre { font-size: var(--text-small); }
+.cuentas-limpieza-item__nombre small { color: var(--color-text-muted); }
+.cuentas-limpieza-item__fecha { font-size: 0.75rem; color: var(--color-text-muted); white-space: nowrap; }
+.cuentas-limpieza-item__motivo { font-size: 0.75rem; color: var(--color-danger, #b91c1c); text-align: right; }
