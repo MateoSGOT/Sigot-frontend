@@ -13,3 +13,109 @@
   align-items: center;
   gap: 0.25rem;
 }
+
+/* ── Vista de calendario ──────────────────────────────────────── */
+.agenda-vista-toggle {
+  display: flex;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+.agenda-vista-btn {
+  padding: 0.5rem 0.9rem;
+  font-size: var(--text-small);
+  font-weight: var(--weight-medium);
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+  border: none;
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+.agenda-vista-btn + .agenda-vista-btn { border-left: 1px solid var(--color-border); }
+.agenda-vista-btn--active {
+  background: var(--color-primary-soft);
+  color: var(--color-primary-soft-on);
+  font-weight: var(--weight-semibold);
+}
+
+.agenda-calendario { padding: var(--space-lg); }
+.agenda-calendario__nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-lg);
+  margin-bottom: var(--space-lg);
+}
+.agenda-calendario__mes {
+  font-weight: var(--weight-semibold);
+  font-size: var(--text-h3);
+  min-width: 180px;
+  text-align: center;
+}
+.agenda-calendario__grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 1px;
+  background: var(--color-border);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+.agenda-calendario__grid--header {
+  background: transparent;
+  border: none;
+  margin-bottom: var(--space-sm);
+}
+.agenda-calendario__dia-nombre {
+  text-align: center;
+  font-size: var(--text-caption);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  padding: var(--space-sm) 0;
+}
+.agenda-calendario__celda {
+  background: var(--color-surface);
+  min-height: 96px;
+  padding: var(--space-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.agenda-calendario__celda--fuera { background: var(--color-surface-solid); }
+.agenda-calendario__celda--fuera .agenda-calendario__num { color: var(--color-text-light); }
+.agenda-calendario__celda--hoy { box-shadow: inset 0 0 0 2px var(--color-primary); }
+.agenda-calendario__num {
+  font-size: var(--text-small);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text-secondary);
+}
+.agenda-calendario__citas {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  overflow: hidden;
+}
+.agenda-calendario__chip {
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 2px 6px;
+  font-size: 11px;
+  font-weight: var(--weight-medium);
+  text-align: left;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.agenda-calendario__chip:hover { filter: brightness(0.95); }
+.agenda-calendario__mas {
+  font-size: 11px;
+  color: var(--color-text-muted);
+  padding-left: 6px;
+}
+
+@media (max-width: 640px) {
+  .agenda-calendario__celda { min-height: 64px; }
+  .agenda-calendario__dia-nombre { font-size: 10px; }
+}

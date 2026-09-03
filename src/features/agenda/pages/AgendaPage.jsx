@@ -63,6 +63,8 @@ export default function AgendaPage() {
   const [empleadoFilter, setEmpleadoFilter] = useState('');
   const [citaEstadoFilter, setCitaEstadoFilter] = useState('todas');
   const [pageSize, setPageSize]         = useState(5);
+  const [vista, setVista] = useState('tabla'); // 'tabla' | 'calendario'
+  const [mesCal, setMesCal] = useState(() => { const d = new Date(); return { anio: d.getFullYear(), mes: d.getMonth() }; });
   const [detailId, setDetailId]       = useState(null);
   const [formData, setFormData]       = useState(EMPTY_CITA);
   const [editingId, setEditingId]     = useState(null);
@@ -230,6 +232,42 @@ export default function AgendaPage() {
     return sorted;
   })();
 
+  // Vista de calendario: agrupa `filtered` por día dentro del mes visible.
+  // Reutiliza los mismos filtros/orden que la tabla, solo cambia cómo se
+  // presenta.
+  const MESES_NOMBRE = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+  const citasPorDia = (() => {
+    const map = {};
+    filtered.forEach(c => {
+      const ymd = (c.FechaAgendamiento || '').split('T')[0];
+      if (!ymd) return;
+      (map[ymd] = map[ymd] || []).push(c);
+    });
+    return map;
+  })();
+  const celdasCalendario = (() => {
+    const primerDia = new Date(mesCal.anio, mesCal.mes, 1);
+    // Lunes = inicio de semana (DIAS_NOMBRE ya usa esa convención: 1=Lun..7=Dom).
+    const offset = (primerDia.getDay() + 6) % 7;
+    const inicio = new Date(mesCal.anio, mesCal.mes, 1 - offset);
+    return Array.from({ length: 42 }, (_, i) => {
+      const d = new Date(inicio); d.setDate(inicio.getDate() + i);
+      const y = d.getFullYear(), m = String(d.getMonth() + 1).padStart(2, '0'), dd = String(d.getDate()).padStart(2, '0');
+      const fechaYmd = `${y}-${m}-${dd}`;
+      return {
+        fecha: d,
+        ymd: fechaYmd,
+        enMes: d.getMonth() === mesCal.mes,
+        esHoy: fechaYmd === TODAY,
+        citas: (citasPorDia[fechaYmd] || []).slice().sort((a, b) => (a.Hora || '').localeCompare(b.Hora || '')),
+      };
+    });
+  })();
+  const cambiarMes = (delta) => setMesCal(p => {
+    const d = new Date(p.anio, p.mes + delta, 1);
+    return { anio: d.getFullYear(), mes: d.getMonth() };
+  });
+
   // Derivado de `items` en cada render (no un snapshot congelado): así el modal de
   // detalle refleja en tiempo real el EstadoCita real (ej. tras cancelarla).
   const detailItem = detailId ? items.find(i => (i.Id_Agenda ?? i.id) === detailId) || null : null;
@@ -396,7 +434,13 @@ export default function AgendaPage() {
     <div className="page">
       <div className="page__header">
         <div><h1 className="page__title">Agenda</h1><p className="page__subtitle">{items.length} cita(s) registrada(s)</p></div>
-        <button className="btn btn--primary" onClick={openCreate} disabled={!puedeCrear}><MdAdd size={18} />Nueva cita</button>
+        <div style={{ display: 'flex', gap: '0.5rem' }}>
+          <div className="agenda-vista-toggle">
+            <button type="button" className={`agenda-vista-btn${vista === 'tabla' ? ' agenda-vista-btn--active' : ''}`} onClick={() => setVista('tabla')}>Tabla</button>
+            <button type="button" className={`agenda-vista-btn${vista === 'calendario' ? ' agenda-vista-btn--active' : ''}`} onClick={() => setVista('calendario')}>Calendario</button>
+          </div>
+          <button className="btn btn--primary" onClick={openCreate} disabled={!puedeCrear}><MdAdd size={18} />Nueva cita</button>
+        </div>
       </div>
       <div className="card">
         <div className="card__header">
@@ -416,17 +460,61 @@ export default function AgendaPage() {
                   <option value="realizadas">Realizadas</option>
                   <option value="canceladas">Canceladas</option>
                 </select>
-                <FilterDropdown
-                  statusFilter={statusFilter}
-                  onStatusChange={setStatusFilter}
-                  pageSize={pageSize}
-                  onPageSizeChange={setPageSize}
-                />
+                {vista === 'tabla' && (
+                  <FilterDropdown
+                    statusFilter={statusFilter}
+                    onStatusChange={setStatusFilter}
+                    pageSize={pageSize}
+                    onPageSizeChange={setPageSize}
+                  />
+                )}
               </>
             }
           />
         </div>
-        <Table columns={columns} rowKey="Id_Agenda" data={filtered} loading={loading} pageSize={pageSize} emptyMessage="No se encontraron citas" />
+        {vista === 'tabla' ? (
+          <Table columns={columns} rowKey="Id_Agenda" data={filtered} loading={loading} pageSize={pageSize} emptyMessage="No se encontraron citas" />
+        ) : (
+          <div className="agenda-calendario">
+            <div className="agenda-calendario__nav">
+              <button type="button" className="btn btn--outline btn--sm" onClick={() => cambiarMes(-1)}>← Anterior</button>
+              <span className="agenda-calendario__mes">{MESES_NOMBRE[mesCal.mes]} {mesCal.anio}</span>
+              <button type="button" className="btn btn--outline btn--sm" onClick={() => cambiarMes(1)}>Siguiente →</button>
+            </div>
+            <div className="agenda-calendario__grid agenda-calendario__grid--header">
+              {['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'].map(d => (
+                <div key={d} className="agenda-calendario__dia-nombre">{d}</div>
+              ))}
+            </div>
+            <div className="agenda-calendario__grid">
+              {celdasCalendario.map(celda => (
+                <div key={celda.ymd} className={`agenda-calendario__celda${celda.enMes ? '' : ' agenda-calendario__celda--fuera'}${celda.esHoy ? ' agenda-calendario__celda--hoy' : ''}`}>
+                  <span className="agenda-calendario__num">{celda.fecha.getDate()}</span>
+                  <div className="agenda-calendario__citas">
+                    {celda.citas.slice(0, 3).map(c => {
+                      const s = ESTADO_CITA_STYLE[c.EstadoCita] || ESTADO_CITA_STYLE.Pendiente;
+                      return (
+                        <button
+                          key={c.Id_Agenda ?? c.id}
+                          type="button"
+                          className="agenda-calendario__chip"
+                          style={{ background: s.bg, color: s.fg }}
+                          title={`${formatHora12(c.Hora)} · ${c.cliente || ''}`}
+                          onClick={() => setDetailId(c.Id_Agenda ?? c.id)}
+                        >
+                          {formatHora12(c.Hora)} {c.cliente}
+                        </button>
+                      );
+                    })}
+                    {celda.citas.length > 3 && (
+                      <span className="agenda-calendario__mas">+{celda.citas.length - 3} más</span>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       <Modal isOpen={!!detailItem} onClose={() => setDetailId(null)} title="Detalle de la cita" size="md">
