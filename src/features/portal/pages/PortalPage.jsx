@@ -81,7 +81,7 @@ export default function PortalPage() {
   const [citaPageSize,  setCitaPageSize]  = useState(5);
   const [showCitaModal, setShowCitaModal] = useState(false);
   const [editingCitaId, setEditingCitaId] = useState(null);
-  const [citaForm,      setCitaForm]      = useState({ Id_Vehiculo: '', Fecha: '', Hora: '', Descripcion: '', Id_Empleado: '' });
+  const [citaForm,      setCitaForm]      = useState({ Id_Vehiculo: '', Fecha: '', Hora: '', Descripcion: '', Id_Empleado: '', TipoCita: 'Mantenimiento' });
   const [citaError,     setCitaError]     = useState('');
   const [citaLoading,   setCitaLoading]   = useState(false);
   const [citaToast,     setCitaToast]     = useState(false);
@@ -283,7 +283,7 @@ export default function PortalPage() {
 
   const openCrearCita = () => {
     setEditingCitaId(null);
-    setCitaForm({ Id_Vehiculo: '', Fecha: '', Hora: '', Descripcion: '', Id_Empleado: '' });
+    setCitaForm({ Id_Vehiculo: '', Fecha: '', Hora: '', Descripcion: '', Id_Empleado: '', TipoCita: 'Mantenimiento' });
     setCitaError(''); setEmpleadosDisp([]); setHorasOcupadas([]); setShowCitaModal(true);
   };
 
@@ -297,6 +297,7 @@ export default function PortalPage() {
       Hora: cita.Hora || '',
       Descripcion: cita.Descripcion || '',
       Id_Empleado: idEmpleado,
+      TipoCita: cita.TipoCita || 'Mantenimiento',
     });
     setCitaError('');
     if (fecha) fetchEmpleadosDisp(fecha);
@@ -324,7 +325,7 @@ export default function PortalPage() {
       }
       setShowCitaModal(false);
       setEditingCitaId(null);
-      setCitaForm({ Id_Vehiculo: '', Fecha: '', Hora: '', Descripcion: '', Id_Empleado: '' });
+      setCitaForm({ Id_Vehiculo: '', Fecha: '', Hora: '', Descripcion: '', Id_Empleado: '', TipoCita: 'Mantenimiento' });
       setEmpleadosDisp([]);
       await refetchCitas();
       setCitaToast(true);
@@ -404,6 +405,7 @@ export default function PortalPage() {
     { key: 'Hora',             label: 'Hora',      render: v => formatHora12(v) },
     { key: 'VehiculoPlaca',    label: 'Vehículo',  render: v => v || '—' },
     { key: 'EmpleadoNombre',   label: 'Técnico',   render: v => v || 'Sin asignar' },
+    { key: 'TipoCita',         label: 'Tipo',      render: v => v === 'Diagnostico' ? 'Diagnóstico' : 'Mantenimiento' },
     { key: 'Descripcion',      label: 'Descripción', render: v => v ? <span className="diag-cell">{v}</span> : '—' },
     { key: 'EstadoCita',       label: 'Estado',    render: v => <CitaEstadoBadge estado={v || 'Pendiente'} /> },
     {
@@ -788,6 +790,13 @@ export default function PortalPage() {
       >
         {citaError && <div className="form-error-box">{citaError}</div>}
         <form className="form-grid" onSubmit={handleGuardarCita} noValidate>
+          <div className="form-group">
+            <label className="form-label">Tipo de cita</label>
+            <select className="form-control" value={citaForm.TipoCita} onChange={e => setCitaForm(p => ({ ...p, TipoCita: e.target.value }))}>
+              <option value="Mantenimiento">Mantenimiento / reparación</option>
+              <option value="Diagnostico">Diagnóstico (45 min)</option>
+            </select>
+          </div>
           <div className="form-group">
             <label className="form-label">Vehículo <span className="required">*</span></label>
             <select className="form-control" value={citaForm.Id_Vehiculo} onChange={e => setCitaForm(p => ({ ...p, Id_Vehiculo: e.target.value }))} required>

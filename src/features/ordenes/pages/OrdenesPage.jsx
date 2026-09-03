@@ -598,7 +598,6 @@ export default function OrdenesPage() {
                   <div className="detail-item"><span className="detail-label">Fecha de ingreso</span><span className="detail-value">{formatDate(selected.FechaIngreso)}</span></div>
                   <div className="detail-item"><span className="detail-label">Fecha de entrega</span><span className="detail-value">{formatDate(selected.FechaEntrega)}</span></div>
                   <div className="detail-item"><span className="detail-label">Kilometraje</span><span className="detail-value">{selected.Kilometraje ? `${Number(selected.Kilometraje).toLocaleString('es-CO')} km` : '—'}</span></div>
-                  <div className="detail-item"><span className="detail-label">Estado</span><span className="detail-value"><EstadoBadge estado={selected.Estado} /></span></div>
                   <div className="detail-item u-span-2"><span className="detail-label">Diagnóstico</span><span className="detail-value">{selected.Diagnostico || '—'}</span></div>
                   <div className="detail-item u-span-2">
                     <span className="detail-label">Observación</span>

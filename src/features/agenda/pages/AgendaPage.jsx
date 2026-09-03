@@ -21,7 +21,8 @@ import { filterItems, sortNewestFirst, formatDate, todayLocalYMD, formatHora12 }
 import api from '../../../shared/services/api.js';
 import './AgendaPage.css';
 
-const EMPTY_CITA  = { Id_Cliente: '', Id_Vehiculo: '', id_empleado: '', FechaAgendamiento: '', Hora: '', DuracionEstimadaMin: '60' };
+const EMPTY_CITA  = { Id_Cliente: '', Id_Vehiculo: '', id_empleado: '', FechaAgendamiento: '', Hora: '', DuracionEstimadaMin: '60', TipoCita: 'Mantenimiento' };
+const DURACION_POR_TIPO = { Diagnostico: '45', Mantenimiento: '60' };
 
 const ESTADO_CITA_STYLE = {
   Pendiente:  { bg: '#eff6ff', fg: '#1d4ed8', label: 'Pendiente' },
@@ -250,6 +251,7 @@ export default function AgendaPage() {
       FechaAgendamiento: TODAY,
       Hora: '',
       DuracionEstimadaMin: String(item.DuracionEstimadaMin ?? 60),
+      TipoCita: item.TipoCita || 'Mantenimiento',
     });
     setEditingId(null); setFormError(''); setShowForm(true);
   };
@@ -269,6 +271,7 @@ export default function AgendaPage() {
       FechaAgendamiento: item.FechaAgendamiento ? item.FechaAgendamiento.split('T')[0] : '',
       Hora: item.Hora || '',
       DuracionEstimadaMin: String(item.DuracionEstimadaMin ?? 60),
+      TipoCita: item.TipoCita || 'Mantenimiento',
     });
     setEditingId(item.Id_Agenda || item.id); setFormError(''); setShowForm(true);
   };
@@ -282,6 +285,12 @@ export default function AgendaPage() {
       // elegir una hora válida en vez de dejar el select en un estado
       // bloqueado con un valor que ya no es seleccionable.
       if (name === 'FechaAgendamiento' || name === 'id_empleado') next.Hora = '';
+      // Al cambiar el tipo de cita, ajusta la duración al default de ese tipo
+      // -- solo si el usuario no la había personalizado ya (o sea, todavía
+      // tiene el default del tipo anterior).
+      if (name === 'TipoCita' && p.DuracionEstimadaMin === DURACION_POR_TIPO[p.TipoCita]) {
+        next.DuracionEstimadaMin = DURACION_POR_TIPO[value] || p.DuracionEstimadaMin;
+      }
       return next;
     });
   };
@@ -358,6 +367,7 @@ export default function AgendaPage() {
     { key: 'Empleado', label: 'Empleado', render: (v, row) => v || getEmpleadoNombre(row.id_empleado || row.Id_Empleado) },
     { key: 'FechaAgendamiento', label: 'Fecha', render: v => formatDate(v) },
     { key: 'Hora', label: 'Hora', render: v => formatHora12(v) },
+    { key: 'TipoCita', label: 'Tipo', render: v => v === 'Diagnostico' ? 'Diagnóstico' : 'Mantenimiento' },
     { key: 'EstadoCita', label: 'Estado cita', render: v => <CitaEstadoBadge estado={v || 'Pendiente'} /> },
     { key: 'Estado', label: 'Activa', render: v => <StatusBadge estado={v} /> },
     {
@@ -427,6 +437,7 @@ export default function AgendaPage() {
             <div className="detail-item"><span className="detail-label">Empleado</span><span className="detail-value">{detailItem.Empleado || getEmpleadoNombre(detailItem.id_empleado || detailItem.Id_Empleado)}</span></div>
             <div className="detail-item"><span className="detail-label">Fecha</span><span className="detail-value">{formatDate(detailItem.FechaAgendamiento)}</span></div>
             <div className="detail-item"><span className="detail-label">Hora</span><span className="detail-value">{formatHora12(detailItem.Hora)}</span></div>
+            <div className="detail-item"><span className="detail-label">Tipo de cita</span><span className="detail-value">{detailItem.TipoCita === 'Diagnostico' ? 'Diagnóstico' : 'Mantenimiento'}</span></div>
             <div className="detail-item"><span className="detail-label">Estado de la cita</span><span className="detail-value"><CitaEstadoBadge estado={detailItem.EstadoCita || 'Pendiente'} /></span></div>
             <div className="detail-item"><span className="detail-label">Activa</span><span className="detail-value"><StatusBadge estado={detailItem.Estado} /></span></div>
           </div>
@@ -492,9 +503,15 @@ export default function AgendaPage() {
               <p className="form-hint">Este empleado ya tiene {citasDelDiaEmpleado.length} cita(s) ese día; las horas marcadas "(ocupado)" chocan con la duración estimada.</p>
             )}
           </div>
+          <div className="form-group"><label className="form-label">Tipo de cita</label>
+            <select name="TipoCita" className="form-control" value={formData.TipoCita} onChange={handleChange}>
+              <option value="Mantenimiento">Mantenimiento / reparación</option>
+              <option value="Diagnostico">Diagnóstico</option>
+            </select>
+          </div>
           <div className="form-group"><label className="form-label">Duración estimada (min)</label>
             <input name="DuracionEstimadaMin" type="number" min="1" step="15" className="form-control" value={formData.DuracionEstimadaMin} onChange={handleChange} placeholder="60" />
-            <p className="form-hint">Evita solapar al mismo empleado. Por defecto 60 min.</p>
+            <p className="form-hint">Evita solapar al mismo empleado. Diagnóstico: 45 min por defecto; mantenimiento: 60.</p>
           </div>
         </form>
       </Modal>
