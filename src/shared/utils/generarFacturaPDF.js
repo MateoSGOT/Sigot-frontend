@@ -240,11 +240,15 @@ export function buildFacturaCompra(compra) {
   addHeader(doc, 'Compra de repuestos', id, today());
 
   let y = 46;
-  const hProv = infoCard(doc, M, y, RIGHT - M, 'Proveedor', [
+  const filasProveedor = [
     ['Nombre', compra.Proveedor || compra.proveedor || '—'],
     ['Documento', compra.Documento || '—'],
     ['Contacto', compra.Contacto || compra.contacto || '—'],
-  ]);
+  ];
+  // N.° de factura del proveedor: referencia externa (no autogenerada), solo
+  // se muestra cuando se cargó al registrar la compra.
+  if (compra.NumeroFactura) filasProveedor.push(['N.° factura', compra.NumeroFactura]);
+  const hProv = infoCard(doc, M, y, RIGHT - M, 'Proveedor', filasProveedor);
   y += hProv + 9;
 
   const detalles = compra.detalles || (compra.Repuesto ? [{

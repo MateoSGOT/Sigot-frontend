@@ -17,7 +17,7 @@ import api from '../../../shared/services/api.js';
 import './ComprasPage.css';
 
 const EMPTY_ITEM = { Id_Repuesto: '', Cantidad: '', PrecioUnitario: '' };
-const newForm = () => ({ Id_Proveedor: '', Fecha: todayLocalYMD(), productos: [{ ...EMPTY_ITEM }] });
+const newForm = () => ({ Id_Proveedor: '', Fecha: todayLocalYMD(), NumeroFactura: '', productos: [{ ...EMPTY_ITEM }] });
 
 export default function ComprasPage() {
   const dispatch = useDispatch();
@@ -58,11 +58,16 @@ export default function ComprasPage() {
 
   const repuestosFiltrados = repuestos;
 
-  // Group all items in a purchase by same proveedor + date
+  // Agrupa los productos de una misma compra: por N.° de factura si lo tiene
+  // (confiable), o por proveedor + misma fecha como respaldo para compras
+  // viejas sin ese dato (antes era la única forma de agrupar, y mezclaba dos
+  // compras reales al mismo proveedor el mismo día).
   const detailItems = detailItem
     ? items.filter(i =>
         i.Id_Proveedor === detailItem.Id_Proveedor &&
-        (i.Fecha || '').split('T')[0] === (detailItem.Fecha || '').split('T')[0]
+        (detailItem.NumeroFactura
+          ? i.NumeroFactura === detailItem.NumeroFactura
+          : !i.NumeroFactura && (i.Fecha || '').split('T')[0] === (detailItem.Fecha || '').split('T')[0])
       )
     : [];
 
@@ -154,6 +159,7 @@ export default function ComprasPage() {
         Cantidad: item.Cantidad,
         PrecioUnitario: item.PrecioUnitario,
         Fecha: formData.Fecha,
+        NumeroFactura: formData.NumeroFactura,
       }));
       if (result.error) {
         setFormError(result.payload || 'Error al registrar compra.');
@@ -187,6 +193,7 @@ export default function ComprasPage() {
     { key: 'PrecioUnitario', label: 'Precio unitario', render: v => formatCurrency(v) },
     { key: 'total', label: 'Total', render: (_, row) => formatCurrency(Number(row.Cantidad || 0) * Number(row.PrecioUnitario || 0)) },
     { key: 'Fecha', label: 'Fecha', render: v => formatDate(v) },
+    { key: 'NumeroFactura', label: 'N.° factura', render: v => v || '—' },
     {
       key: 'Anulada', label: 'Estado', render: v =>
         v ? <Badge variant="gray">Anulada</Badge> : <Badge variant="success">Vigente</Badge>
@@ -262,6 +269,7 @@ export default function ComprasPage() {
             <div className="detail-grid u-mb-xl">
               <div className="detail-item"><span className="detail-label">Proveedor</span><span className="detail-value">{detailItem.Proveedor || getNombre(proveedores, 'Id_Proveedor', detailItem.Id_Proveedor)}</span></div>
               <div className="detail-item"><span className="detail-label">Fecha</span><span className="detail-value">{formatDate(detailItem.Fecha)}</span></div>
+              <div className="detail-item"><span className="detail-label">N.° factura</span><span className="detail-value">{detailItem.NumeroFactura || '—'}</span></div>
               <div className="detail-item"><span className="detail-label">Estado</span><span className="detail-value">{detailItem.Anulada ? <Badge variant="gray">Anulada</Badge> : <Badge variant="success">Vigente</Badge>}</span></div>
             </div>
             <h4 className="compra-detail__subhead">Productos ({detailItems.length})</h4>
@@ -325,6 +333,10 @@ export default function ComprasPage() {
             <div className="form-group">
               <label className="form-label">Fecha <span className="required">*</span></label>
               <input name="Fecha" type="date" className="form-control" value={formData.Fecha} onChange={handleFormChange} />
+            </div>
+            <div className="form-group">
+              <label className="form-label">N.° de factura <span className="u-hint-sm">(opcional)</span></label>
+              <input name="NumeroFactura" type="text" maxLength={50} className="form-control" value={formData.NumeroFactura} onChange={handleFormChange} placeholder="Ej. FV-00123" />
             </div>
           </div>
 

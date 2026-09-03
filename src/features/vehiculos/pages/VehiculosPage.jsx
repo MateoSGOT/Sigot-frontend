@@ -105,6 +105,21 @@ export default function VehiculosPage() {
     }
   };
 
+  // Crea un modelo nuevo al vuelo, dentro de la marca ya elegida, sin salir a
+  // la pantalla de Marcas (antes solo Marca tenía esta opción, no Modelo).
+  const handleCrearModelo = async (nombre) => {
+    try {
+      const r = await api.post(`/api/marcas/${formData.Id_Marca}/modelos`, { Nombre: nombre });
+      const nuevo = r.data?.data || r.data;
+      setModelos(prev => [...prev, nuevo]);
+      addToast({ type: 'success', message: `Modelo "${nuevo.Nombre}" creado.` });
+      return { value: String(nuevo.Id_Modelo), label: nuevo.Nombre };
+    } catch (e) {
+      addToast({ type: 'error', message: e?.response?.data?.message || 'No se pudo crear el modelo.' });
+      throw e;
+    }
+  };
+
   const marcasOpts   = marcas.map(m => ({ value: String(m.Id_Marca), label: m.Nombre }));
   const modelosOpts  = modelos.map(m => ({ value: String(m.Id_Modelo), label: m.Nombre }));
   const clientesOpts = clientes.map(c => ({ value: String(c.Id_Cliente), label: `${c.Nombre} — ${c.Documento}` }));
@@ -239,7 +254,14 @@ export default function VehiculosPage() {
             {fieldError('Placa') && <p className="form-error">{fieldError('Placa')}</p>}
           </div>
           <div className="form-group">
-            <label className="form-label">Marca <span className="required">*</span></label>
+            <label className="form-label" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span>Marca <span className="required">*</span></span>
+              {/* Abre en pestaña nueva a propósito: gestionar marcas/modelos (activar,
+                  renombrar, desactivar) sin perder lo ya llenado en este formulario. */}
+              <a href="/marcas" target="_blank" rel="noopener noreferrer" className="u-hint-sm" style={{ fontWeight: 400 }}>
+                Gestionar marcas ↗
+              </a>
+            </label>
             <SearchableSelect
               options={marcasOpts}
               value={String(formData.Id_Marca)}
@@ -258,6 +280,8 @@ export default function VehiculosPage() {
               onChange={v => { setField('Id_Modelo', v); markTouched('Id_Modelo'); }}
               placeholder={!formData.Id_Marca ? 'Primero selecciona una marca' : modelosLoading ? 'Cargando modelos...' : (modelosOpts.length ? 'Seleccionar modelo...' : 'Esta marca no tiene modelos activos')}
               disabled={!formData.Id_Marca || modelosLoading}
+              onCreateOption={puedeCrear && formData.Id_Marca ? handleCrearModelo : undefined}
+              createLabel={q => `+ Crear modelo "${q}"`}
             />
             {fieldError('Id_Modelo') && <p className="form-error">{fieldError('Id_Modelo')}</p>}
           </div>
