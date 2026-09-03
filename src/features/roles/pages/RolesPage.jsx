@@ -231,6 +231,10 @@ export default function RolesPage() {
       setShowCreate(false);
       dispatch(fetchRoles());
       showToast('success', `Rol "${createNombre.trim()}" creado`);
+      // Pasa directo a gestionar sus permisos en vez de dejar el rol sin
+      // ningún acceso hasta que alguien vuelva a entrar a editarlo.
+      const nuevoRol = result.payload;
+      if (nuevoRol?.Id_Rol) openEdit(nuevoRol);
     } else {
       setCreateError(result.payload || 'Error al crear.');
     }

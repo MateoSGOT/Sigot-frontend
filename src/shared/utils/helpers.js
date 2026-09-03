@@ -20,6 +20,18 @@ export const todayLocalYMD = () => {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 };
 
+// 'HH:mm' (24h, tal como lo maneja el backend y los <select> de horario) a
+// formato 12h con AM/PM para mostrar al usuario, ej. '14:30' -> '2:30 PM'.
+// Nunca usar para el `value` de un input/select, solo para texto.
+export const formatHora12 = (hhmm) => {
+  if (!hhmm) return '—';
+  const [hStr, mStr] = String(hhmm).split(':');
+  const h = Number(hStr);
+  if (Number.isNaN(h)) return String(hhmm);
+  const h12 = h % 12 === 0 ? 12 : h % 12;
+  return `${h12}:${(mStr || '00').padStart(2, '0')} ${h >= 12 ? 'PM' : 'AM'}`;
+};
+
 export const formatCurrency = (value) => {
   if (value == null) return '—';
   return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(value);

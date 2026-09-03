@@ -17,7 +17,7 @@ import Table from '../../../shared/components/Table/Table.jsx';
 import SearchBar from '../../../shared/components/SearchBar/SearchBar.jsx';
 import FilterDropdown from '../../../shared/components/FilterDropdown/FilterDropdown.jsx';
 import { StatusBadge } from '../../../shared/components/Badge/Badge.jsx';
-import { filterItems, sortNewestFirst, formatDate, todayLocalYMD } from '../../../shared/utils/helpers.js';
+import { filterItems, sortNewestFirst, formatDate, todayLocalYMD, formatHora12 } from '../../../shared/utils/helpers.js';
 import api from '../../../shared/services/api.js';
 import './AgendaPage.css';
 
@@ -332,7 +332,7 @@ export default function AgendaPage() {
     { key: 'Vehiculo', label: 'Vehículo', render: (v, row) => v || getVehiculoPlaca(row.Id_Vehiculo) },
     { key: 'Empleado', label: 'Empleado', render: (v, row) => v || getEmpleadoNombre(row.id_empleado || row.Id_Empleado) },
     { key: 'FechaAgendamiento', label: 'Fecha', render: v => formatDate(v) },
-    { key: 'Hora', label: 'Hora' },
+    { key: 'Hora', label: 'Hora', render: v => formatHora12(v) },
     { key: 'EstadoCita', label: 'Estado cita', render: v => <CitaEstadoBadge estado={v || 'Pendiente'} /> },
     { key: 'Estado', label: 'Activa', render: v => <StatusBadge estado={v} /> },
     {
@@ -401,7 +401,7 @@ export default function AgendaPage() {
             <div className="detail-item"><span className="detail-label">Vehículo</span><span className="detail-value">{detailItem.Vehiculo || getVehiculoPlaca(detailItem.Id_Vehiculo)}</span></div>
             <div className="detail-item"><span className="detail-label">Empleado</span><span className="detail-value">{detailItem.Empleado || getEmpleadoNombre(detailItem.id_empleado || detailItem.Id_Empleado)}</span></div>
             <div className="detail-item"><span className="detail-label">Fecha</span><span className="detail-value">{formatDate(detailItem.FechaAgendamiento)}</span></div>
-            <div className="detail-item"><span className="detail-label">Hora</span><span className="detail-value">{detailItem.Hora}</span></div>
+            <div className="detail-item"><span className="detail-label">Hora</span><span className="detail-value">{formatHora12(detailItem.Hora)}</span></div>
             <div className="detail-item"><span className="detail-label">Estado de la cita</span><span className="detail-value"><CitaEstadoBadge estado={detailItem.EstadoCita || 'Pendiente'} /></span></div>
             <div className="detail-item"><span className="detail-label">Activa</span><span className="detail-value"><StatusBadge estado={detailItem.Estado} /></span></div>
           </div>
@@ -455,7 +455,7 @@ export default function AgendaPage() {
                   .filter(h => !(esHoy && toMinHelper(h) <= nowMin))
                   .map(h => {
                     const ocupada = h !== formData.Hora && horaOcupada(h);
-                    return <option key={h} value={h} disabled={ocupada}>{h}{ocupada ? ' (ocupado)' : ''}</option>;
+                    return <option key={h} value={h} disabled={ocupada}>{formatHora12(h)}{ocupada ? ' (ocupado)' : ''}</option>;
                   });
               })()}
             </select>

@@ -222,7 +222,6 @@ export default function VehiculosPage() {
           <div className="detail-item"><span className="detail-label">Marca</span><span className="detail-value">{detailItem.Marca || detailItem.Id_Marca}</span></div>
           <div className="detail-item"><span className="detail-label">Modelo</span><span className="detail-value">{detailItem.Modelo}</span></div>
           <div className="detail-item"><span className="detail-label">Año</span><span className="detail-value">{detailItem.Anio}</span></div>
-          <div className="detail-item"><span className="detail-label">Kilometraje</span><span className="detail-value">{detailItem.Kilometraje != null && detailItem.Kilometraje !== '' ? `${Number(detailItem.Kilometraje).toLocaleString('es-CO')} km` : '—'}</span></div>
           <div className="detail-item"><span className="detail-label">Color</span><span className="detail-value">{detailItem.Color || '—'}</span></div>
           <div className="detail-item"><span className="detail-label">Cliente</span><span className="detail-value">{detailItem.Cliente || detailItem.Id_Cliente}</span></div>
           <div className="detail-item"><span className="detail-label">Estado</span><span className="detail-value"><StatusBadge estado={detailItem.Estado} /></span></div>

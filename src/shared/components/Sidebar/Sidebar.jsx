@@ -19,13 +19,6 @@ const NAV_STRUCTURE = [
   { type: 'section', label: 'Menú principal' },
   { type: 'link', to: '/dashboard', icon: MdDashboard, label: 'Dashboard', permiso: 'DASHBOARD' },
   {
-    type: 'group', name: 'Usuarios', icon: MdPeopleAlt,
-    children: [
-      { to: '/empleados', icon: MdPeople, label: 'Empleados', permiso: 'EMPLEADOS' },
-      { to: '/clientes',  icon: MdPerson, label: 'Clientes',  permiso: 'CLIENTES'  },
-    ],
-  },
-  {
     type: 'group', name: 'Vehículos', icon: MdDirectionsCar,
     children: [
       { to: '/vehiculos', icon: MdDirectionsCar,     label: 'Vehículos',        permiso: 'VEHICULOS' },
@@ -45,7 +38,16 @@ const NAV_STRUCTURE = [
   { type: 'link', to: '/proveedores', icon: MdLocalShipping, label: 'Proveedores',    permiso: 'PROVEEDORES' },
   { type: 'link', to: '/compras',    icon: MdShoppingCart,  label: 'Compras',         permiso: 'COMPRAS'     },
   { type: 'link', to: '/novedades',  icon: MdNewReleases,   label: 'Novedades',       permiso: 'NOVEDADES'   },
+  // Configuración: todo lo administrativo (usuarios del sistema y su acceso),
+  // separado del flujo operativo del taller de arriba.
   { type: 'section', label: 'Configuración' },
+  {
+    type: 'group', name: 'Usuarios', icon: MdPeopleAlt,
+    children: [
+      { to: '/empleados', icon: MdPeople, label: 'Empleados', permiso: 'EMPLEADOS' },
+      { to: '/clientes',  icon: MdPerson, label: 'Clientes',  permiso: 'CLIENTES'  },
+    ],
+  },
   { type: 'link', to: '/roles', icon: MdSecurity, label: 'Roles', permiso: 'ROLES' },
 ];
 
@@ -84,21 +86,11 @@ export default function Sidebar() {
   const location  = useLocation();
   const { empleado, cliente, permisos } = useSelector((state) => state.auth);
   const { mobileOpen, collapsed, toggleCollapsed, setCollapsed } = useSidebar();
-  const [profileOpen, setProfileOpen] = useState(false);
-  const profileRef = React.useRef(null);
   const esSuperAdmin = !!(empleado?.EsSuperAdmin || cliente?.EsSuperAdmin);
   // La campana de novedades es exclusiva de Administrador/Super Administrador (avisa de
   // cosas como empleados desactivados con citas pendientes aún asignadas -- ver
   // NovedadAlertBell.jsx), no aplica a otros roles operativos ni a clientes.
   const esAdminOSuperAdmin = esSuperAdmin || empleado?.Rol === 'Administrador';
-
-  React.useEffect(() => {
-    const handler = (e) => {
-      if (profileRef.current && !profileRef.current.contains(e.target)) setProfileOpen(false);
-    };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, []);
 
   // "Cuentas y accesos" (Fase 3): exclusiva del Super Administrador, no depende del
   // sistema genérico de permisos por módulo, así que se agrega aparte.
@@ -107,15 +99,23 @@ export default function Sidebar() {
     visibleNav.push({ type: 'link', to: '/cuentas', icon: MdAdminPanelSettings, label: 'Cuentas y accesos' });
   }
 
-  const [openGroups, setOpenGroups] = useState(() => {
+  const gruposDeLaRuta = (pathname) => {
     const groups = {};
     NAV_STRUCTURE.forEach(item => {
       if (item.type === 'group') {
-        groups[item.name] = item.children.some(c => location.pathname.startsWith(c.to));
+        groups[item.name] = item.children.some(c => pathname.startsWith(c.to));
       }
     });
     return groups;
-  });
+  };
+
+  const [openGroups, setOpenGroups] = useState(() => gruposDeLaRuta(location.pathname));
+
+  // Al navegar a otra sección del menú, se cierra cualquier submenú que
+  // hubiera quedado abierto (salvo el de la ruta a la que se entró).
+  React.useEffect(() => {
+    setOpenGroups(gruposDeLaRuta(location.pathname));
+  }, [location.pathname]);
 
   const toggleGroup = (name) => {
     // Colapsado: al tocar un grupo, expandimos el sidebar y abrimos ese grupo
@@ -152,6 +152,16 @@ export default function Sidebar() {
             aria-label={collapsed ? 'Expandir menú' : 'Colapsar menú'}
           >
             <MdMenuOpen size={20} />
+          </button>
+          {/* Cerrar sesión: en la parte de arriba, siempre a un clic (antes solo
+              se llegaba abriendo el menú de perfil hasta abajo del todo). */}
+          <button
+            className="sidebar__collapse-btn"
+            onClick={handleLogout}
+            title="Cerrar sesión"
+            aria-label="Cerrar sesión"
+          >
+            <MdLogout size={20} />
           </button>
         </div>
       </div>
@@ -217,18 +227,11 @@ export default function Sidebar() {
         })}
       </nav>
 
-      {/* Footer */}
+      {/* Footer: solo muestra quién está conectado -- cerrar sesión ya vive
+          arriba, junto a las campanas, para llegar en un clic. */}
       <div className="sidebar__footer">
-        <div className="sidebar__user-wrap" ref={profileRef}>
-          {profileOpen && (
-            <div className="sidebar__profile-dropdown">
-              <button className="sidebar__profile-item" onClick={() => { setProfileOpen(false); handleLogout(); }}>
-                <MdLogout size={16} />
-                <span>Cerrar sesión</span>
-              </button>
-            </div>
-          )}
-          <div className="sidebar__user" onClick={() => setProfileOpen(o => !o)} style={{ cursor: 'pointer' }}>
+        <div className="sidebar__user-wrap">
+          <div className="sidebar__user">
             {empleado && (
               <>
                 <div className="sidebar__user-avatar">

@@ -11,7 +11,7 @@ import SearchBar from '../../../shared/components/SearchBar/SearchBar.jsx';
 import FilterDropdown from '../../../shared/components/FilterDropdown/FilterDropdown.jsx';
 import Badge from '../../../shared/components/Badge/Badge.jsx';
 import { StatusBadge } from '../../../shared/components/Badge/Badge.jsx';
-import { filterItems, formatDate, formatCurrency, todayLocalYMD } from '../../../shared/utils/helpers.js';
+import { filterItems, formatDate, formatCurrency, todayLocalYMD, formatHora12 } from '../../../shared/utils/helpers.js';
 import api from '../../../shared/services/api.js';
 import './PortalPage.css';
 
@@ -401,7 +401,7 @@ export default function PortalPage() {
   const citasColumns = [
     { key: '#',                label: '#',         width: '50px', render: (_, __, i) => i + 1 },
     { key: 'FechaAgendamiento',label: 'Fecha',     render: v => formatDate(v) },
-    { key: 'Hora',             label: 'Hora',      render: v => v || '—' },
+    { key: 'Hora',             label: 'Hora',      render: v => formatHora12(v) },
     { key: 'VehiculoPlaca',    label: 'Vehículo',  render: v => v || '—' },
     { key: 'EmpleadoNombre',   label: 'Técnico',   render: v => v || 'Sin asignar' },
     { key: 'Descripcion',      label: 'Descripción', render: v => v ? <span className="diag-cell">{v}</span> : '—' },
