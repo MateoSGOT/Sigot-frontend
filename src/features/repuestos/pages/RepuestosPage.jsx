@@ -2,7 +2,6 @@
 import { useDispatch, useSelector } from 'react-redux';
 import { MdAdd, MdVisibility, MdEdit, MdWarning, MdTableChart, MdDeleteForever, MdUploadFile } from 'react-icons/md';
 import { useBorradoReal } from '../../../shared/hooks/useBorradoReal.js';
-import { useAutoRefresh } from '../../../shared/hooks/useAutoRefresh.js';
 import { repuestosService } from '../services/repuestosService.js';
 import EliminarRealModal from '../../../shared/components/EliminarRealModal/EliminarRealModal.jsx';
 import { usePermiso } from '../../../shared/hooks/usePermiso.js';
@@ -136,7 +135,6 @@ export default function RepuestosPage() {
   const [importando, setImportando] = useState(false);
   const [importMsg, setImportMsg] = useState(null); // { ok, fail, faltantes: [] }
 
-  useAutoRefresh(() => { fetchPage(); fetchStockBajo(); }, { intervalMs: 20000, enabled: !showForm && !del.isOpen && !importando });
 
   const handleImportFile = async (e) => {
     const file = e.target.files?.[0];

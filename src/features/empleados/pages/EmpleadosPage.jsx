@@ -4,7 +4,6 @@ import { MdAdd, MdVisibility, MdEdit, MdWarning, MdVisibilityOff, MdCheck, MdDel
 import { useToast } from '../../../shared/components/Toast/ToastContext.jsx';
 import { usePermiso } from '../../../shared/hooks/usePermiso.js';
 import { useBorradoReal } from '../../../shared/hooks/useBorradoReal.js';
-import { useAutoRefresh } from '../../../shared/hooks/useAutoRefresh.js';
 import { empleadosService } from '../services/empleadosService.js';
 import ToggleSwitch from '../../../shared/components/ToggleSwitch/ToggleSwitch.jsx';
 import EliminarRealModal from '../../../shared/components/EliminarRealModal/EliminarRealModal.jsx';
@@ -109,7 +108,6 @@ export default function EmpleadosPage() {
     api.get('/api/novedades').then(r => setNovedades(r.data?.data || r.data || [])).catch(() => {});
   }, [dispatch]);
 
-  useAutoRefresh(() => dispatch(fetchEmpleados()), { intervalMs: 20000, enabled: !showForm && !showConvertir && !del.isOpen && !deleteId });
 
   const getEmpNovedades = (id) => novedades.filter(n => n.id_empleado === id || n.Id_Empleado === id);
 

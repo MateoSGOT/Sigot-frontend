@@ -4,7 +4,6 @@ import { MdAdd, MdEdit, MdDeleteForever, MdUploadFile } from 'react-icons/md';
 import * as XLSX from 'xlsx';
 import { usePermiso } from '../../../shared/hooks/usePermiso.js';
 import { useBorradoReal } from '../../../shared/hooks/useBorradoReal.js';
-import { useAutoRefresh } from '../../../shared/hooks/useAutoRefresh.js';
 import { categoriasService } from '../services/categoriasService.js';
 import ToggleSwitch from '../../../shared/components/ToggleSwitch/ToggleSwitch.jsx';
 import EliminarRealModal from '../../../shared/components/EliminarRealModal/EliminarRealModal.jsx';
@@ -50,7 +49,6 @@ export default function CategoriasPage() {
   const [importando, setImportando] = useState(false);
   const [importMsg, setImportMsg] = useState(null); // { ok, fail, faltantes: [] }
 
-  useAutoRefresh(() => dispatch(fetchCategorias()), { intervalMs: 20000, enabled: !showForm && !del.isOpen && !importando });
 
   const handleImportFile = async (e) => {
     const file = e.target.files?.[0];

@@ -4,7 +4,6 @@ import { useNavigate } from 'react-router-dom';
 import { MdAdd, MdVisibility, MdEdit, MdAssignment, MdEventBusy, MdEventRepeat, MdDeleteForever } from 'react-icons/md';
 import { usePermiso } from '../../../shared/hooks/usePermiso.js';
 import { useBorradoReal } from '../../../shared/hooks/useBorradoReal.js';
-import { useAutoRefresh } from '../../../shared/hooks/useAutoRefresh.js';
 import { agendaService } from '../services/agendaService.js';
 import SearchableSelect from '../../../shared/components/SearchableSelect/SearchableSelect.jsx';
 import ToggleSwitch from '../../../shared/components/ToggleSwitch/ToggleSwitch.jsx';
@@ -94,8 +93,6 @@ export default function AgendaPage() {
   // Las novedades entran al mismo ciclo -- si un empleado queda con/sin novedad
   // mientras la página está abierta, la disponibilidad (horas bloqueadas,
   // calendario) se corrige sola sin necesitar recargar la página.
-  const hayModalAbierto = showForm || showOrdenModal || !!confirmCancelar || !!confirmEliminar || del.isOpen;
-  useAutoRefresh(() => { dispatch(fetchAgenda()); cargarNovedades(); }, { intervalMs: 20000, enabled: !hayModalAbierto });
 
   // ── Novedades por FECHA (no solo "hoy") ──────────────────────────────
   // Bloquea asignar un empleado que tenga una novedad que cubra la fecha del

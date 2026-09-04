@@ -2,7 +2,6 @@
 import { useDispatch, useSelector } from 'react-redux';
 import { MdAdd, MdVisibility, MdEdit, MdDeleteForever } from 'react-icons/md';
 import { useBorradoReal } from '../../../shared/hooks/useBorradoReal.js';
-import { useAutoRefresh } from '../../../shared/hooks/useAutoRefresh.js';
 import { novedadesService } from '../services/novedadesService.js';
 import EliminarRealModal from '../../../shared/components/EliminarRealModal/EliminarRealModal.jsx';
 import { usePermiso } from '../../../shared/hooks/usePermiso.js';
@@ -53,7 +52,6 @@ export default function NovedadesPage() {
     api.get('/api/empleados').then(r => setEmpleados(r.data?.data || r.data || [])).catch(() => {});
   }, [dispatch]);
 
-  useAutoRefresh(() => dispatch(fetchNovedades()), { intervalMs: 20000, enabled: !showForm && !del.isOpen });
 
   const getEmpleadoNombre = (id) => {
     const e = empleados.find(e => String(e.id_empleado ?? e.Id_Empleado) === String(id));

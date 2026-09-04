@@ -5,7 +5,6 @@ import { useBorradoReal } from '../../../shared/hooks/useBorradoReal.js';
 import { vehiculosService } from '../services/vehiculosService.js';
 import EliminarRealModal from '../../../shared/components/EliminarRealModal/EliminarRealModal.jsx';
 import { usePermiso } from '../../../shared/hooks/usePermiso.js';
-import { useAutoRefresh } from '../../../shared/hooks/useAutoRefresh.js';
 import SearchableSelect from '../../../shared/components/SearchableSelect/SearchableSelect.jsx';
 import ToggleSwitch from '../../../shared/components/ToggleSwitch/ToggleSwitch.jsx';
 import { fetchVehiculos, createVehiculo, updateVehiculo, toggleVehiculoEstado } from '../slices/vehiculosSlice.js';
@@ -71,7 +70,6 @@ export default function VehiculosPage() {
     api.get('/api/clientes').then(r => setClientes(r.data?.data || r.data || [])).catch(() => {});
   }, [dispatch]);
 
-  useAutoRefresh(() => dispatch(fetchVehiculos()), { intervalMs: 20000, enabled: !showForm && !del.isOpen });
 
   // Carga los modelos de una marca (selector dependiente). incluir = Id_Modelo actual
   // a conservar aunque esté inactivo (caso edición).

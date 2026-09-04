@@ -2,7 +2,6 @@
 import { useDispatch, useSelector } from 'react-redux';
 import { MdAdd, MdVisibility, MdBlock, MdDeleteOutline, MdWarning } from 'react-icons/md';
 import { usePermiso } from '../../../shared/hooks/usePermiso.js';
-import { useAutoRefresh } from '../../../shared/hooks/useAutoRefresh.js';
 import SearchableSelect from '../../../shared/components/SearchableSelect/SearchableSelect.jsx';
 import { fetchCompras, createCompra, anularCompra } from '../slices/comprasSlice.js';
 import Modal from '../../../shared/components/Modal/Modal.jsx';
@@ -48,7 +47,6 @@ export default function ComprasPage() {
     api.get('/api/repuestos').then(r => setRepuestos(r.data?.data || r.data || [])).catch(() => {});
   }, [dispatch]);
 
-  useAutoRefresh(() => dispatch(fetchCompras()), { intervalMs: 20000, enabled: !showForm && !confirmAnular });
 
   const getNombre = (arr, idKey, id) => {
     const lowKey = idKey === 'Id_Proveedor' ? 'id_proveedor' : idKey;

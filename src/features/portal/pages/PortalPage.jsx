@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { MdAdd, MdVisibility, MdCheck, MdCameraAlt, MdDirectionsCar, MdEventBusy, MdEdit } from 'react-icons/md';
 import { logout, updateCliente } from '../../auth/slices/authSlice.js';
-import { useAutoRefresh } from '../../../shared/hooks/useAutoRefresh.js';
 import PortalSidebar from '../components/PortalSidebar.jsx';
 import Modal from '../../../shared/components/Modal/Modal.jsx';
 import { useToast } from '../../../shared/components/Toast/ToastContext.jsx';
@@ -119,23 +118,6 @@ export default function PortalPage() {
       setCitas(flattenCitas(cRes.data?.data || []));
     }).catch(() => {}).finally(() => setLoading(false));
   }, [cliente?.Id_Cliente, token]);
-
-  // Actualización en tiempo real: refresca vehículos/órdenes/citas solas, salvo con
-  // el modal de "nueva cita" o de "cancelar cita" abierto.
-  const refetchTodo = () => {
-    if (!cliente || !token || tipo !== 'cliente') return;
-    const h = { Authorization: `Bearer ${token}` };
-    Promise.all([
-      api.get('/api/portal/vehiculos', { headers: h }),
-      api.get('/api/portal/ordenes',   { headers: h }),
-      api.get('/api/portal/citas',     { headers: h }),
-    ]).then(([vRes, oRes, cRes]) => {
-      setVehiculos(vRes.data?.data || []);
-      setOrdenes(oRes.data?.data || []);
-      setCitas(flattenCitas(cRes.data?.data || []));
-    }).catch(() => {});
-  };
-  useAutoRefresh(refetchTodo, { intervalMs: 20000, enabled: !showCitaModal && !confirmCancelarCita });
 
   const flattenCitas = list => list.map(c => ({
     ...c,

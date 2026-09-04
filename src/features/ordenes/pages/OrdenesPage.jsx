@@ -3,7 +3,6 @@ import { useDispatch, useSelector } from 'react-redux';
 import { useLocation } from 'react-router-dom';
 import { MdVisibility, MdEdit, MdAdd, MdBuild, MdCheck, MdArrowForward, MdDeleteOutline } from 'react-icons/md';
 import { usePermiso } from '../../../shared/hooks/usePermiso.js';
-import { useAutoRefresh } from '../../../shared/hooks/useAutoRefresh.js';
 import {
   fetchOrdenes, fetchOrdenById, updateOrden, toggleOrdenEstado,
   addServicioToOrden, addRepuestoToOrden, setManoDeObra, clearSelected,
@@ -243,14 +242,6 @@ export default function OrdenesPage() {
       dispatch(clearSelected());
     }
   }, [detailId, dispatch]);
-
-  // Actualización en tiempo real: refresca la lista y (si está abierta) la orden en
-  // detalle, salvo con algún modal/formulario de edición activo.
-  const hayEdicionAbierta = showEdit || editingEmpleado || obsEdit !== null;
-  useAutoRefresh(() => {
-    dispatch(fetchOrdenes());
-    if (detailId) dispatch(fetchOrdenById(detailId));
-  }, { intervalMs: 20000, enabled: !hayEdicionAbierta });
 
   const filtered = (() => {
     let list = items;

@@ -12,7 +12,6 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend, Area, AreaChart,
 } from 'recharts';
-import { useAutoRefresh } from '../../../shared/hooks/useAutoRefresh.js';
 import { usePermiso } from '../../../shared/hooks/usePermiso.js';
 import EmptyState from '../../../shared/components/EmptyState/EmptyState.jsx';
 import Skeleton from '../../../shared/components/Skeleton/Skeleton.jsx';
@@ -102,9 +101,6 @@ export default function DashboardPage() {
   const [refreshKey, setRefreshKey] = useState(0);   // "Actualizar" fuerza un re-fetch
 
   useEffect(() => { dispatch(fetchDashboard()); }, [dispatch, refreshKey]);
-  // Actualización en tiempo real (polling): reutiliza el mismo botón "Actualizar"
-  // (refreshKey) cada 30s, sin necesidad de que el usuario recargue la página.
-  useAutoRefresh(() => setRefreshKey((k) => k + 1), { intervalMs: 30000 });
 
   useEffect(() => {
     if (!puedeVerFinanzas) { setLoading(false); return undefined; }
