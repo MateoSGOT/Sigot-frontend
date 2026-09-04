@@ -193,9 +193,21 @@ export default function PortalPage() {
   };
 
   /* ── Mi Cuenta ───────────────────────────────────────────── */
+  const FOTO_TIPOS_VALIDOS = ['image/jpeg', 'image/png', 'image/webp'];
+  const FOTO_MAX_BYTES = 2 * 1024 * 1024; // mismo límite que ImageUploader.jsx
   const handleFotoChange = e => {
     const file = e.target.files[0];
     if (!file) return;
+    if (!FOTO_TIPOS_VALIDOS.includes(file.type)) {
+      addToast({ type: 'error', message: 'La foto debe ser JPG, PNG o WEBP.' });
+      e.target.value = '';
+      return;
+    }
+    if (file.size > FOTO_MAX_BYTES) {
+      addToast({ type: 'error', message: 'La imagen no puede superar 2 MB.' });
+      e.target.value = '';
+      return;
+    }
     const reader = new FileReader();
     reader.onload = ev => setFotoPreview(ev.target.result);
     reader.readAsDataURL(file);
@@ -214,7 +226,9 @@ export default function PortalPage() {
       dispatch(updateCliente({ ...(res.data?.data || {}), ...(fotoPreview ? { Foto: fotoPreview } : {}) }));
       setSaveOk(true);
       setTimeout(() => setSaveOk(false), 3000);
-    } catch { } finally { setSaving(false); }
+    } catch (err) {
+      addToast({ type: 'error', message: err?.response?.data?.message || 'No se pudieron guardar los cambios.' });
+    } finally { setSaving(false); }
   };
 
   /* ── Orden detail ────────────────────────────────────────── */
@@ -448,7 +462,7 @@ export default function PortalPage() {
                 <button className="btn btn--outline btn--sm" onClick={() => fileRef.current?.click()}>
                   <MdCameraAlt size={15} /> Cambiar foto
                 </button>
-                <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleFotoChange} />
+                <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp" style={{ display: 'none' }} onChange={handleFotoChange} />
               </div>
 
               {/* Card 2: información personal (solo lectura) */}

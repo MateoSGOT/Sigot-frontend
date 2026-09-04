@@ -6,25 +6,18 @@ const safeGet = async (fn) => {
   catch { return null; }
 };
 
+// Solo `repuestos` se lee en algún componente (gráfico "Repuestos por categoría" de
+// DashboardPage.jsx) -- compras/servicios/empleados/stockBajo se pedían en cada carga y
+// cada "Actualizar" sin que ninguna pantalla los leyera nunca; se dejaron de pedir.
 export const fetchDashboard = createAsyncThunk('dashboard/fetchAll', async () => {
-  const [repuestos, compras, servicios, empleados, stockBajo] = await Promise.all([
-    safeGet(dashboardService.getRepuestos),
-    safeGet(dashboardService.getCompras),
-    safeGet(dashboardService.getServicios),
-    safeGet(dashboardService.getEmpleados),
-    safeGet(dashboardService.getStockBajo),
-  ]);
-  return { repuestos, compras, servicios, empleados, stockBajo };
+  const repuestos = await safeGet(dashboardService.getRepuestos);
+  return { repuestos };
 });
 
 const dashboardSlice = createSlice({
   name: 'dashboard',
   initialState: {
     repuestos: null,
-    compras: null,
-    servicios: null,
-    empleados: null,
-    stockBajo: null,
     loading: false,
     error: null,
   },
@@ -35,10 +28,6 @@ const dashboardSlice = createSlice({
       .addCase(fetchDashboard.fulfilled, (state, action) => {
         state.loading = false;
         state.repuestos = action.payload.repuestos;
-        state.compras = action.payload.compras;
-        state.servicios = action.payload.servicios;
-        state.empleados = action.payload.empleados;
-        state.stockBajo = action.payload.stockBajo;
       })
       .addCase(fetchDashboard.rejected, (state, action) => {
         state.loading = false;

@@ -118,9 +118,18 @@ export default function VehiculosPage() {
     }
   };
 
-  const marcasOpts   = marcas.map(m => ({ value: String(m.Id_Marca), label: m.Nombre }));
+  // Una marca/cliente desactivado no debe poder elegirse para un vehículo NUEVO (mismo
+  // criterio que ya aplica AgendaPage.jsx a su select de empleados); al editar, conserva
+  // visible la marca/cliente ya asignados aunque se hayan desactivado después (mismo
+  // patrón que loadModelos de arriba, vía "incluir").
+  const esActivo = (x) => x?.Estado !== false && x?.Estado !== 0;
+  const marcasOpts = marcas
+    .filter(m => esActivo(m) || String(m.Id_Marca) === String(formData.Id_Marca))
+    .map(m => ({ value: String(m.Id_Marca), label: m.Nombre }));
   const modelosOpts  = modelos.map(m => ({ value: String(m.Id_Modelo), label: m.Nombre }));
-  const clientesOpts = clientes.map(c => ({ value: String(c.Id_Cliente), label: `${c.Nombre} — ${c.Documento}` }));
+  const clientesOpts = clientes
+    .filter(c => esActivo(c) || String(c.Id_Cliente) === String(formData.Id_Cliente))
+    .map(c => ({ value: String(c.Id_Cliente), label: `${c.Nombre} — ${c.Documento}` }));
 
   const filtered = (() => {
     let list = items;

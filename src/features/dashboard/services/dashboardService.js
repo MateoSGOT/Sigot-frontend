@@ -12,10 +12,6 @@ const qs = ({ desde, hasta, agrupacion, limit }) => {
 
 export const dashboardService = {
   getRepuestos:  () => api.get('/api/dashboard/repuestos').then(r => r.data),
-  getCompras:    () => api.get('/api/dashboard/compras').then(r => r.data),
-  getServicios:  () => api.get('/api/dashboard/servicios').then(r => r.data),
-  getEmpleados:  () => api.get('/api/dashboard/empleados').then(r => r.data),
-  getStockBajo:  () => api.get('/api/dashboard/stock-bajo').then(r => r.data),
   // Reportes por rango (Tanda B)
   getResumen:       (r) => api.get(`/api/dashboard/resumen${qs(r)}`).then(x => x.data),
   getIngresos:      (r) => api.get(`/api/dashboard/ingresos${qs(r)}`).then(x => x.data),
