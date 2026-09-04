@@ -6,7 +6,7 @@ import {
   MdMiscellaneousServices, MdAssignment, MdEventNote,
   MdNewReleases, MdSecurity, MdCategory, MdLocalShipping,
   MdLogout, MdPerson, MdBrandingWatermark,
-  MdPeopleAlt, MdStorage, MdChevronRight, MdAdminPanelSettings,
+  MdSettings, MdStorage, MdChevronRight, MdAdminPanelSettings,
   MdMenuOpen,
 } from 'react-icons/md';
 import { logout } from '../../../features/auth/slices/authSlice';
@@ -19,16 +19,16 @@ const NAV_STRUCTURE = [
   { type: 'section', label: 'Menú principal' },
   { type: 'link', to: '/dashboard', icon: MdDashboard, label: 'Dashboard', permiso: 'DASHBOARD' },
   // Configuración: todo lo administrativo (usuarios del sistema y su acceso), justo
-  // después del Dashboard, separado del flujo operativo del taller de abajo.
-  { type: 'section', label: 'Configuración' },
+  // después del Dashboard, separado del flujo operativo del taller de abajo. Es un
+  // desplegable como Vehículos/Inventario -- no una sección estática.
   {
-    type: 'group', name: 'Usuarios', icon: MdPeopleAlt,
+    type: 'group', name: 'Configuración', icon: MdSettings,
     children: [
-      { to: '/empleados', icon: MdPeople, label: 'Empleados', permiso: 'EMPLEADOS' },
-      { to: '/clientes',  icon: MdPerson, label: 'Clientes',  permiso: 'CLIENTES'  },
+      { to: '/empleados', icon: MdPeople,   label: 'Empleados', permiso: 'EMPLEADOS' },
+      { to: '/clientes',  icon: MdPerson,   label: 'Clientes',  permiso: 'CLIENTES'  },
+      { to: '/roles',     icon: MdSecurity, label: 'Roles',     permiso: 'ROLES'     },
     ],
   },
-  { type: 'link', to: '/roles', icon: MdSecurity, label: 'Roles', permiso: 'ROLES' },
   { type: 'section', label: 'Operación' },
   {
     type: 'group', name: 'Vehículos', icon: MdDirectionsCar,
@@ -128,11 +128,13 @@ export default function Sidebar() {
     setOpenGroups(gruposDeLaRuta(location.pathname));
   }, [location.pathname]);
 
+  // Acordeón: solo un grupo abierto a la vez (en cualquier sentido -- abrir uno
+  // cierra el que estuviera abierto, sea el de arriba o el de abajo).
   const toggleGroup = (name) => {
     // Colapsado: al tocar un grupo, expandimos el sidebar y abrimos ese grupo
     // (si no, no habría dónde mostrar los hijos).
-    if (collapsed) { setCollapsed(false); setOpenGroups(p => ({ ...p, [name]: true })); return; }
-    setOpenGroups(p => ({ ...p, [name]: !p[name] }));
+    if (collapsed) { setCollapsed(false); setOpenGroups({ [name]: true }); return; }
+    setOpenGroups(p => (p[name] ? {} : { [name]: true }));
   };
 
   const handleLogout = () => {
