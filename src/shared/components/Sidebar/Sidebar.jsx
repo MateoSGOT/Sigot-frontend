@@ -18,6 +18,18 @@ import './Sidebar.css';
 const NAV_STRUCTURE = [
   { type: 'section', label: 'Menú principal' },
   { type: 'link', to: '/dashboard', icon: MdDashboard, label: 'Dashboard', permiso: 'DASHBOARD' },
+  // Configuración: todo lo administrativo (usuarios del sistema y su acceso), justo
+  // después del Dashboard, separado del flujo operativo del taller de abajo.
+  { type: 'section', label: 'Configuración' },
+  {
+    type: 'group', name: 'Usuarios', icon: MdPeopleAlt,
+    children: [
+      { to: '/empleados', icon: MdPeople, label: 'Empleados', permiso: 'EMPLEADOS' },
+      { to: '/clientes',  icon: MdPerson, label: 'Clientes',  permiso: 'CLIENTES'  },
+    ],
+  },
+  { type: 'link', to: '/roles', icon: MdSecurity, label: 'Roles', permiso: 'ROLES' },
+  { type: 'section', label: 'Operación' },
   {
     type: 'group', name: 'Vehículos', icon: MdDirectionsCar,
     children: [
@@ -38,17 +50,6 @@ const NAV_STRUCTURE = [
   { type: 'link', to: '/proveedores', icon: MdLocalShipping, label: 'Proveedores',    permiso: 'PROVEEDORES' },
   { type: 'link', to: '/compras',    icon: MdShoppingCart,  label: 'Compras',         permiso: 'COMPRAS'     },
   { type: 'link', to: '/novedades',  icon: MdNewReleases,   label: 'Novedades',       permiso: 'NOVEDADES'   },
-  // Configuración: todo lo administrativo (usuarios del sistema y su acceso),
-  // separado del flujo operativo del taller de arriba.
-  { type: 'section', label: 'Configuración' },
-  {
-    type: 'group', name: 'Usuarios', icon: MdPeopleAlt,
-    children: [
-      { to: '/empleados', icon: MdPeople, label: 'Empleados', permiso: 'EMPLEADOS' },
-      { to: '/clientes',  icon: MdPerson, label: 'Clientes',  permiso: 'CLIENTES'  },
-    ],
-  },
-  { type: 'link', to: '/roles', icon: MdSecurity, label: 'Roles', permiso: 'ROLES' },
 ];
 
 function buildVisibleNav(nav, permisos) {

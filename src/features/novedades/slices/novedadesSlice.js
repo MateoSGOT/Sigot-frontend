@@ -17,7 +17,11 @@ export const updateNovedad = createAsyncThunk('novedades/update', async ({ id, d
   catch (e) { return rejectWithValue(e?.response?.data?.message || 'Error'); }
 });
 export const toggleNovedadEstado = createAsyncThunk('novedades/toggleEstado', async ({ id, Estado }, { rejectWithValue }) => {
-  try { await novedadesService.toggleEstado(id, Estado); return { id, Estado }; }
+  try {
+    const r = await novedadesService.toggleEstado(id, Estado);
+    const novedad = r.data || r;
+    return { id, Estado, notificacion: novedad?.notificacion };
+  }
   catch (e) { return rejectWithValue(e?.response?.data?.message || 'Error'); }
 });
 const novedadesSlice = createSlice({

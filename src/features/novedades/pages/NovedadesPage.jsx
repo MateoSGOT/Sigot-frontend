@@ -9,6 +9,7 @@ import { usePermiso } from '../../../shared/hooks/usePermiso.js';
 import SearchableSelect from '../../../shared/components/SearchableSelect/SearchableSelect.jsx';
 import ToggleSwitch from '../../../shared/components/ToggleSwitch/ToggleSwitch.jsx';
 import { fetchNovedades, createNovedad, updateNovedad, toggleNovedadEstado } from '../slices/novedadesSlice.js';
+import { useToast } from '../../../shared/components/Toast/ToastContext.jsx';
 import Modal from '../../../shared/components/Modal/Modal.jsx';
 import Table from '../../../shared/components/Table/Table.jsx';
 import SearchBar from '../../../shared/components/SearchBar/SearchBar.jsx';
@@ -30,6 +31,7 @@ const RULES = {
 
 export default function NovedadesPage() {
   const dispatch = useDispatch();
+  const { addToast } = useToast();
   const { items, loading, actionLoading } = useSelector(s => s.novedades);
   const puedeCrear   = usePermiso('NOVEDADES.REGISTRAR');
   const puedeEditar  = usePermiso('NOVEDADES.EDITAR');
@@ -129,8 +131,27 @@ export default function NovedadesPage() {
     };
     const action = editingId ? updateNovedad({ id: editingId, data: payload }) : createNovedad(payload);
     const result = await dispatch(action);
-    if (!result.error) { setShowForm(false); dispatch(fetchNovedades()); }
+    if (!result.error) {
+      setShowForm(false);
+      dispatch(fetchNovedades());
+      avisarConflictos(result.payload?.notificacion);
+    }
     else setFormError(result.payload || 'Error al guardar.');
+  };
+
+  // Cuando la novedad choca con citas ya agendadas del empleado, el backend notificó por
+  // correo a cada cliente (reasignar con otro técnico o cancelar, desde el portal). Se
+  // avisa al admin cuántos correos salieron para que sepa que no fue una acción silenciosa.
+  const avisarConflictos = (notificacion) => {
+    const n = notificacion?.citasNotificadas?.length || 0;
+    if (n > 0) {
+      addToast({ type: 'info', message: `Se notificó por correo a ${n} cliente${n === 1 ? '' : 's'} con cita en conflicto, para que reasignen con otro técnico o cancelen.` });
+    }
+  };
+
+  const handleToggleEstado = async (row) => {
+    const result = await dispatch(toggleNovedadEstado({ id: row.Id_Novedad || row.id, Estado: row.Estado === 1 ? 0 : 1 }));
+    if (!result.error) avisarConflictos(result.payload?.notificacion);
   };
 
   const columns = [
@@ -144,7 +165,7 @@ export default function NovedadesPage() {
         <div className="table-actions">
           <ToggleSwitch
             checked={row.Estado === 1}
-            onChange={() => dispatch(toggleNovedadEstado({ id: row.Id_Novedad || row.id, Estado: row.Estado === 1 ? 0 : 1 }))}
+            onChange={() => handleToggleEstado(row)}
             disabled={!puedeToggle}
           />
           <button className="btn btn--ghost btn--icon btn--sm" title="Ver" onClick={() => setDetailItem(row)}><MdVisibility size={17} /></button>
