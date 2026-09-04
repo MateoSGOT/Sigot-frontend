@@ -10,6 +10,7 @@ import {
 } from '../slices/ordenesSlice.js';
 import { ordenesService } from '../services/ordenesService.js';
 import Modal from '../../../shared/components/Modal/Modal.jsx';
+import ConfirmDialog from '../../../shared/components/ConfirmDialog/ConfirmDialog.jsx';
 import Table from '../../../shared/components/Table/Table.jsx';
 import SearchBar from '../../../shared/components/SearchBar/SearchBar.jsx';
 import SearchableSelect from '../../../shared/components/SearchableSelect/SearchableSelect.jsx';
@@ -69,7 +70,7 @@ function EstadoBadge({ estado }) {
   return <Badge variant={cfg.variant}>{cfg.label}</Badge>;
 }
 
-function ProgresoEstado({ estadoActual, onAvanzar, loading, disabled, sinTrabajo }) {
+function ProgresoEstado({ estadoActual, onAvanzar, onInactivar, loading, disabled, sinTrabajo }) {
   const estadoNum = estadoActual ?? 0;
   const siguienteEstado = estadoNum < 3 ? estadoNum + 1 : null;
   // No se puede avanzar a Realizado (3) sin al menos un servicio o repuesto.
@@ -122,7 +123,7 @@ function ProgresoEstado({ estadoActual, onAvanzar, loading, disabled, sinTrabajo
         {/* Inactivar solo desde Pendiente: una orden En proceso ya está en
             trabajo y no debe poder inactivarse (item 5a). */}
         {estadoNum === 1 && (
-          <button className="btn btn--sm progreso-btn--inactivo" onClick={() => onAvanzar(0)} disabled={loading || disabled} title="Marcar como inactiva">
+          <button className="btn btn--sm progreso-btn--inactivo" onClick={onInactivar} disabled={loading || disabled} title="Marcar como inactiva">
             Poner como Inactivo
           </button>
         )}
@@ -314,6 +315,15 @@ export default function OrdenesPage() {
       // Muestra el mensaje en español de la API (p. ej. Realizada sin trabajo).
       setFlujoError(result.payload || 'No se pudo cambiar el estado de la orden.');
     }
+  };
+
+  // Inactivar una orden devuelve al inventario el stock de los repuestos ya descontados
+  // (lo hace el backend, en la misma transacción) y es difícil de deshacer a mano -- pide
+  // confirmación explícita, igual que "Anular compra".
+  const [confirmInactivar, setConfirmInactivar] = useState(false);
+  const handleConfirmInactivar = async () => {
+    setConfirmInactivar(false);
+    await handleAvanzarEstado(0);
   };
 
   const handleAddServicio = async (e) => {
@@ -655,6 +665,7 @@ export default function OrdenesPage() {
                   <ProgresoEstado
                     estadoActual={selected.Estado}
                     onAvanzar={handleAvanzarEstado}
+                    onInactivar={() => setConfirmInactivar(true)}
                     loading={actionLoading}
                     disabled={!puedeToggle}
                     sinTrabajo={(selected.servicios?.length || 0) === 0 && (selected.repuestos?.length || 0) === 0}
@@ -995,6 +1006,17 @@ export default function OrdenesPage() {
           <div className="form-group span-2"><label className="form-label">Observación</label><textarea name="Observacion" className="form-control" value={editForm.Observacion} onChange={e => setEditForm(p => ({ ...p, Observacion: e.target.value }))} rows={3} maxLength={500} placeholder="Observaciones adicionales (opcional)" /></div>
         </form>
       </Modal>
+
+      <ConfirmDialog
+        isOpen={confirmInactivar}
+        onClose={() => setConfirmInactivar(false)}
+        onConfirm={handleConfirmInactivar}
+        title="Inactivar orden"
+        message="¿Inactivar esta orden? El stock de los repuestos ya agregados se devolverá al inventario y esta acción no se puede deshacer."
+        confirmLabel="Sí, inactivar"
+        danger
+        loading={actionLoading}
+      />
     </div>
   );
 }
