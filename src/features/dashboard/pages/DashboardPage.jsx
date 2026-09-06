@@ -88,7 +88,13 @@ export default function DashboardPage() {
   // productividad) requieren este permiso en el backend; antes, sin él, las
   // llamadas fallaban en silencio (.catch(() => null)) y el dashboard se veía
   // "vacío" (ingresos en $0, sin gráficas) sin ningún aviso de por qué.
-  const puedeVerFinanzas = usePermiso('DASHBOARD.VER_FINANZAS');
+  // El módulo "Dashboard" queda fuera de la matriz de Roles a propósito (sus permisos no
+  // siguen el patrón Ver/Crear/Editar/Eliminar), así que no hay forma de asignárselo a un
+  // rol desde la UI -- el super admin nunca lo tiene en Roles_x_Permisos y por eso este
+  // gate debe bypasearse para él explícitamente, igual que ya hace el resto del panel.
+  const esSuperAdmin = useSelector((s) => s.auth.empleado?.EsSuperAdmin === true);
+  const tienePermisoFinanzas = usePermiso('DASHBOARD.VER_FINANZAS');
+  const puedeVerFinanzas = esSuperAdmin || tienePermisoFinanzas;
 
   const [preset, setPreset] = useState('mes');
   const [cDesde, setCDesde] = useState('');

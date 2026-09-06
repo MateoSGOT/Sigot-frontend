@@ -12,6 +12,15 @@
 
 html { font-size: 16px; scroll-behavior: smooth; }
 
+/* Responsive: todo el texto de la app está en rem (los --text-* de variables.css, más
+   encabezados/labels/inputs), mientras que el espaciado y los radios están en px -- subir
+   la base de rem acá agranda las letras en todas partes sin mover el layout (paddings,
+   tarjetas, botones quedan del mismo tamaño). En pantallas chicas, donde la distancia de
+   lectura suele ser menor, el texto por defecto quedaba chico. */
+@media (max-width: 768px) {
+  html { font-size: 18px; }
+}
+
 /* Accesibilidad: respeta a quien pide menos movimiento. Base para todas las
    animaciones de entrada/stagger/drawer que se añaden en las fases siguientes. */
 @media (prefers-reduced-motion: reduce) {

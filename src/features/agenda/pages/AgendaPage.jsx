@@ -133,13 +133,17 @@ export default function AgendaPage() {
   // cita del mismo empleado ese día, según la duración estimada elegida. La fuente de verdad
   // sigue siendo el backend (assertSinConflicto), esto solo evita que el usuario elija a ciegas.
   const duracionActual = Number(formData.DuracionEstimadaMin) || 60;
+  // Citas activas (no canceladas/no-asistió) de UN empleado en una fecha, excluyendo la
+  // que se está editando -- parametrizado para poder revisarlo por cualquier candidato,
+  // no solo el ya elegido en el formulario (ver tieneHuecoLibre más abajo).
+  const citasDelDiaDe = (idEmpleado, ymd) => items.filter(c =>
+    String(c.id_empleado ?? c.Id_Empleado) === String(idEmpleado) &&
+    (c.FechaAgendamiento || '').split('T')[0] === ymd &&
+    !['Cancelada', 'NoAsistio'].includes(c.EstadoCita || 'Pendiente') &&
+    (c.Id_Agenda ?? c.id) !== editingId
+  );
   const citasDelDiaEmpleado = formData.id_empleado && formData.FechaAgendamiento
-    ? items.filter(c =>
-        String(c.id_empleado ?? c.Id_Empleado) === String(formData.id_empleado) &&
-        (c.FechaAgendamiento || '').split('T')[0] === formData.FechaAgendamiento &&
-        !['Cancelada', 'NoAsistio'].includes(c.EstadoCita || 'Pendiente') &&
-        (c.Id_Agenda ?? c.id) !== editingId
-      )
+    ? citasDelDiaDe(formData.id_empleado, formData.FechaAgendamiento)
     : [];
   const horaOcupada = (h) => {
     const inicio = toMinHelper(h);
@@ -148,6 +152,25 @@ export default function AgendaPage() {
       const cIni = toMinHelper(c.Hora);
       const cFin = cIni + Number(c.DuracionEstimadaMin || 60);
       return inicio < cFin && cIni < fin;
+    });
+  };
+  // Un empleado sin ningún hueco de `duracionActual` minutos libre esa fecha (dentro del
+  // horario de atención) no debe aparecer como elegible -- de nada sirve dejarlo en la
+  // lista si, al elegirlo, cada hora termina mostrando "(ocupado)".
+  const tieneHuecoLibre = (idEmpleado, ymd) => {
+    const citasDia = citasDelDiaDe(idEmpleado, ymd);
+    if (citasDia.length === 0) return true;
+    const esHoy = ymd === TODAY;
+    const nowMin = new Date().getHours() * 60 + new Date().getMinutes();
+    return horaOptions.some(h => {
+      if (esHoy && toMinHelper(h) <= nowMin) return false;
+      const inicio = toMinHelper(h);
+      const fin = inicio + duracionActual;
+      return !citasDia.some(c => {
+        const cIni = toMinHelper(c.Hora);
+        const cFin = cIni + Number(c.DuracionEstimadaMin || 60);
+        return inicio < cFin && cIni < fin;
+      });
     });
   };
   // Validación de fecha EN TIEMPO REAL (se recalcula al cambiar el campo). Mensajes en español.
@@ -177,9 +200,13 @@ export default function AgendaPage() {
   // ya filtra el portal del cliente en /api/portal/empleados-disponibles).
   const esMecanicoOTecnico = (e) => /mec|tec/i.test(e.Rol || e.rol?.Nombre || '');
   // Con novedad en la fecha elegida: no aparece en la lista (antes solo se
-  // deshabilitaba con la etiqueta "— Con novedad", pero seguía apareciendo).
+  // deshabilitaba con la etiqueta "— Con novedad", pero seguía apareciendo). Tampoco
+  // aparece si ya no le queda ningún hueco libre de la duración elegida ese día (evita
+  // dejarlo elegible para que luego cada hora salga "(ocupado)").
+  const fechaParaDisponibilidad = formData.FechaAgendamiento || TODAY;
   const empleadosOpts = empleados.filter(esActivo).filter(esMecanicoOTecnico)
     .filter(e => !empleadosBloqueados.has(String(e.Id_Empleado ?? e.id_empleado)))
+    .filter(e => tieneHuecoLibre(e.Id_Empleado ?? e.id_empleado, fechaParaDisponibilidad))
     .map(e => {
       const id = String(e.Id_Empleado ?? e.id_empleado);
       return { value: id, label: `${e.Nombre} — ${e.Documento}` };
@@ -555,6 +582,12 @@ export default function AgendaPage() {
       >
         {formError && <div className="form-error-box">{formError}</div>}
         <form className="form-grid" onSubmit={handleSubmit} noValidate>
+          <div className="form-group span-2"><label className="form-label">Tipo de cita</label>
+            <select name="TipoCita" className="form-control" value={formData.TipoCita} onChange={handleChange}>
+              <option value="Mantenimiento">Mantenimiento / reparación</option>
+              <option value="Diagnostico">Diagnóstico</option>
+            </select>
+          </div>
           <div className="form-group">
             <label className="form-label">Cliente <span className="required">*</span></label>
             <SearchableSelect options={clientesOpts} value={String(formData.Id_Cliente)} onChange={v => setFormData(p => ({ ...p, Id_Cliente: v, Id_Vehiculo: '' }))} placeholder="Seleccionar cliente..." />
@@ -597,12 +630,6 @@ export default function AgendaPage() {
             {formData.id_empleado && formData.FechaAgendamiento && !formData.Hora && citasDelDiaEmpleado.length > 0 && (
               <p className="form-hint">Este empleado ya tiene {citasDelDiaEmpleado.length} cita(s) ese día; las horas marcadas "(ocupado)" chocan con la duración estimada.</p>
             )}
-          </div>
-          <div className="form-group"><label className="form-label">Tipo de cita</label>
-            <select name="TipoCita" className="form-control" value={formData.TipoCita} onChange={handleChange}>
-              <option value="Mantenimiento">Mantenimiento / reparación</option>
-              <option value="Diagnostico">Diagnóstico</option>
-            </select>
           </div>
           <div className="form-group"><label className="form-label">Duración estimada (min)</label>
             <input name="DuracionEstimadaMin" type="number" min="1" step="15" className="form-control" value={formData.DuracionEstimadaMin} onChange={handleChange} placeholder="60" />

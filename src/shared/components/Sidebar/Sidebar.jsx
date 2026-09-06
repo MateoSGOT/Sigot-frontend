@@ -52,9 +52,14 @@ const NAV_STRUCTURE = [
   { type: 'link', to: '/novedades',  icon: MdNewReleases,   label: 'Novedades',       permiso: 'NOVEDADES'   },
 ];
 
-function buildVisibleNav(nav, permisos) {
-  // permisos === null → todavía cargando → mostrar todo sin flash
+function buildVisibleNav(nav, permisos, esSuperAdmin) {
+  // permisos === null → todavía cargando → mostrar todo sin flash. El super admin ve todo
+  // sin importar lo que haya en Roles_x_Permisos: Dashboard en particular queda fuera de la
+  // matriz de Roles a propósito (no sigue el patrón Ver/Crear/Editar/Eliminar), así que no
+  // hay forma de asignárselo a un rol desde la UI -- sin este bypass, ni siquiera el super
+  // admin vería el enlace a Dashboard en el menú.
   const canSee = (permiso) => {
+    if (esSuperAdmin) return true;
     if (!permiso || permisos === null) return true;
     if (permiso === 'DASHBOARD') return permisos.some(p => p.startsWith('DASHBOARD.'));
     return permisos.includes(`${permiso}.LISTAR`);
@@ -105,7 +110,7 @@ export default function Sidebar() {
 
   // "Cuentas y accesos" (Fase 3): exclusiva del Super Administrador, no depende del
   // sistema genérico de permisos por módulo, así que se agrega aparte.
-  const visibleNav = buildVisibleNav(NAV_STRUCTURE, permisos);
+  const visibleNav = buildVisibleNav(NAV_STRUCTURE, permisos, esSuperAdmin);
   if (esSuperAdmin) {
     visibleNav.push({ type: 'link', to: '/cuentas', icon: MdAdminPanelSettings, label: 'Cuentas y accesos' });
   }
