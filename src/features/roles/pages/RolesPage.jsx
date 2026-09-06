@@ -53,7 +53,7 @@ const MODULE_META = {
   'Roles':       { icon: MdSecurity,              label: 'Roles',              color: '#b5f23d' },
 };
 
-// 'Dashboard' no está aquí a propósito: sus permisos (DASHBOARD.VER_COMPRAS,
+// 'Dashboard' no está aquí a propósito: sus permisos (DASHBOARD.VER_FINANZAS,
 // VER_STOCK, etc.) no siguen el patrón Ver/Crear/Editar/Eliminar de este
 // matriz, así que cualquier checkbox que se marcara en esa fila nunca se
 // guardaba (el backend la ignoraba en silencio).

@@ -88,7 +88,7 @@ export default function DashboardPage() {
   // productividad) requieren este permiso en el backend; antes, sin él, las
   // llamadas fallaban en silencio (.catch(() => null)) y el dashboard se veía
   // "vacío" (ingresos en $0, sin gráficas) sin ningún aviso de por qué.
-  const puedeVerFinanzas = usePermiso('DASHBOARD.VER_COMPRAS');
+  const puedeVerFinanzas = usePermiso('DASHBOARD.VER_FINANZAS');
 
   const [preset, setPreset] = useState('mes');
   const [cDesde, setCDesde] = useState('');

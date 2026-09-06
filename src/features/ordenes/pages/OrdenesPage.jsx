@@ -375,6 +375,11 @@ export default function OrdenesPage() {
   const handleAddRepuesto = async (e) => {
     e.preventDefault();
     if (!addRepForm.Id_Repuesto || !addRepForm.cantidad || !addRepForm.precio_unitario) { setAddRepError('Completa todos los campos.'); return; }
+    const stockRep = repuestoById[String(addRepForm.Id_Repuesto)]?.Stock;
+    if (stockRep != null && Number(addRepForm.cantidad) > Number(stockRep)) {
+      setAddRepError(`Stock insuficiente. Disponible: ${stockRep}, solicitado: ${addRepForm.cantidad}.`);
+      return;
+    }
     const result = await dispatch(addRepuestoToOrden({ id: detailId, data: addRepForm }));
     if (!result.error) { setAddRepForm({ Id_Repuesto: '', cantidad: '', precio_unitario: '' }); setAddRepError(''); dispatch(fetchOrdenById(detailId)); }
     else setAddRepError(result.payload || 'Error al agregar repuesto.');
@@ -945,6 +950,12 @@ export default function OrdenesPage() {
                           />
                           <button className="btn btn--primary btn--sm" onClick={handleAddRepuesto} disabled={actionLoading}><MdAdd size={16} />Agregar</button>
                         </div>
+                        {addRepForm.Id_Repuesto && (() => {
+                          const stockRep = repuestoById[String(addRepForm.Id_Repuesto)]?.Stock;
+                          if (stockRep == null) return null;
+                          const excede = addRepForm.cantidad && Number(addRepForm.cantidad) > Number(stockRep);
+                          return <p className={excede ? 'form-error' : 'u-hint u-mt-xs'}>Stock disponible: {stockRep}{excede ? ` — no alcanza para ${addRepForm.cantidad}` : ''}</p>;
+                        })()}
                         {addRepForm.Id_Repuesto && addRepForm.precio_unitario && (
                           <p className="u-hint u-mt-xs">
                             Precio por defecto: {formatCurrency(addRepForm.precio_unitario)} — puedes modificarlo para esta orden.

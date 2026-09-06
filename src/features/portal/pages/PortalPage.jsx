@@ -142,14 +142,19 @@ export default function PortalPage() {
   };
   const horasDesdeReserva = (cita) => {
     const creada = cita?.createdAt || cita?.FechaCreacion || cita?.fecha_creacion || cita?.Fecha_Creacion;
-    if (!creada) return null;                  // desconocida: no aplicamos la ventana
+    if (!creada) return null;                  // desconocida
     const t = new Date(creada).getTime();
     return Number.isNaN(t) ? null : (Date.now() - t) / 3_600_000;
   };
   const puedeCancelarCita = (cita) => {
     const faltanMasDe2h = horasHastaCita(cita) > HORAS_MIN_ANTES;
     const desde = horasDesdeReserva(cita);
-    const dentroVentana = desde == null ? true : desde <= VENTANA_RESERVA_H;
+    // El backend es la autoridad real de esta regla (agenda.service.js::cancelarCita, vía
+    // createdAt de la BD) -- este chequeo es solo para no ofrecer el botón cuando ya se sabe
+    // que va a fallar. Si `desde` no se puede calcular, se falla CERRADO (se oculta el botón)
+    // en vez de abierto: es preferible que el cliente no vea "Cancelar" y tenga que llamar al
+    // taller, a que lo vea, haga clic, y reciba un error genérico del backend.
+    const dentroVentana = desde == null ? false : desde <= VENTANA_RESERVA_H;
     return faltanMasDe2h && dentroVentana;
   };
   const puedeEditarCita = (cita) => horasHastaCita(cita) > HORAS_MIN_ANTES;
