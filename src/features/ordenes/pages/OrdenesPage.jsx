@@ -1,10 +1,10 @@
-﻿import React, { useEffect, useState, useMemo } from 'react';
+﻿import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useLocation } from 'react-router-dom';
 import { MdVisibility, MdEdit, MdAdd, MdBuild, MdCheck, MdArrowForward, MdDeleteOutline } from 'react-icons/md';
 import { usePermiso } from '../../../shared/hooks/usePermiso.js';
 import {
-  fetchOrdenes, fetchOrdenById, updateOrden, toggleOrdenEstado,
+  fetchOrdenById, updateOrden, toggleOrdenEstado,
   addServicioToOrden, addRepuestoToOrden, setManoDeObra, clearSelected,
   deleteServicioFromOrden, deleteRepuestoFromOrden, reasignarEmpleadoOrden, extenderDuracionOrden
 } from '../slices/ordenesSlice.js';
@@ -16,7 +16,7 @@ import SearchBar from '../../../shared/components/SearchBar/SearchBar.jsx';
 import SearchableSelect from '../../../shared/components/SearchableSelect/SearchableSelect.jsx';
 import FilterDropdown from '../../../shared/components/FilterDropdown/FilterDropdown.jsx';
 import Badge from '../../../shared/components/Badge/Badge.jsx';
-import { filterItems, sortNewestFirst, formatDate, formatCurrency, todayLocalYMD } from '../../../shared/utils/helpers.js';
+import { formatDate, formatCurrency, todayLocalYMD } from '../../../shared/utils/helpers.js';
 import { generarFacturaOrden } from '../../../shared/utils/generarFacturaPDF.js';
 import * as V from '../../../shared/utils/validators.js';
 import { useFormValidation } from '../../../shared/hooks/useFormValidation.js';
@@ -154,7 +154,7 @@ export default function OrdenesPage() {
   const dispatch = useDispatch();
   const location = useLocation();
   const { addToast } = useToast();
-  const { items, selected, loading, actionLoading } = useSelector(s => s.ordenes);
+  const { selected, actionLoading } = useSelector(s => s.ordenes);
   const puedeEditar  = usePermiso('ORDENES.EDITAR');
   const puedeToggle  = usePermiso('ORDENES.CAMBIAR_ESTADO');
   const [serviciosOpts, setServiciosOpts] = useState([]);
@@ -184,6 +184,14 @@ export default function OrdenesPage() {
   const [search, setSearch]               = useState('');
   const [estadoFilter, setEstadoFilter]   = useState('todos');
   const [pageSize, setPageSize]           = useState(5);
+  // Estado del listado SERVER-SIDE (mismo patrón que RepuestosPage).
+  const [page, setPage]                   = useState(1);
+  const [rows, setRows]                   = useState([]);
+  const [total, setTotal]                 = useState(0);
+  const [listLoading, setListLoading]     = useState(true);
+  // Mini-resumen por estado sobre TODA la tabla (no solo la página visible) -- se pide
+  // aparte (endpoint agregado en SQL), no se puede derivar de `rows`.
+  const [resumenOrd, setResumenOrd]       = useState({ pendientes: 0, enProceso: 0, realizadas: 0, total: 0 });
   const [detailId, setDetailId]           = useState(null);
   const [activeTab, setActiveTab]         = useState('info');
   const [showEdit, setShowEdit]           = useState(false);
@@ -210,13 +218,40 @@ export default function OrdenesPage() {
   const [minutosExtension, setMinutosExtension]   = useState('30');
   const [extendError, setExtendError]             = useState('');
 
+  const fetchPage = useCallback(async () => {
+    setListLoading(true);
+    try {
+      const ps = pageSize === 'all' ? 9999 : pageSize;
+      const params = new URLSearchParams({ page: String(page), pageSize: String(ps), estado: estadoFilter });
+      if (search) params.set('search', search);
+      const r = await api.get(`/api/ordenes?${params.toString()}`);
+      setRows(r.data?.data || []);
+      setTotal(r.data?.total ?? 0);
+    } catch { setRows([]); setTotal(0); }
+    finally { setListLoading(false); }
+  }, [page, pageSize, search, estadoFilter]);
+
+  const fetchResumen = useCallback(async () => {
+    try {
+      const r = await api.get('/api/ordenes/resumen-estados');
+      const d = r.data?.data || {};
+      setResumenOrd({ pendientes: d.pendientes || 0, enProceso: d.enProceso || 0, realizadas: d.realizadas || 0, total: d.total || 0 });
+    } catch { /* el mini-resumen no es crítico -- se queda en su último valor conocido */ }
+  }, []);
+
+  useEffect(() => { fetchPage(); }, [fetchPage]);
+  useEffect(() => { fetchResumen(); }, [fetchResumen]);
+
+  const onSearch  = (v) => { setSearch(v); setPage(1); };
+  const onEstado  = (v) => { setEstadoFilter(v); setPage(1); };
+  const onPageSize = (v) => { setPageSize(v); setPage(1); };
+
   useEffect(() => {
-    dispatch(fetchOrdenes());
     api.get('/api/servicios').then(r => setServiciosOpts(r.data?.data || r.data || [])).catch(() => {});
     api.get('/api/repuestos').then(r => setRepuestosOpts(r.data?.data || r.data || [])).catch(() => {});
     api.get('/api/categoria-repuestos').then(r => setCategoriasOpts(r.data?.data || r.data || []))
       .catch(() => addToast({ type: 'error', message: 'No se pudieron cargar las categorías de repuesto. Verifica tus permisos o intenta de nuevo.' }));
-  }, [dispatch, addToast]);
+  }, [addToast]);
 
   // Item 16: al llegar desde "generar orden" en la agenda, abrimos esa orden.
   useEffect(() => {
@@ -243,18 +278,6 @@ export default function OrdenesPage() {
       dispatch(clearSelected());
     }
   }, [detailId, dispatch]);
-
-  const filtered = (() => {
-    let list = items;
-    if (estadoFilter !== 'todos') list = list.filter(i => String(i.Estado) === estadoFilter);
-    return sortNewestFirst(filterItems(list, search, ['cliente', 'vehiculo', 'Vehiculo', 'Cliente', 'Diagnostico', 'ClienteDoc', 'ClienteCorreo']), 'Id_Orden');
-  })();
-
-  // Mini-resumen por estado sobre el total (Estado numérico: 1=Pend, 2=Proc, 3=Real).
-  const resumenOrd = useMemo(() => {
-    const by = (e) => items.filter(i => i.Estado === e).length;
-    return { pendientes: by(1), enProceso: by(2), realizadas: by(3), total: items.length };
-  }, [items]);
 
   // Mapa de repuestos por id para acceder rápido a datos de garantía como fallback
   const repuestoById = useMemo(() =>
@@ -300,7 +323,7 @@ export default function OrdenesPage() {
     // La regla del odómetro (no menor al km del vehículo) la valida el backend en la
     // misma transacción; si el km es menor, devuelve el mensaje que se muestra abajo.
     const result = await dispatch(updateOrden({ id: editingId, data: payload }));
-    if (!result.error) { setShowEdit(false); dispatch(fetchOrdenes()); }
+    if (!result.error) { setShowEdit(false); fetchPage(); }
     else setEditError(result.payload || 'Error al actualizar.');
   };
 
@@ -310,7 +333,8 @@ export default function OrdenesPage() {
     const result = await dispatch(toggleOrdenEstado({ id: detailId, Estado: newEstado }));
     if (!result.error) {
       dispatch(fetchOrdenById(detailId));
-      dispatch(fetchOrdenes());
+      fetchPage();
+      fetchResumen(); // cambió de bucket de estado -- el mini-resumen necesita refrescar
     } else {
       // Muestra el mensaje en español de la API (p. ej. Realizada sin trabajo).
       setFlujoError(result.payload || 'No se pudo cambiar el estado de la orden.');
@@ -463,7 +487,7 @@ export default function OrdenesPage() {
     if (!result.error) {
       setEditingEmpleado(false);
       setEmpleadoSel('');
-      dispatch(fetchOrdenes());
+      fetchPage();
     } else {
       setEmpleadoError(result.payload || 'No se pudo reasignar el empleado.');
     }
@@ -490,7 +514,7 @@ export default function OrdenesPage() {
       } else {
         addToast({ type: 'success', message: `Tiempo extendido en ${minutos} min. Sin choques con otras citas.` });
       }
-      dispatch(fetchOrdenes());
+      fetchPage();
     } else {
       setExtendError(result.payload || 'No se pudo extender el tiempo de la orden.');
     }
@@ -527,7 +551,7 @@ export default function OrdenesPage() {
       <div className="page__header">
         <div>
           <h1 className="page__title">Órdenes de trabajo</h1>
-          <p className="page__subtitle">{items.length} orden(es) registrada(s)</p>
+          <p className="page__subtitle">{total} orden(es) registrada(s)</p>
         </div>
       </div>
 
@@ -535,11 +559,11 @@ export default function OrdenesPage() {
         <div className="card__header">
           <SearchBar
             value={search}
-            onChange={setSearch}
+            onChange={onSearch}
             placeholder="Buscar por vehículo, cliente, documento, correo..."
             filterSlot={
               <>
-                <select className="filter-select" value={estadoFilter} onChange={e => setEstadoFilter(e.target.value)}>
+                <select className="filter-select" value={estadoFilter} onChange={e => onEstado(e.target.value)}>
                   <option value="todos">Todos los estados</option>
                   <option value="1">Pendiente</option>
                   <option value="2">En proceso</option>
@@ -550,13 +574,13 @@ export default function OrdenesPage() {
                   statusFilter="todos"
                   onStatusChange={() => {}}
                   pageSize={pageSize}
-                  onPageSizeChange={setPageSize}
+                  onPageSizeChange={onPageSize}
                 />
               </>
             }
           />
         </div>
-        {!loading && items.length > 0 && (
+        {resumenOrd.total > 0 && (
           <div className="table-summary">
             <Badge variant="warning">{resumenOrd.pendientes} pendientes</Badge>
             <Badge variant="info">{resumenOrd.enProceso} en proceso</Badge>
@@ -564,7 +588,20 @@ export default function OrdenesPage() {
             <span className="table-summary__total">{resumenOrd.total} en total</span>
           </div>
         )}
-        <Table columns={columns} rowKey="Id_Orden" data={filtered} loading={loading} pageSize={pageSize} emptyMessage="No se encontraron órdenes de trabajo" />
+        <Table
+          columns={columns}
+          rowKey="Id_Orden"
+          data={rows}
+          loading={listLoading}
+          serverSide
+          total={total}
+          page={page}
+          onPageChange={setPage}
+          pageSize={pageSize}
+          searchTerm={search}
+          onClearSearch={() => onSearch('')}
+          emptyMessage="No se encontraron órdenes de trabajo"
+        />
       </div>
 
       {/* Detail Modal */}

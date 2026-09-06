@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useState } from 'react';
+﻿import React, { useEffect, useState, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { MdAdd, MdVisibility, MdEdit, MdDeleteForever } from 'react-icons/md';
 import { useBorradoReal } from '../../../shared/hooks/useBorradoReal.js';
@@ -7,13 +7,12 @@ import EliminarRealModal from '../../../shared/components/EliminarRealModal/Elim
 import { usePermiso } from '../../../shared/hooks/usePermiso.js';
 import SearchableSelect from '../../../shared/components/SearchableSelect/SearchableSelect.jsx';
 import ToggleSwitch from '../../../shared/components/ToggleSwitch/ToggleSwitch.jsx';
-import { fetchVehiculos, createVehiculo, updateVehiculo, toggleVehiculoEstado } from '../slices/vehiculosSlice.js';
+import { createVehiculo, updateVehiculo, toggleVehiculoEstado } from '../slices/vehiculosSlice.js';
 import Modal from '../../../shared/components/Modal/Modal.jsx';
 import Table from '../../../shared/components/Table/Table.jsx';
 import SearchBar from '../../../shared/components/SearchBar/SearchBar.jsx';
 import FilterDropdown from '../../../shared/components/FilterDropdown/FilterDropdown.jsx';
 import { StatusBadge } from '../../../shared/components/Badge/Badge.jsx';
-import { sortByStatus, sortNewestFirst, filterItems } from '../../../shared/utils/helpers.js';
 import * as V from '../../../shared/utils/validators.js';
 import { useFormValidation } from '../../../shared/hooks/useFormValidation.js';
 import { useToast } from '../../../shared/components/Toast/ToastContext.jsx';
@@ -42,13 +41,12 @@ const EMPTY = { Placa: '', VIN: '', Id_Marca: '', Id_Modelo: '', Anio: '', Color
 
 export default function VehiculosPage() {
   const dispatch = useDispatch();
-  const { items, loading, actionLoading } = useSelector(s => s.vehiculos);
+  const { actionLoading } = useSelector(s => s.vehiculos);
   const puedeCrear   = usePermiso('VEHICULOS.REGISTRAR');
   const puedeEditar  = usePermiso('VEHICULOS.EDITAR');
   const puedeToggle  = usePermiso('VEHICULOS.CAMBIAR_ESTADO');
   const esSuperadmin = useSelector(s => s.auth.empleado?.EsSuperAdmin === true);
   const { addToast } = useToast();
-  const del = useBorradoReal(vehiculosService, { entidadLabel: 'vehículo', onDeleted: () => dispatch(fetchVehiculos()) });
   const [marcas, setMarcas] = useState([]);
   const [clientes, setClientes] = useState([]);
   const [modelos, setModelos] = useState([]);        // modelos de la marca seleccionada
@@ -57,6 +55,11 @@ export default function VehiculosPage() {
   const [statusFilter, setStatusFilter] = useState('todos');
   const [marcaFilter, setMarcaFilter] = useState('');
   const [pageSize, setPageSize] = useState(5);
+  // Estado del listado SERVER-SIDE (mismo patrón que RepuestosPage).
+  const [page, setPage]         = useState(1);
+  const [rows, setRows]         = useState([]);
+  const [total, setTotal]       = useState(0);
+  const [listLoading, setListLoading] = useState(true);
   const [detailId, setDetailId] = useState(null);
   const [formData, setFormData] = useState(EMPTY);
   const [editingId, setEditingId] = useState(null);
@@ -64,11 +67,34 @@ export default function VehiculosPage() {
   const [formError, setFormError] = useState('');
   const { errors, touched, setErrors, revalidate, markTouched, touchAll, fieldError, isInvalid, validateNow, reset } = useFormValidation(RULES);
 
+  const fetchPage = useCallback(async () => {
+    setListLoading(true);
+    try {
+      const ps = pageSize === 'all' ? 9999 : pageSize;
+      const params = new URLSearchParams({ page: String(page), pageSize: String(ps), estado: statusFilter });
+      if (search) params.set('search', search);
+      if (marcaFilter) params.set('marca', marcaFilter);
+      const r = await api.get(`/api/vehiculos?${params.toString()}`);
+      // Estado viene como booleano crudo de Postgres -- ToggleSwitch compara === 1.
+      setRows((r.data?.data || []).map(x => ({ ...x, Estado: x.Estado === true ? 1 : x.Estado === false ? 0 : x.Estado })));
+      setTotal(r.data?.total ?? 0);
+    } catch { setRows([]); setTotal(0); }
+    finally { setListLoading(false); }
+  }, [page, pageSize, search, statusFilter, marcaFilter]);
+
+  const del = useBorradoReal(vehiculosService, { entidadLabel: 'vehículo', onDeleted: fetchPage });
+
   useEffect(() => {
-    dispatch(fetchVehiculos());
     api.get('/api/catalogos/marcas').then(r => setMarcas(r.data?.data || r.data || [])).catch(() => {});
     api.get('/api/clientes').then(r => setClientes(r.data?.data || r.data || [])).catch(() => {});
-  }, [dispatch]);
+  }, []);
+
+  useEffect(() => { fetchPage(); }, [fetchPage]);
+
+  const onSearch  = (v) => { setSearch(v); setPage(1); };
+  const onStatus  = (v) => { setStatusFilter(v); setPage(1); };
+  const onMarca   = (v) => { setMarcaFilter(v); setPage(1); };
+  const onPageSize = (v) => { setPageSize(v); setPage(1); };
 
 
   // Carga los modelos de una marca (selector dependiente). incluir = Id_Modelo actual
@@ -131,18 +157,9 @@ export default function VehiculosPage() {
     .filter(c => esActivo(c) || String(c.Id_Cliente) === String(formData.Id_Cliente))
     .map(c => ({ value: String(c.Id_Cliente), label: `${c.Nombre} — ${c.Documento}` }));
 
-  const filtered = (() => {
-    let list = items;
-    if (statusFilter === 'activos') list = list.filter(i => i.Estado !== 0);
-    else if (statusFilter === 'inactivos') list = list.filter(i => i.Estado === 0);
-    if (marcaFilter) list = list.filter(i => String(i.Id_Marca) === marcaFilter || (i.Marca && i.Marca.toLowerCase() === marcas.find(m => String(m.Id_Marca) === marcaFilter)?.Nombre?.toLowerCase()));
-    list = filterItems(list, search, ['Placa', 'VIN', 'Modelo', 'Color']);
-    return sortByStatus(sortNewestFirst(list, 'Id_Vehiculo'));
-  })();
-
-  // Derivado de `items` en cada render (no un snapshot congelado): así el modal de
-  // detalle refleja en tiempo real los cambios de Estado hechos desde la tabla.
-  const detailItem = detailId ? items.find(i => i.Id_Vehiculo === detailId) || null : null;
+  // Derivado de `rows` (la página actual) en cada render: así el modal de detalle refleja
+  // en tiempo real los cambios de Estado hechos desde la tabla.
+  const detailItem = detailId ? rows.find(i => i.Id_Vehiculo === detailId) || null : null;
 
   const openCreate = () => {
     setFormData(EMPTY); setEditingId(null); setFormError(''); reset(); setModelos([]); setShowForm(true);
@@ -177,8 +194,13 @@ export default function VehiculosPage() {
     const payload = { ...formData, Placa: V.normalizarPlaca(formData.Placa), Kilometraje: km === '' ? null : Number(km) };
     const action = editingId ? updateVehiculo({ id: editingId, data: payload }) : createVehiculo(payload);
     const result = await dispatch(action);
-    if (!result.error) { setShowForm(false); dispatch(fetchVehiculos()); }
+    if (!result.error) { setShowForm(false); fetchPage(); }
     else setFormError(result.payload || 'No se pudo guardar el vehículo.');
+  };
+
+  const handleToggle = async (row) => {
+    await dispatch(toggleVehiculoEstado({ id: row.Id_Vehiculo, Estado: row.Estado === 1 ? 0 : 1 }));
+    fetchPage();
   };
 
   const columns = [
@@ -194,7 +216,7 @@ export default function VehiculosPage() {
     {
       key: 'acciones', label: 'Acciones', render: (_, row) => (
         <div className="table-actions">
-          <ToggleSwitch checked={row.Estado === 1} onChange={() => dispatch(toggleVehiculoEstado({ id: row.Id_Vehiculo, Estado: row.Estado === 1 ? 0 : 1 }))} disabled={!puedeToggle} />
+          <ToggleSwitch checked={row.Estado === 1} onChange={() => handleToggle(row)} disabled={!puedeToggle} />
           <button className="btn btn--ghost btn--icon btn--sm" title="Ver" onClick={() => setDetailId(row.Id_Vehiculo)}><MdVisibility size={17} /></button>
           <button className="btn btn--ghost btn--icon btn--sm" title="Editar" disabled={!puedeEditar} onClick={() => openEdit(row)}><MdEdit size={17} /></button>
           {esSuperadmin && (
@@ -208,32 +230,45 @@ export default function VehiculosPage() {
   return (
     <div className="page">
       <div className="page__header">
-        <div><h1 className="page__title">Vehículos</h1><p className="page__subtitle">{items.length} vehículo(s) registrado(s)</p></div>
+        <div><h1 className="page__title">Vehículos</h1><p className="page__subtitle">{total} vehículo(s) registrado(s)</p></div>
         <button className="btn btn--primary" onClick={openCreate} disabled={!puedeCrear}><MdAdd size={18} />Nuevo vehículo</button>
       </div>
       <div className="card">
         <div className="card__header">
           <SearchBar
             value={search}
-            onChange={setSearch}
+            onChange={onSearch}
             placeholder="Buscar por placa, VIN, modelo..."
             filterSlot={
               <>
-                <select className="filter-select" value={marcaFilter} onChange={e => setMarcaFilter(e.target.value)}>
+                <select className="filter-select" value={marcaFilter} onChange={e => onMarca(e.target.value)}>
                   <option value="">Todas las marcas</option>
                   {marcas.map(m => <option key={m.Id_Marca} value={m.Id_Marca}>{m.Nombre}</option>)}
                 </select>
                 <FilterDropdown
                   statusFilter={statusFilter}
-                  onStatusChange={setStatusFilter}
+                  onStatusChange={onStatus}
                   pageSize={pageSize}
-                  onPageSizeChange={setPageSize}
+                  onPageSizeChange={onPageSize}
                 />
               </>
             }
           />
         </div>
-        <Table columns={columns} rowKey="Id_Vehiculo" data={filtered} loading={loading} pageSize={pageSize} emptyMessage="No se encontraron vehículos" />
+        <Table
+          columns={columns}
+          rowKey="Id_Vehiculo"
+          data={rows}
+          loading={listLoading}
+          serverSide
+          total={total}
+          page={page}
+          onPageChange={setPage}
+          pageSize={pageSize}
+          searchTerm={search}
+          onClearSearch={() => onSearch('')}
+          emptyMessage="No se encontraron vehículos"
+        />
       </div>
 
       <Modal isOpen={!!detailItem} onClose={() => setDetailId(null)} title="Detalle del vehículo" size="md">

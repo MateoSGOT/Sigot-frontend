@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useState } from 'react';
+﻿import React, { useEffect, useState, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { MdAdd, MdVisibility, MdEdit, MdDeleteForever } from 'react-icons/md';
 import { useBorradoReal } from '../../../shared/hooks/useBorradoReal.js';
@@ -6,15 +6,16 @@ import { serviciosService } from '../services/serviciosService.js';
 import EliminarRealModal from '../../../shared/components/EliminarRealModal/EliminarRealModal.jsx';
 import { usePermiso } from '../../../shared/hooks/usePermiso.js';
 import ToggleSwitch from '../../../shared/components/ToggleSwitch/ToggleSwitch.jsx';
-import { fetchServicios, createServicio, updateServicio, toggleServicioEstado } from '../slices/serviciosSlice.js';
+import { createServicio, updateServicio, toggleServicioEstado } from '../slices/serviciosSlice.js';
 import Modal from '../../../shared/components/Modal/Modal.jsx';
 import Table from '../../../shared/components/Table/Table.jsx';
 import SearchBar from '../../../shared/components/SearchBar/SearchBar.jsx';
 import FilterDropdown from '../../../shared/components/FilterDropdown/FilterDropdown.jsx';
 import { StatusBadge } from '../../../shared/components/Badge/Badge.jsx';
-import { sortByStatus, sortNewestFirst, filterItems, formatCurrency } from '../../../shared/utils/helpers.js';
+import { formatCurrency } from '../../../shared/utils/helpers.js';
 import * as V from '../../../shared/utils/validators.js';
 import { useFormValidation } from '../../../shared/hooks/useFormValidation.js';
+import api from '../../../shared/services/api.js';
 import './ServiciosPage.css';
 
 const EMPTY = { Nombre: '', Descripcion: '', Precio: '', DuracionMinutos: '' };
@@ -33,15 +34,19 @@ const RULES = {
 
 export default function ServiciosPage() {
   const dispatch = useDispatch();
-  const { items, loading, actionLoading } = useSelector(s => s.servicios);
+  const { actionLoading } = useSelector(s => s.servicios);
   const puedeCrear   = usePermiso('SERVICIOS.REGISTRAR');
   const puedeEditar  = usePermiso('SERVICIOS.EDITAR');
   const puedeToggle  = usePermiso('SERVICIOS.CAMBIAR_ESTADO');
   const esSuperadmin = useSelector(s => s.auth.empleado?.EsSuperAdmin === true);
-  const del = useBorradoReal(serviciosService, { entidadLabel: 'servicio', onDeleted: () => dispatch(fetchServicios()) });
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('todos');
   const [pageSize, setPageSize] = useState(5);
+  // Estado del listado SERVER-SIDE (mismo patrón que RepuestosPage).
+  const [page, setPage]         = useState(1);
+  const [rows, setRows]         = useState([]);
+  const [total, setTotal]       = useState(0);
+  const [listLoading, setListLoading] = useState(true);
   const [detailItem, setDetailItem] = useState(null);
   const [formData, setFormData] = useState(EMPTY);
   const [editingId, setEditingId] = useState(null);
@@ -49,15 +54,27 @@ export default function ServiciosPage() {
   const [formError, setFormError] = useState('');
   const { errors, touched, setErrors, revalidate, markTouched, touchAll, fieldError, isInvalid, validateNow, reset } = useFormValidation(RULES);
 
-  useEffect(() => { dispatch(fetchServicios()); }, [dispatch]);
+  const fetchPage = useCallback(async () => {
+    setListLoading(true);
+    try {
+      const ps = pageSize === 'all' ? 9999 : pageSize;
+      const params = new URLSearchParams({ page: String(page), pageSize: String(ps), estado: statusFilter });
+      if (search) params.set('search', search);
+      const r = await api.get(`/api/servicios?${params.toString()}`);
+      // Estado viene como booleano crudo de Postgres -- ToggleSwitch compara === 1.
+      setRows((r.data?.data || []).map(x => ({ ...x, Estado: x.Estado === true ? 1 : x.Estado === false ? 0 : x.Estado })));
+      setTotal(r.data?.total ?? 0);
+    } catch { setRows([]); setTotal(0); }
+    finally { setListLoading(false); }
+  }, [page, pageSize, search, statusFilter]);
 
-  const filtered = (() => {
-    let list = items;
-    if (statusFilter === 'activos') list = list.filter(i => i.Estado !== 0);
-    else if (statusFilter === 'inactivos') list = list.filter(i => i.Estado === 0);
-    list = filterItems(list, search, ['Nombre', 'Descripcion']);
-    return sortByStatus(sortNewestFirst(list, 'Id_Servicio'));
-  })();
+  const del = useBorradoReal(serviciosService, { entidadLabel: 'servicio', onDeleted: fetchPage });
+
+  useEffect(() => { fetchPage(); }, [fetchPage]);
+
+  const onSearch   = (v) => { setSearch(v); setPage(1); };
+  const onStatus   = (v) => { setStatusFilter(v); setPage(1); };
+  const onPageSize = (v) => { setPageSize(v); setPage(1); };
 
   const openCreate = () => { setFormData(EMPTY); setEditingId(null); setFormError(''); reset(); setShowForm(true); };
   const openEdit = (item) => { setFormData({ Nombre: item.Nombre || '', Descripcion: item.Descripcion || '', Precio: item.Precio || '', DuracionMinutos: item.DuracionMinutos ?? '' }); setEditingId(item.Id_Servicio); setFormError(''); reset(); setShowForm(true); };
@@ -83,8 +100,13 @@ export default function ServiciosPage() {
     };
     const action = editingId ? updateServicio({ id: editingId, data: payload }) : createServicio(payload);
     const result = await dispatch(action);
-    if (!result.error) { setShowForm(false); dispatch(fetchServicios()); }
+    if (!result.error) { setShowForm(false); fetchPage(); }
     else setFormError(result.payload || 'No se pudo guardar el servicio.');
+  };
+
+  const handleToggle = async (row) => {
+    await dispatch(toggleServicioEstado({ id: row.Id_Servicio, Estado: row.Estado === 1 ? 0 : 1 }));
+    fetchPage();
   };
 
   const columns = [
@@ -96,7 +118,7 @@ export default function ServiciosPage() {
     {
       key: 'acciones', label: 'Acciones', render: (_, row) => (
         <div className="table-actions">
-          <ToggleSwitch checked={row.Estado === 1} onChange={() => dispatch(toggleServicioEstado({ id: row.Id_Servicio, Estado: row.Estado === 1 ? 0 : 1 }))} disabled={!puedeToggle} />
+          <ToggleSwitch checked={row.Estado === 1} onChange={() => handleToggle(row)} disabled={!puedeToggle} />
           <button className="btn btn--ghost btn--icon btn--sm" title="Ver" onClick={() => setDetailItem(row)}><MdVisibility size={17} /></button>
           <button className="btn btn--ghost btn--icon btn--sm" title="Editar" disabled={!puedeEditar} onClick={() => openEdit(row)}><MdEdit size={17} /></button>
           {esSuperadmin && (
@@ -110,26 +132,39 @@ export default function ServiciosPage() {
   return (
     <div className="page">
       <div className="page__header">
-        <div><h1 className="page__title">Servicios</h1><p className="page__subtitle">{items.length} servicio(s) disponible(s)</p></div>
+        <div><h1 className="page__title">Servicios</h1><p className="page__subtitle">{total} servicio(s) disponible(s)</p></div>
         <button className="btn btn--primary" onClick={openCreate} disabled={!puedeCrear}><MdAdd size={18} />Nuevo servicio</button>
       </div>
       <div className="card">
         <div className="card__header">
           <SearchBar
             value={search}
-            onChange={setSearch}
+            onChange={onSearch}
             placeholder="Buscar por nombre, descripción..."
             filterSlot={
               <FilterDropdown
                 statusFilter={statusFilter}
-                onStatusChange={setStatusFilter}
+                onStatusChange={onStatus}
                 pageSize={pageSize}
-                onPageSizeChange={setPageSize}
+                onPageSizeChange={onPageSize}
               />
             }
           />
         </div>
-        <Table columns={columns} rowKey="Id_Servicio" data={filtered} loading={loading} pageSize={pageSize} emptyMessage="No se encontraron servicios" />
+        <Table
+          columns={columns}
+          rowKey="Id_Servicio"
+          data={rows}
+          loading={listLoading}
+          serverSide
+          total={total}
+          page={page}
+          onPageChange={setPage}
+          pageSize={pageSize}
+          searchTerm={search}
+          onClearSearch={() => onSearch('')}
+          emptyMessage="No se encontraron servicios"
+        />
       </div>
 
       <Modal isOpen={!!detailItem} onClose={() => setDetailItem(null)} title="Detalle del servicio" size="md">

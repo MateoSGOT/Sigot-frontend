@@ -1,16 +1,16 @@
-﻿import React, { useEffect, useState } from 'react';
+﻿import React, { useEffect, useState, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { MdAdd, MdVisibility, MdBlock, MdDeleteOutline, MdWarning } from 'react-icons/md';
 import { usePermiso } from '../../../shared/hooks/usePermiso.js';
 import SearchableSelect from '../../../shared/components/SearchableSelect/SearchableSelect.jsx';
-import { fetchCompras, createCompra, anularCompra } from '../slices/comprasSlice.js';
+import { createCompra, anularCompra } from '../slices/comprasSlice.js';
 import Modal from '../../../shared/components/Modal/Modal.jsx';
 import Table from '../../../shared/components/Table/Table.jsx';
 import SearchBar from '../../../shared/components/SearchBar/SearchBar.jsx';
 import ConfirmDialog from '../../../shared/components/ConfirmDialog/ConfirmDialog.jsx';
 import Badge from '../../../shared/components/Badge/Badge.jsx';
 import FilterDropdown from '../../../shared/components/FilterDropdown/FilterDropdown.jsx';
-import { filterItems, sortNewestFirst, formatDate, formatCurrency, todayLocalYMD } from '../../../shared/utils/helpers.js';
+import { formatDate, formatCurrency, todayLocalYMD } from '../../../shared/utils/helpers.js';
 import { generarFacturaCompra } from '../../../shared/utils/generarFacturaPDF.js';
 import api from '../../../shared/services/api.js';
 import './ComprasPage.css';
@@ -20,7 +20,7 @@ const newForm = () => ({ Id_Proveedor: '', Fecha: todayLocalYMD(), NumeroFactura
 
 export default function ComprasPage() {
   const dispatch = useDispatch();
-  const { items, loading, actionLoading } = useSelector(s => s.compras);
+  const { actionLoading } = useSelector(s => s.compras);
   const puedeCrear  = usePermiso('COMPRAS.REGISTRAR');
   const puedeAnular = usePermiso('COMPRAS.ANULAR');
   const [proveedores, setProveedores] = useState([]);
@@ -28,15 +28,39 @@ export default function ComprasPage() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('todas');
   const [pageSize, setPageSize] = useState(5);
+  // Estado del listado SERVER-SIDE (mismo patrón que RepuestosPage).
+  const [page, setPage]         = useState(1);
+  const [rows, setRows]         = useState([]);
+  const [total, setTotal]       = useState(0);
+  const [listLoading, setListLoading] = useState(true);
   const [detailItem, setDetailItem] = useState(null);
+  // Una "compra" con varios productos crea VARIAS filas de Compras (una por producto),
+  // agrupadas por N.° de factura para mostrarlas juntas -- el detalle necesita el grupo
+  // COMPLETO, no solo lo que haya caído en la página visible de la tabla. Se pide aparte,
+  // solo al abrir el detalle (no en cada carga de la lista).
+  const [detailGroup, setDetailGroup] = useState([]);
+  const [detailLoading, setDetailLoading] = useState(false);
   const [formData, setFormData] = useState(newForm());
   const [showForm, setShowForm] = useState(false);
   const [formError, setFormError] = useState('');
   const [priceWarnings, setPriceWarnings] = useState({});
   const [confirmAnular, setConfirmAnular] = useState(null);
 
+  const fetchPage = useCallback(async () => {
+    setListLoading(true);
+    try {
+      const ps = pageSize === 'all' ? 9999 : pageSize;
+      const estadoParam = statusFilter === 'activas' ? 'activos' : statusFilter === 'anuladas' ? 'inactivos' : 'todos';
+      const params = new URLSearchParams({ page: String(page), pageSize: String(ps), estado: estadoParam });
+      if (search) params.set('search', search);
+      const r = await api.get(`/api/compras?${params.toString()}`);
+      setRows(r.data?.data || []);
+      setTotal(r.data?.total ?? 0);
+    } catch { setRows([]); setTotal(0); }
+    finally { setListLoading(false); }
+  }, [page, pageSize, search, statusFilter]);
+
   useEffect(() => {
-    dispatch(fetchCompras());
     // Solo proveedores activos: un proveedor inactivo no debe poder recibir compras nuevas.
     api.get('/api/proveedores?estado=activos')
       .then(r => {
@@ -45,7 +69,13 @@ export default function ComprasPage() {
       })
       .catch(() => {});
     api.get('/api/repuestos').then(r => setRepuestos(r.data?.data || r.data || [])).catch(() => {});
-  }, [dispatch]);
+  }, []);
+
+  useEffect(() => { fetchPage(); }, [fetchPage]);
+
+  const onSearch   = (v) => { setSearch(v); setPage(1); };
+  const onStatus   = (v) => { setStatusFilter(v); setPage(1); };
+  const onPageSize = (v) => { setPageSize(v); setPage(1); };
 
 
   const getNombre = (arr, idKey, id) => {
@@ -59,15 +89,29 @@ export default function ComprasPage() {
   // Agrupa los productos de una misma compra: por N.° de factura si lo tiene
   // (confiable), o por proveedor + misma fecha como respaldo para compras
   // viejas sin ese dato (antes era la única forma de agrupar, y mezclaba dos
-  // compras reales al mismo proveedor el mismo día).
-  const detailItems = detailItem
-    ? items.filter(i =>
-        i.Id_Proveedor === detailItem.Id_Proveedor &&
-        (detailItem.NumeroFactura
-          ? i.NumeroFactura === detailItem.NumeroFactura
-          : !i.NumeroFactura && (i.Fecha || '').split('T')[0] === (detailItem.Fecha || '').split('T')[0])
-      )
-    : [];
+  // compras reales al mismo proveedor el mismo día). El grupo puede caer en más de
+  // una página de la tabla, así que se resuelve aparte (ver openDetail) contra la
+  // lista completa, no contra `rows` (la página visible).
+  const detailItems = detailGroup;
+
+  // Trae la lista completa (mismo endpoint sin ?page -- compatibilidad) SOLO al abrir un
+  // detalle, y arma el grupo de esa factura/compra. No se hace en cada carga de la tabla.
+  const openDetail = async (row) => {
+    setDetailItem(row);
+    setDetailGroup([row]); // fallback inmediato mientras carga
+    setDetailLoading(true);
+    try {
+      const r = await api.get('/api/compras');
+      const all = r.data?.data || r.data || [];
+      setDetailGroup(all.filter(i =>
+        i.Id_Proveedor === row.Id_Proveedor &&
+        (row.NumeroFactura
+          ? i.NumeroFactura === row.NumeroFactura
+          : !i.NumeroFactura && (i.Fecha || '').split('T')[0] === (row.Fecha || '').split('T')[0])
+      ));
+    } catch { /* se queda con el fallback [row] */ }
+    finally { setDetailLoading(false); }
+  };
 
   const detailTotal = detailItems.reduce((s, i) => s + Number(i.Cantidad || 0) * Number(i.PrecioUnitario || 0), 0);
 
@@ -82,13 +126,6 @@ export default function ComprasPage() {
     return (Number(rep.PrecioVenta) - Number(row.PrecioUnitario || 0)) * Number(row.Cantidad || 0);
   };
   const gananciaTotalDetalle = detailItems.reduce((s, i) => s + (gananciaLinea(i) || 0), 0);
-
-  const filtered = (() => {
-    let list = items;
-    if (statusFilter === 'activas') list = list.filter(i => !i.Anulada);
-    else if (statusFilter === 'anuladas') list = list.filter(i => i.Anulada);
-    return sortNewestFirst(filterItems(list, search, ['Proveedor', 'Repuesto']), 'Id_Compra');
-  })();
 
   const openCreate = () => { setFormData(newForm()); setFormError(''); setPriceWarnings({}); setShowForm(true); };
 
@@ -177,13 +214,13 @@ export default function ComprasPage() {
       }
     }
     setShowForm(false);
-    dispatch(fetchCompras());
+    fetchPage();
   };
 
   const handleConfirmAnular = async () => {
     if (!confirmAnular) return;
     const result = await dispatch(anularCompra(confirmAnular.Id_Compra));
-    if (!result.error) setConfirmAnular(null);
+    if (!result.error) { setConfirmAnular(null); fetchPage(); }
   };
 
   const grandTotal = formData.productos.reduce(
@@ -211,7 +248,7 @@ export default function ComprasPage() {
     {
       key: 'acciones', label: 'Acciones', render: (_, row) => (
         <div className="table-actions">
-          <button className="btn btn--ghost btn--icon btn--sm" title="Ver detalle" onClick={() => setDetailItem(row)}>
+          <button className="btn btn--ghost btn--icon btn--sm" title="Ver detalle" onClick={() => openDetail(row)}>
             <MdVisibility size={17} />
           </button>
           {!row.Anulada && (
@@ -229,7 +266,7 @@ export default function ComprasPage() {
       <div className="page__header">
         <div>
           <h1 className="page__title">Compras</h1>
-          <p className="page__subtitle">{items.length} compra(s) registrada(s)</p>
+          <p className="page__subtitle">{total} compra(s) registrada(s)</p>
         </div>
         <button className="btn btn--primary" onClick={openCreate} disabled={!puedeCrear}><MdAdd size={18} />Registrar compra</button>
       </div>
@@ -238,14 +275,14 @@ export default function ComprasPage() {
         <div className="card__header">
           <SearchBar
             value={search}
-            onChange={setSearch}
+            onChange={onSearch}
             placeholder="Buscar por proveedor, repuesto..."
             filterSlot={
               <FilterDropdown
                 statusFilter={statusFilter}
-                onStatusChange={setStatusFilter}
+                onStatusChange={onStatus}
                 pageSize={pageSize}
-                onPageSizeChange={setPageSize}
+                onPageSizeChange={onPageSize}
                 statusOptions={[
                   { value: 'todas', label: 'Todas' },
                   { value: 'activas', label: 'Vigentes' },
@@ -255,7 +292,20 @@ export default function ComprasPage() {
             }
           />
         </div>
-        <Table columns={columns} rowKey="Id_Compra" data={filtered} loading={loading} pageSize={pageSize} emptyMessage="No se encontraron compras" />
+        <Table
+          columns={columns}
+          rowKey="Id_Compra"
+          data={rows}
+          loading={listLoading}
+          serverSide
+          total={total}
+          page={page}
+          onPageChange={setPage}
+          pageSize={pageSize}
+          searchTerm={search}
+          onClearSearch={() => onSearch('')}
+          emptyMessage="No se encontraron compras"
+        />
       </div>
 
       {/* Modal de detalle — muestra TODOS los productos de esa compra */}
@@ -284,7 +334,7 @@ export default function ComprasPage() {
               <div className="detail-item"><span className="detail-label">N.° factura</span><span className="detail-value">{detailItem.NumeroFactura || '—'}</span></div>
               <div className="detail-item"><span className="detail-label">Estado</span><span className="detail-value">{detailItem.Anulada ? <Badge variant="gray">Anulada</Badge> : <Badge variant="success">Vigente</Badge>}</span></div>
             </div>
-            <h4 className="compra-detail__subhead">Productos ({detailItems.length})</h4>
+            <h4 className="compra-detail__subhead">Productos ({detailItems.length}){detailLoading ? ' — cargando...' : ''}</h4>
             <div className="compra-detail__scroll">
               <table className="compra-detail-table">
                 <thead>

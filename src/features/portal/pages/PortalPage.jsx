@@ -312,7 +312,10 @@ export default function PortalPage() {
     if (!citaForm.Id_Vehiculo || !citaForm.Fecha || !citaForm.Hora) {
       setCitaError('Vehículo, fecha y hora son obligatorios.'); return;
     }
-    // Validación de tiempo (item 1): la fecha y hora deben ser futuras.
+    // Validación de tiempo (item 1): la fecha y hora deben ser futuras. Duplicada a
+    // propósito con assertNoEnPasado (Sigot-api-fix/src/services/agenda.service.js) -- es
+    // solo feedback inmediato en el formulario, el backend sigue siendo la autoridad real;
+    // si esa regla cambia ahí, hay que recordar tocar también esta copia.
     const dt = new Date(`${citaForm.Fecha}T${citaForm.Hora}:00`);
     if (Number.isNaN(dt.getTime()) || dt.getTime() <= Date.now()) {
       setCitaError('La fecha y la hora de la cita deben ser futuras.'); return;

@@ -74,7 +74,10 @@ export default function RepuestosPage() {
       const r = await api.get(`/api/repuestos?${params.toString()}`);
       // El backend devuelve NombreRepuesto; la columna de la tabla lee `Nombre`
       // (igual que exportarExcel y openEdit). Sin este mapeo el nombre sale en blanco.
-      setRows((r.data?.data || []).map(x => ({ ...x, Nombre: x.NombreRepuesto || x.Nombre || '' })));
+      // Estado viene como booleano crudo de Postgres (paginación server-side, sin pasar por
+      // el norm() del slice) -- sin este mapeo el ToggleSwitch (que compara === 1) siempre
+      // se ve apagado, sin importar el estado real.
+      setRows((r.data?.data || []).map(x => ({ ...x, Nombre: x.NombreRepuesto || x.Nombre || '', Estado: x.Estado === true ? 1 : x.Estado === false ? 0 : x.Estado })));
       setTotal(r.data?.total ?? 0);
     } catch { setRows([]); setTotal(0); }
     finally { setListLoading(false); }
