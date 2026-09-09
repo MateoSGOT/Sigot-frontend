@@ -630,13 +630,16 @@ export default function AgendaPage() {
               options={(() => {
                 const esHoy  = formData.FechaAgendamiento === TODAY;
                 const nowMin = new Date().getHours() * 60 + new Date().getMinutes();
+                const minToHHMM = (mins) => `${String(Math.floor(mins / 60) % 24).padStart(2, '0')}:${String(mins % 60).padStart(2, '0')}`;
                 // Las horas ya pasadas del día de hoy no se muestran, y las ocupadas
                 // (chocan con la duración estimada de otra cita de este empleado) se
-                // excluyen por completo -- no solo se deshabilitan.
+                // excluyen por completo -- no solo se deshabilitan. Se muestra el rango
+                // completo (ej. "2:00 PM – 2:45 PM") según la duración estimada elegida,
+                // para que se vea cuánto tiempo va a ocupar realmente esta cita.
                 return horaOptions
                   .filter(h => !(esHoy && toMinHelper(h) <= nowMin))
                   .filter(h => h === formData.Hora || !horaOcupada(h))
-                  .map(h => ({ value: h, label: formatHora12(h) }));
+                  .map(h => ({ value: h, label: `${formatHora12(h)} – ${formatHora12(minToHHMM(toMinHelper(h) + duracionActual))}` }));
               })()}
               value={formData.Hora}
               onChange={v => handleChange({ target: { name: 'Hora', value: v } })}

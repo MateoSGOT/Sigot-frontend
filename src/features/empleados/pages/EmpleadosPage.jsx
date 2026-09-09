@@ -205,13 +205,6 @@ export default function EmpleadosPage() {
       }
     },
     {
-      key: 'Estado', label: 'Estado',
-      // Solo se muestra para las cuentas de sistema (no tienen toggle porque no se
-      // pueden desactivar); en las demás filas el ToggleSwitch de Acciones ya
-      // indica si está activo o inactivo, mostrarlo dos veces era redundante.
-      render: (v, row) => esAdminSistema(row) ? <Badge variant="gray">Sistema</Badge> : null,
-    },
-    {
       key: 'acciones', label: 'Acciones', render: (_, row) => (
         <div className="table-actions">
           {!esAdminSistema(row) && (

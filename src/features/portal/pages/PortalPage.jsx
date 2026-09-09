@@ -851,13 +851,21 @@ export default function PortalPage() {
                 // hoy, las horas ya pasadas no se muestran. Si hay técnico elegido,
                 // se excluyen (no solo se deshabilitan) las horas que choquen con
                 // una cita/novedad ya registrada para ese técnico ese día (fuente:
-                // horas-ocupadas).
+                // horas-ocupadas). La duración usada para el choque -- y para la
+                // hora de fin que se muestra en cada opción -- depende del Tipo de
+                // cita elegido (Diagnóstico dura menos que un mantenimiento), igual
+                // que en el panel (AgendaPage.jsx::DURACION_POR_TIPO).
                 const toMin = (hhmm) => { const [hh, mm] = String(hhmm).split(':').map(Number); return (hh || 0) * 60 + (mm || 0); };
+                const fmt12 = (mins) => {
+                  const h = Math.floor(mins / 60), m = mins % 60;
+                  const h12 = h % 12 === 0 ? 12 : h % 12;
+                  return `${h12}:${String(m).padStart(2, '0')} ${h >= 12 ? 'PM' : 'AM'}`;
+                };
                 const ap = toMin(horario.apertura || '08:00');
                 const ci = toMin(horario.cierre || '18:00');
                 const esHoy  = citaForm.Fecha === todayLocalYMD();
                 const nowMin = new Date().getHours() * 60 + new Date().getMinutes();
-                const DURACION_DEFAULT = 60;
+                const duracionElegida = citaForm.TipoCita === 'Diagnostico' ? 45 : 60;
                 const opts = [];
                 for (let mins = ap; mins <= ci && !Number.isNaN(mins); mins += 30) {
                   // Las horas ya pasadas del día de hoy no se muestran (antes solo
@@ -865,13 +873,14 @@ export default function PortalPage() {
                   // apareciendo en la lista).
                   if (esHoy && mins <= nowMin) continue;
                   const h = Math.floor(mins / 60), m = mins % 60;
-                  const h12 = h % 12 === 0 ? 12 : h % 12;
-                  const label = `${h12}:${String(m).padStart(2, '0')} ${h >= 12 ? 'PM' : 'AM'}`;
                   const value = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+                  // Se muestra el rango completo (ej. "2:00 PM – 2:45 PM") para que se vea
+                  // cuánto tiempo va a ocupar realmente, no solo la hora de inicio.
+                  const label = `${fmt12(mins)} – ${fmt12(mins + duracionElegida)}`;
                   const ocupada = !!citaForm.Id_Empleado && horasOcupadas.some(o => {
                     const oIni = toMin(o.Hora);
-                    const oFin = oIni + Number(o.DuracionEstimadaMin || DURACION_DEFAULT);
-                    return mins < oFin && oIni < mins + DURACION_DEFAULT;
+                    const oFin = oIni + Number(o.DuracionEstimadaMin || 60);
+                    return mins < oFin && oIni < mins + duracionElegida;
                   });
                   if (!ocupada) opts.push({ value, label });
                 }
