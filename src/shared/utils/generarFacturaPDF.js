@@ -3,20 +3,22 @@ import autoTable from 'jspdf-autotable';
 import { todayLocalYMD } from './helpers.js';
 
 /* ═══════════════════════════════════════════════════════════════════
-   Facturas SIGOT — diseño alineado con la marca de la app
-   (azul marino → esmeralda, tarjetas suaves, acentos verdes).
+   Facturas SIGOT — diseño alineado con la marca de la app, pero en
+   escala de grises: la factura se imprime mucho (para el cliente), así
+   que va toda a blanco y negro para no gastar tinta de color.
    ═══════════════════════════════════════════════════════════════════ */
 
-// Paleta (RGB) tomada del rediseño de la página
-const NAVY    = [14, 26, 44];     // #0e1a2c  banda superior
-const EMERALD = [22, 163, 74];    // #16a34a  acento principal
-const MINT    = [74, 222, 128];   // #4ade80  acento claro
-const INK     = [17, 24, 39];     // texto principal
-const MUTED   = [107, 114, 128];  // texto secundario
-const LINE    = [229, 231, 235];  // bordes
-const SOFT    = [244, 246, 248];  // fondos suaves / filas alternas
+// Paleta en escala de grises (misma jerarquía tonal que la de color, sin
+// usar tinta de color en ningún cartucho).
+const NAVY    = [20, 20, 20];     // banda superior (antes azul marino)
+const EMERALD = [70, 70, 70];     // acento principal (antes esmeralda)
+const MINT    = [150, 150, 150];  // acento claro (antes verde menta)
+const INK     = [20, 20, 20];     // texto principal
+const MUTED   = [110, 110, 110];  // texto secundario
+const LINE    = [225, 225, 225];  // bordes
+const SOFT    = [246, 246, 246];  // fondos suaves / filas alternas
 const WHITE   = [255, 255, 255];
-const ONNAVY  = [205, 212, 224];  // texto tenue sobre la banda navy
+const ONNAVY  = [210, 210, 210];  // texto tenue sobre la banda superior
 
 const PAGE_W = 210;
 const M = 14;                     // margen lateral

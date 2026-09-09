@@ -7,6 +7,7 @@ import Modal from '../../../shared/components/Modal/Modal.jsx';
 import { useToast } from '../../../shared/components/Toast/ToastContext.jsx';
 import Table from '../../../shared/components/Table/Table.jsx';
 import SearchBar from '../../../shared/components/SearchBar/SearchBar.jsx';
+import SearchableSelect from '../../../shared/components/SearchableSelect/SearchableSelect.jsx';
 import FilterDropdown from '../../../shared/components/FilterDropdown/FilterDropdown.jsx';
 import Badge from '../../../shared/components/Badge/Badge.jsx';
 import { StatusBadge } from '../../../shared/components/Badge/Badge.jsx';
@@ -388,6 +389,7 @@ export default function PortalPage() {
   const ordenesColumns = [
     { key: '#',          label: '#',          width: '50px', render: (_, __, i) => i + 1 },
     { key: 'Vehiculo',   label: 'Vehículo',   render: (v, row) => <span className="font-medium">{v || row.vehiculo || `#${row.Id_Vehiculo}`}</span> },
+    { key: 'Empleado',   label: 'Técnico',    render: v => v || 'Sin asignar' },
     { key: 'Diagnostico',label: 'Diagnóstico', render: v => <span className="diag-cell">{v || '—'}</span> },
     { key: 'FechaIngreso',label: 'Ingreso',   render: v => formatDate(v) },
     { key: 'FechaEntrega',label: 'Entrega',   render: v => formatDate(v) },
@@ -713,6 +715,7 @@ export default function PortalPage() {
               <div className="u-mt-lg">
                 <div className="detail-grid">
                   <div className="detail-item"><span className="detail-label">Vehículo</span><span className="detail-value">{ordDetail.Vehiculo || ordDetail.vehiculo || `#${ordDetail.Id_Vehiculo}`}</span></div>
+                  <div className="detail-item"><span className="detail-label">Técnico asignado</span><span className="detail-value">{ordDetail.Empleado || 'Sin asignar'}</span></div>
                   <div className="detail-item"><span className="detail-label">Estado</span><span className="detail-value"><OrdenEstadoBadge estado={ordDetail.Estado} /></span></div>
                   <div className="detail-item"><span className="detail-label">Fecha ingreso</span><span className="detail-value">{formatDate(ordDetail.FechaIngreso)}</span></div>
                   <div className="detail-item"><span className="detail-label">Fecha entrega</span><span className="detail-value">{formatDate(ordDetail.FechaEntrega)}</span></div>
@@ -795,17 +798,39 @@ export default function PortalPage() {
         <form className="form-grid" onSubmit={handleGuardarCita} noValidate>
           <div className="form-group">
             <label className="form-label">Tipo de cita</label>
-            <select className="form-control" value={citaForm.TipoCita} onChange={e => setCitaForm(p => ({ ...p, TipoCita: e.target.value }))}>
-              <option value="Mantenimiento">Mantenimiento / reparación</option>
-              <option value="Diagnostico">Diagnóstico (45 min)</option>
-            </select>
+            <SearchableSelect
+              options={[{ value: 'Mantenimiento', label: 'Mantenimiento / reparación' }, { value: 'Diagnostico', label: 'Diagnóstico (45 min)' }]}
+              value={citaForm.TipoCita}
+              onChange={v => setCitaForm(p => ({ ...p, TipoCita: v }))}
+            />
+          </div>
+          <div className="form-group">
+            <label className="form-label">Técnico asignado <span className="u-hint">(opcional)</span></label>
+            {!citaForm.Fecha ? (
+              <p className="u-hint-sm">Selecciona una fecha primero</p>
+            ) : loadingEmpl ? (
+              <p className="u-hint-sm">Cargando técnicos...</p>
+            ) : (
+              <SearchableSelect
+                // Con novedad ese día: no aparece en la lista (antes solo se
+                // deshabilitaba con "No disponible", pero seguía apareciendo).
+                options={[{ value: '', label: 'Sin preferencia' }, ...empleadosDisp.filter(e => e.disponible).map(e => ({ value: String(e.id_empleado), label: e.Nombre }))]}
+                value={citaForm.Id_Empleado}
+                onChange={idEmpleado => {
+                  setCitaForm(p => ({ ...p, Id_Empleado: idEmpleado, Hora: '' }));
+                  fetchHorasOcupadas(citaForm.Fecha, idEmpleado);
+                }}
+              />
+            )}
           </div>
           <div className="form-group">
             <label className="form-label">Vehículo <span className="required">*</span></label>
-            <select className="form-control" value={citaForm.Id_Vehiculo} onChange={e => setCitaForm(p => ({ ...p, Id_Vehiculo: e.target.value }))} required>
-              <option value="">Seleccionar vehículo...</option>
-              {vehiculos.filter(v => v.Estado !== false && v.Estado !== 0).map(v => <option key={v.Id_Vehiculo} value={v.Id_Vehiculo}>{v.Placa} — {v.Marca || ''}</option>)}
-            </select>
+            <SearchableSelect
+              options={vehiculos.filter(v => v.Estado !== false && v.Estado !== 0).map(v => ({ value: String(v.Id_Vehiculo), label: `${v.Placa} — ${v.Marca || ''}` }))}
+              value={citaForm.Id_Vehiculo}
+              onChange={v => setCitaForm(p => ({ ...p, Id_Vehiculo: v }))}
+              placeholder="Seleccionar vehículo..."
+            />
           </div>
           <div className="form-group">
             <label className="form-label">Fecha <span className="required">*</span></label>
@@ -820,13 +845,12 @@ export default function PortalPage() {
           </div>
           <div className="form-group">
             <label className="form-label">Hora <span className="required">*</span></label>
-            <select className="form-control" value={citaForm.Hora} onChange={e => setCitaForm(p => ({ ...p, Hora: e.target.value }))} required>
-              <option value="">Seleccionar hora...</option>
-              {(() => {
+            <SearchableSelect
+              options={(() => {
                 // Horas dentro del horario configurado del taller. Si la fecha es
                 // hoy, las horas ya pasadas no se muestran. Si hay técnico elegido,
-                // se deshabilitan (sin ocultarlas) las horas que choquen con una
-                // cita/novedad ya registrada para ese técnico ese día (fuente:
+                // se excluyen (no solo se deshabilitan) las horas que choquen con
+                // una cita/novedad ya registrada para ese técnico ese día (fuente:
                 // horas-ocupadas).
                 const toMin = (hhmm) => { const [hh, mm] = String(hhmm).split(':').map(Number); return (hh || 0) * 60 + (mm || 0); };
                 const ap = toMin(horario.apertura || '08:00');
@@ -849,32 +873,14 @@ export default function PortalPage() {
                     const oFin = oIni + Number(o.DuracionEstimadaMin || DURACION_DEFAULT);
                     return mins < oFin && oIni < mins + DURACION_DEFAULT;
                   });
-                  opts.push(<option key={value} value={value} disabled={ocupada}>{label}{ocupada ? ' (ocupado)' : ''}</option>);
+                  if (!ocupada) opts.push({ value, label });
                 }
                 return opts;
               })()}
-            </select>
-          </div>
-          <div className="form-group">
-            <label className="form-label">Técnico asignado <span className="u-hint">(opcional)</span></label>
-            {!citaForm.Fecha ? (
-              <p className="u-hint-sm">Selecciona una fecha primero</p>
-            ) : loadingEmpl ? (
-              <p className="u-hint-sm">Cargando técnicos...</p>
-            ) : (
-              <select className="form-control" value={citaForm.Id_Empleado} onChange={e => {
-                const idEmpleado = e.target.value;
-                setCitaForm(p => ({ ...p, Id_Empleado: idEmpleado, Hora: '' }));
-                fetchHorasOcupadas(citaForm.Fecha, idEmpleado);
-              }}>
-                <option value="">Sin preferencia</option>
-                {/* Con novedad ese día: no aparece en la lista (antes solo se
-                    deshabilitaba con "No disponible", pero seguía apareciendo). */}
-                {empleadosDisp.filter(e => e.disponible).map(e => (
-                  <option key={e.id_empleado} value={e.id_empleado}>{e.Nombre}</option>
-                ))}
-              </select>
-            )}
+              value={citaForm.Hora}
+              onChange={v => setCitaForm(p => ({ ...p, Hora: v }))}
+              placeholder="Seleccionar hora..."
+            />
           </div>
           <div className="form-group span-2">
             <label className="form-label">Descripción</label>

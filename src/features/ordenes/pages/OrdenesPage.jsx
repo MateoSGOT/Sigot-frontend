@@ -872,15 +872,15 @@ export default function OrdenesPage() {
                     {addServError && <div className="form-error-box u-mb-sm">{addServError}</div>}
                     {modoServ === 'existente' ? (
                       <div className="orden-add-row">
-                        <select className="form-control" value={addServForm.Id_Servicio}
-                          onChange={e => {
-                            const id = e.target.value;
+                        <SearchableSelect
+                          options={serviciosOpts.map(s => ({ value: String(s.Id_Servicio), label: s.Nombre }))}
+                          value={addServForm.Id_Servicio}
+                          onChange={id => {
                             const serv = serviciosOpts.find(s => String(s.Id_Servicio) === String(id));
                             setAddServForm(p => ({ ...p, Id_Servicio: id, precio_unitario: serv ? String(serv.Precio ?? '') : p.precio_unitario }));
-                          }}>
-                          <option value="">Seleccionar servicio...</option>
-                          {serviciosOpts.map(s => <option key={s.Id_Servicio} value={s.Id_Servicio}>{s.Nombre}</option>)}
-                        </select>
+                          }}
+                          placeholder="Seleccionar servicio..."
+                        />
                         <input type="number" min="0" className="form-control" placeholder="Precio unitario" value={addServForm.precio_unitario} onChange={e => setAddServForm(p => ({ ...p, precio_unitario: e.target.value }))} />
                         {addServForm.precio_unitario && <span className="u-muted-nowrap">= {formatCurrency(addServForm.precio_unitario)}</span>}
                         <button className="btn btn--primary btn--sm" onClick={handleAddServicio} disabled={actionLoading}><MdAdd size={16} />Agregar</button>
@@ -1007,10 +1007,12 @@ export default function OrdenesPage() {
                             {repVal.fieldError('NombreRepuesto') && <p className="form-error">{repVal.fieldError('NombreRepuesto')}</p>}
                           </div>
                           <div className="orden-add-field">
-                            <select name="Id_categoria" className={`form-control ${repVal.fieldError('Id_categoria') ? 'is-error' : ''}`} value={nuevoRep.Id_categoria} onChange={handleRepChange} onBlur={handleRepBlur}>
-                              <option value="">Categoría...</option>
-                              {categoriasOpts.map(c => <option key={c.Id_categoria ?? c.Id_Categoria} value={c.Id_categoria ?? c.Id_Categoria}>{c.Nombre ?? c.nombre}</option>)}
-                            </select>
+                            <SearchableSelect
+                              options={categoriasOpts.map(c => ({ value: String(c.Id_categoria ?? c.Id_Categoria), label: c.Nombre ?? c.nombre }))}
+                              value={nuevoRep.Id_categoria}
+                              onChange={id => { handleRepChange({ target: { name: 'Id_categoria', value: id } }); handleRepBlur({ target: { name: 'Id_categoria' } }); }}
+                              placeholder="Categoría..."
+                            />
                             {repVal.fieldError('Id_categoria') && <p className="form-error">{repVal.fieldError('Id_categoria')}</p>}
                           </div>
                           <div className="orden-add-field">

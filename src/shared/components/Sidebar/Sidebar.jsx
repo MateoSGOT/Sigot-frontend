@@ -109,15 +109,19 @@ export default function Sidebar() {
   }, []);
 
   // "Cuentas y accesos" (Fase 3): exclusiva del Super Administrador, no depende del
-  // sistema genérico de permisos por módulo, así que se agrega aparte.
-  const visibleNav = buildVisibleNav(NAV_STRUCTURE, permisos, esSuperAdmin);
-  if (esSuperAdmin) {
-    visibleNav.push({ type: 'link', to: '/cuentas', icon: MdAdminPanelSettings, label: 'Cuentas y accesos' });
-  }
+  // sistema genérico de permisos por módulo -- se inyecta dentro de "Configuración"
+  // (no como enlace suelto) solo cuando el usuario logueado es super admin, así un
+  // rol normal con acceso a Empleados/Clientes/Roles nunca la ve en el grupo.
+  const navConCuentas = NAV_STRUCTURE.map(item => (
+    item.type === 'group' && item.name === 'Configuración' && esSuperAdmin
+      ? { ...item, children: [...item.children, { to: '/cuentas', icon: MdAdminPanelSettings, label: 'Cuentas y accesos', permiso: null }] }
+      : item
+  ));
+  const visibleNav = buildVisibleNav(navConCuentas, permisos, esSuperAdmin);
 
   const gruposDeLaRuta = (pathname) => {
     const groups = {};
-    NAV_STRUCTURE.forEach(item => {
+    navConCuentas.forEach(item => {
       if (item.type === 'group') {
         groups[item.name] = item.children.some(c => pathname.startsWith(c.to));
       }

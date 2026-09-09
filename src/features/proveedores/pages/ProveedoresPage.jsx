@@ -231,11 +231,12 @@ export default function ProveedoresPage() {
         <form className="form-grid" onSubmit={handleSubmit} noValidate>
           <div className="form-group">
             <label className="form-label">Tipo de proveedor <span className="required">*</span></label>
-            <select name="TipoProveedor" className={`form-control ${fieldError('TipoProveedor') ? 'is-error' : ''}`} value={formData.TipoProveedor} onChange={handleChange} onBlur={handleBlur}>
-              <option value="">Seleccionar...</option>
-              <option value="Natural">Natural</option>
-              <option value="Juridico">Jurídico</option>
-            </select>
+            <SearchableSelect
+              options={[{ value: 'Natural', label: 'Natural' }, { value: 'Juridico', label: 'Jurídico' }]}
+              value={formData.TipoProveedor}
+              onChange={id => { handleChange({ target: { name: 'TipoProveedor', value: id } }); handleBlur({ target: { name: 'TipoProveedor' } }); }}
+              placeholder="Seleccionar..."
+            />
             {fieldError('TipoProveedor') && <p className="form-error">{fieldError('TipoProveedor')}</p>}
           </div>
           <div className="form-group">

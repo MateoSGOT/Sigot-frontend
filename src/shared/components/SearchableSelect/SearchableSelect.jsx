@@ -44,10 +44,13 @@ export default function SearchableSelect({
     ? options.filter(o => String(o[labelKey]).toLowerCase().includes(query.toLowerCase()))
     : options;
 
+  // Siempre se despliega HACIA ARRIBA (ancla por `bottom`, no por `top`): la
+  // lista crece desde el borde superior del trigger hacia arriba, sin importar
+  // cuánto espacio quede abajo.
   const computePos = useCallback(() => {
     if (!triggerRef.current) return;
     const r = triggerRef.current.getBoundingClientRect();
-    setPos({ top: r.bottom + 4, left: r.left, width: r.width });
+    setPos({ bottom: window.innerHeight - r.top + 4, left: r.left, width: r.width });
   }, []);
 
   // Cierre al hacer clic fuera. Consideramos tanto el contenedor (trigger) como
@@ -143,7 +146,7 @@ export default function SearchableSelect({
           className="ss__dropdown ss__dropdown--portal"
           ref={dropdownRef}
           onKeyDown={handleKeyDown}
-          style={{ position: 'fixed', top: pos.top, left: pos.left, width: pos.width }}
+          style={{ position: 'fixed', bottom: pos.bottom, left: pos.left, width: pos.width }}
         >
           {showSearch && (
             <div className="ss__search-wrap">

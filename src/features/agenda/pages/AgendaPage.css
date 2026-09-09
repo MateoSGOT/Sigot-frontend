@@ -122,6 +122,26 @@
   .agenda-calendario__dia-nombre { font-size: 10px; }
 }
 
+.agenda-diagnosticos-previos {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 150px;
+  overflow-y: auto;
+  margin-bottom: var(--space-sm);
+}
+.agenda-diagnosticos-previos__item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 6px 10px;
+  font-size: var(--text-small);
+  background: var(--color-surface-solid);
+}
+.agenda-diagnosticos-previos__fecha { font-size: 0.72rem; font-weight: var(--weight-semibold); color: var(--color-text-muted); }
+
 .agenda-dia-lista { display: flex; flex-direction: column; gap: 6px; }
 .agenda-dia-lista__item {
   display: flex;

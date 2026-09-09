@@ -20,7 +20,7 @@
   gap: 0.5rem;
   flex-wrap: wrap;
 }
-.cuentas-rol-cell select {
+.cuentas-rol-cell .ss {
   min-width: 170px;
 }
 

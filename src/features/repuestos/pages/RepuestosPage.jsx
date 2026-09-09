@@ -12,6 +12,7 @@ import Modal from '../../../shared/components/Modal/Modal.jsx';
 import Table from '../../../shared/components/Table/Table.jsx';
 import SearchBar from '../../../shared/components/SearchBar/SearchBar.jsx';
 import FilterDropdown from '../../../shared/components/FilterDropdown/FilterDropdown.jsx';
+import SearchableSelect from '../../../shared/components/SearchableSelect/SearchableSelect.jsx';
 import { StatusBadge } from '../../../shared/components/Badge/Badge.jsx';
 import { formatCurrency, todayLocalYMD } from '../../../shared/utils/helpers.js';
 import * as V from '../../../shared/utils/validators.js';
@@ -372,10 +373,12 @@ export default function RepuestosPage() {
           </div>
           <div className="form-group span-2">
             <label className="form-label">Categoría <span className="required">*</span></label>
-            <select name="Id_categoria" className={`form-control ${fieldError('Id_categoria') ? 'is-error' : ''}`} value={formData.Id_categoria} onChange={handleChange} onBlur={handleBlur}>
-              <option value="">Seleccionar categoría...</option>
-              {categorias.map(c => <option key={c.Id_categoria} value={c.Id_categoria}>{c.Nombre}</option>)}
-            </select>
+            <SearchableSelect
+              options={categorias.map(c => ({ value: String(c.Id_categoria), label: c.Nombre }))}
+              value={formData.Id_categoria != null ? String(formData.Id_categoria) : ''}
+              onChange={id => { handleChange({ target: { name: 'Id_categoria', value: id } }); handleBlur({ target: { name: 'Id_categoria' } }); }}
+              placeholder="Seleccionar categoría..."
+            />
             {fieldError('Id_categoria') && <p className="form-error">{fieldError('Id_categoria')}</p>}
           </div>
           <div className="form-group span-2">

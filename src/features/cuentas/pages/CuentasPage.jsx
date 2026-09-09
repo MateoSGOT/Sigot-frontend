@@ -7,6 +7,7 @@ import { rolesService } from '../../roles/services/rolesService.js';
 import Table from '../../../shared/components/Table/Table.jsx';
 import SearchBar from '../../../shared/components/SearchBar/SearchBar.jsx';
 import EliminarRealModal from '../../../shared/components/EliminarRealModal/EliminarRealModal.jsx';
+import SearchableSelect from '../../../shared/components/SearchableSelect/SearchableSelect.jsx';
 import Modal from '../../../shared/components/Modal/Modal.jsx';
 import Badge from '../../../shared/components/Badge/Badge.jsx';
 import { useToast } from '../../../shared/components/Toast/ToastContext.jsx';
@@ -168,15 +169,12 @@ export default function CuentasPage() {
     {
       key: 'Id_Rol', label: 'Rol', render: (v, row) => (
         <div className="cuentas-rol-cell">
-          <select
-            className="form-control form-control--sm"
+          <SearchableSelect
+            options={[{ value: '', label: 'Sin rol administrativo' }, ...rolesOpts]}
             value={v != null ? String(v) : ''}
             disabled={busyKey === keyOf(row)}
-            onChange={e => handleCambiarRol(row, e.target.value)}
-          >
-            <option value="">Sin rol administrativo</option>
-            {rolesOpts.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-          </select>
+            onChange={idRolStr => handleCambiarRol(row, idRolStr)}
+          />
           {row.EsSuperAdmin && <Badge variant="success"><MdSecurity size={11} className="u-ic-mr" />Super Admin</Badge>}
         </div>
       )

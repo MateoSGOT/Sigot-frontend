@@ -75,6 +75,7 @@ export default function AgendaPage() {
   const [ordenCitaId, setOrdenCitaId] = useState(null);
   const [ordenError, setOrdenError]   = useState('');
   const [ordenVehiculoKm, setOrdenVehiculoKm] = useState(null); // km actual del vehículo (odómetro)
+  const [diagnosticosVehiculo, setDiagnosticosVehiculo] = useState([]); // historial de diagnósticos previos del vehículo
   const [horario, setHorario] = useState({ apertura: '08:00', cierre: '18:00', diasLaborales: [1, 2, 3, 4, 5, 6] });
 
   const cargarNovedades = () => api.get('/api/novedades').then(r => setNovedades(r.data?.data || r.data || [])).catch(() => {});
@@ -113,6 +114,11 @@ export default function AgendaPage() {
   );
 
   const esActivo = (x) => x?.Estado !== false && x?.Estado !== 0; // excluye inactivos (B4)
+  // Aviso EN TIEMPO REAL (no solo al guardar): el vehículo elegido tiene una orden de
+  // trabajo en curso, así que no se le puede agendar otra cita hasta que se entregue.
+  const vehiculoElegidoConOrden = formData.Id_Vehiculo
+    ? vehiculos.find(v => String(v.Id_Vehiculo) === String(formData.Id_Vehiculo))?.TieneOrdenEnCurso
+    : false;
   const vehiculosFiltered = (formData.Id_Cliente
     ? vehiculos.filter(v => String(v.Id_Cliente) === String(formData.Id_Cliente))
     : vehiculos
@@ -190,7 +196,8 @@ export default function AgendaPage() {
   // y sin conflictos (fecha válida y empleado sin novedad en esa fecha).
   const citaValida = !!formData.Id_Cliente && !!formData.Id_Vehiculo && !!formData.id_empleado
     && !!formData.FechaAgendamiento && !!formData.Hora
-    && !fechaError && !empleadosBloqueados.has(String(formData.id_empleado));
+    && !fechaError && !empleadosBloqueados.has(String(formData.id_empleado))
+    && !vehiculoElegidoConOrden;
 
   // Se incluye el Documento en la etiqueta (no solo el Nombre) para poder distinguir
   // clientes/empleados que comparten el mismo nombre.
@@ -366,6 +373,14 @@ export default function AgendaPage() {
     const fechaCita = (item.FechaAgendamiento || '').split('T')[0] || TODAY;
     setOrdenData({ ...EMPTY_ORDEN, FechaIngreso: fechaCita, Kilometraje: kmActual != null ? String(kmActual) : '' });
     setOrdenError(''); setShowOrdenModal(true);
+    // Diagnósticos de órdenes anteriores de este vehículo, para que el técnico los tenga
+    // en cuenta al escribir el diagnóstico nuevo (no parte de cero cada vez).
+    setDiagnosticosVehiculo([]);
+    if (item.Id_Vehiculo) {
+      api.get(`/api/vehiculos/${item.Id_Vehiculo}/diagnosticos`)
+        .then(r => setDiagnosticosVehiculo(r.data?.data || r.data || []))
+        .catch(() => {});
+    }
   };
   const handleOrdenChange = e => setOrdenData(p => ({ ...p, [e.target.name]: e.target.value }));
   const handleOrdenSubmit = async (e) => {
@@ -583,18 +598,11 @@ export default function AgendaPage() {
         {formError && <div className="form-error-box">{formError}</div>}
         <form className="form-grid" onSubmit={handleSubmit} noValidate>
           <div className="form-group span-2"><label className="form-label">Tipo de cita</label>
-            <select name="TipoCita" className="form-control" value={formData.TipoCita} onChange={handleChange}>
-              <option value="Mantenimiento">Mantenimiento / reparación</option>
-              <option value="Diagnostico">Diagnóstico</option>
-            </select>
-          </div>
-          <div className="form-group">
-            <label className="form-label">Cliente <span className="required">*</span></label>
-            <SearchableSelect options={clientesOpts} value={String(formData.Id_Cliente)} onChange={v => setFormData(p => ({ ...p, Id_Cliente: v, Id_Vehiculo: '' }))} placeholder="Seleccionar cliente..." />
-          </div>
-          <div className="form-group">
-            <label className="form-label">Vehículo <span className="required">*</span></label>
-            <SearchableSelect options={vehiculosOpts} value={String(formData.Id_Vehiculo)} onChange={v => setFormData(p => ({ ...p, Id_Vehiculo: v }))} placeholder="Seleccionar vehículo..." disabled={!formData.Id_Cliente} />
+            <SearchableSelect
+              options={[{ value: 'Mantenimiento', label: 'Mantenimiento / reparación' }, { value: 'Diagnostico', label: 'Diagnóstico' }]}
+              value={formData.TipoCita}
+              onChange={v => handleChange({ target: { name: 'TipoCita', value: v } })}
+            />
           </div>
           <div className="form-group span-2">
             <label className="form-label">Empleado <span className="required">*</span></label>
@@ -603,32 +611,40 @@ export default function AgendaPage() {
               <p className="novedad-warning">⚠ Este empleado tiene una novedad en la fecha seleccionada y no puede ser asignado.</p>
             )}
           </div>
+          <div className="form-group">
+            <label className="form-label">Cliente <span className="required">*</span></label>
+            <SearchableSelect options={clientesOpts} value={String(formData.Id_Cliente)} onChange={v => setFormData(p => ({ ...p, Id_Cliente: v, Id_Vehiculo: '' }))} placeholder="Seleccionar cliente..." />
+          </div>
+          <div className="form-group">
+            <label className="form-label">Vehículo <span className="required">*</span></label>
+            <SearchableSelect options={vehiculosOpts} value={String(formData.Id_Vehiculo)} onChange={v => setFormData(p => ({ ...p, Id_Vehiculo: v }))} placeholder="Seleccionar vehículo..." disabled={!formData.Id_Cliente} />
+            {vehiculoElegidoConOrden && (
+              <p className="novedad-warning">⚠ Este vehículo tiene una orden de trabajo en curso; no se le puede agendar otra cita hasta que sea entregado.</p>
+            )}
+          </div>
           <div className="form-group"><label className="form-label">Fecha de agendamiento <span className="required">*</span></label><input name="FechaAgendamiento" type="date" className={`form-control ${fechaError ? 'is-error' : ''}`} value={formData.FechaAgendamiento} onChange={handleChange} min={TODAY} />
             {fechaError && <p className="form-error">{fechaError}</p>}
           </div>
           <div className="form-group"><label className="form-label">Hora <span className="required">*</span></label>
-            <select name="Hora" className="form-control" value={formData.Hora} onChange={handleChange}>
-              <option value="">Seleccionar hora...</option>
-              {(() => {
+            <SearchableSelect
+              options={(() => {
                 const esHoy  = formData.FechaAgendamiento === TODAY;
                 const nowMin = new Date().getHours() * 60 + new Date().getMinutes();
-                // Las horas ya pasadas del día de hoy no se muestran (antes solo se
-                // deshabilitaban con la etiqueta "(pasada)", pero seguían apareciendo
-                // en la lista); las ocupadas sí se listan, deshabilitadas, para que se
-                // vea por qué no se pueden elegir.
+                // Las horas ya pasadas del día de hoy no se muestran, y las ocupadas
+                // (chocan con la duración estimada de otra cita de este empleado) se
+                // excluyen por completo -- no solo se deshabilitan.
                 return horaOptions
                   .filter(h => !(esHoy && toMinHelper(h) <= nowMin))
-                  .map(h => {
-                    const esActual = h === formData.Hora;
-                    const ocupada = !esActual && horaOcupada(h);
-                    const etiqueta = ocupada ? ' (ocupado)' : '';
-                    return <option key={h} value={h} disabled={ocupada}>{formatHora12(h)}{etiqueta}</option>;
-                  });
+                  .filter(h => h === formData.Hora || !horaOcupada(h))
+                  .map(h => ({ value: h, label: formatHora12(h) }));
               })()}
-            </select>
+              value={formData.Hora}
+              onChange={v => handleChange({ target: { name: 'Hora', value: v } })}
+              placeholder="Seleccionar hora..."
+            />
             <p className="form-hint">Atención: {horario.apertura}–{horario.cierre} · {diasLaboralesLabel}</p>
             {formData.id_empleado && formData.FechaAgendamiento && !formData.Hora && citasDelDiaEmpleado.length > 0 && (
-              <p className="form-hint">Este empleado ya tiene {citasDelDiaEmpleado.length} cita(s) ese día; las horas marcadas "(ocupado)" chocan con la duración estimada.</p>
+              <p className="form-hint">Este empleado ya tiene {citasDelDiaEmpleado.length} cita(s) ese día; las horas que chocan con su duración estimada no aparecen en la lista.</p>
             )}
           </div>
           <div className="form-group"><label className="form-label">Duración estimada (min)</label>
@@ -645,6 +661,19 @@ export default function AgendaPage() {
         <form className="form-grid" onSubmit={handleOrdenSubmit} noValidate>
           <div className="form-group"><label className="form-label">Fecha de ingreso</label><input type="text" className="form-control" value={ordenData.FechaIngreso ? formatDate(ordenData.FechaIngreso) : '—'} readOnly disabled title="Tomada de la fecha de la cita; no editable" /><p className="form-hint">Es la fecha de la cita de origen.</p></div>
           <div className="form-group"><label className="form-label">Fecha de entrega <span className="required">*</span></label><input name="FechaEntrega" type="date" className="form-control" value={ordenData.FechaEntrega} onChange={handleOrdenChange} min={ordenData.FechaIngreso || TODAY} /></div>
+          {diagnosticosVehiculo.length > 0 && (
+            <div className="form-group span-2">
+              <p className="form-hint u-mb-sm">Diagnósticos anteriores de este vehículo (para tenerlos en cuenta):</p>
+              <div className="agenda-diagnosticos-previos">
+                {diagnosticosVehiculo.map(d => (
+                  <div key={d.Id_Orden} className="agenda-diagnosticos-previos__item">
+                    <span className="agenda-diagnosticos-previos__fecha">Orden #{d.Id_Orden} · {formatDate(d.FechaIngreso)}</span>
+                    <span>{d.Diagnostico}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
           <div className="form-group span-2"><label className="form-label">Diagnóstico <span className="required">*</span></label><textarea name="Diagnostico" className="form-control" value={ordenData.Diagnostico} onChange={handleOrdenChange} rows={3} maxLength={500} placeholder="Describe el diagnóstico..." /></div>
           <div className="form-group span-2"><label className="form-label">Kilometraje <span className="required">*</span></label><input name="Kilometraje" type="number" min={ordenVehiculoKm ?? 0} className="form-control" value={ordenData.Kilometraje} onChange={handleOrdenChange} placeholder="km actuales del vehículo" />{ordenVehiculoKm != null && <p className="form-hint">Último registrado del vehículo: {ordenVehiculoKm.toLocaleString('es-CO')} km. No puede ser menor.</p>}</div>
         </form>
