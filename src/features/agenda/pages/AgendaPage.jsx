@@ -8,7 +8,7 @@ import { agendaService } from '../services/agendaService.js';
 import SearchableSelect from '../../../shared/components/SearchableSelect/SearchableSelect.jsx';
 import ToggleSwitch from '../../../shared/components/ToggleSwitch/ToggleSwitch.jsx';
 import EliminarRealModal from '../../../shared/components/EliminarRealModal/EliminarRealModal.jsx';
-import { fetchAgenda, createCita, updateCita, toggleCitaEstado, generarOrdenDeCita, cancelarCita, deleteCita } from '../slices/agendaSlice.js';
+import { fetchAgenda, createCita, updateCita, toggleCitaEstado, generarOrdenDeCita, pagarDiagnosticoDeCita, cancelarCita, deleteCita } from '../slices/agendaSlice.js';
 import Modal from '../../../shared/components/Modal/Modal.jsx';
 import ConfirmDialog from '../../../shared/components/ConfirmDialog/ConfirmDialog.jsx';
 import { useToast } from '../../../shared/components/Toast/ToastContext.jsx';
@@ -27,6 +27,7 @@ const ESTADO_CITA_STYLE = {
   Pendiente:  { bg: '#eff6ff', fg: '#1d4ed8', label: 'Pendiente' },
   Confirmada: { bg: '#ecfeff', fg: '#0e7490', label: 'Confirmada' },
   Atendida:   { bg: '#f0fdf4', fg: '#15803d', label: 'Atendida' },
+  Diagnosticada: { bg: '#f5f3ff', fg: '#6d28d9', label: 'Diagnosticada' },
   Cancelada:  { bg: '#fef2f2', fg: '#b91c1c', label: 'Cancelada' },
   NoAsistio:  { bg: '#fefce8', fg: '#a16207', label: 'No asistió' },
 };
@@ -62,7 +63,7 @@ export default function AgendaPage() {
   const [empleadoFilter, setEmpleadoFilter] = useState('');
   const [citaEstadoFilter, setCitaEstadoFilter] = useState('todas');
   const [pageSize, setPageSize]         = useState(5);
-  const [vista, setVista] = useState('tabla'); // 'tabla' | 'calendario'
+  const [vista, setVista] = useState('tabla'); // 'tabla' | 'calendario' | 'diagnosticos'
   const [mesCal, setMesCal] = useState(() => { const d = new Date(); return { anio: d.getFullYear(), mes: d.getMonth() }; });
   const [detailId, setDetailId]       = useState(null);
   const [diaDetalle, setDiaDetalle]   = useState(null); // ymd del día expandido (vista calendario)
@@ -76,6 +77,13 @@ export default function AgendaPage() {
   const [ordenError, setOrdenError]   = useState('');
   const [ordenVehiculoKm, setOrdenVehiculoKm] = useState(null); // km actual del vehículo (odómetro)
   const [diagnosticosVehiculo, setDiagnosticosVehiculo] = useState([]); // historial de diagnósticos previos del vehículo
+  // Tipo/estado de la cita para la que está abierto el modal de "Generar orden" -- decide
+  // si se muestra el botón "Pagar diagnóstico" (solo Diagnostico, aún no Diagnosticada).
+  const [ordenCitaMeta, setOrdenCitaMeta] = useState({ tipoCita: 'Mantenimiento', estadoCita: 'Pendiente' });
+  const [pagandoDiagnostico, setPagandoDiagnostico] = useState(false);
+  const [editandoDiagnosticoId, setEditandoDiagnosticoId] = useState(null); // Id_Agenda cuyo diagnóstico se edita
+  const [editDiagnosticoTexto, setEditDiagnosticoTexto] = useState('');
+  const [editDiagnosticoError, setEditDiagnosticoError] = useState('');
   const [horario, setHorario] = useState({ apertura: '08:00', cierre: '18:00', diasLaborales: [1, 2, 3, 4, 5, 6] });
 
   const cargarNovedades = () => api.get('/api/novedades').then(r => setNovedades(r.data?.data || r.data || [])).catch(() => {});
@@ -230,8 +238,12 @@ export default function AgendaPage() {
   };
   const CITA_ESTADO_BUCKET = { pendientes: 1, realizadas: 2, canceladas: 3 };
 
+  // Una cita con el diagnóstico ya pagado sale de Tabla/Calendario -- vive en su propia
+  // pestaña (Diagnósticos) hasta que se elimine o se genere la orden real desde ahí.
+  const diagnosticos = items.filter(i => i.EstadoCita === 'Diagnosticada');
+
   const filtered = (() => {
-    let list = items;
+    let list = items.filter(i => i.EstadoCita !== 'Diagnosticada');
     if (statusFilter === 'activos') list = list.filter(i => i.Estado !== 0);
     else if (statusFilter === 'inactivos') list = list.filter(i => i.Estado === 0);
     if (empleadoFilter) list = list.filter(i => String(i.id_empleado || i.Id_Empleado) === empleadoFilter);
@@ -364,6 +376,7 @@ export default function AgendaPage() {
 
   const openGenerarOrden = (item) => {
     setOrdenCitaId(item.Id_Agenda || item.id);
+    setOrdenCitaMeta({ tipoCita: item.TipoCita || 'Mantenimiento', estadoCita: item.EstadoCita || 'Pendiente' });
     // Precarga el km con el del vehículo (odómetro). El mecánico puede subirlo.
     const veh = vehiculos.find(v => String(v.Id_Vehiculo) === String(item.Id_Vehiculo));
     const kmActual = veh && veh.Kilometraje != null ? Number(veh.Kilometraje) : null;
@@ -371,7 +384,9 @@ export default function AgendaPage() {
     // La fecha de ingreso de la orden ES la fecha de la cita de origen (no editable):
     // la orden nace de esa cita. El backend la fija autoritativamente igual.
     const fechaCita = (item.FechaAgendamiento || '').split('T')[0] || TODAY;
-    setOrdenData({ ...EMPTY_ORDEN, FechaIngreso: fechaCita, Kilometraje: kmActual != null ? String(kmActual) : '' });
+    // Si la cita ya pasó por "Pagar diagnóstico", se prellena con esa nota -- el técnico
+    // no vuelve a escribir el mismo diagnóstico al generar la orden real.
+    setOrdenData({ ...EMPTY_ORDEN, FechaIngreso: fechaCita, Diagnostico: item.DiagnosticoNota || '', Kilometraje: kmActual != null ? String(kmActual) : '' });
     setOrdenError(''); setShowOrdenModal(true);
     // Diagnósticos de órdenes anteriores de este vehículo, para que el técnico los tenga
     // en cuenta al escribir el diagnóstico nuevo (no parte de cero cada vez).
@@ -403,6 +418,44 @@ export default function AgendaPage() {
       navigate('/ordenes', nuevaId ? { state: { openOrdenId: nuevaId } } : undefined);
     }
     else setOrdenError(result.payload || 'Error al generar orden.');
+  };
+
+  // "Pagar diagnóstico": registra la nota y manda la cita a la pestaña Diagnósticos, SIN
+  // generar todavía la Orden_de_Trabajo real -- eso queda para cuando (si) el cliente
+  // decide seguir con la reparación (botón "Generar orden de trabajo" en esa pestaña).
+  const handlePagarDiagnostico = async () => {
+    if (!ordenData.Diagnostico || !ordenData.Diagnostico.trim()) {
+      setOrdenError('Escribe el diagnóstico antes de marcarlo como pagado.'); return;
+    }
+    setPagandoDiagnostico(true);
+    const result = await dispatch(pagarDiagnosticoDeCita({ id: ordenCitaId, DiagnosticoNota: ordenData.Diagnostico.trim() }));
+    setPagandoDiagnostico(false);
+    if (!result.error) {
+      setShowOrdenModal(false);
+      addToast({ type: 'success', message: 'Diagnóstico pagado. La cita pasó a la pestaña Diagnósticos.' });
+      dispatch(fetchAgenda());
+    } else {
+      setOrdenError(result.payload || 'No se pudo pagar el diagnóstico.');
+    }
+  };
+
+  // Editar la nota de un diagnóstico ya pagado (pestaña Diagnósticos) -- reusa el mismo
+  // endpoint de "pagar diagnóstico" (la cita se queda en Diagnosticada, solo cambia el texto).
+  const openEditarDiagnostico = (row) => {
+    setEditandoDiagnosticoId(row.Id_Agenda ?? row.id);
+    setEditDiagnosticoTexto(row.DiagnosticoNota || '');
+    setEditDiagnosticoError('');
+  };
+  const handleGuardarDiagnosticoEditado = async () => {
+    if (!editDiagnosticoTexto.trim()) { setEditDiagnosticoError('El diagnóstico no puede quedar vacío.'); return; }
+    const result = await dispatch(pagarDiagnosticoDeCita({ id: editandoDiagnosticoId, DiagnosticoNota: editDiagnosticoTexto.trim() }));
+    if (!result.error) {
+      setEditandoDiagnosticoId(null);
+      addToast({ type: 'success', message: 'Diagnóstico actualizado.' });
+      dispatch(fetchAgenda());
+    } else {
+      setEditDiagnosticoError(result.payload || 'No se pudo actualizar el diagnóstico.');
+    }
   };
 
   const openCancelar = (row) => { setConfirmCancelar(row); setMotivoCancelar(''); setCancelarError(''); };
@@ -450,6 +503,27 @@ export default function AgendaPage() {
     },
   ];
 
+  // Pestaña Diagnósticos: citas con el diagnóstico ya pagado (EstadoCita='Diagnosticada'),
+  // esperando a que se decida si se convierten en una Orden_de_Trabajo real o se eliminan.
+  const diagnosticosColumns = [
+    { key: '#', label: '#', width: '50px', render: (_, __, i) => i + 1 },
+    { key: 'Cliente',  label: 'Cliente',  render: (v, row) => v || getClienteNombre(row.Id_Cliente) },
+    { key: 'Vehiculo', label: 'Vehículo', render: (v, row) => v || getVehiculoPlaca(row.Id_Vehiculo) },
+    { key: 'Empleado', label: 'Empleado', render: (v, row) => v || getEmpleadoNombre(row.id_empleado || row.Id_Empleado) },
+    { key: 'FechaAgendamiento', label: 'Fecha', render: v => formatDate(v) },
+    { key: 'DiagnosticoNota', label: 'Diagnóstico', render: v => <span className="diag-cell">{v || '—'}</span> },
+    {
+      key: 'acciones', label: 'Acciones', render: (_, row) => (
+        <div className="table-actions">
+          <button className="btn btn--ghost btn--icon btn--sm" title="Ver detalle" onClick={() => setDetailId(row.Id_Agenda ?? row.id)}><MdVisibility size={17} /></button>
+          <button className="btn btn--ghost btn--icon btn--sm" title="Editar diagnóstico" disabled={!puedeEditar} onClick={() => openEditarDiagnostico(row)}><MdEdit size={17} /></button>
+          <button className="btn btn--ghost btn--icon btn--sm agenda-order-btn" title="Generar orden de trabajo" disabled={!puedeCrear} onClick={() => openGenerarOrden(row)}><MdAssignment size={17} /></button>
+          <button className="btn btn--ghost btn--icon btn--sm btn--danger-ghost" title="Eliminar diagnóstico" disabled={!puedeToggle} onClick={() => setConfirmEliminar(row)}><MdDeleteForever size={17} /></button>
+        </div>
+      )
+    },
+  ];
+
   return (
     <div className="page">
       <div className="page__header">
@@ -458,6 +532,9 @@ export default function AgendaPage() {
           <div className="agenda-vista-toggle">
             <button type="button" className={`agenda-vista-btn${vista === 'tabla' ? ' agenda-vista-btn--active' : ''}`} onClick={() => setVista('tabla')}>Tabla</button>
             <button type="button" className={`agenda-vista-btn${vista === 'calendario' ? ' agenda-vista-btn--active' : ''}`} onClick={() => setVista('calendario')}>Calendario</button>
+            <button type="button" className={`agenda-vista-btn${vista === 'diagnosticos' ? ' agenda-vista-btn--active' : ''}`} onClick={() => setVista('diagnosticos')}>
+              Diagnósticos{diagnosticos.length > 0 ? ` (${diagnosticos.length})` : ''}
+            </button>
           </div>
           <button className="btn btn--primary" onClick={openCreate} disabled={!puedeCrear}><MdAdd size={18} />Nueva cita</button>
         </div>
@@ -470,16 +547,20 @@ export default function AgendaPage() {
             placeholder="Buscar por cliente, vehículo..."
             filterSlot={
               <>
-                <select className="filter-select" value={empleadoFilter} onChange={e => setEmpleadoFilter(e.target.value)}>
-                  <option value="">Todos los empleados</option>
-                  {empleados.map(e => { const empId = e.Id_Empleado ?? e.id_empleado; return <option key={empId} value={empId}>{e.Nombre}</option>; })}
-                </select>
-                <select className="filter-select" value={citaEstadoFilter} onChange={e => setCitaEstadoFilter(e.target.value)}>
-                  <option value="todas">Todas las citas</option>
-                  <option value="pendientes">Pendientes</option>
-                  <option value="realizadas">Realizadas</option>
-                  <option value="canceladas">Canceladas</option>
-                </select>
+                {vista !== 'diagnosticos' && (
+                  <>
+                    <select className="filter-select" value={empleadoFilter} onChange={e => setEmpleadoFilter(e.target.value)}>
+                      <option value="">Todos los empleados</option>
+                      {empleados.map(e => { const empId = e.Id_Empleado ?? e.id_empleado; return <option key={empId} value={empId}>{e.Nombre}</option>; })}
+                    </select>
+                    <select className="filter-select" value={citaEstadoFilter} onChange={e => setCitaEstadoFilter(e.target.value)}>
+                      <option value="todas">Todas las citas</option>
+                      <option value="pendientes">Pendientes</option>
+                      <option value="realizadas">Realizadas</option>
+                      <option value="canceladas">Canceladas</option>
+                    </select>
+                  </>
+                )}
                 {vista === 'tabla' && (
                   <FilterDropdown
                     statusFilter={statusFilter}
@@ -492,9 +573,20 @@ export default function AgendaPage() {
             }
           />
         </div>
-        {vista === 'tabla' ? (
+        {vista === 'tabla' && (
           <Table columns={columns} rowKey="Id_Agenda" data={filtered} loading={loading} pageSize={pageSize} emptyMessage="No se encontraron citas" />
-        ) : (
+        )}
+        {vista === 'diagnosticos' && (
+          <Table
+            columns={diagnosticosColumns}
+            rowKey="Id_Agenda"
+            data={filterItems(diagnosticos, search, ['cliente', 'vehiculo', 'Cliente', 'Vehiculo'])}
+            loading={loading}
+            pageSize={pageSize}
+            emptyMessage="No hay diagnósticos pagados pendientes de convertir en orden"
+          />
+        )}
+        {vista === 'calendario' && (
           <div className="agenda-calendario">
             <div className="agenda-calendario__nav">
               <button type="button" className="btn btn--outline btn--sm" onClick={() => cambiarMes(-1)}>← Anterior</button>
@@ -578,6 +670,9 @@ export default function AgendaPage() {
             <div className="detail-item"><span className="detail-label">Tipo de cita</span><span className="detail-value">{detailItem.TipoCita === 'Diagnostico' ? 'Diagnóstico' : 'Mantenimiento'}</span></div>
             <div className="detail-item"><span className="detail-label">Estado de la cita</span><span className="detail-value"><CitaEstadoBadge estado={detailItem.EstadoCita || 'Pendiente'} /></span></div>
             <div className="detail-item"><span className="detail-label">Activa</span><span className="detail-value"><StatusBadge estado={detailItem.Estado} /></span></div>
+            {detailItem.DiagnosticoNota && (
+              <div className="detail-item u-span-2"><span className="detail-label">Diagnóstico</span><span className="detail-value">{detailItem.DiagnosticoNota}</span></div>
+            )}
           </div>
           {detailItem.EstadoCita === 'Cancelada' && (
             <div className="u-mt-lg" style={{ display: 'flex', gap: '0.5rem' }}>
@@ -586,6 +681,16 @@ export default function AgendaPage() {
               </button>
               <button className="btn btn--danger" disabled={!puedeToggle} onClick={() => setConfirmEliminar(detailItem)}>
                 <MdDeleteForever size={18} />Eliminar por completo
+              </button>
+            </div>
+          )}
+          {detailItem.EstadoCita === 'Diagnosticada' && (
+            <div className="u-mt-lg" style={{ display: 'flex', gap: '0.5rem' }}>
+              <button className="btn btn--primary" disabled={!puedeCrear} onClick={() => { setDetailId(null); openGenerarOrden(detailItem); }}>
+                <MdAssignment size={18} />Generar orden de trabajo
+              </button>
+              <button className="btn btn--danger" disabled={!puedeToggle} onClick={() => setConfirmEliminar(detailItem)}>
+                <MdDeleteForever size={18} />Eliminar
               </button>
             </div>
           )}
@@ -658,7 +763,15 @@ export default function AgendaPage() {
       </Modal>
 
       <Modal isOpen={showOrdenModal} onClose={() => setShowOrdenModal(false)} title="Generar orden de trabajo" size="md"
-        footer={<><button className="btn btn--outline" onClick={() => setShowOrdenModal(false)}>Cancelar</button><button className="btn btn--primary" onClick={handleOrdenSubmit} disabled={actionLoading}>{actionLoading ? 'Generando...' : 'Generar orden'}</button></>}
+        footer={<>
+          <button className="btn btn--outline" onClick={() => setShowOrdenModal(false)}>Cancelar</button>
+          {ordenCitaMeta.tipoCita === 'Diagnostico' && ordenCitaMeta.estadoCita !== 'Diagnosticada' && (
+            <button className="btn btn--outline" onClick={handlePagarDiagnostico} disabled={pagandoDiagnostico || actionLoading} title="Registra el diagnóstico como pagado, sin generar todavía la orden de trabajo">
+              {pagandoDiagnostico ? 'Guardando...' : 'Pagar diagnóstico'}
+            </button>
+          )}
+          <button className="btn btn--primary" onClick={handleOrdenSubmit} disabled={actionLoading}>{actionLoading ? 'Generando...' : 'Generar orden'}</button>
+        </>}
       >
         {ordenError && <div className="form-error-box">{ordenError}</div>}
         <form className="form-grid" onSubmit={handleOrdenSubmit} noValidate>
@@ -680,6 +793,16 @@ export default function AgendaPage() {
           <div className="form-group span-2"><label className="form-label">Diagnóstico <span className="required">*</span></label><textarea name="Diagnostico" className="form-control" value={ordenData.Diagnostico} onChange={handleOrdenChange} rows={3} maxLength={500} placeholder="Describe el diagnóstico..." /></div>
           <div className="form-group span-2"><label className="form-label">Kilometraje <span className="required">*</span></label><input name="Kilometraje" type="number" min={ordenVehiculoKm ?? 0} className="form-control" value={ordenData.Kilometraje} onChange={handleOrdenChange} placeholder="km actuales del vehículo" />{ordenVehiculoKm != null && <p className="form-hint">Último registrado del vehículo: {ordenVehiculoKm.toLocaleString('es-CO')} km. No puede ser menor.</p>}</div>
         </form>
+      </Modal>
+
+      <Modal isOpen={!!editandoDiagnosticoId} onClose={() => setEditandoDiagnosticoId(null)} title="Editar diagnóstico" size="sm"
+        footer={<><button className="btn btn--outline" onClick={() => setEditandoDiagnosticoId(null)}>Cancelar</button><button className="btn btn--primary" onClick={handleGuardarDiagnosticoEditado} disabled={actionLoading}>{actionLoading ? 'Guardando...' : 'Guardar'}</button></>}
+      >
+        {editDiagnosticoError && <div className="form-error-box">{editDiagnosticoError}</div>}
+        <div className="form-group">
+          <label className="form-label">Diagnóstico <span className="required">*</span></label>
+          <textarea className="form-control" value={editDiagnosticoTexto} onChange={e => setEditDiagnosticoTexto(e.target.value)} rows={4} maxLength={500} placeholder="Describe el diagnóstico..." />
+        </div>
       </Modal>
 
       <Modal
@@ -711,7 +834,7 @@ export default function AgendaPage() {
         isOpen={!!confirmEliminar}
         onClose={() => setConfirmEliminar(null)}
         onConfirm={handleEliminarCancelada}
-        title="Eliminar cita cancelada"
+        title={confirmEliminar?.EstadoCita === 'Diagnosticada' ? 'Eliminar diagnóstico' : 'Eliminar cita cancelada'}
         message="Esta acción borra la cita de forma definitiva y no se puede deshacer."
         confirmLabel="Eliminar definitivamente"
         danger
