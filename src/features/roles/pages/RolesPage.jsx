@@ -256,7 +256,10 @@ export default function RolesPage() {
     }
   };
 
-  const isSistema = (row) => row.EsSistema || row.Nombre === 'Administrador';
+  // Antes también protegía por nombre ('Administrador'), pero el backend nunca lo trató
+  // como especial (solo Super Administrador vía EsSuperAdmin/EsSistema) -- "Administrador"
+  // es un rol normal, editable y eliminable como cualquier otro.
+  const isSistema = (row) => row.EsSistema;
 
   const handleToggle = (rol) => {
     if (isSistema(rol)) return;

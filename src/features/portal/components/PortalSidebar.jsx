@@ -6,6 +6,7 @@ import {
   MdExitToApp, MdMenu, MdClose,
 } from 'react-icons/md';
 import { logout } from '../../auth/slices/authSlice.js';
+import PortalNotifBell from './PortalNotifBell.jsx';
 import '../../../shared/components/Sidebar/Sidebar.css';
 
 const NAV_ITEMS = [
@@ -53,9 +54,14 @@ export default function PortalSidebar({ activeTab, onTabChange }) {
               <span className="portal-sidebar__subtitle">Portal del Cliente</span>
             </div>
           </div>
-          <button className="portal-sidebar-close" onClick={() => setMobileOpen(false)} aria-label="Cerrar menú">
-            <MdClose size={18} />
-          </button>
+          <div className="sidebar__header-actions">
+            <div className="sidebar__header-bells">
+              <PortalNotifBell />
+            </div>
+            <button className="portal-sidebar-close" onClick={() => setMobileOpen(false)} aria-label="Cerrar menú">
+              <MdClose size={18} />
+            </button>
+          </div>
         </div>
 
         <nav className="sidebar__nav">
