@@ -895,7 +895,7 @@ export default function PortalPage() {
                 const nowMin = new Date().getHours() * 60 + new Date().getMinutes();
                 const duracionElegida = citaForm.TipoCita === 'Diagnostico' ? 45 : 60;
                 const opts = [];
-                for (let mins = ap; mins <= ci && !Number.isNaN(mins); mins += 30) {
+                for (let mins = ap; mins + duracionElegida <= ci && !Number.isNaN(mins); mins += 30) {
                   // Las horas ya pasadas del día de hoy no se muestran (antes solo
                   // se deshabilitaban con la etiqueta "(pasada)", pero seguían
                   // apareciendo en la lista).
