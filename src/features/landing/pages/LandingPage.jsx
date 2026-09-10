@@ -5,7 +5,7 @@ import {
   MdDirectionsCar, MdCheck, MdLocationOn, MdAccessTime, MdPhone, MdEmail,
   MdGroups, MdListAlt, MdMiscellaneousServices,
 } from 'react-icons/md';
-import { FiFacebook, FiInstagram, FiMessageSquare } from 'react-icons/fi';
+import { FiMessageSquare } from 'react-icons/fi';
 import api from '../../../shared/services/api.js';
 import './LandingPage.css';
 
@@ -33,13 +33,6 @@ const REASONS = [
   { num: '02', title: 'Tecnología de punta', desc: 'Herramientas y escáneres de última generación para diagnósticos precisos y rápidos.' },
   { num: '03', title: 'Transparencia total', desc: 'Te mostramos qué se hace y por qué. Sin cobros ocultos, sin sorpresas en la factura.' },
   { num: '04', title: 'Garantía real', desc: 'Todos nuestros servicios incluyen garantía por escrito. Tu tranquilidad es nuestra prioridad.' },
-];
-
-const TEAM = [
-  { name: 'Jair Calle', role: 'Jefe Mecánico', initials: 'JC' },
-  { name: 'Ana Martínez', role: 'Técnica Especialista', initials: 'AM' },
-  { name: 'Luis Herrera', role: 'Diagnóstico Electrónico', initials: 'LH' },
-  { name: 'Diana Torres', role: 'Recepcionista', initials: 'DT' },
 ];
 
 /* ─── Intersection Observer hook ───────────────────────────── */
@@ -141,7 +134,7 @@ export default function LandingPage() {
           </div>
 
           <div className={`landing-nav__links${menuOpen ? ' landing-nav__links--open' : ''}`}>
-            {[['servicios','Servicios'],['nosotros','Nosotros'],['equipo','Equipo'],['ubicacion','Ubicación']].map(([id,label]) => (
+            {[['servicios','Servicios'],['nosotros','Nosotros'],['ubicacion','Ubicación']].map(([id,label]) => (
               <button key={id} className="landing-nav__link" onClick={() => scrollTo(id)}>{label}</button>
             ))}
             <button className="landing-nav__link landing-nav__link--login" onClick={() => { setMenuOpen(false); navigate('/login'); }}>
@@ -327,30 +320,6 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ── EQUIPO ──────────────────────────────────────────── */}
-      <section id="equipo" className="landing-section landing-team">
-        <div className="landing-container">
-          <AnimSection>
-            <div className="landing-section__tag">Nuestro equipo</div>
-            <h2 className="landing-section__title landing-section__title--center">Personal altamente capacitado</h2>
-            <p className="landing-section__subtitle">
-              Profesionales con formación continua y certificaciones técnicas
-            </p>
-          </AnimSection>
-          <div className="landing-team__grid">
-            {TEAM.map((m, i) => (
-              <AnimSection key={m.name} delay={i * 70}>
-                <div className="landing-team-card">
-                  <div className="landing-team-card__avatar">{m.initials}</div>
-                  <h3 className="landing-team-card__name">{m.name}</h3>
-                  <p className="landing-team-card__role">{m.role}</p>
-                </div>
-              </AnimSection>
-            ))}
-          </div>
-        </div>
-      </section>
-
       {/* ── UBICACIÓN ───────────────────────────────────────── */}
       <section id="ubicacion" className="landing-section landing-location">
         <div className="landing-container">
@@ -427,22 +396,26 @@ export default function LandingPage() {
             </div>
             <div className="landing-footer__links">
               <strong>Navegación</strong>
-              {[['servicios','Servicios'],['nosotros','Nosotros'],['equipo','Equipo'],['ubicacion','Ubicación']].map(([id,label]) => (
+              {[['servicios','Servicios'],['nosotros','Nosotros'],['ubicacion','Ubicación']].map(([id,label]) => (
                 <button key={id} onClick={() => scrollTo(id)}>{label}</button>
               ))}
             </div>
             <div className="landing-footer__links">
               <strong>Acceso</strong>
               <button onClick={() => navigate('/login')}>Ingresar al sistema</button>
-              <button onClick={() => navigate('/portal')}>Portal del cliente</button>
             </div>
           </div>
           <div className="landing-footer__bottom">
             <span>© 2026 SIGOT Taller Automotriz. Todos los derechos reservados.</span>
             <div className="landing-footer__socials">
-              <span style={{display:'inline-flex',alignItems:'center',gap:'0.375rem'}}><FiMessageSquare size={14} /> WhatsApp</span>
-              <span style={{display:'inline-flex',alignItems:'center',gap:'0.375rem'}}><FiFacebook size={14} /> Facebook</span>
-              <span style={{display:'inline-flex',alignItems:'center',gap:'0.375rem'}}><FiInstagram size={14} /> Instagram</span>
+              <a
+                href="https://wa.me/573127582709"
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{display:'inline-flex',alignItems:'center',gap:'0.375rem'}}
+              >
+                <FiMessageSquare size={14} /> WhatsApp de Don Jair
+              </a>
             </div>
           </div>
         </div>

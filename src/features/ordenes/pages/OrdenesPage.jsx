@@ -571,8 +571,7 @@ export default function OrdenesPage() {
                   <option value="0">Inactivo</option>
                 </select>
                 <FilterDropdown
-                  statusFilter="todos"
-                  onStatusChange={() => {}}
+                  showStatus={false}
                   pageSize={pageSize}
                   onPageSizeChange={onPageSize}
                 />

@@ -174,7 +174,12 @@ export default function EmpleadosPage() {
   };
 
   const tiposDocOpts = tiposDoc.map(t => ({ value: String(t.Id_TipoDoc), label: t.Nombre }));
-  const rolesOpts    = roles.map(r => ({ value: String(r.Id_Rol), label: r.Nombre }));
+  // El rol "Súper Administrador" no es asignable al crear/editar empleados: es un rol
+  // de sistema protegido, así que se excluye de las opciones del selector.
+  const esRolSuperAdmin = (nombre) => /^s[uú]per\s*administrador$/i.test((nombre || '').trim());
+  const rolesOpts    = roles
+    .filter(r => !esRolSuperAdmin(r.Nombre))
+    .map(r => ({ value: String(r.Id_Rol), label: r.Nombre }));
 
   // "Sistema": solo el super admin protegido (Empleado.EsSistema o rol Super Administrador).
   // Sus filas no muestran acciones (eliminar/cambiar estado). Los demás admin sí se gestionan.

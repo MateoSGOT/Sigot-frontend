@@ -79,8 +79,8 @@ export default function ClientesPage() {
   }, [items]);
 
   // Reglas de validación (las de contraseña solo aplican al crear). El correo es
-  // obligatorio al crear (igual que el backend); al editar sigue siendo opcional para
-  // no romper clientes ya existentes que todavía no tienen uno cargado.
+  // OBLIGATORIO tanto al crear como al editar: no se permite guardar un cliente sin
+  // correo (es su usuario de acceso al portal).
   const rules = useMemo(() => {
     const r = {
       Id_TipoDoc: (v) => V.requiredSelect(v, 'El tipo de documento'),
@@ -88,7 +88,7 @@ export default function ClientesPage() {
       Nombre:     (v) => V.nombre(v, 3, 100),
       Telefono:   (v) => V.telefono(v, false),
       Direccion:  (v) => V.maxLen(v, 150, 'La dirección'),
-      Correo:     (v) => V.correo(v, !!editingId) || V.maxLen(v, 120, 'El correo'),
+      Correo:     (v) => V.correo(v, false) || V.maxLen(v, 120, 'El correo'),
     };
     if (!editingId) {
       r.Password = V.passwordFuerte;
@@ -310,9 +310,9 @@ export default function ClientesPage() {
             {fieldError('Direccion') && <p className="form-error">{fieldError('Direccion')}</p>}
           </div>
 
-          {/* 6. Correo (obligatorio al crear) */}
+          {/* 6. Correo (obligatorio al crear y al editar) */}
           <div className="form-group">
-            <label className="form-label">Correo electrónico {!editingId && <span className="required">*</span>}</label>
+            <label className="form-label">Correo electrónico <span className="required">*</span></label>
             <input name="Correo" type="email" className={`form-control ${fieldError('Correo') ? 'is-error' : ''}`}
               value={formData.Correo} onChange={handleFormChange} onBlur={handleBlur} maxLength={120} placeholder="correo@ejemplo.com" />
             {fieldError('Correo') && <p className="form-error">{fieldError('Correo')}</p>}

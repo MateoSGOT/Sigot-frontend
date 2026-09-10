@@ -16,6 +16,9 @@ export default function FilterDropdown({
   pageSize = 10,
   onPageSizeChange,
   statusOptions,
+  // showStatus=false → el dropdown solo controla "registros por página"
+  // (útil donde el estado se filtra con otro control, p. ej. Órdenes).
+  showStatus = true,
 }) {
   const [open, setOpen] = useState(false);
   const [customValue, setCustomValue] = useState('');
@@ -30,8 +33,13 @@ export default function FilterDropdown({
   }, []);
 
   const activeOptions = statusOptions || STATUS_OPTIONS;
-  const currentLabel = activeOptions.find(o => o.value === statusFilter)?.label || activeOptions[0]?.label || 'Todos';
-  const isStandardSize = PAGE_OPTIONS.includes(pageSize);
+  const defaultStatus = activeOptions[0]?.value;
+  const selectedStatus = activeOptions.find(o => o.value === statusFilter);
+  // El botón ya no "anuncia" el estado por defecto ("Todos"): solo muestra una
+  // etiqueta cuando hay un filtro real aplicado; si no, dice "Filtros".
+  const triggerLabel = (showStatus && selectedStatus && statusFilter !== defaultStatus)
+    ? selectedStatus.label
+    : 'Filtros';
 
   const applyCustom = () => {
     const n = parseInt(customValue, 10);
@@ -50,7 +58,7 @@ export default function FilterDropdown({
         type="button"
       >
         <MdTune size={15} />
-        <span>{currentLabel}</span>
+        <span>{triggerLabel}</span>
         <MdKeyboardArrowDown
           size={14}
           className={`fdd__arrow${open ? ' fdd__arrow--open' : ''}`}
@@ -59,23 +67,27 @@ export default function FilterDropdown({
 
       {open && (
         <div className="fdd__panel">
-          {/* Section 1: Status */}
-          <div className="fdd__section">
-            <p className="fdd__section-title">Estado</p>
-            {activeOptions.map(opt => (
-              <button
-                key={opt.value}
-                type="button"
-                className={`fdd__item${statusFilter === opt.value ? ' fdd__item--active' : ''}`}
-                onClick={() => onStatusChange(opt.value)}
-              >
-                {opt.label}
-                {statusFilter === opt.value && <MdCheck size={14} className="fdd__item-check" />}
-              </button>
-            ))}
-          </div>
+          {/* Section 1: Status (opcional) */}
+          {showStatus && (
+            <>
+              <div className="fdd__section">
+                <p className="fdd__section-title">Estado</p>
+                {activeOptions.map(opt => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    className={`fdd__item${statusFilter === opt.value ? ' fdd__item--active' : ''}`}
+                    onClick={() => onStatusChange(opt.value)}
+                  >
+                    {opt.label}
+                    {statusFilter === opt.value && <MdCheck size={14} className="fdd__item-check" />}
+                  </button>
+                ))}
+              </div>
 
-          <div className="fdd__divider" />
+              <div className="fdd__divider" />
+            </>
+          )}
 
           {/* Section 2: Page size */}
           <div className="fdd__section">
