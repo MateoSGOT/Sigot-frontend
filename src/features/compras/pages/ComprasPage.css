@@ -4,6 +4,17 @@
 .compra-anular-btn { color: var(--color-danger) !important; }
 .compra-anular-btn:hover { background: rgba(220,38,38,0.08) !important; }
 
+/* N.° de factura en la tabla: ancho máximo con elipsis para no alargar la columna
+   (el valor completo va en el tooltip y en el detalle). */
+.compra-nfactura {
+  display: inline-block;
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: bottom;
+}
+
 /* === Formulario multi-producto === */
 .compra-form { display: flex; flex-direction: column; gap: 1.25rem; }
 

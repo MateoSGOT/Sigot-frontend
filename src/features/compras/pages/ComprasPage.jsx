@@ -240,7 +240,9 @@ export default function ComprasPage() {
     { key: 'PrecioUnitario', label: 'Precio unitario', render: v => formatCurrency(v) },
     { key: 'total', label: 'Total', render: (_, row) => formatCurrency(Number(row.Cantidad || 0) * Number(row.PrecioUnitario || 0)) },
     { key: 'Fecha', label: 'Fecha', render: v => formatDate(v) },
-    { key: 'NumeroFactura', label: 'N.° factura', render: v => v || '—' },
+    // Se recorta con elipsis (ancho máximo) para que un n° de factura largo no alargue
+    // la tabla; el valor completo queda en el tooltip y en el detalle.
+    { key: 'NumeroFactura', label: 'N.° factura', render: v => v ? <span className="compra-nfactura" title={v}>{v}</span> : '—' },
     {
       key: 'Anulada', label: 'Estado', render: v =>
         v ? <Badge variant="gray">Anulada</Badge> : <Badge variant="success">Vigente</Badge>
