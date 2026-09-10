@@ -1,6 +1,6 @@
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { todayLocalYMD } from './helpers.js';
+import { todayLocalYMD, formatDate } from './helpers.js';
 
 /* ═══════════════════════════════════════════════════════════════════
    Facturas SIGOT — diseño alineado con la marca de la app, pero en
@@ -301,4 +301,51 @@ export function generarFacturaCompra(compra) {
   const doc = buildFacturaCompra(compra);
   const id = compra.Id_Compra || compra.id || '?';
   doc.save(`factura-compra-${id}-${todayLocalYMD()}.pdf`);
+}
+
+/* ═══════════════ DIAGNÓSTICO (impresión desde Diagnóstico/Orden) ═══════════════ */
+/* Documento enfocado SOLO en el diagnóstico: datos de cliente/vehículo, fecha y
+   el texto del diagnóstico (sin precios ni ítems, eso es la factura). Acepta tanto
+   una cita "Diagnosticada" como una orden. */
+export function buildDiagnostico(d) {
+  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+  const id = d.Id ?? d.Id_Agenda ?? d.Id_Orden ?? '?';
+
+  addHeader(doc, 'Diagnóstico', id, today());
+
+  let y = 46;
+  const colW = (RIGHT - M - 4) / 2;
+  const hCli = infoCard(doc, M, y, colW, 'Cliente', [
+    ['Nombre', d.Cliente || '—'],
+    ['Documento', d.ClienteDoc || '—'],
+    ['Teléfono', d.ClienteContacto || '—'],
+  ]);
+  const hVeh = infoCard(doc, M + colW + 4, y, colW, 'Vehículo', [
+    ['Placa', d.Vehiculo || '—'],
+    ['Marca', d.Marca || '—'],
+    ['Modelo', d.Modelo || '—'],
+  ]);
+  y += Math.max(hCli, hVeh) + 9;
+
+  const hDatos = infoCard(doc, M, y, RIGHT - M, 'Datos de la atención', [
+    ['Fecha', formatDate(d.Fecha)],
+    ['Empleado', d.Empleado || '—'],
+    ...(d.Kilometraje != null && d.Kilometraje !== '' ? [['Kilometraje', `${Number(d.Kilometraje).toLocaleString('es-CO')} km`]] : []),
+  ]);
+  y += hDatos + 9;
+
+  sectionLabel(doc, 'Diagnóstico', M, y); y += 6;
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(10.5); doc.setTextColor(...INK);
+  const diag = (d.Diagnostico && String(d.Diagnostico).trim()) || 'Sin diagnóstico registrado.';
+  const lines = doc.splitTextToSize(diag, RIGHT - M);
+  doc.text(lines, M, y);
+
+  addFooter(doc);
+  return doc;
+}
+
+export function generarDiagnosticoPDF(d) {
+  const doc = buildDiagnostico(d);
+  const id = d.Id ?? d.Id_Agenda ?? d.Id_Orden ?? '?';
+  doc.save(`diagnostico-${id}-${todayLocalYMD()}.pdf`);
 }

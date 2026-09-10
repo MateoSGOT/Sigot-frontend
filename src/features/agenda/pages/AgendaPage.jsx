@@ -1,14 +1,13 @@
 ﻿import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
-import { MdAdd, MdVisibility, MdEdit, MdAssignment, MdEventBusy, MdEventRepeat, MdDeleteForever } from 'react-icons/md';
+import { MdAdd, MdVisibility, MdEdit, MdAssignment, MdEventBusy, MdEventRepeat, MdDeleteForever, MdPrint } from 'react-icons/md';
 import { usePermiso } from '../../../shared/hooks/usePermiso.js';
 import { useBorradoReal } from '../../../shared/hooks/useBorradoReal.js';
 import { agendaService } from '../services/agendaService.js';
 import SearchableSelect from '../../../shared/components/SearchableSelect/SearchableSelect.jsx';
-import ToggleSwitch from '../../../shared/components/ToggleSwitch/ToggleSwitch.jsx';
 import EliminarRealModal from '../../../shared/components/EliminarRealModal/EliminarRealModal.jsx';
-import { fetchAgenda, createCita, updateCita, toggleCitaEstado, generarOrdenDeCita, pagarDiagnosticoDeCita, cancelarCita, deleteCita } from '../slices/agendaSlice.js';
+import { fetchAgenda, createCita, updateCita, generarOrdenDeCita, pagarDiagnosticoDeCita, cancelarCita, deleteCita } from '../slices/agendaSlice.js';
 import Modal from '../../../shared/components/Modal/Modal.jsx';
 import ConfirmDialog from '../../../shared/components/ConfirmDialog/ConfirmDialog.jsx';
 import { useToast } from '../../../shared/components/Toast/ToastContext.jsx';
@@ -17,6 +16,7 @@ import SearchBar from '../../../shared/components/SearchBar/SearchBar.jsx';
 import FilterDropdown from '../../../shared/components/FilterDropdown/FilterDropdown.jsx';
 import { StatusBadge } from '../../../shared/components/Badge/Badge.jsx';
 import { filterItems, sortNewestFirst, formatDate, todayLocalYMD, formatHora12 } from '../../../shared/utils/helpers.js';
+import { generarDiagnosticoPDF } from '../../../shared/utils/generarFacturaPDF.js';
 import api from '../../../shared/services/api.js';
 import './AgendaPage.css';
 
@@ -76,7 +76,6 @@ export default function AgendaPage() {
   const [ordenCitaId, setOrdenCitaId] = useState(null);
   const [ordenError, setOrdenError]   = useState('');
   const [ordenVehiculoKm, setOrdenVehiculoKm] = useState(null); // km actual del vehículo (odómetro)
-  const [diagnosticosVehiculo, setDiagnosticosVehiculo] = useState([]); // historial de diagnósticos previos del vehículo
   // Tipo/estado de la cita para la que está abierto el modal de "Generar orden" -- decide
   // si se muestra el botón "Pagar diagnóstico" (solo Diagnostico, aún no Diagnosticada).
   const [ordenCitaMeta, setOrdenCitaMeta] = useState({ tipoCita: 'Mantenimiento', estadoCita: 'Pendiente' });
@@ -200,11 +199,24 @@ export default function AgendaPage() {
   // se elige fecha). Bloquea asignar a alguien que estará ausente ese día.
   const empleadosBloqueados = empleadosBloqueadosEnFecha(formData.FechaAgendamiento || TODAY);
 
+  // Validación de la duración estimada en tiempo real: mínima 15 min y que la cita
+  // no termine después del horario de cierre del taller (límite de trabajo).
+  const duracionError = (() => {
+    const dur = Number(formData.DuracionEstimadaMin);
+    if (!formData.DuracionEstimadaMin) return '';
+    if (!Number.isFinite(dur) || dur < 15) return 'La duración mínima es de 15 minutos.';
+    if (formData.Hora) {
+      const fin = toMinHelper(formData.Hora) + dur;
+      if (fin > toMinHelper(horario.cierre)) return `Con esa duración la cita terminaría después del cierre (${formatHora12(horario.cierre)}).`;
+    }
+    return '';
+  })();
+
   // Validez de la cita en tiempo real: habilita "Guardar" solo cuando está completa
-  // y sin conflictos (fecha válida y empleado sin novedad en esa fecha).
+  // y sin conflictos (fecha válida, duración válida y empleado sin novedad en esa fecha).
   const citaValida = !!formData.Id_Cliente && !!formData.Id_Vehiculo && !!formData.id_empleado
     && !!formData.FechaAgendamiento && !!formData.Hora
-    && !fechaError && !empleadosBloqueados.has(String(formData.id_empleado))
+    && !fechaError && !duracionError && !empleadosBloqueados.has(String(formData.id_empleado))
     && !vehiculoElegidoConOrden;
 
   // Se incluye el Documento en la etiqueta (no solo el Nombre) para poder distinguir
@@ -363,6 +375,7 @@ export default function AgendaPage() {
       setFormError('Completa todos los campos obligatorios.'); return;
     }
     if (fechaError) { setFormError(fechaError); return; }
+    if (duracionError) { setFormError(duracionError); return; }
     if (empleadosBloqueados.has(String(formData.id_empleado))) {
       setFormError('El empleado seleccionado tiene una novedad en esa fecha y no puede ser asignado.'); return;
     }
@@ -388,14 +401,6 @@ export default function AgendaPage() {
     // no vuelve a escribir el mismo diagnóstico al generar la orden real.
     setOrdenData({ ...EMPTY_ORDEN, FechaIngreso: fechaCita, Diagnostico: item.DiagnosticoNota || '', Kilometraje: kmActual != null ? String(kmActual) : '' });
     setOrdenError(''); setShowOrdenModal(true);
-    // Diagnósticos de órdenes anteriores de este vehículo, para que el técnico los tenga
-    // en cuenta al escribir el diagnóstico nuevo (no parte de cero cada vez).
-    setDiagnosticosVehiculo([]);
-    if (item.Id_Vehiculo) {
-      api.get(`/api/vehiculos/${item.Id_Vehiculo}/diagnosticos`)
-        .then(r => setDiagnosticosVehiculo(r.data?.data || r.data || []))
-        .catch(() => {});
-    }
   };
   const handleOrdenChange = e => setOrdenData(p => ({ ...p, [e.target.name]: e.target.value }));
   const handleOrdenSubmit = async (e) => {
@@ -472,6 +477,25 @@ export default function AgendaPage() {
   const getVehiculoPlaca  = id => vehiculos.find(v => String(v.Id_Vehiculo) === String(id))?.Placa || `#${id}`;
   const getEmpleadoNombre = id => empleados.find(e => String(e.Id_Empleado ?? e.id_empleado) === String(id))?.Nombre || `#${id}`;
 
+  // Imprime el diagnóstico de una cita "Diagnosticada" (PDF minimalista), enriquecido
+  // con los datos de cliente/vehículo del catálogo ya cargado.
+  const printDiagnostico = (row) => {
+    const cli = clientes.find(c => String(c.Id_Cliente) === String(row.Id_Cliente));
+    const veh = vehiculos.find(v => String(v.Id_Vehiculo) === String(row.Id_Vehiculo));
+    generarDiagnosticoPDF({
+      Id: row.Id_Agenda ?? row.id,
+      Cliente: row.Cliente || cli?.Nombre || getClienteNombre(row.Id_Cliente),
+      ClienteDoc: cli?.Documento,
+      ClienteContacto: cli?.Telefono || cli?.Contacto,
+      Vehiculo: row.Vehiculo || veh?.Placa || getVehiculoPlaca(row.Id_Vehiculo),
+      Marca: veh?.Marca || veh?.marca?.Nombre,
+      Modelo: veh?.Modelo,
+      Empleado: row.Empleado || getEmpleadoNombre(row.id_empleado || row.Id_Empleado),
+      Fecha: row.FechaAgendamiento,
+      Diagnostico: row.DiagnosticoNota,
+    });
+  };
+
   const columns = [
     { key: '#', label: '#', width: '50px', render: (_, __, i) => i + 1 },
     { key: 'Cliente',  label: 'Cliente',  render: (v, row) => v || getClienteNombre(row.Id_Cliente) },
@@ -485,11 +509,13 @@ export default function AgendaPage() {
       key: 'acciones', label: 'Acciones', render: (_, row) => {
         const estadoCita = row.EstadoCita || 'Pendiente';
         const atendida = estadoCita === 'Atendida';
+        // Una cita en estado terminal (atendida, cancelada, no asistió o ya
+        // diagnosticada) no se puede editar.
+        const bloqueadaEdicion = ['Atendida', 'Cancelada', 'NoAsistio', 'Diagnosticada'].includes(estadoCita);
         return (
           <div className="table-actions">
-            <ToggleSwitch checked={row.Estado === 1} onChange={() => dispatch(toggleCitaEstado({ id: row.Id_Agenda || row.id, Estado: row.Estado === 1 ? 0 : 1 }))} disabled={!puedeToggle} />
             <button className="btn btn--ghost btn--icon btn--sm" title="Ver detalle" onClick={() => setDetailId(row.Id_Agenda ?? row.id)}><MdVisibility size={17} /></button>
-            <button className="btn btn--ghost btn--icon btn--sm" title="Editar" disabled={!puedeEditar || atendida} onClick={() => openEdit(row)}><MdEdit size={17} /></button>
+            <button className="btn btn--ghost btn--icon btn--sm" title="Editar" disabled={!puedeEditar || bloqueadaEdicion} onClick={() => openEdit(row)}><MdEdit size={17} /></button>
             <button className="btn btn--ghost btn--icon btn--sm agenda-order-btn" title="Generar orden" disabled={atendida || estadoCita === 'Cancelada'} onClick={() => openGenerarOrden(row)}><MdAssignment size={17} /></button>
             {CITA_CANCELABLE(estadoCita) && (
               <button className="btn btn--ghost btn--icon btn--sm" title="Cancelar cita" disabled={!puedeToggle} onClick={() => openCancelar(row)}><MdEventBusy size={17} /></button>
@@ -516,6 +542,7 @@ export default function AgendaPage() {
       key: 'acciones', label: 'Acciones', render: (_, row) => (
         <div className="table-actions">
           <button className="btn btn--ghost btn--icon btn--sm" title="Ver detalle" onClick={() => setDetailId(row.Id_Agenda ?? row.id)}><MdVisibility size={17} /></button>
+          <button className="btn btn--ghost btn--icon btn--sm" title="Imprimir diagnóstico" onClick={() => printDiagnostico(row)}><MdPrint size={17} /></button>
           <button className="btn btn--ghost btn--icon btn--sm" title="Editar diagnóstico" disabled={!puedeEditar} onClick={() => openEditarDiagnostico(row)}><MdEdit size={17} /></button>
           <button className="btn btn--ghost btn--icon btn--sm agenda-order-btn" title="Generar orden de trabajo" disabled={!puedeCrear} onClick={() => openGenerarOrden(row)}><MdAssignment size={17} /></button>
           <button className="btn btn--ghost btn--icon btn--sm btn--danger-ghost" title="Eliminar diagnóstico" disabled={!puedeToggle} onClick={() => setConfirmEliminar(row)}><MdDeleteForever size={17} /></button>
@@ -551,7 +578,7 @@ export default function AgendaPage() {
                   <>
                     <select className="filter-select" value={empleadoFilter} onChange={e => setEmpleadoFilter(e.target.value)}>
                       <option value="">Todos los empleados</option>
-                      {empleados.map(e => { const empId = e.Id_Empleado ?? e.id_empleado; return <option key={empId} value={empId}>{e.Nombre}</option>; })}
+                      {empleados.filter(esMecanicoOTecnico).map(e => { const empId = e.Id_Empleado ?? e.id_empleado; return <option key={empId} value={empId}>{e.Nombre}</option>; })}
                     </select>
                     <select className="filter-select" value={citaEstadoFilter} onChange={e => setCitaEstadoFilter(e.target.value)}>
                       <option value="todas">Todas las citas</option>
@@ -685,7 +712,10 @@ export default function AgendaPage() {
             </div>
           )}
           {detailItem.EstadoCita === 'Diagnosticada' && (
-            <div className="u-mt-lg" style={{ display: 'flex', gap: '0.5rem' }}>
+            <div className="u-mt-lg" style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+              <button className="btn btn--outline" onClick={() => printDiagnostico(detailItem)}>
+                <MdPrint size={18} />Imprimir diagnóstico
+              </button>
               <button className="btn btn--primary" disabled={!puedeCrear} onClick={() => { setDetailId(null); openGenerarOrden(detailItem); }}>
                 <MdAssignment size={18} />Generar orden de trabajo
               </button>
@@ -708,6 +738,14 @@ export default function AgendaPage() {
               value={formData.TipoCita}
               onChange={v => handleChange({ target: { name: 'TipoCita', value: v } })}
             />
+          </div>
+          <div className="form-group span-2">
+            <label className="form-label">Duración estimada (min)</label>
+            <div className="agenda-duracion-row">
+              <input name="DuracionEstimadaMin" type="number" min="15" step="15" className={`form-control agenda-duracion-input${duracionError ? ' is-error' : ''}`} value={formData.DuracionEstimadaMin} onChange={handleChange} placeholder="60" />
+              <p className="form-hint agenda-duracion-hint">Diagnóstico 45 min · mantenimiento 60. No puede terminar después del cierre ({formatHora12(horario.cierre)}).</p>
+            </div>
+            {duracionError && <p className="form-error">{duracionError}</p>}
           </div>
           <div className="form-group span-2">
             <label className="form-label">Empleado <span className="required">*</span></label>
@@ -755,10 +793,6 @@ export default function AgendaPage() {
               <p className="form-hint">Este empleado ya tiene {citasDelDiaEmpleado.length} cita(s) ese día; las horas que chocan con su duración estimada no aparecen en la lista.</p>
             )}
           </div>
-          <div className="form-group"><label className="form-label">Duración estimada (min)</label>
-            <input name="DuracionEstimadaMin" type="number" min="1" step="15" className="form-control" value={formData.DuracionEstimadaMin} onChange={handleChange} placeholder="60" />
-            <p className="form-hint">Evita solapar al mismo empleado. Diagnóstico: 45 min por defecto; mantenimiento: 60.</p>
-          </div>
         </form>
       </Modal>
 
@@ -777,19 +811,6 @@ export default function AgendaPage() {
         <form className="form-grid" onSubmit={handleOrdenSubmit} noValidate>
           <div className="form-group"><label className="form-label">Fecha de ingreso</label><input type="text" className="form-control" value={ordenData.FechaIngreso ? formatDate(ordenData.FechaIngreso) : '—'} readOnly disabled title="Tomada de la fecha de la cita; no editable" /><p className="form-hint">Es la fecha de la cita de origen.</p></div>
           <div className="form-group"><label className="form-label">Fecha de entrega <span className="required">*</span></label><input name="FechaEntrega" type="date" className="form-control" value={ordenData.FechaEntrega} onChange={handleOrdenChange} min={ordenData.FechaIngreso || TODAY} /></div>
-          {diagnosticosVehiculo.length > 0 && (
-            <div className="form-group span-2">
-              <p className="form-hint u-mb-sm">Diagnósticos anteriores de este vehículo (para tenerlos en cuenta):</p>
-              <div className="agenda-diagnosticos-previos">
-                {diagnosticosVehiculo.map(d => (
-                  <div key={d.Id_Orden} className="agenda-diagnosticos-previos__item">
-                    <span className="agenda-diagnosticos-previos__fecha">Orden #{d.Id_Orden} · {formatDate(d.FechaIngreso)}</span>
-                    <span>{d.Diagnostico}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
           <div className="form-group span-2"><label className="form-label">Diagnóstico <span className="required">*</span></label><textarea name="Diagnostico" className="form-control" value={ordenData.Diagnostico} onChange={handleOrdenChange} rows={3} maxLength={500} placeholder="Describe el diagnóstico..." /></div>
           <div className="form-group span-2"><label className="form-label">Kilometraje <span className="required">*</span></label><input name="Kilometraje" type="number" min={ordenVehiculoKm ?? 0} className="form-control" value={ordenData.Kilometraje} onChange={handleOrdenChange} placeholder="km actuales del vehículo" />{ordenVehiculoKm != null && <p className="form-hint">Último registrado del vehículo: {ordenVehiculoKm.toLocaleString('es-CO')} km. No puede ser menor.</p>}</div>
         </form>
