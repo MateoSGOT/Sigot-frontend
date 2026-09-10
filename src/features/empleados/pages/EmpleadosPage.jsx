@@ -18,7 +18,7 @@ import { StatusBadge } from '../../../shared/components/Badge/Badge.jsx';
 import Badge from '../../../shared/components/Badge/Badge.jsx';
 import SearchableSelect from '../../../shared/components/SearchableSelect/SearchableSelect.jsx';
 import ImageUploader from '../../../shared/components/ImageUploader/ImageUploader.jsx';
-import { sortByStatus, sortNewestFirst, filterItems, formatDate } from '../../../shared/utils/helpers.js';
+import { sortByStatus, sortNewestFirst, filterItems, formatDate, todayLocalYMD } from '../../../shared/utils/helpers.js';
 import * as V from '../../../shared/utils/validators.js';
 import { useFormValidation } from '../../../shared/hooks/useFormValidation.js';
 import api from '../../../shared/services/api.js';
@@ -109,7 +109,14 @@ export default function EmpleadosPage() {
   }, [dispatch]);
 
 
-  const getEmpNovedades = (id) => novedades.filter(n => n.id_empleado === id || n.Id_Empleado === id);
+  // Solo novedades activas Y aún vigentes (fin >= hoy): una novedad inactiva o ya vencida
+  // no debe seguir mostrando alerta en el empleado.
+  const getEmpNovedades = (id) => novedades.filter(n => {
+    if (!(n.id_empleado === id || n.Id_Empleado === id)) return false;
+    if (!(n.Estado === true || n.Estado === 1)) return false;
+    const fin = (n.FechaRealizacion || n.Fecha_Novedad || '').split('T')[0];
+    return !fin || fin >= todayLocalYMD();
+  });
 
   const filtered = (() => {
     let list = items;

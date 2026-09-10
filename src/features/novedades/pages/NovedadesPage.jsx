@@ -26,6 +26,8 @@ const RULES = {
   Descripcion: (v) => V.required(v, 'La descripción') || V.maxLen(v, 500, 'La descripción'),
   // Por defecto es hoy, pero editable hacia el futuro (incapacidad/permiso).
   Fecha_Novedad: (v) => V.requiredSelect(v, 'La fecha de la novedad'),
+  // La fecha de fin es obligatoria: toda novedad debe tener vencimiento.
+  FechaRealizacion: (v) => V.requiredSelect(v, 'La fecha de fin'),
 };
 
 export default function NovedadesPage() {
@@ -39,6 +41,7 @@ export default function NovedadesPage() {
   const del = useBorradoReal(novedadesService, { entidadLabel: 'novedad', onDeleted: () => dispatch(fetchNovedades()) });
   const [empleados, setEmpleados] = useState([]);
   const [search, setSearch]       = useState('');
+  const [empleadoFilter, setEmpleadoFilter] = useState('');
   const [pageSize, setPageSize]   = useState(5);
   const [detailItem, setDetailItem] = useState(null);
   const [formData, setFormData]   = useState(EMPTY);
@@ -58,7 +61,18 @@ export default function NovedadesPage() {
     return e?.Nombre || `Empleado #${id}`;
   };
 
-  const filtered = sortNewestFirst(filterItems(items, search, ['Descripcion']), 'Id_Novedad');
+  // Búsqueda por descripción O por nombre de empleado, y filtro por empleado
+  // (incluye inactivos, para poder revisar sus novedades).
+  const filtered = (() => {
+    const term = search.trim().toLowerCase();
+    let list = items;
+    if (empleadoFilter) list = list.filter(n => String(n.id_empleado ?? n.Id_Empleado) === empleadoFilter);
+    if (term) list = list.filter(n =>
+      (n.Descripcion || '').toLowerCase().includes(term) ||
+      getEmpleadoNombre(n.id_empleado ?? n.Id_Empleado).toLowerCase().includes(term)
+    );
+    return sortNewestFirst(list, 'Id_Novedad');
+  })();
 
   // La fecha de la novedad se ingresa manualmente (puede ser futura: incapacidad/permiso).
   const openCreate = () => { setFormData(EMPTY); setEditingId(null); setFormError(''); reset(); setShowForm(true); };
@@ -120,9 +134,7 @@ export default function NovedadesPage() {
       id_empleado:   Number(formData.id_empleado),
       Descripcion:   formData.Descripcion,
       Fecha_Novedad: new Date(formData.Fecha_Novedad).toISOString(),
-      ...(formData.FechaRealizacion
-        ? { FechaRealizacion: new Date(formData.FechaRealizacion).toISOString() }
-        : {}),
+      FechaRealizacion: new Date(formData.FechaRealizacion).toISOString(),
       // null limpia el rango horario al editar (backend: HoraInicio/HoraFin ambas o ninguna).
       HoraInicio: formData.HoraInicio || null,
       HoraFin:    formData.HoraFin    || null,
@@ -189,12 +201,17 @@ export default function NovedadesPage() {
             onChange={setSearch}
             placeholder="Buscar por descripción..."
             filterSlot={
-              <FilterDropdown
-                statusFilter="todos"
-                onStatusChange={() => {}}
-                pageSize={pageSize}
-                onPageSizeChange={setPageSize}
-              />
+              <>
+                <select className="filter-select" value={empleadoFilter} onChange={e => setEmpleadoFilter(e.target.value)}>
+                  <option value="">Todos los empleados</option>
+                  {empleados.map(e => {
+                    const eid = e.id_empleado ?? e.Id_Empleado;
+                    const inactivo = e.Estado === 0 || e.Estado === false;
+                    return <option key={eid} value={eid}>{e.Nombre}{inactivo ? ' (inactivo)' : ''}</option>;
+                  })}
+                </select>
+                <FilterDropdown showStatus={false} pageSize={pageSize} onPageSizeChange={setPageSize} />
+              </>
             }
           />
         </div>
@@ -238,9 +255,10 @@ export default function NovedadesPage() {
             <p className="form-hint">Puede ser hoy o una fecha futura (incapacidad o permiso).</p>
           </div>
           <div className="form-group">
-            <label className="form-label">Fecha de fin (realización)</label>
-            <input name="FechaRealizacion" type="date" className="form-control" value={formData.FechaRealizacion} onChange={handleChange} min={formData.Fecha_Novedad || TODAY} />
-            <p className="form-hint">Fin de la incapacidad o permiso (opcional).</p>
+            <label className="form-label">Fecha de fin (realización) <span className="required">*</span></label>
+            <input name="FechaRealizacion" type="date" className={`form-control ${fieldError('FechaRealizacion') ? 'is-error' : ''}`} value={formData.FechaRealizacion} onChange={handleChange} onBlur={handleBlur} min={formData.Fecha_Novedad || TODAY} />
+            {fieldError('FechaRealizacion') && <p className="form-error">{fieldError('FechaRealizacion')}</p>}
+            <p className="form-hint">Fin de la incapacidad o permiso. Al pasar esta fecha, la novedad deja de estar vigente.</p>
           </div>
           <div className="form-group">
             <label className="form-label">Hora de inicio</label>

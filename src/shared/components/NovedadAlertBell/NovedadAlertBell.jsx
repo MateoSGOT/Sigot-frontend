@@ -3,8 +3,16 @@ import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { MdNotificationsActive, MdWarning } from 'react-icons/md';
 import api from '../../services/api.js';
+import { todayLocalYMD } from '../../utils/helpers.js';
 import Skeleton from '../Skeleton/Skeleton.jsx';
 import './NovedadAlertBell.css';
+
+// Una novedad sigue "vigente" si su fecha de fin (FechaRealizacion, o Fecha_Novedad si no
+// tiene fin) es hoy o posterior. Las ya vencidas no deben aparecer en la campana.
+const esNovedadVigente = (n) => {
+  const fin = (n.FechaRealizacion || n.Fecha_Novedad || '').split('T')[0];
+  return !fin || fin >= todayLocalYMD();
+};
 
 // Campana de novedades activas para Administrador/Super Administrador -- mismo patrón
 // que StockAlertBell (fetch al montar, dropdown en portal, click navega a la lista).
@@ -25,7 +33,8 @@ export default function NovedadAlertBell() {
     try {
       const r = await api.get('/api/novedades');
       const data = r.data?.data || [];
-      setItems(data.filter(n => n.Estado === true || n.Estado === 1));
+      // Solo novedades activas Y aún vigentes (las vencidas dejan de aparecer).
+      setItems(data.filter(n => (n.Estado === true || n.Estado === 1) && esNovedadVigente(n)));
     } catch { /* silencioso */ }
     finally { setLoading(false); }
   };

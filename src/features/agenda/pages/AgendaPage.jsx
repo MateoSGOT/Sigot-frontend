@@ -131,14 +131,22 @@ export default function AgendaPage() {
     const fin    = (n.FechaRealizacion || '').split('T')[0] || inicio;
     return !!inicio && ymd >= inicio && ymd <= fin;
   };
-  // Cualquier novedad activa que cubra la fecha (día completo o solo un rango
-  // de horas) excluye al empleado por completo del select ese día -- no
-  // aparece para crear ni para editar una cita.
+  // Solo las novedades de DÍA COMPLETO (sin rango horario) excluyen al empleado del select
+  // ese día. Las novedades con rango de horas NO lo excluyen: solo bloquean esas horas
+  // puntuales (ver novedadRangosDe / horaOcupada más abajo).
   const empleadosBloqueadosEnFecha = (ymd) => new Set(
     (ymd ? novedades : [])
-      .filter(n => n.Estado !== 0 && n.Estado !== false && fechaEnNovedad(n, ymd))
+      .filter(n => n.Estado !== 0 && n.Estado !== false && fechaEnNovedad(n, ymd) && !(n.HoraInicio && n.HoraFin))
       .map(n => String(n.id_empleado ?? n.Id_Empleado))
   );
+
+  // Rangos horarios de las novedades activas de un empleado en una fecha (las que SÍ tienen
+  // HoraInicio/HoraFin). Se usan para bloquear solo esas horas, no el día entero.
+  const novedadRangosDe = (idEmpleado, ymd) => (novedades || [])
+    .filter(n => n.Estado !== 0 && n.Estado !== false
+      && String(n.id_empleado ?? n.Id_Empleado) === String(idEmpleado)
+      && fechaEnNovedad(n, ymd) && n.HoraInicio && n.HoraFin)
+    .map(n => ({ ini: toMinHelper(n.HoraInicio), fin: toMinHelper(n.HoraFin) }));
 
   const esActivo = (x) => x?.Estado !== false && x?.Estado !== 0; // excluye inactivos (B4)
   // Aviso EN TIEMPO REAL (no solo al guardar): el vehículo elegido tiene una orden de
@@ -178,14 +186,21 @@ export default function AgendaPage() {
   const citasDelDiaEmpleado = formData.id_empleado && formData.FechaAgendamiento
     ? citasDelDiaDe(formData.id_empleado, formData.FechaAgendamiento)
     : [];
+  // Rangos de novedad del empleado elegido ese día: sus horas quedan bloqueadas (pero el
+  // resto del día sigue disponible).
+  const novedadRangosEmpleado = formData.id_empleado && formData.FechaAgendamiento
+    ? novedadRangosDe(formData.id_empleado, formData.FechaAgendamiento)
+    : [];
   const horaOcupada = (h) => {
     const inicio = toMinHelper(h);
     const fin = inicio + duracionActual;
-    return citasDelDiaEmpleado.some(c => {
+    const chocaCita = citasDelDiaEmpleado.some(c => {
       const cIni = toMinHelper(c.Hora);
       const cFin = cIni + Number(c.DuracionEstimadaMin || 60);
       return inicio < cFin && cIni < fin;
     });
+    const chocaNovedad = novedadRangosEmpleado.some(r => inicio < r.fin && r.ini < fin);
+    return chocaCita || chocaNovedad;
   };
   // Un empleado sin ningún hueco de `duracionActual` minutos libre esa fecha (dentro del
   // horario de atención) no debe aparecer como elegible -- de nada sirve dejarlo en la
