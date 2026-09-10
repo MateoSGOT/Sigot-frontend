@@ -8,17 +8,13 @@ import { todayLocalYMD } from './helpers.js';
    que va toda a blanco y negro para no gastar tinta de color.
    ═══════════════════════════════════════════════════════════════════ */
 
-// Paleta en escala de grises (misma jerarquía tonal que la de color, sin
-// usar tinta de color en ningún cartucho).
-const NAVY    = [20, 20, 20];     // banda superior (antes azul marino)
-const EMERALD = [70, 70, 70];     // acento principal (antes esmeralda)
-const MINT    = [150, 150, 150];  // acento claro (antes verde menta)
-const INK     = [20, 20, 20];     // texto principal
-const MUTED   = [110, 110, 110];  // texto secundario
-const LINE    = [225, 225, 225];  // bordes
-const SOFT    = [246, 246, 246];  // fondos suaves / filas alternas
-const WHITE   = [255, 255, 255];
-const ONNAVY  = [210, 210, 210];  // texto tenue sobre la banda superior
+// Escala de grises minimalista: texto negro sobre blanco y reglas finas.
+// Sin bandas ni cajas rellenas → mínimo consumo de tinta al imprimir.
+const INK   = [30, 30, 30];    // texto principal y títulos
+const MUTED = [120, 120, 120]; // texto secundario
+const LINE  = [200, 200, 200]; // reglas / bordes finos
+const HAIR  = [232, 232, 232]; // líneas de tabla (muy tenues)
+const WHITE = [255, 255, 255]; // relleno "vacío" de cabeceras de tabla
 
 const PAGE_W = 210;
 const M = 14;                     // margen lateral
@@ -30,36 +26,33 @@ const fmt = (n) =>
 
 const today = () => new Date().toLocaleDateString('es-CO');
 
-/* ── Encabezado: banda navy + wordmark + franja esmeralda ── */
+/* ── Encabezado: wordmark + tipo + N°/fecha con una regla fina (sin banda). ── */
 function addHeader(doc, tipo, numero, fecha) {
-  doc.setFillColor(...NAVY);
-  doc.rect(0, 0, PAGE_W, 34, 'F');
-  doc.setFillColor(...EMERALD);
-  doc.rect(0, 34, PAGE_W, 1.6, 'F');
-
   // Wordmark
-  doc.setTextColor(...WHITE);
+  doc.setTextColor(...INK);
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(22);
-  doc.text('SIGOT', M, 16);
-  // subrayado mint bajo el wordmark
-  doc.setFillColor(...MINT);
-  doc.roundedRect(M, 19, 22, 1.2, 0.6, 0.6, 'F');
+  doc.setFontSize(21);
+  doc.text('SIGOT', M, 18);
   // tipo de documento
-  doc.setTextColor(...MINT);
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(10);
-  doc.text(tipo, M, 27);
+  doc.setTextColor(...MUTED);
+  doc.text(tipo, M, 25);
 
   // Derecha: número y fecha
-  doc.setTextColor(...WHITE);
+  doc.setTextColor(...INK);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(12);
-  doc.text(`N° ${numero}`, RIGHT, 15, { align: 'right' });
+  doc.text(`N° ${numero}`, RIGHT, 16, { align: 'right' });
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(9);
-  doc.setTextColor(...ONNAVY);
+  doc.setTextColor(...MUTED);
   doc.text(`Fecha: ${fecha}`, RIGHT, 22, { align: 'right' });
+
+  // Regla fina bajo el encabezado
+  doc.setDrawColor(...LINE);
+  doc.setLineWidth(0.3);
+  doc.line(M, 30, RIGHT, 30);
 }
 
 /* ── Tarjeta de información (Proveedor / Cliente / Vehículo) ── */
@@ -67,15 +60,12 @@ function infoCard(doc, x, y, w, title, rows) {
   const padX = 7, padTop = 6, lineH = 5.4;
   const h = padTop + 5 + rows.length * lineH + 2.5;
 
-  doc.setFillColor(...SOFT);
+  // Solo trazo fino, sin relleno ni barra de acento (mínima tinta).
   doc.setDrawColor(...LINE);
   doc.setLineWidth(0.2);
-  doc.roundedRect(x, y, w, h, 2.5, 2.5, 'FD');
-  // acento izquierdo esmeralda (recto para no salir del redondeo)
-  doc.setFillColor(...EMERALD);
-  doc.rect(x, y + 2.5, 1.8, h - 5, 'F');
+  doc.roundedRect(x, y, w, h, 2, 2, 'S');
 
-  doc.setTextColor(...EMERALD);
+  doc.setTextColor(...INK);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(8.5);
   doc.text(title.toUpperCase(), x + padX, y + padTop + 1);
@@ -98,7 +88,7 @@ function infoCard(doc, x, y, w, title, rows) {
 
 /* ── Etiqueta de sección ── */
 function sectionLabel(doc, text, x, y) {
-  doc.setTextColor(...EMERALD);
+  doc.setTextColor(...INK);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(9);
   doc.text(text.toUpperCase(), x, y);
@@ -117,18 +107,20 @@ function summary(doc, y, rows) {
   return y;
 }
 
-/* ── Caja de TOTAL (esmeralda, a la derecha) ── */
+/* ── Total: regla fina + texto en negrita (sin caja rellena). ── */
 function totalBox(doc, y, amount) {
-  const boxW = 82, x = RIGHT - boxW, h = 14;
-  doc.setFillColor(...EMERALD);
-  doc.roundedRect(x, y, boxW, h, 2.5, 2.5, 'F');
-  doc.setTextColor(...WHITE);
+  const x = 120;
+  doc.setDrawColor(...INK);
+  doc.setLineWidth(0.4);
+  doc.line(x, y, RIGHT, y);
+  y += 7;
+  doc.setTextColor(...INK);
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(10.5);
-  doc.text('TOTAL', x + 7, y + h / 2, { baseline: 'middle' });
-  doc.setFontSize(14);
-  doc.text(fmt(amount), RIGHT - 7, y + h / 2, { align: 'right', baseline: 'middle' });
-  return y + h;
+  doc.setFontSize(11);
+  doc.text('TOTAL', x, y);
+  doc.setFontSize(13);
+  doc.text(fmt(amount), RIGHT, y, { align: 'right' });
+  return y + 3;
 }
 
 /* ── Pie de página ── */
@@ -147,13 +139,13 @@ function addFooter(doc) {
   }
 }
 
-/* Estilos de tabla compartidos (cabecera esmeralda, filas alternas suaves) */
+/* Estilos de tabla: cuadrícula muy tenue, cabecera SIN relleno (solo negrita).
+   Sin filas alternas → nada de fondos = mínima tinta. */
 const tableBase = {
-  theme: 'striped',
-  headStyles: { fillColor: EMERALD, textColor: WHITE, fontStyle: 'bold', fontSize: 9.5, cellPadding: 3 },
-  bodyStyles: { fontSize: 9.5, textColor: INK, cellPadding: 2.8 },
-  alternateRowStyles: { fillColor: SOFT },
-  styles: { lineColor: LINE, lineWidth: 0.1 },
+  theme: 'grid',
+  styles: { lineColor: HAIR, lineWidth: 0.1, textColor: INK },
+  headStyles: { fillColor: WHITE, textColor: INK, fontStyle: 'bold', fontSize: 9.5, cellPadding: 2.8, lineColor: LINE, lineWidth: 0.1 },
+  bodyStyles: { fontSize: 9.5, textColor: INK, cellPadding: 2.6 },
   margin: { left: M, right: M },
 };
 
