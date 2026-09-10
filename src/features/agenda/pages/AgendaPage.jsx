@@ -1,7 +1,7 @@
 ﻿import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
-import { MdAdd, MdVisibility, MdEdit, MdAssignment, MdEventBusy, MdEventRepeat, MdDeleteForever, MdPrint } from 'react-icons/md';
+import { MdAdd, MdVisibility, MdEdit, MdAssignment, MdEventBusy, MdEventRepeat, MdDeleteForever, MdPrint, MdDeleteSweep } from 'react-icons/md';
 import { usePermiso } from '../../../shared/hooks/usePermiso.js';
 import { useBorradoReal } from '../../../shared/hooks/useBorradoReal.js';
 import { agendaService } from '../services/agendaService.js';
@@ -84,6 +84,13 @@ export default function AgendaPage() {
   const [editDiagnosticoTexto, setEditDiagnosticoTexto] = useState('');
   const [editDiagnosticoError, setEditDiagnosticoError] = useState('');
   const [horario, setHorario] = useState({ apertura: '08:00', cierre: '18:00', diasLaborales: [1, 2, 3, 4, 5, 6] });
+  // Limpieza de citas antiguas (superadmin)
+  const [showLimpieza, setShowLimpieza]       = useState(false);
+  const [limpiezaDias, setLimpiezaDias]       = useState('90');
+  const [limpiezaInfo, setLimpiezaInfo]       = useState(null); // { total, textoConfirmacion }
+  const [limpiezaConfirm, setLimpiezaConfirm] = useState('');
+  const [limpiezaError, setLimpiezaError]     = useState('');
+  const [limpiezaLoading, setLimpiezaLoading] = useState(false);
 
   const cargarNovedades = () => api.get('/api/novedades').then(r => setNovedades(r.data?.data || r.data || [])).catch(() => {});
 
@@ -95,6 +102,19 @@ export default function AgendaPage() {
     api.get('/api/empleados').then(r => setEmpleados(r.data?.data || r.data || [])).catch(() => {});
     cargarNovedades();
   }, [dispatch]);
+
+  // Preview de la limpieza: recalcula cuántas citas se borrarían al abrir el modal
+  // o al cambiar el período elegido.
+  useEffect(() => {
+    if (!showLimpieza) return;
+    const dias = Number(limpiezaDias);
+    if (!Number.isInteger(dias) || dias < 1) { setLimpiezaInfo(null); return; }
+    let cancel = false;
+    agendaService.limpiezaPreview(dias)
+      .then(d => { if (!cancel) setLimpiezaInfo(d); })
+      .catch(() => { if (!cancel) setLimpiezaInfo(null); });
+    return () => { cancel = true; };
+  }, [showLimpieza, limpiezaDias]);
 
   // Actualización en tiempo real: refresca la lista sola, salvo con algún
   // modal de creación/edición/cancelación abierto (no interrumpe al usuario).
@@ -394,12 +414,10 @@ export default function AgendaPage() {
     const veh = vehiculos.find(v => String(v.Id_Vehiculo) === String(item.Id_Vehiculo));
     const kmActual = veh && veh.Kilometraje != null ? Number(veh.Kilometraje) : null;
     setOrdenVehiculoKm(kmActual);
-    // La fecha de ingreso de la orden ES la fecha de la cita de origen (no editable):
-    // la orden nace de esa cita. El backend la fija autoritativamente igual.
-    const fechaCita = (item.FechaAgendamiento || '').split('T')[0] || TODAY;
-    // Si la cita ya pasó por "Pagar diagnóstico", se prellena con esa nota -- el técnico
-    // no vuelve a escribir el mismo diagnóstico al generar la orden real.
-    setOrdenData({ ...EMPTY_ORDEN, FechaIngreso: fechaCita, Diagnostico: item.DiagnosticoNota || '', Kilometraje: kmActual != null ? String(kmActual) : '' });
+    // La fecha de ingreso se precarga con HOY (el vehículo suele ingresar el día en que se
+    // genera la orden) pero es editable desde el diagnóstico. Si la cita ya pasó por
+    // "Pagar diagnóstico", se prellena la nota para no reescribir el diagnóstico.
+    setOrdenData({ ...EMPTY_ORDEN, FechaIngreso: TODAY, Diagnostico: item.DiagnosticoNota || '', Kilometraje: kmActual != null ? String(kmActual) : '' });
     setOrdenError(''); setShowOrdenModal(true);
   };
   const handleOrdenChange = e => setOrdenData(p => ({ ...p, [e.target.name]: e.target.value }));
@@ -407,6 +425,9 @@ export default function AgendaPage() {
     e.preventDefault();
     if (!ordenData.FechaIngreso || !ordenData.FechaEntrega || !ordenData.Diagnostico || !ordenData.Kilometraje) {
       setOrdenError('Completa todos los campos.'); return;
+    }
+    if (ordenData.FechaIngreso > ordenData.FechaEntrega) {
+      setOrdenError('La fecha de entrega no puede ser anterior a la de ingreso.'); return;
     }
     const km = Number(ordenData.Kilometraje);
     if (!Number.isInteger(km) || km < 0) { setOrdenError('El kilometraje debe ser un entero mayor o igual a 0.'); return; }
@@ -471,6 +492,25 @@ export default function AgendaPage() {
     const r = await dispatch(cancelarCita({ id: confirmCancelar.Id_Agenda || confirmCancelar.id, motivo: motivoCancelar.trim() }));
     if (!r.error) { closeCancelar(); addToast({ type: 'success', message: 'Cita cancelada. Se notificó al cliente por correo.' }); dispatch(fetchAgenda()); }
     else addToast({ type: 'error', message: r.payload || 'No se pudo cancelar la cita.' });
+  };
+
+  const openLimpieza = () => { setShowLimpieza(true); setLimpiezaDias('90'); setLimpiezaInfo(null); setLimpiezaConfirm(''); setLimpiezaError(''); };
+  const handleLimpiezaEjecutar = async () => {
+    setLimpiezaError('');
+    const dias = Number(limpiezaDias);
+    if (!Number.isInteger(dias) || dias < 1) { setLimpiezaError('Indica una antigüedad válida en días.'); return; }
+    if (!limpiezaConfirm.trim()) { setLimpiezaError('Escribe el texto de confirmación.'); return; }
+    setLimpiezaLoading(true);
+    try {
+      const r = await agendaService.limpiezaEjecutar(dias, limpiezaConfirm.trim());
+      setShowLimpieza(false);
+      addToast({ type: 'success', message: `Se eliminaron ${r?.eliminadas ?? 0} cita(s) antigua(s).` });
+      dispatch(fetchAgenda());
+    } catch (e) {
+      setLimpiezaError(e?.response?.data?.message || 'No se pudo ejecutar la limpieza.');
+    } finally {
+      setLimpiezaLoading(false);
+    }
   };
 
   const getClienteNombre  = id => clientes.find(c => String(c.Id_Cliente) === String(id))?.Nombre || `#${id}`;
@@ -563,6 +603,11 @@ export default function AgendaPage() {
               Diagnósticos{diagnosticos.length > 0 ? ` (${diagnosticos.length})` : ''}
             </button>
           </div>
+          {esSuperadmin && (
+            <button className="btn btn--outline" onClick={openLimpieza} title="Eliminar citas canceladas / no asistió antiguas">
+              <MdDeleteSweep size={18} />Limpiar antiguas
+            </button>
+          )}
           <button className="btn btn--primary" onClick={openCreate} disabled={!puedeCrear}><MdAdd size={18} />Nueva cita</button>
         </div>
       </div>
@@ -809,7 +854,7 @@ export default function AgendaPage() {
       >
         {ordenError && <div className="form-error-box">{ordenError}</div>}
         <form className="form-grid" onSubmit={handleOrdenSubmit} noValidate>
-          <div className="form-group"><label className="form-label">Fecha de ingreso</label><input type="text" className="form-control" value={ordenData.FechaIngreso ? formatDate(ordenData.FechaIngreso) : '—'} readOnly disabled title="Tomada de la fecha de la cita; no editable" /><p className="form-hint">Es la fecha de la cita de origen.</p></div>
+          <div className="form-group"><label className="form-label">Fecha de ingreso <span className="required">*</span></label><input name="FechaIngreso" type="date" className="form-control" value={ordenData.FechaIngreso} onChange={handleOrdenChange} max={TODAY} /><p className="form-hint">Por defecto hoy; ajústala si el vehículo ingresó otro día.</p></div>
           <div className="form-group"><label className="form-label">Fecha de entrega <span className="required">*</span></label><input name="FechaEntrega" type="date" className="form-control" value={ordenData.FechaEntrega} onChange={handleOrdenChange} min={ordenData.FechaIngreso || TODAY} /></div>
           <div className="form-group span-2"><label className="form-label">Diagnóstico <span className="required">*</span></label><textarea name="Diagnostico" className="form-control" value={ordenData.Diagnostico} onChange={handleOrdenChange} rows={3} maxLength={500} placeholder="Describe el diagnóstico..." /></div>
           <div className="form-group span-2"><label className="form-label">Kilometraje <span className="required">*</span></label><input name="Kilometraje" type="number" min={ordenVehiculoKm ?? 0} className="form-control" value={ordenData.Kilometraje} onChange={handleOrdenChange} placeholder="km actuales del vehículo" />{ordenVehiculoKm != null && <p className="form-hint">Último registrado del vehículo: {ordenVehiculoKm.toLocaleString('es-CO')} km. No puede ser menor.</p>}</div>
@@ -849,6 +894,40 @@ export default function AgendaPage() {
             placeholder="Ej. El técnico no estará disponible, el cliente solicitó reprogramar..."
           />
         </div>
+      </Modal>
+
+      <Modal isOpen={showLimpieza} onClose={() => setShowLimpieza(false)} title="Limpiar citas antiguas" size="sm"
+        footer={<>
+          <button className="btn btn--outline" onClick={() => setShowLimpieza(false)}>Cancelar</button>
+          <button className="btn btn--danger" onClick={handleLimpiezaEjecutar} disabled={limpiezaLoading || !(limpiezaInfo?.total > 0) || !limpiezaConfirm.trim()}>
+            {limpiezaLoading ? 'Eliminando...' : 'Eliminar'}
+          </button>
+        </>}
+      >
+        {limpiezaError && <div className="form-error-box">{limpiezaError}</div>}
+        <p className="u-mb-md">Elimina de forma definitiva las citas <strong>canceladas</strong> y <strong>no asistió</strong> más antiguas que el período elegido. Las citas atendidas se conservan (están ligadas a órdenes de trabajo).</p>
+        <div className="form-group">
+          <label className="form-label">Antigüedad</label>
+          <select className="form-control" value={limpiezaDias} onChange={e => { setLimpiezaDias(e.target.value); setLimpiezaConfirm(''); }}>
+            <option value="30">Más de 30 días</option>
+            <option value="90">Más de 90 días</option>
+            <option value="180">Más de 180 días</option>
+            <option value="365">Más de 1 año</option>
+          </select>
+        </div>
+        <p className="u-mb-md">
+          {limpiezaInfo == null
+            ? 'Calculando…'
+            : (limpiezaInfo.total > 0
+              ? <>Se eliminarán <strong>{limpiezaInfo.total}</strong> cita(s).</>
+              : 'No hay citas antiguas para eliminar en ese período.')}
+        </p>
+        {limpiezaInfo?.total > 0 && (
+          <div className="form-group">
+            <label className="form-label">Para confirmar, escribe: <strong>{limpiezaInfo.textoConfirmacion}</strong></label>
+            <input className="form-control" value={limpiezaConfirm} onChange={e => setLimpiezaConfirm(e.target.value)} placeholder={limpiezaInfo.textoConfirmacion} />
+          </div>
+        )}
       </Modal>
 
       <ConfirmDialog

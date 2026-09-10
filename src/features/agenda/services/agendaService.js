@@ -14,4 +14,7 @@ export const agendaService = {
   // Borrado real de una cita (superadmin), endpoint separado del remove operativo.
   getDependencias: (id) => api.get(`${BASE}/${id}/dependencias`).then(r => r.data?.data),
   eliminar: (id, confirmacion) => api.delete(`${BASE}/${id}/borrado-real`, { data: { confirmacion } }).then(r => r.data),
+  // Limpieza de citas antiguas (superadmin): preview de cuántas se borrarían y ejecución.
+  limpiezaPreview: (dias) => api.get(`${BASE}/limpieza/preview`, { params: { dias } }).then(r => r.data?.data),
+  limpiezaEjecutar: (dias, confirmacion) => api.post(`${BASE}/limpieza`, { dias, confirmacion }).then(r => r.data?.data),
 };
