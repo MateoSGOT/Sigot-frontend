@@ -55,11 +55,12 @@ const MODULE_META = {
   'Roles':       { icon: MdSecurity,              label: 'Roles',              color: '#b5f23d' },
 };
 
-// 'Dashboard' no está aquí a propósito: sus permisos (DASHBOARD.VER_FINANZAS,
-// VER_STOCK, etc.) no siguen el patrón Ver/Crear/Editar/Eliminar de este
-// matriz, así que cualquier checkbox que se marcara en esa fila nunca se
-// guardaba (el backend la ignoraba en silencio).
+// 'Dashboard' es de solo lectura: no tiene Crear/Editar/Eliminar (esas columnas
+// quedan deshabilitadas en su fila, ver el render de la tabla). Su "Ver" real son
+// 4 permisos granulares (VER_FINANZAS, VER_STOCK, etc.) que el backend activa/
+// desactiva juntos con un solo checkbox (permisos.controller.js).
 const MODULES_ORDER = [
+  'Dashboard',
   'Clientes', 'Vehículos', 'Empleados', 'Repuestos',
   'Categorías', 'Proveedores', 'Compras', 'Servicios', 'Agenda',
   'Órdenes', 'Novedades', 'Roles',
@@ -541,16 +542,21 @@ export default function RolesPage() {
                           <span>{meta?.label || row.Modulo}</span>
                         </div>
                       </td>
-                      {ACTIONS.map(action => (
-                        <td key={action} className="rol-mat-td rol-mat-td--chk">
-                          <input
-                            type="checkbox"
-                            className="rol-mat-chk"
-                            checked={row[action] === 1}
-                            onChange={() => toggleCell(row.Modulo, action)}
-                          />
-                        </td>
-                      ))}
+                      {ACTIONS.map(action => {
+                        const inaplicable = row.Modulo === 'Dashboard' && action !== 'Ver';
+                        return (
+                          <td key={action} className="rol-mat-td rol-mat-td--chk">
+                            <input
+                              type="checkbox"
+                              className="rol-mat-chk"
+                              checked={row[action] === 1}
+                              disabled={inaplicable}
+                              title={inaplicable ? 'No aplica: Dashboard es de solo lectura' : undefined}
+                              onChange={() => toggleCell(row.Modulo, action)}
+                            />
+                          </td>
+                        );
+                      })}
                       <td className="rol-mat-td rol-mat-td--chk">
                         <input
                           type="checkbox"

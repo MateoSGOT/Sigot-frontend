@@ -143,6 +143,15 @@
   grid-column: span 2;
 }
 
+/* La tabla de "Productividad por mecánico" crece con el número de filas y
+   quedaba más alta o más baja que la tarjeta vecina (el pie de "Repuestos por
+   categoría", que tiene una altura fija de 220px) -- se le pone un tope con
+   scroll propio para que ambas tarjetas de la fila queden parejas. */
+.dashboard-chart-card .table-wrapper {
+  max-height: 260px;
+  overflow-y: auto;
+}
+
 .spin {
   animation: spin 1s linear infinite;
 }
