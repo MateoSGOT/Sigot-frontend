@@ -23,8 +23,9 @@ import './RolesPage.css';
 
 /* ── Constants ─────────────────────────────────────────────────── */
 
+// "Administrador" ya NO es un rol especial (se gestiona como cualquier otro); el único
+// rol fijado/protegido es el Súper Administrador (EsSistema), que se ancla arriba aparte.
 const PRIMARY_ROLES = [
-  { nombre: 'Administrador', color: 'success' },
   { nombre: 'Secretario',    color: 'info'    },
   { nombre: 'Mecánico',      color: 'danger'  },
   { nombre: 'Bodeguero',     color: 'warning' },
@@ -171,11 +172,14 @@ export default function RolesPage() {
   })();
 
   const sortedForTable = (() => {
-    const primaries = filteredForTable.filter(r => isPrimaryRol(r.Nombre));
-    const others    = sortNewestFirst(filteredForTable.filter(r => !isPrimaryRol(r.Nombre)), 'Id_Rol');
-    if (others.length === 0) return primaries;
+    // El Súper Administrador (rol de sistema) queda SIEMPRE fijado en la parte superior.
+    const sistema   = filteredForTable.filter(r => r.EsSistema);
+    const primaries = filteredForTable.filter(r => !r.EsSistema && isPrimaryRol(r.Nombre));
+    const others    = sortNewestFirst(filteredForTable.filter(r => !r.EsSistema && !isPrimaryRol(r.Nombre)), 'Id_Rol');
+    const head = [...sistema, ...primaries];
+    if (others.length === 0) return head;
     return [
-      ...primaries,
+      ...head,
       { _separator: true, _label: 'Roles secundarios', Id_Rol: '_sep' },
       ...others,
     ];
