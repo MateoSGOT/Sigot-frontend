@@ -18,7 +18,7 @@ import SearchableSelect from '../../../shared/components/SearchableSelect/Search
 import FilterDropdown from '../../../shared/components/FilterDropdown/FilterDropdown.jsx';
 import Badge from '../../../shared/components/Badge/Badge.jsx';
 import { formatDate, formatCurrency, todayLocalYMD } from '../../../shared/utils/helpers.js';
-import { generarFacturaOrden } from '../../../shared/utils/generarFacturaPDF.js';
+import { generarFacturaOrden, buildFacturaOrden } from '../../../shared/utils/generarFacturaPDF.js';
 import * as V from '../../../shared/utils/validators.js';
 import { useFormValidation } from '../../../shared/hooks/useFormValidation.js';
 import { useToast } from '../../../shared/components/Toast/ToastContext.jsx';
@@ -305,6 +305,23 @@ export default function OrdenesPage() {
   // El toggle de estado (activar/inactivar) permanece siempre disponible.
   const contenidoBloqueado = selected?.EstadoFlujo === 'Realizado' || selected?.Estado === 0;
   const puedeFacturar  = selected?.EstadoFlujo === 'Realizado';
+
+  const [enviandoFactura, setEnviandoFactura] = useState(false);
+  const handleEnviarFacturaCorreo = async () => {
+    if (!selected || !puedeFacturar) return;
+    if (!selected.ClienteCorreo) { addToast({ type: 'error', message: 'Este cliente no tiene correo registrado.' }); return; }
+    setEnviandoFactura(true);
+    try {
+      const doc = buildFacturaOrden(selected);
+      const pdfBase64 = doc.output('datauristring').split('base64,').pop();
+      await ordenesService.facturarPorCorreo(selected.Id_Orden, pdfBase64);
+      addToast({ type: 'success', message: `Factura enviada a ${selected.ClienteCorreo}.` });
+    } catch (e) {
+      addToast({ type: 'error', message: e?.response?.data?.message || 'No se pudo enviar la factura por correo.' });
+    } finally {
+      setEnviandoFactura(false);
+    }
+  };
 
   const openEdit = (item) => {
     setEditForm({
@@ -617,15 +634,26 @@ export default function OrdenesPage() {
       {/* Detail Modal */}
       <Modal isOpen={!!detailId} onClose={() => setDetailId(null)} title="Orden de trabajo" size="xl"
         footer={selected ? (
-          <button
-            className="btn btn--primary"
-            onClick={puedeFacturar ? () => generarFacturaOrden(selected) : undefined}
-            disabled={!puedeFacturar}
-            title={!puedeFacturar ? 'Solo se puede facturar una orden Realizada' : undefined}
-            style={!puedeFacturar ? { opacity: 0.45, cursor: 'not-allowed' } : undefined}
-          >
-            Facturar (PDF)
-          </button>
+          <>
+            <button
+              className="btn btn--outline"
+              onClick={puedeFacturar ? handleEnviarFacturaCorreo : undefined}
+              disabled={!puedeFacturar || enviandoFactura}
+              title={!puedeFacturar ? 'Solo se puede facturar una orden Realizada' : (!selected.ClienteCorreo ? 'El cliente no tiene correo registrado' : undefined)}
+              style={!puedeFacturar ? { opacity: 0.45, cursor: 'not-allowed' } : undefined}
+            >
+              {enviandoFactura ? 'Enviando...' : 'Enviar factura por correo'}
+            </button>
+            <button
+              className="btn btn--primary"
+              onClick={puedeFacturar ? () => generarFacturaOrden(selected) : undefined}
+              disabled={!puedeFacturar}
+              title={!puedeFacturar ? 'Solo se puede facturar una orden Realizada' : undefined}
+              style={!puedeFacturar ? { opacity: 0.45, cursor: 'not-allowed' } : undefined}
+            >
+              Facturar (PDF)
+            </button>
+          </>
         ) : null}
       >
         {detailId && (

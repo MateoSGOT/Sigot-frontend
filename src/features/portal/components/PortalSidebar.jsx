@@ -3,7 +3,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import {
   MdHome, MdDirectionsCar, MdAssignment, MdCalendarMonth,
-  MdExitToApp, MdMenu, MdClose,
+  MdExitToApp, MdMenu, MdClose, MdMenuOpen,
 } from 'react-icons/md';
 import { logout } from '../../auth/slices/authSlice.js';
 import PortalNotifBell from './PortalNotifBell.jsx';
@@ -21,6 +21,9 @@ export default function PortalSidebar({ activeTab, onTabChange }) {
   const navigate    = useNavigate();
   const { cliente } = useSelector(s => s.auth);
   const [mobileOpen, setMobileOpen] = useState(false);
+  // Colapso a solo íconos -- mismo comportamiento y clases (sidebar--collapsed) que
+  // el sidebar principal (Sidebar.jsx), para que ambos se vean/comporten igual.
+  const [collapsed, setCollapsed] = useState(false);
 
   // Con el drawer abierto (móvil) bloqueamos el scroll del body para que la
   // página de atrás no se mueva mientras el menú está abierto.
@@ -46,7 +49,7 @@ export default function PortalSidebar({ activeTab, onTabChange }) {
         <div className="portal-sidebar-overlay" onClick={() => setMobileOpen(false)} />
       )}
 
-      <aside className={`sidebar portal-sidebar${mobileOpen ? ' portal-sidebar--open' : ''}`}>
+      <aside className={`sidebar portal-sidebar${mobileOpen ? ' portal-sidebar--open' : ''}${collapsed ? ' sidebar--collapsed' : ''}`}>
         <div className="sidebar__header">
           <div className="sidebar__logo">
             <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.25 }}>
@@ -58,6 +61,14 @@ export default function PortalSidebar({ activeTab, onTabChange }) {
             <div className="sidebar__header-bells">
               <PortalNotifBell onNavigate={onTabChange} />
             </div>
+            <button
+              className="sidebar__collapse-btn"
+              onClick={() => setCollapsed(c => !c)}
+              title={collapsed ? 'Expandir menú' : 'Colapsar menú'}
+              aria-label={collapsed ? 'Expandir menú' : 'Colapsar menú'}
+            >
+              <MdMenuOpen size={20} />
+            </button>
             <button className="portal-sidebar-close" onClick={() => setMobileOpen(false)} aria-label="Cerrar menú">
               <MdClose size={18} />
             </button>

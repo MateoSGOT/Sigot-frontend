@@ -18,4 +18,6 @@ export const ordenesService = {
   reasignarEmpleado: (id, id_empleado) => api.patch(`${BASE}/${id}/empleado`, { id_empleado }).then(r => r.data),
   // Empleados activos sin ninguna orden activa asignada (candidatos para reasignar).
   getEmpleadosLibres: () => api.get('/api/empleados/libres').then(r => r.data),
+  // Envía por correo al cliente la misma factura (PDF) que "Facturar (PDF)" descarga.
+  facturarPorCorreo: (id, pdfBase64) => api.post(`${BASE}/${id}/facturar-correo`, { pdfBase64 }).then(r => r.data),
 };
