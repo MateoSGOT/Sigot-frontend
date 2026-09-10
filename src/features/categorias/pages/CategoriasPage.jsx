@@ -71,8 +71,9 @@ export default function CategoriasPage() {
       }
       setImportMsg({ ok, fail, faltantes: faltantes.slice(0, 8) });
       dispatch(fetchCategorias());
-    } catch {
-      setImportMsg({ ok: 0, fail: 0, error: 'No se pudo leer el archivo. Verifica que sea un Excel válido.' });
+    } catch (err) {
+      console.error('Importar categorías desde Excel:', err);
+      setImportMsg({ ok: 0, fail: 0, error: `No se pudo leer el archivo: ${err?.message || 'verifica que sea un Excel válido.'}` });
     } finally {
       setImportando(false);
     }

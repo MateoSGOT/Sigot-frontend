@@ -209,6 +209,9 @@ export default function AgendaPage() {
   // lista si, al elegirlo, cada hora termina mostrando "(ocupado)".
   const tieneHuecoLibre = (idEmpleado, ymd) => {
     const citasDia = citasDelDiaDe(idEmpleado, ymd);
+    const cierreMin = toMinHelper(horario.cierre);
+    const hayHuecoEnHorario = horaOptions.some(h => toMinHelper(h) + duracionActual <= cierreMin);
+    if (!hayHuecoEnHorario) return false;
     if (citasDia.length === 0) return true;
     const esHoy = ymd === TODAY;
     const nowMin = new Date().getHours() * 60 + new Date().getMinutes();
@@ -216,6 +219,7 @@ export default function AgendaPage() {
       if (esHoy && toMinHelper(h) <= nowMin) return false;
       const inicio = toMinHelper(h);
       const fin = inicio + duracionActual;
+      if (fin > cierreMin) return false;
       return !citasDia.some(c => {
         const cIni = toMinHelper(c.Hora);
         const cFin = cIni + Number(c.DuracionEstimadaMin || 60);
@@ -236,16 +240,17 @@ export default function AgendaPage() {
   // se elige fecha). Bloquea asignar a alguien que estará ausente ese día.
   const empleadosBloqueados = empleadosBloqueadosEnFecha(formData.FechaAgendamiento || TODAY);
 
-  // Validación de la duración estimada en tiempo real: mínima 15 min y que la cita
-  // no termine después del horario de cierre del taller (límite de trabajo).
+  // Validación de la duración estimada en tiempo real: mínima 15 min y que quepa
+  // en algún horario del día (si no cabe ni empezando a la apertura, no hay hora
+  // posible ese día -- hay que dividir el trabajo en varias citas). El resto del
+  // "cap" (qué horas concretas quedan disponibles con esta duración) lo resuelve
+  // el filtro de horaOptions más abajo, no este mensaje.
   const duracionError = (() => {
     const dur = Number(formData.DuracionEstimadaMin);
     if (!formData.DuracionEstimadaMin) return '';
     if (!Number.isFinite(dur) || dur < 15) return 'La duración mínima es de 15 minutos.';
-    if (formData.Hora) {
-      const fin = toMinHelper(formData.Hora) + dur;
-      if (fin > toMinHelper(horario.cierre)) return `Con esa duración la cita terminaría después del cierre (${formatHora12(horario.cierre)}).`;
-    }
+    const minutosDisponibles = toMinHelper(horario.cierre) - toMinHelper(horario.apertura);
+    if (dur > minutosDisponibles) return `Esa duración no cabe en un solo día (máximo ${minutosDisponibles} min entre apertura y cierre). Divide el trabajo en varias citas.`;
     return '';
   })();
 
@@ -817,7 +822,7 @@ export default function AgendaPage() {
             <label className="form-label">Duración estimada (min)</label>
             <div className="agenda-duracion-row">
               <input name="DuracionEstimadaMin" type="number" min="15" step="15" className={`form-control agenda-duracion-input${duracionError ? ' is-error' : ''}`} value={formData.DuracionEstimadaMin} onChange={handleChange} placeholder="60" />
-              <p className="form-hint agenda-duracion-hint">Diagnóstico 45 min · mantenimiento 60. No puede terminar después del cierre ({formatHora12(horario.cierre)}).</p>
+              <p className="form-hint agenda-duracion-hint">Diagnóstico 45 min · mantenimiento 60. Las horas que no alcanzan a terminar antes del cierre ({formatHora12(horario.cierre)}) no aparecerán en la lista.</p>
             </div>
             {duracionError && <p className="form-error">{duracionError}</p>}
           </div>
@@ -855,6 +860,7 @@ export default function AgendaPage() {
                 // para que se vea cuánto tiempo va a ocupar realmente esta cita.
                 return horaOptions
                   .filter(h => !(esHoy && toMinHelper(h) <= nowMin))
+                  .filter(h => toMinHelper(h) + duracionActual <= toMinHelper(horario.cierre))
                   .filter(h => h === formData.Hora || !horaOcupada(h))
                   .map(h => ({ value: h, label: `${formatHora12(h)} – ${formatHora12(minToHHMM(toMinHelper(h) + duracionActual))}` }));
               })()}
