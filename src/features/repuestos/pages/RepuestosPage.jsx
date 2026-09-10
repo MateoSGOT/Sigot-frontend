@@ -151,29 +151,53 @@ export default function RepuestosPage() {
       const buf = await file.arrayBuffer();
       const wb = XLSX.read(buf, { type: 'array' });
       const ws = wb.Sheets[wb.SheetNames[0]];
-      const filas = XLSX.utils.sheet_to_json(ws, { defval: '' });
+      // No se asume que la fila 1 trae los encabezados: muchos Excel reales (ej. el
+      // formato que ya usa el taller) traen una fila en blanco antes del encabezado.
+      // Si se usa sheet_to_json normal, esa fila vacía se toma como encabezado y CADA
+      // fila del archivo termina sin ninguna columna reconocible (columnas "__EMPTY").
+      // Se detecta la primera fila con algún contenido y se usa esa como encabezado.
+      const raw = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+      const headerIdx = Math.max(0, raw.findIndex(r => r.some(c => String(c).trim() !== '')));
+      const headers = raw[headerIdx] || [];
+      const filas = raw.slice(headerIdx + 1)
+        .filter(r => r.some(c => String(c).trim() !== ''))
+        .map(r => { const o = {}; headers.forEach((h, i) => { const k = String(h).trim(); if (k) o[k] = r[i] ?? ''; }); return o; });
+
       const catByName = {};
       categorias.forEach(c => { const n = String(c.Nombre ?? c.nombre ?? '').trim().toLowerCase(); if (n) catByName[n] = c.Id_categoria ?? c.Id_Categoria; });
+      // Si el archivo no trae columna de categoría (ej. inventarios reales que solo
+      // tienen código/descripción/stock), se agrupan todos en "Sin categoría" en vez
+      // de descartarlos -- la categoría igual se puede corregir después por repuesto.
+      const SIN_CATEGORIA = 'sin categoría';
       let ok = 0, fail = 0, categoriasCreadas = 0; const faltantes = [];
       for (const fila of filas) {
-        const nombre       = String(fila.Nombre ?? fila.NombreRepuesto ?? fila.nombre ?? '').trim();
-        const catNombreOrig = String(fila['Categoría'] ?? fila.Categoria ?? fila.categoria ?? '').trim();
+        // Si no hay descripción (dato incompleto en el archivo de origen), se usa el
+        // código como respaldo -- mejor importarlo identificado por su código que
+        // perderlo del inventario.
+        // OJO: con ?? un valor "" (celda vacía) ya cuenta como "definido" y corta la
+        // cadena de respaldo ahí mismo -- por eso se recorre una lista y se toma el
+        // primer candidato con contenido real, en vez de encadenar ??.
+        const nombreCandidatos = [fila.Nombre, fila.NombreRepuesto, fila.nombre, fila.Descripcion, fila.descripcion, fila.Codigo, fila.codigo];
+        const nombre = String(nombreCandidatos.find(v => v != null && String(v).trim() !== '') ?? '').trim();
+        const catNombreOrig = String(fila['Categoría'] ?? fila.Categoria ?? fila.categoria ?? '').trim() || 'Sin categoría';
         const catNombre    = catNombreOrig.toLowerCase();
         let idCat = catByName[catNombre];
-        // Si la categoría no existe todavía, se crea sobre la marcha -- así una sola
-        // importación de repuestos no depende de haber importado antes las categorías.
-        if (!idCat && catNombreOrig) {
+        // Si la categoría no existe todavía (incluida "Sin categoría"), se crea sobre la
+        // marcha -- así una sola importación de repuestos no depende de haber importado
+        // antes las categorías, ni de que el archivo original tenga esa columna.
+        if (!idCat) {
           const rCat = await dispatch(createCategoria({ Nombre: catNombreOrig }));
           if (!rCat.error && rCat.payload?.Id_categoria) {
             idCat = rCat.payload.Id_categoria;
             catByName[catNombre] = idCat;
-            categoriasCreadas++;
+            if (catNombre !== SIN_CATEGORIA) categoriasCreadas++;
           }
         }
         if (!nombre || !idCat) { fail++; if (nombre) faltantes.push(nombre); continue; }
         const r = await dispatch(createRepuesto({
           NombreRepuesto: nombre,
           Id_categoria: idCat,
+          Stock: Number(fila.Stock ?? fila.stock ?? fila.Cantidad ?? fila.cantidad ?? 0) || 0,
           StockMinimo: Number(fila['Stock mínimo'] ?? fila.StockMinimo ?? 5) || 5,
           MargenPorcentaje: Number(fila['Margen %'] ?? fila.MargenPorcentaje ?? 50) || 50,
         }));

@@ -60,7 +60,16 @@ export default function CategoriasPage() {
       const buf = await file.arrayBuffer();
       const wb = XLSX.read(buf, { type: 'array' });
       const ws = wb.Sheets[wb.SheetNames[0]];
-      const filas = XLSX.utils.sheet_to_json(ws, { defval: '' });
+      // No se asume que la fila 1 trae los encabezados: si el archivo trae una fila en
+      // blanco antes (frecuente en Excel reales), sheet_to_json normal la toma como
+      // encabezado y ninguna fila coincide con ninguna columna. Se detecta la primera
+      // fila con contenido y se usa esa como encabezado real.
+      const raw = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+      const headerIdx = Math.max(0, raw.findIndex(r => r.some(c => String(c).trim() !== '')));
+      const headers = raw[headerIdx] || [];
+      const filas = raw.slice(headerIdx + 1)
+        .filter(r => r.some(c => String(c).trim() !== ''))
+        .map(r => { const o = {}; headers.forEach((h, i) => { const k = String(h).trim(); if (k) o[k] = r[i] ?? ''; }); return o; });
       let ok = 0, fail = 0; const faltantes = [];
       for (const fila of filas) {
         const nombre = String(fila.Nombre ?? fila.nombre ?? '').trim();
