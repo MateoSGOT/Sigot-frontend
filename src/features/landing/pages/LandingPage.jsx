@@ -414,7 +414,7 @@ export default function LandingPage() {
                 rel="noopener noreferrer"
                 style={{display:'inline-flex',alignItems:'center',gap:'0.375rem'}}
               >
-                <FiMessageSquare size={14} /> WhatsApp de Don Jair
+                <FiMessageSquare size={14} /> WhatsApp Jair Calle
               </a>
             </div>
           </div>

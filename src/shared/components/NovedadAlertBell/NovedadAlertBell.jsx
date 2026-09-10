@@ -51,6 +51,13 @@ export default function NovedadAlertBell() {
     return () => document.removeEventListener('mousedown', handler);
   }, []);
 
+  useEffect(() => {
+    if (!open) return;
+    const onKeyDown = (e) => { if (e.key === 'Escape') setOpen(false); };
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, [open]);
+
   const recalcPos = () => {
     if (!btnRef.current) return;
     const r = btnRef.current.getBoundingClientRect();

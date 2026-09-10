@@ -56,7 +56,7 @@ export default function PortalSidebar({ activeTab, onTabChange }) {
           </div>
           <div className="sidebar__header-actions">
             <div className="sidebar__header-bells">
-              <PortalNotifBell />
+              <PortalNotifBell onNavigate={onTabChange} />
             </div>
             <button className="portal-sidebar-close" onClick={() => setMobileOpen(false)} aria-label="Cerrar menú">
               <MdClose size={18} />

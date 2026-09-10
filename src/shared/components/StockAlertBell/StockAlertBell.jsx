@@ -38,6 +38,13 @@ export default function StockAlertBell() {
     return () => document.removeEventListener('mousedown', handler);
   }, []);
 
+  useEffect(() => {
+    if (!open) return;
+    const onKeyDown = (e) => { if (e.key === 'Escape') setOpen(false); };
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, [open]);
+
   // Recalcular la posición del panel (fixed) desde el botón mientras está abierto.
   const recalcPos = () => {
     if (!btnRef.current) return;

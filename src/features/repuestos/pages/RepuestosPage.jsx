@@ -8,6 +8,7 @@ import { usePermiso } from '../../../shared/hooks/usePermiso.js';
 import * as XLSX from 'xlsx';
 import ToggleSwitch from '../../../shared/components/ToggleSwitch/ToggleSwitch.jsx';
 import { createRepuesto, updateRepuesto, toggleRepuestoEstado } from '../slices/repuestosSlice.js';
+import { createCategoria } from '../../categorias/slices/categoriasSlice.js';
 import Modal from '../../../shared/components/Modal/Modal.jsx';
 import Table from '../../../shared/components/Table/Table.jsx';
 import SearchBar from '../../../shared/components/SearchBar/SearchBar.jsx';
@@ -153,11 +154,22 @@ export default function RepuestosPage() {
       const filas = XLSX.utils.sheet_to_json(ws, { defval: '' });
       const catByName = {};
       categorias.forEach(c => { const n = String(c.Nombre ?? c.nombre ?? '').trim().toLowerCase(); if (n) catByName[n] = c.Id_categoria ?? c.Id_Categoria; });
-      let ok = 0, fail = 0; const faltantes = [];
+      let ok = 0, fail = 0, categoriasCreadas = 0; const faltantes = [];
       for (const fila of filas) {
-        const nombre    = String(fila.Nombre ?? fila.NombreRepuesto ?? fila.nombre ?? '').trim();
-        const catNombre = String(fila['Categoría'] ?? fila.Categoria ?? fila.categoria ?? '').trim().toLowerCase();
-        const idCat = catByName[catNombre];
+        const nombre       = String(fila.Nombre ?? fila.NombreRepuesto ?? fila.nombre ?? '').trim();
+        const catNombreOrig = String(fila['Categoría'] ?? fila.Categoria ?? fila.categoria ?? '').trim();
+        const catNombre    = catNombreOrig.toLowerCase();
+        let idCat = catByName[catNombre];
+        // Si la categoría no existe todavía, se crea sobre la marcha -- así una sola
+        // importación de repuestos no depende de haber importado antes las categorías.
+        if (!idCat && catNombreOrig) {
+          const rCat = await dispatch(createCategoria({ Nombre: catNombreOrig }));
+          if (!rCat.error && rCat.payload?.Id_categoria) {
+            idCat = rCat.payload.Id_categoria;
+            catByName[catNombre] = idCat;
+            categoriasCreadas++;
+          }
+        }
         if (!nombre || !idCat) { fail++; if (nombre) faltantes.push(nombre); continue; }
         const r = await dispatch(createRepuesto({
           NombreRepuesto: nombre,
@@ -167,8 +179,11 @@ export default function RepuestosPage() {
         }));
         if (r.error) { fail++; faltantes.push(nombre); } else ok++;
       }
-      setImportMsg({ ok, fail, faltantes: faltantes.slice(0, 8) });
+      setImportMsg({ ok, fail, categoriasCreadas, faltantes: faltantes.slice(0, 8) });
       fetchPage();
+      if (categoriasCreadas > 0) {
+        api.get('/api/categoria-repuestos').then(r => setCategorias(r.data?.data || r.data || [])).catch(() => {});
+      }
     } catch (err) {
       console.error('Importar repuestos desde Excel:', err);
       setImportMsg({ ok: 0, fail: 0, error: `No se pudo leer el archivo: ${err?.message || 'verifica que sea un Excel válido.'}` });
@@ -285,7 +300,7 @@ export default function RepuestosPage() {
         const hayError = !!importMsg.error || importMsg.fail > 0;
         return (
           <div style={{
-            margin: '0 2rem 1rem', padding: '0.75rem 1rem', borderRadius: '10px', fontSize: '0.875rem',
+            margin: '1rem 2rem', padding: '0.75rem 1rem', borderRadius: '10px', fontSize: '0.875rem',
             display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap',
             background: hayError ? 'rgba(220,38,38,0.08)' : 'rgba(22,163,74,0.10)',
             border: `1px solid ${hayError ? 'rgba(220,38,38,0.3)' : 'rgba(22,163,74,0.3)'}`,
@@ -293,7 +308,7 @@ export default function RepuestosPage() {
           }}>
             <span>{importMsg.error
               ? importMsg.error
-              : `Importación: ${importMsg.ok} creado(s), ${importMsg.fail} con error.${importMsg.faltantes?.length ? ` No se pudieron: ${importMsg.faltantes.join(', ')} (revisa que la categoría exista).` : ''}`}</span>
+              : `Importación: ${importMsg.ok} creado(s), ${importMsg.fail} con error.${importMsg.categoriasCreadas ? ` Se crearon ${importMsg.categoriasCreadas} categoría(s) nueva(s).` : ''}${importMsg.faltantes?.length ? ` No se pudieron: ${importMsg.faltantes.join(', ')}.` : ''}`}</span>
             <button className="btn btn--ghost btn--sm" onClick={() => setImportMsg(null)} style={{ marginLeft: 'auto' }}>Cerrar</button>
           </div>
         );

@@ -4,17 +4,6 @@
 .compra-anular-btn { color: var(--color-danger) !important; }
 .compra-anular-btn:hover { background: rgba(220,38,38,0.08) !important; }
 
-/* N.° de factura en la tabla: ancho máximo con elipsis para no alargar la columna
-   (el valor completo va en el tooltip y en el detalle). */
-.compra-nfactura {
-  display: inline-block;
-  max-width: 120px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  vertical-align: bottom;
-}
-
 /* === Formulario multi-producto === */
 .compra-form { display: flex; flex-direction: column; gap: 1.25rem; }
 
@@ -134,11 +123,16 @@ select.form-control--sm {
 .compra-detail-table td { padding: var(--space-sm) var(--space-md); border-bottom: 1px solid var(--color-border); }
 .compra-detail-table td.is-total { font-weight: var(--weight-semibold); }
 .compra-detail__total {
-  display: flex; justify-content: flex-end;
+  display: flex; flex-direction: column; align-items: flex-end; gap: var(--space-xs);
   margin-top: var(--space-lg); padding-top: var(--space-md);
   border-top: 1px solid var(--color-border);
 }
+.compra-detail__total-row { display: flex; align-items: baseline; gap: var(--space-sm); }
+.compra-detail__total-label { color: var(--color-text-muted); font-size: var(--text-small); }
 .compra-detail__total-value { font-weight: var(--weight-bold); font-size: var(--text-h3); }
+.compra-detail__total-row--ganancia .compra-detail__total-label { font-size: var(--text-body); }
+.compra-detail__total-value--ganancia { font-size: var(--text-body); font-weight: var(--weight-semibold); color: var(--color-success, #16a34a); }
+.compra-detail__total-value--ganancia.is-negative { color: var(--color-danger, #dc2626); }
 
 /* === Móvil: las líneas de producto se apilan con etiqueta por campo === */
 @media (max-width: 640px) {

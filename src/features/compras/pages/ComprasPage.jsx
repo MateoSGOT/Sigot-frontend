@@ -240,9 +240,8 @@ export default function ComprasPage() {
     { key: 'PrecioUnitario', label: 'Precio unitario', render: v => formatCurrency(v) },
     { key: 'total', label: 'Total', render: (_, row) => formatCurrency(Number(row.Cantidad || 0) * Number(row.PrecioUnitario || 0)) },
     { key: 'Fecha', label: 'Fecha', render: v => formatDate(v) },
-    // Se recorta con elipsis (ancho máximo) para que un n° de factura largo no alargue
-    // la tabla; el valor completo queda en el tooltip y en el detalle.
-    { key: 'NumeroFactura', label: 'N.° factura', render: v => v ? <span className="compra-nfactura" title={v}>{v}</span> : '—' },
+    // El N.° de factura ya no se muestra en la tabla (puede ser largo y no aporta
+    // al vistazo general) -- queda solo en el detalle de la compra.
     {
       key: 'Anulada', label: 'Estado', render: v =>
         v ? <Badge variant="gray">Anulada</Badge> : <Badge variant="success">Vigente</Badge>
@@ -363,8 +362,14 @@ export default function ComprasPage() {
               </table>
             </div>
             <div className="compra-detail__total">
-              <span className="compra-detail__total-value">Total: {formatCurrency(detailTotal)}</span>
-              <span className="compra-detail__total-value">Ganancia estimada: {formatCurrency(gananciaTotalDetalle)}</span>
+              <div className="compra-detail__total-row">
+                <span className="compra-detail__total-label">Total</span>
+                <span className="compra-detail__total-value">{formatCurrency(detailTotal)}</span>
+              </div>
+              <div className="compra-detail__total-row compra-detail__total-row--ganancia">
+                <span className="compra-detail__total-label">Ganancia estimada</span>
+                <span className={`compra-detail__total-value compra-detail__total-value--ganancia${gananciaTotalDetalle < 0 ? ' is-negative' : ''}`}>{formatCurrency(gananciaTotalDetalle)}</span>
+              </div>
             </div>
           </div>
         )}

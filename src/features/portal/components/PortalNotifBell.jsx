@@ -20,12 +20,23 @@ const guardarVistas = (set) => {
 // dependa solo de revisar el correo. No hay tabla de notificaciones en el backend: se arma
 // a partir de sus propias citas/órdenes (ya expuestas por /api/portal/*), marcando como
 // "vistas" localmente (por dispositivo) las que ya se le mostraron una vez.
-export default function PortalNotifBell() {
+export default function PortalNotifBell({ onNavigate }) {
   const [items, setItems]     = useState([]);
   const [open, setOpen]       = useState(false);
   const [pos, setPos]         = useState({ top: 0, left: 0 });
   const btnRef = useRef(null);
   const dropdownRef = useRef(null);
+
+  // Solo interesan eventos de la última semana -- pasado ese tiempo se
+  // consideran "vencidos" y se dejan de mostrar (no hay que limpiar nada a
+  // mano, es un filtro por fecha en cada carga).
+  const haceUnaSemanaOMenos = (fecha) => {
+    if (!fecha) return true;
+    const f = new Date(String(fecha).split('T')[0] + 'T12:00:00');
+    if (Number.isNaN(f.getTime())) return true;
+    const unaSemanaMs = 7 * 24 * 60 * 60 * 1000;
+    return Date.now() - f.getTime() <= unaSemanaMs;
+  };
 
   const cargar = async () => {
     try {
@@ -40,18 +51,21 @@ export default function PortalNotifBell() {
       citas.forEach(c => {
         const id = c.Id_Agenda ?? c.id;
         const estado = c.EstadoCita || 'Pendiente';
+        if (!haceUnaSemanaOMenos(c.FechaAgendamiento)) return;
         if (estado === 'Confirmada') {
-          eventos.push({ key: `cita-${id}-confirmada`, texto: `Tu cita del ${formatDate(c.FechaAgendamiento)} a las ${formatHora12(c.Hora)} fue confirmada.` });
+          eventos.push({ key: `cita-${id}-confirmada`, texto: `Tu cita del ${formatDate(c.FechaAgendamiento)} a las ${formatHora12(c.Hora)} fue confirmada.`, tab: 'citas' });
         } else if (estado === 'Cancelada') {
-          eventos.push({ key: `cita-${id}-cancelada`, texto: `Tu cita del ${formatDate(c.FechaAgendamiento)} fue cancelada.` });
+          eventos.push({ key: `cita-${id}-cancelada`, texto: `Tu cita del ${formatDate(c.FechaAgendamiento)} fue cancelada.`, tab: 'citas' });
         }
       });
       ordenes.forEach(o => {
         const id = o.Id_Orden;
+        const fechaRef = o.FechaEntrega || o.FechaIngreso;
+        if (!haceUnaSemanaOMenos(fechaRef)) return;
         if (Number(o.Estado) === 3) {
-          eventos.push({ key: `orden-${id}-realizado`, texto: `Tu orden #${id} (${o.Vehiculo || o.vehiculo || ''}) está lista para recoger.` });
+          eventos.push({ key: `orden-${id}-realizado`, texto: `Tu orden #${id} (${o.Vehiculo || o.vehiculo || ''}) está lista para recoger.`, tab: 'ordenes' });
         } else if (Number(o.Estado) === 2) {
-          eventos.push({ key: `orden-${id}-proceso`, texto: `Tu orden #${id} (${o.Vehiculo || o.vehiculo || ''}) ya está siendo atendida.` });
+          eventos.push({ key: `orden-${id}-proceso`, texto: `Tu orden #${id} (${o.Vehiculo || o.vehiculo || ''}) ya está siendo atendida.`, tab: 'ordenes' });
         }
       });
 
@@ -71,6 +85,13 @@ export default function PortalNotifBell() {
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, []);
+
+  useEffect(() => {
+    if (!open) return;
+    const onKeyDown = (e) => { if (e.key === 'Escape') setOpen(false); };
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, [open]);
 
   const recalcPos = () => {
     if (!btnRef.current) return;
@@ -112,7 +133,12 @@ export default function PortalNotifBell() {
       </div>
       {items.length === 0 && <div className="novedad-bell__empty">Sin notificaciones por ahora</div>}
       {items.map(item => (
-        <div key={item.key} className="novedad-bell__item">
+        <div
+          key={item.key}
+          className="novedad-bell__item"
+          style={onNavigate && item.tab ? { cursor: 'pointer' } : undefined}
+          onClick={onNavigate && item.tab ? () => { setOpen(false); onNavigate(item.tab); } : undefined}
+        >
           <span className="novedad-bell__item-desc">{item.texto}</span>
         </div>
       ))}

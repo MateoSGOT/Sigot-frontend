@@ -13,7 +13,8 @@ import Modal from '../../../shared/components/Modal/Modal.jsx';
 import Table from '../../../shared/components/Table/Table.jsx';
 import SearchBar from '../../../shared/components/SearchBar/SearchBar.jsx';
 import FilterDropdown from '../../../shared/components/FilterDropdown/FilterDropdown.jsx';
-import { filterItems, sortNewestFirst, formatDate, todayLocalYMD } from '../../../shared/utils/helpers.js';
+import { filterItems, sortNewestFirst, formatDate, formatHora12, todayLocalYMD } from '../../../shared/utils/helpers.js';
+import Badge from '../../../shared/components/Badge/Badge.jsx';
 import * as V from '../../../shared/utils/validators.js';
 import { useFormValidation } from '../../../shared/hooks/useFormValidation.js';
 import api from '../../../shared/services/api.js';
@@ -55,6 +56,14 @@ export default function NovedadesPage() {
     api.get('/api/empleados').then(r => setEmpleados(r.data?.data || r.data || [])).catch(() => {});
   }, [dispatch]);
 
+
+  // Una novedad "vencida" (ya pasó su fecha de fin) se trata como inactiva
+  // automáticamente: no se puede reactivar/editar desde ahí, evita dejar
+  // registros históricos de incapacidades/permisos manipulables.
+  const esVencida = (n) => {
+    const fin = (n.FechaRealizacion || '').split('T')[0];
+    return !!fin && fin < TODAY;
+  };
 
   const getEmpleadoNombre = (id) => {
     const e = empleados.find(e => String(e.id_empleado ?? e.Id_Empleado) === String(id));
@@ -168,23 +177,34 @@ export default function NovedadesPage() {
     { key: '#', label: '#', width: '50px', render: (_, __, i) => i + 1 },
     { key: 'id_empleado', label: 'Empleado', render: (v, row) => getEmpleadoNombre(v || row.Id_Empleado) },
     { key: 'Descripcion', label: 'Descripción', render: v => <span className="descripcion-cell">{v}</span> },
-    { key: 'Fecha_Novedad',    label: 'Fecha novedad',    render: v => formatDate(v) },
-    { key: 'FechaRealizacion', label: 'Fecha realización', render: v => formatDate(v) },
+    { key: 'Fecha_Novedad', label: 'Fecha novedad', render: v => formatDate(v) },
     {
-      key: 'acciones', label: 'Acciones', render: (_, row) => (
+      key: 'FechaRealizacion', label: 'Fecha realización', render: (v, row) => (
+        <span className="novedad-fecha-fin">
+          {formatDate(v)}
+          {esVencida(row) && <Badge variant="gray" style={{ marginLeft: '0.5rem', fontSize: '0.7rem' }}>Vencida</Badge>}
+        </span>
+      )
+    },
+    {
+      key: 'acciones', label: 'Acciones', render: (_, row) => {
+        const vencida = esVencida(row);
+        return (
         <div className="table-actions">
           <ToggleSwitch
-            checked={row.Estado === 1}
+            checked={row.Estado === 1 && !vencida}
             onChange={() => handleToggleEstado(row)}
-            disabled={!puedeToggle}
+            disabled={!puedeToggle || vencida}
+            title={vencida ? 'Esta novedad ya venció; no se puede reactivar.' : undefined}
           />
           <button className="btn btn--ghost btn--icon btn--sm" title="Ver" onClick={() => setDetailItem(row)}><MdVisibility size={17} /></button>
-          <button className="btn btn--ghost btn--icon btn--sm" title="Editar" disabled={!puedeEditar} onClick={() => openEdit(row)}><MdEdit size={17} /></button>
+          <button className="btn btn--ghost btn--icon btn--sm" title={vencida ? 'Esta novedad ya venció; no se puede editar.' : 'Editar'} disabled={!puedeEditar || vencida} onClick={() => openEdit(row)}><MdEdit size={17} /></button>
           {esSuperadmin && (
             <button className="btn btn--ghost btn--icon btn--sm btn--danger-ghost" title="Eliminar definitivamente" onClick={() => del.open(row.Id_Novedad)}><MdDeleteForever size={17} /></button>
           )}
         </div>
-      )
+        );
+      }
     },
   ];
 
@@ -224,7 +244,7 @@ export default function NovedadesPage() {
           <div className="detail-item"><span className="detail-label">Fecha novedad</span><span className="detail-value">{formatDate(detailItem.Fecha_Novedad)}</span></div>
           <div className="detail-item" style={{ gridColumn: 'span 2' }}><span className="detail-label">Descripción</span><span className="detail-value">{detailItem.Descripcion}</span></div>
           <div className="detail-item"><span className="detail-label">Fecha realización</span><span className="detail-value">{formatDate(detailItem.FechaRealizacion)}</span></div>
-          <div className="detail-item"><span className="detail-label">Rango horario</span><span className="detail-value">{detailItem.HoraInicio && detailItem.HoraFin ? `${detailItem.HoraInicio} – ${detailItem.HoraFin}` : 'Día completo'}</span></div>
+          <div className="detail-item"><span className="detail-label">Rango horario</span><span className="detail-value">{detailItem.HoraInicio && detailItem.HoraFin ? `${formatHora12(detailItem.HoraInicio)} – ${formatHora12(detailItem.HoraFin)}` : 'Día completo'}</span></div>
         </div>}
       </Modal>
 
@@ -263,10 +283,12 @@ export default function NovedadesPage() {
           <div className="form-group">
             <label className="form-label">Hora de inicio</label>
             <input name="HoraInicio" type="time" className="form-control" value={formData.HoraInicio} onChange={handleChange} />
+            {formData.HoraInicio && <p className="form-hint">{formatHora12(formData.HoraInicio)}</p>}
           </div>
           <div className="form-group">
             <label className="form-label">Hora de fin</label>
             <input name="HoraFin" type="time" className="form-control" value={formData.HoraFin} onChange={handleChange} />
+            {formData.HoraFin && <p className="form-hint">{formatHora12(formData.HoraFin)}</p>}
             <p className="form-hint">Opcional: si indicas un rango de horas, la novedad solo bloquea esas horas ese día (si lo dejas vacío, bloquea el día completo).</p>
           </div>
         </form>
