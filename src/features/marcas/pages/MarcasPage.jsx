@@ -19,7 +19,9 @@ import {
 } from '../slices/marcasSlice.js';
 import './MarcasPage.css';
 
-export default function MarcasPage() {
+// `embedded`: se renderiza dentro de otro contenedor (p. ej. un modal en Vehículos),
+// sin el encabezado de página propio (el modal ya pone el título).
+export default function MarcasPage({ embedded = false }) {
   const dispatch = useDispatch();
   const { items, loading, actionLoading } = useSelector(s => s.marcas);
   const puedeCrear  = usePermiso('VEHICULOS.REGISTRAR');
@@ -124,11 +126,17 @@ export default function MarcasPage() {
   const modeloNombreError = modeloForm ? V.nombre(modeloForm.Nombre, 1, 60) : '';
 
   return (
-    <div className="page">
-      <div className="page__header">
-        <div><h1 className="page__title">Marcas y modelos</h1><p className="page__subtitle">{items.length} marca(s) registrada(s)</p></div>
-        <button className="btn btn--primary" onClick={openCreateMarca} disabled={!puedeCrear}><MdAdd size={18} />Nueva marca</button>
-      </div>
+    <div className={embedded ? 'marcas-embedded' : 'page'}>
+      {embedded ? (
+        <div className="marcas-embedded__actions">
+          <button className="btn btn--primary" onClick={openCreateMarca} disabled={!puedeCrear}><MdAdd size={18} />Nueva marca</button>
+        </div>
+      ) : (
+        <div className="page__header">
+          <div><h1 className="page__title">Marcas y modelos</h1><p className="page__subtitle">{items.length} marca(s) registrada(s)</p></div>
+          <button className="btn btn--primary" onClick={openCreateMarca} disabled={!puedeCrear}><MdAdd size={18} />Nueva marca</button>
+        </div>
+      )}
 
       <div className="card">
         <div className="card__header">

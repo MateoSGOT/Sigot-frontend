@@ -9,6 +9,7 @@ import SearchableSelect from '../../../shared/components/SearchableSelect/Search
 import ToggleSwitch from '../../../shared/components/ToggleSwitch/ToggleSwitch.jsx';
 import { createVehiculo, updateVehiculo, toggleVehiculoEstado } from '../slices/vehiculosSlice.js';
 import Modal from '../../../shared/components/Modal/Modal.jsx';
+import MarcasPage from '../../marcas/pages/MarcasPage.jsx';
 import Table from '../../../shared/components/Table/Table.jsx';
 import SearchBar from '../../../shared/components/SearchBar/SearchBar.jsx';
 import FilterDropdown from '../../../shared/components/FilterDropdown/FilterDropdown.jsx';
@@ -64,6 +65,7 @@ export default function VehiculosPage() {
   const [formData, setFormData] = useState(EMPTY);
   const [editingId, setEditingId] = useState(null);
   const [showForm, setShowForm] = useState(false);
+  const [showMarcas, setShowMarcas] = useState(false);
   const [formError, setFormError] = useState('');
   const { errors, touched, setErrors, revalidate, markTouched, touchAll, fieldError, isInvalid, validateNow, reset } = useFormValidation(RULES);
 
@@ -297,11 +299,11 @@ export default function VehiculosPage() {
           <div className="form-group">
             <label className="form-label" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <span>Marca <span className="required">*</span></span>
-              {/* Abre en pestaña nueva a propósito: gestionar marcas/modelos (activar,
-                  renombrar, desactivar) sin perder lo ya llenado en este formulario. */}
-              <a href="/marcas" target="_blank" rel="noopener noreferrer" className="u-hint-sm" style={{ fontWeight: 400 }}>
-                Gestionar marcas ↗
-              </a>
+              {/* Gestiona marcas/modelos SIN salir de Vehículos ni abrir otra pestaña:
+                  abre el administrador embebido en un modal (item 7). */}
+              <button type="button" className="vehiculo-gestionar-link" onClick={() => setShowMarcas(true)}>
+                Gestionar marcas
+              </button>
             </label>
             <SearchableSelect
               options={marcasOpts}
@@ -361,6 +363,17 @@ export default function VehiculosPage() {
 
       <EliminarRealModal isOpen={del.isOpen} onClose={del.close} entidadLabel="vehículo"
         preview={del.preview} loadingPreview={del.loadingPreview} deleting={del.deleting} error={del.error} onConfirm={del.confirm} />
+
+      {/* Gestión de marcas y modelos embebida (sin salir del módulo de vehículos).
+          Al cerrar se recargan las marcas para que el select refleje los cambios. */}
+      <Modal
+        isOpen={showMarcas}
+        onClose={() => { setShowMarcas(false); api.get('/api/catalogos/marcas').then(r => setMarcas(r.data?.data || r.data || [])).catch(() => {}); }}
+        title="Marcas y modelos"
+        size="xl"
+      >
+        <MarcasPage embedded />
+      </Modal>
     </div>
   );
 }

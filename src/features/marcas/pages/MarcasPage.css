@@ -1,3 +1,6 @@
+/* MarcasPage embebida en un modal (desde Vehículos): solo la barra de acción. */
+.marcas-embedded__actions { display: flex; justify-content: flex-end; margin-bottom: var(--space-md); }
+
 /* Panel de gestión de modelos (dentro del modal, patrón de tabla — sin cards) */
 .modelos-panel__head {
   display: flex;

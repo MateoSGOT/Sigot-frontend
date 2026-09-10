@@ -1,5 +1,13 @@
 .table-actions { display: flex; align-items: center; gap: 0.25rem; }
 .font-medium { font-weight: 600; }
+
+/* Enlace "Gestionar marcas" (abre el administrador embebido en un modal). */
+.vehiculo-gestionar-link {
+  background: none; border: none; padding: 0; cursor: pointer;
+  font-size: 0.78rem; font-weight: 500;
+  color: var(--color-primary-strong, var(--color-primary));
+}
+.vehiculo-gestionar-link:hover { text-decoration: underline; }
 .text-success { color: var(--color-success); }
 .text-danger { color: var(--color-danger); }
 
