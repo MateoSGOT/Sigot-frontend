@@ -44,6 +44,9 @@ export default function ResetPasswordPage() {
   }, [success, navigate]);
 
   const strength = getPasswordStrength(nuevaPassword);
+  // Validación en tiempo real (mientras escribe, no solo al enviar).
+  const noCoincide   = confirmar.length > 0 && nuevaPassword !== confirmar;
+  const formInvalido = nuevaPassword.length < 6 || nuevaPassword !== confirmar;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -188,9 +191,10 @@ export default function ResetPasswordPage() {
                 {showPass2 ? <MdVisibilityOff size={18} /> : <MdVisibility size={18} />}
               </button>
             </div>
+            {noCoincide && <p style={{ color: '#ef4444', fontSize: '0.8rem', marginTop: '0.4rem' }}>Las contraseñas no coinciden.</p>}
           </div>
 
-          <button type="submit" className="rsp-btn rsp-btn--primary rsp-btn--full" disabled={loading}>
+          <button type="submit" className="rsp-btn rsp-btn--primary rsp-btn--full" disabled={loading || formInvalido}>
             {loading ? <><span className="rsp-spinner" />Actualizando...</> : 'Actualizar contraseña'}
           </button>
         </form>

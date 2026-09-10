@@ -34,6 +34,10 @@ export default function LoginPage() {
   // Validación de FORMATO en tiempo real (no revela si el correo existe:
   // eso lo maneja el backend con un mensaje genérico anti-enumeración).
   const recoveryFormatError = validarCorreo(recoveryEmail, false);
+  // Validación en tiempo real del login: formato del correo (solo si ya escribió algo)
+  // y habilitación del botón mientras falten datos.
+  const correoFormatoError = form.Correo ? validarCorreo(form.Correo, false) : '';
+  const loginInvalido = !form.Correo || !form.Password || !!correoFormatoError;
   const [resendCountdown, setResendCountdown] = useState(0);
   const countdownRef = useRef(null);
 
@@ -183,6 +187,7 @@ export default function LoginPage() {
                   onChange={handleChange} autoComplete="email" required
                 />
               </div>
+              {correoFormatoError && <p className="login-recovery__field-error">{correoFormatoError}</p>}
             </div>
 
             <div className="login-form__group">
@@ -202,7 +207,7 @@ export default function LoginPage() {
               </div>
             </div>
 
-            <button type="submit" className="login-form__submit" disabled={loading}>
+            <button type="submit" className="login-form__submit" disabled={loading || loginInvalido}>
               {loading ? <><span className="login-form__spinner" />Iniciando sesión...</> : 'Ingresar'}
             </button>
           </form>

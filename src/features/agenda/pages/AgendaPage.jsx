@@ -17,6 +17,7 @@ import FilterDropdown from '../../../shared/components/FilterDropdown/FilterDrop
 import { StatusBadge } from '../../../shared/components/Badge/Badge.jsx';
 import { filterItems, sortNewestFirst, formatDate, todayLocalYMD, formatHora12 } from '../../../shared/utils/helpers.js';
 import { generarDiagnosticoPDF } from '../../../shared/utils/generarFacturaPDF.js';
+import { useAutoRefresh } from '../../../shared/hooks/useAutoRefresh.js';
 import api from '../../../shared/services/api.js';
 import './AgendaPage.css';
 
@@ -116,11 +117,12 @@ export default function AgendaPage() {
     return () => { cancel = true; };
   }, [showLimpieza, limpiezaDias]);
 
-  // Actualización en tiempo real: refresca la lista sola, salvo con algún
-  // modal de creación/edición/cancelación abierto (no interrumpe al usuario).
-  // Las novedades entran al mismo ciclo -- si un empleado queda con/sin novedad
-  // mientras la página está abierta, la disponibilidad (horas bloqueadas,
-  // calendario) se corrige sola sin necesitar recargar la página.
+  // Actualización en tiempo real (pantalla clave): refresca citas + novedades cada 20s,
+  // salvo con algún modal de creación/edición/cancelación/limpieza abierto (no interrumpe
+  // al usuario). Las novedades entran al ciclo para que la disponibilidad se corrija sola.
+  const hayEdicionAgenda = showForm || showOrdenModal || !!confirmCancelar
+    || !!editandoDiagnosticoId || showLimpieza || del.isOpen;
+  useAutoRefresh(() => { dispatch(fetchAgenda()); cargarNovedades(); }, { enabled: !hayEdicionAgenda });
 
   // ── Novedades por FECHA (no solo "hoy") ──────────────────────────────
   // Bloquea asignar un empleado que tenga una novedad que cubra la fecha del
@@ -253,6 +255,18 @@ export default function AgendaPage() {
     && !!formData.FechaAgendamiento && !!formData.Hora
     && !fechaError && !duracionError && !empleadosBloqueados.has(String(formData.id_empleado))
     && !vehiculoElegidoConOrden;
+
+  // Validación en tiempo real del modal "Generar orden" (diagnóstico).
+  const ordenKmNum = Number(ordenData.Kilometraje);
+  const ordenErrEntrega = ordenData.FechaEntrega && ordenData.FechaIngreso && ordenData.FechaEntrega < ordenData.FechaIngreso
+    ? 'La fecha de entrega no puede ser anterior a la de ingreso.' : '';
+  const ordenErrKm = ordenData.Kilometraje !== '' && (!Number.isInteger(ordenKmNum) || ordenKmNum < 0)
+    ? 'El kilometraje debe ser un entero mayor o igual a 0.'
+    : (ordenData.Kilometraje !== '' && ordenVehiculoKm != null && ordenKmNum < ordenVehiculoKm
+        ? `No puede ser menor al último del vehículo (${ordenVehiculoKm.toLocaleString('es-CO')} km).` : '');
+  const ordenFormInvalido = !ordenData.FechaIngreso || !ordenData.FechaEntrega
+    || !ordenData.Diagnostico?.trim() || ordenData.Kilometraje === ''
+    || !!ordenErrEntrega || !!ordenErrKm;
 
   // Se incluye el Documento en la etiqueta (no solo el Nombre) para poder distinguir
   // clientes/empleados que comparten el mismo nombre.
@@ -864,15 +878,15 @@ export default function AgendaPage() {
               {pagandoDiagnostico ? 'Guardando...' : 'Pagar diagnóstico'}
             </button>
           )}
-          <button className="btn btn--primary" onClick={handleOrdenSubmit} disabled={actionLoading}>{actionLoading ? 'Generando...' : 'Generar orden'}</button>
+          <button className="btn btn--primary" onClick={handleOrdenSubmit} disabled={actionLoading || ordenFormInvalido}>{actionLoading ? 'Generando...' : 'Generar orden'}</button>
         </>}
       >
         {ordenError && <div className="form-error-box">{ordenError}</div>}
         <form className="form-grid" onSubmit={handleOrdenSubmit} noValidate>
           <div className="form-group"><label className="form-label">Fecha de ingreso <span className="required">*</span></label><input name="FechaIngreso" type="date" className="form-control" value={ordenData.FechaIngreso} onChange={handleOrdenChange} max={TODAY} /><p className="form-hint">Por defecto hoy; ajústala si el vehículo ingresó otro día.</p></div>
-          <div className="form-group"><label className="form-label">Fecha de entrega <span className="required">*</span></label><input name="FechaEntrega" type="date" className="form-control" value={ordenData.FechaEntrega} onChange={handleOrdenChange} min={ordenData.FechaIngreso || TODAY} /></div>
+          <div className="form-group"><label className="form-label">Fecha de entrega <span className="required">*</span></label><input name="FechaEntrega" type="date" className={`form-control ${ordenErrEntrega ? 'is-error' : ''}`} value={ordenData.FechaEntrega} onChange={handleOrdenChange} min={ordenData.FechaIngreso || TODAY} />{ordenErrEntrega && <p className="form-error">{ordenErrEntrega}</p>}</div>
           <div className="form-group span-2"><label className="form-label">Diagnóstico <span className="required">*</span></label><textarea name="Diagnostico" className="form-control" value={ordenData.Diagnostico} onChange={handleOrdenChange} rows={3} maxLength={500} placeholder="Describe el diagnóstico..." /></div>
-          <div className="form-group span-2"><label className="form-label">Kilometraje <span className="required">*</span></label><input name="Kilometraje" type="number" min={ordenVehiculoKm ?? 0} className="form-control" value={ordenData.Kilometraje} onChange={handleOrdenChange} placeholder="km actuales del vehículo" />{ordenVehiculoKm != null && <p className="form-hint">Último registrado del vehículo: {ordenVehiculoKm.toLocaleString('es-CO')} km. No puede ser menor.</p>}</div>
+          <div className="form-group span-2"><label className="form-label">Kilometraje <span className="required">*</span></label><input name="Kilometraje" type="number" min={ordenVehiculoKm ?? 0} className={`form-control ${ordenErrKm ? 'is-error' : ''}`} value={ordenData.Kilometraje} onChange={handleOrdenChange} placeholder="km actuales del vehículo" />{ordenErrKm && <p className="form-error">{ordenErrKm}</p>}{ordenVehiculoKm != null && <p className="form-hint">Último registrado del vehículo: {ordenVehiculoKm.toLocaleString('es-CO')} km. No puede ser menor.</p>}</div>
         </form>
       </Modal>
 

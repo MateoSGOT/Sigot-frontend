@@ -12,6 +12,8 @@ import FilterDropdown from '../../../shared/components/FilterDropdown/FilterDrop
 import Badge from '../../../shared/components/Badge/Badge.jsx';
 import { StatusBadge } from '../../../shared/components/Badge/Badge.jsx';
 import { filterItems, formatDate, formatCurrency, todayLocalYMD, formatHora12 } from '../../../shared/utils/helpers.js';
+import * as V from '../../../shared/utils/validators.js';
+import { useAutoRefresh } from '../../../shared/hooks/useAutoRefresh.js';
 import api from '../../../shared/services/api.js';
 import './PortalPage.css';
 
@@ -126,6 +128,29 @@ export default function PortalPage() {
     EmpleadoNombre: c.empleado?.Nombre || 'Sin asignar',
   }));
 
+  // Refresco en tiempo real (pantalla clave del cliente): vuelve a traer vehículos,
+  // órdenes y citas cada 20s (sin spinner), salvo mientras se está agendando una cita.
+  const refrescarPortal = () => {
+    if (!cliente || !token || tipo !== 'cliente') return;
+    const h = { Authorization: `Bearer ${token}` };
+    Promise.all([
+      api.get('/api/portal/vehiculos', { headers: h }),
+      api.get('/api/portal/ordenes',   { headers: h }),
+      api.get('/api/portal/citas',     { headers: h }),
+    ]).then(([vRes, oRes, cRes]) => {
+      setVehiculos(vRes.data?.data || []);
+      setOrdenes(oRes.data?.data || []);
+      setCitas(flattenCitas(cRes.data?.data || []));
+    }).catch(() => {});
+  };
+  useAutoRefresh(refrescarPortal, { enabled: !showCitaModal });
+
+  // Validación del perfil (Mi cuenta) en tiempo real: correo obligatorio y con formato;
+  // teléfono opcional pero válido si se escribe.
+  const perfilCorreoError   = V.correo(editData.Correo, false);
+  const perfilTelefonoError = V.telefono(editData.Telefono, true);
+  const perfilInvalido      = !!perfilCorreoError || !!perfilTelefonoError;
+
   // Reglas de negocio para gestionar una cita desde el portal del cliente:
   //  · Cancelar: solo dentro de las 24 h posteriores a haberla RESERVADO y
   //    siempre que falten MÁS de 2 h para la cita.
@@ -221,6 +246,7 @@ export default function PortalPage() {
 
   const handleSave = async e => {
     e.preventDefault();
+    if (perfilInvalido) { addToast({ type: 'error', message: perfilCorreoError || perfilTelefonoError }); return; }
     setSaving(true);
     try {
       const res = await api.put('/api/portal/perfil', {
@@ -514,24 +540,26 @@ export default function PortalPage() {
                       <span className="portal-profile-field-label">Correo electrónico</span>
                       <input
                         type="email"
-                        className="portal-profile-field-input"
+                        className={`portal-profile-field-input ${perfilCorreoError ? 'is-error' : ''}`}
                         value={editData.Correo}
                         onChange={e => setEditData(p => ({ ...p, Correo: e.target.value }))}
                         placeholder="correo@ejemplo.com"
                       />
+                      {perfilCorreoError && <p className="form-error">{perfilCorreoError}</p>}
                     </div>
                     <div className="portal-profile-field">
                       <span className="portal-profile-field-label">Teléfono</span>
                       <input
-                        className="portal-profile-field-input"
+                        className={`portal-profile-field-input ${perfilTelefonoError ? 'is-error' : ''}`}
                         value={editData.Telefono}
                         onChange={e => setEditData(p => ({ ...p, Telefono: e.target.value }))}
                         placeholder="Número de teléfono"
                       />
+                      {perfilTelefonoError && <p className="form-error">{perfilTelefonoError}</p>}
                     </div>
                   </div>
                   <div className="portal-profile-card-footer">
-                    <button type="submit" className="btn btn--primary" disabled={saving}>
+                    <button type="submit" className="btn btn--primary" disabled={saving || perfilInvalido}>
                       {saving ? 'Guardando...' : 'Guardar cambios'}
                     </button>
                   </div>

@@ -3,6 +3,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { useLocation } from 'react-router-dom';
 import { MdVisibility, MdEdit, MdAdd, MdBuild, MdCheck, MdArrowForward, MdDeleteOutline } from 'react-icons/md';
 import { usePermiso } from '../../../shared/hooks/usePermiso.js';
+import { useAutoRefresh } from '../../../shared/hooks/useAutoRefresh.js';
 import {
   fetchOrdenById, updateOrden, toggleOrdenEstado,
   addServicioToOrden, addRepuestoToOrden, setManoDeObra, clearSelected,
@@ -241,6 +242,16 @@ export default function OrdenesPage() {
 
   useEffect(() => { fetchPage(); }, [fetchPage]);
   useEffect(() => { fetchResumen(); }, [fetchResumen]);
+
+  // Actualización en tiempo real (pantalla clave): refresca la lista, el resumen y la orden
+  // abierta cada 20s, salvo mientras se edita (modal de edición, reasignar empleado u
+  // observación) para no interrumpir al usuario.
+  const hayEdicionOrden = showEdit || editingEmpleado || obsEdit !== null;
+  useAutoRefresh(() => {
+    fetchPage();
+    fetchResumen();
+    if (detailId) dispatch(fetchOrdenById(detailId));
+  }, { enabled: !hayEdicionOrden });
 
   const onSearch  = (v) => { setSearch(v); setPage(1); };
   const onEstado  = (v) => { setEstadoFilter(v); setPage(1); };

@@ -265,6 +265,10 @@ export default function RolesPage() {
   // es un rol normal, editable y eliminable como cualquier otro.
   const isSistema = (row) => row.EsSistema;
 
+  // Validación del nombre en tiempo real (mientras escribe, no solo al guardar).
+  const createNombreError = createNombre ? V.nombre(createNombre, 2, 50) : '';
+  const editNombreError   = formNombre  ? V.nombre(formNombre, 2, 50)   : '';
+
   const handleToggle = (rol) => {
     if (isSistema(rol)) return;
     dispatch(toggleRolEstado(rol.Id_Rol));
@@ -414,7 +418,7 @@ export default function RolesPage() {
         footer={
           <>
             <button className="btn btn--outline" onClick={() => setShowCreate(false)}>Cancelar</button>
-            <button className="btn btn--primary" onClick={handleCreate} disabled={actionLoading}>
+            <button className="btn btn--primary" onClick={handleCreate} disabled={actionLoading || !!createNombreError || !createNombre.trim()}>
               {actionLoading ? 'Guardando...' : 'Crear'}
             </button>
           </>
@@ -424,14 +428,15 @@ export default function RolesPage() {
         <div className="form-group">
           <label className="form-label">Nombre del rol <span className="required">*</span></label>
           <input
-            className="form-control"
+            className={`form-control ${createNombreError ? 'is-error' : ''}`}
             value={createNombre}
             onChange={e => setCreateNombre(e.target.value)}
             placeholder="Ej: Recepcionista"
-            onKeyDown={e => e.key === 'Enter' && handleCreate(e)}
+            onKeyDown={e => e.key === 'Enter' && !createNombreError && createNombre.trim() && handleCreate(e)}
             maxLength={50}
             autoFocus
           />
+          {createNombreError && <p className="form-error">{createNombreError}</p>}
         </div>
       </Modal>
 
@@ -447,7 +452,7 @@ export default function RolesPage() {
             <button
               className="btn btn--primary"
               onClick={handleEditSave}
-              disabled={saving || matLoading}
+              disabled={saving || matLoading || !!editNombreError || !formNombre.trim()}
             >
               {saving
                 ? <><span className="rol-spinner" /> Guardando...</>
@@ -462,13 +467,14 @@ export default function RolesPage() {
         <div className="form-group" style={{ marginBottom: '1.25rem' }}>
           <label className="form-label">Nombre del rol <span className="required">*</span></label>
           <input
-            className="form-control"
+            className={`form-control ${editNombreError ? 'is-error' : ''}`}
             style={{ maxWidth: 320 }}
             value={formNombre}
             onChange={e => setFormNombre(e.target.value)}
             placeholder="Nombre del rol"
             maxLength={50}
           />
+          {editNombreError && <p className="form-error">{editNombreError}</p>}
         </div>
 
         <div className="rol-section-divider" />
