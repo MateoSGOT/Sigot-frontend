@@ -18,6 +18,7 @@ import FilterDropdown from '../../../shared/components/FilterDropdown/FilterDrop
 import Badge, { StatusBadge } from '../../../shared/components/Badge/Badge.jsx';
 import SearchableSelect from '../../../shared/components/SearchableSelect/SearchableSelect.jsx';
 import { sortByStatus, sortNewestFirst, filterItems } from '../../../shared/utils/helpers.js';
+import { useAutoRefresh } from '../../../shared/hooks/useAutoRefresh.js';
 import * as V from '../../../shared/utils/validators.js';
 import api from '../../../shared/services/api.js';
 import './ClientesPage.css';
@@ -56,6 +57,12 @@ export default function ClientesPage() {
     api.get('/api/catalogos/tipos-documento').then(r => setTiposDoc(r.data?.data || r.data || [])).catch(() => {});
     api.get('/api/roles').then(r => setRoles(r.data?.data || r.data || [])).catch(() => {});
   }, [dispatch]);
+
+  // Corrección/cambio hecho en otro lado (ej. una cita en Agenda) se refleja solo,
+  // sin recargar la página -- mismo patrón que Agenda/Órdenes/Portal.
+  useAutoRefresh(() => dispatch(fetchClientes()), {
+    enabled: !showForm && !showConfirm && !showConvertir && !detailId && !del.isOpen,
+  });
 
 
   const filtered = (() => {

@@ -19,6 +19,7 @@ import Badge from '../../../shared/components/Badge/Badge.jsx';
 import SearchableSelect from '../../../shared/components/SearchableSelect/SearchableSelect.jsx';
 import ImageUploader from '../../../shared/components/ImageUploader/ImageUploader.jsx';
 import { sortByStatus, sortNewestFirst, filterItems, formatDate, todayLocalYMD } from '../../../shared/utils/helpers.js';
+import { useAutoRefresh } from '../../../shared/hooks/useAutoRefresh.js';
 import * as V from '../../../shared/utils/validators.js';
 import { useFormValidation } from '../../../shared/hooks/useFormValidation.js';
 import api from '../../../shared/services/api.js';
@@ -107,6 +108,15 @@ export default function EmpleadosPage() {
     api.get('/api/roles').then(r => setRoles(r.data?.data || r.data || [])).catch(() => {});
     api.get('/api/novedades').then(r => setNovedades(r.data?.data || r.data || [])).catch(() => {});
   }, [dispatch]);
+
+  // Corrección/cambio hecho en otro lado (ej. una cita en Agenda) se refleja solo,
+  // sin recargar la página -- mismo patrón que Agenda/Órdenes/Portal.
+  useAutoRefresh(() => {
+    dispatch(fetchEmpleados());
+    api.get('/api/novedades').then(r => setNovedades(r.data?.data || r.data || [])).catch(() => {});
+  }, {
+    enabled: !showForm && !showConfirm && !showConvertir && !detailId && !del.isOpen,
+  });
 
 
   // Solo novedades activas Y aún vigentes (fin >= hoy): una novedad inactiva o ya vencida

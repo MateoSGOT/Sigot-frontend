@@ -40,6 +40,10 @@ const CITA_CANCELABLE = (estado) => ['Pendiente', 'Confirmada'].includes(estado 
 const EMPTY_ORDEN = { FechaIngreso: '', FechaEntrega: '', Diagnostico: '', Kilometraje: '' };
 const TODAY = todayLocalYMD();
 const toMinHelper = (h) => { const [hh, mm] = String(h).split(':').map(Number); return hh * 60 + mm; };
+// Fecha YMD -> hace N días (redondeado hacia arriba), para reutilizar la API de
+// limpieza de agenda (que trabaja con una cantidad de días, no una fecha exacta).
+const diasDesde = (ymd) => Math.max(1, Math.ceil((new Date(`${TODAY}T12:00:00`) - new Date(`${ymd}T12:00:00`)) / 86400000));
+const fechaHaceNDias = (n) => { const d = new Date(`${TODAY}T12:00:00`); d.setDate(d.getDate() - n); return d.toISOString().split('T')[0]; };
 
 export default function AgendaPage() {
   const dispatch = useDispatch();
@@ -85,9 +89,12 @@ export default function AgendaPage() {
   const [editDiagnosticoTexto, setEditDiagnosticoTexto] = useState('');
   const [editDiagnosticoError, setEditDiagnosticoError] = useState('');
   const [horario, setHorario] = useState({ apertura: '08:00', cierre: '18:00', diasLaborales: [1, 2, 3, 4, 5, 6] });
-  // Limpieza de citas antiguas (superadmin)
+  // Limpieza de citas antiguas (superadmin). Se elige una fecha de corte exacta (no un
+  // preset de "antigüedad" en días) -- por defecto, 90 días atrás -- y se convierte a
+  // días para reutilizar la misma API existente (agendaService.limpieza*), que ya
+  // trabaja con una cantidad de días.
   const [showLimpieza, setShowLimpieza]       = useState(false);
-  const [limpiezaDias, setLimpiezaDias]       = useState('90');
+  const [limpiezaFecha, setLimpiezaFecha]     = useState('');
   const [limpiezaInfo, setLimpiezaInfo]       = useState(null); // { total, textoConfirmacion }
   const [limpiezaConfirm, setLimpiezaConfirm] = useState('');
   const [limpiezaError, setLimpiezaError]     = useState('');
@@ -107,15 +114,14 @@ export default function AgendaPage() {
   // Preview de la limpieza: recalcula cuántas citas se borrarían al abrir el modal
   // o al cambiar el período elegido.
   useEffect(() => {
-    if (!showLimpieza) return;
-    const dias = Number(limpiezaDias);
-    if (!Number.isInteger(dias) || dias < 1) { setLimpiezaInfo(null); return; }
+    if (!showLimpieza || !limpiezaFecha) { if (showLimpieza) setLimpiezaInfo(null); return; }
+    const dias = diasDesde(limpiezaFecha);
     let cancel = false;
     agendaService.limpiezaPreview(dias)
       .then(d => { if (!cancel) setLimpiezaInfo(d); })
       .catch(() => { if (!cancel) setLimpiezaInfo(null); });
     return () => { cancel = true; };
-  }, [showLimpieza, limpiezaDias]);
+  }, [showLimpieza, limpiezaFecha]);
 
   // Actualización en tiempo real (pantalla clave): refresca citas + novedades cada 20s,
   // salvo con algún modal de creación/edición/cancelación/limpieza abierto (no interrumpe
@@ -528,11 +534,11 @@ export default function AgendaPage() {
     else addToast({ type: 'error', message: r.payload || 'No se pudo cancelar la cita.' });
   };
 
-  const openLimpieza = () => { setShowLimpieza(true); setLimpiezaDias('90'); setLimpiezaInfo(null); setLimpiezaConfirm(''); setLimpiezaError(''); };
+  const openLimpieza = () => { setShowLimpieza(true); setLimpiezaFecha(fechaHaceNDias(90)); setLimpiezaInfo(null); setLimpiezaConfirm(''); setLimpiezaError(''); };
   const handleLimpiezaEjecutar = async () => {
     setLimpiezaError('');
-    const dias = Number(limpiezaDias);
-    if (!Number.isInteger(dias) || dias < 1) { setLimpiezaError('Indica una antigüedad válida en días.'); return; }
+    if (!limpiezaFecha || limpiezaFecha >= TODAY) { setLimpiezaError('Elige una fecha de corte válida (anterior a hoy).'); return; }
+    const dias = diasDesde(limpiezaFecha);
     if (!limpiezaConfirm.trim()) { setLimpiezaError('Escribe el texto de confirmación.'); return; }
     setLimpiezaLoading(true);
     try {
@@ -781,24 +787,24 @@ export default function AgendaPage() {
             )}
           </div>
           {detailItem.EstadoCita === 'Cancelada' && (
-            <div className="u-mt-lg" style={{ display: 'flex', gap: '0.5rem' }}>
+            <div className="u-mt-lg" style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
               <button className="btn btn--primary" disabled={!puedeCrear} onClick={() => handleReagendar(detailItem)}>
                 <MdEventRepeat size={18} />Reagendar
               </button>
-              <button className="btn btn--danger" disabled={!puedeToggle} onClick={() => setConfirmEliminar(detailItem)}>
+              <button className="btn btn--danger" disabled={!puedeToggle} onClick={() => setConfirmEliminar(detailItem)} style={{ marginLeft: 'auto' }}>
                 <MdDeleteForever size={18} />Eliminar por completo
               </button>
             </div>
           )}
           {detailItem.EstadoCita === 'Diagnosticada' && (
-            <div className="u-mt-lg" style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+            <div className="u-mt-lg" style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
               <button className="btn btn--outline" onClick={() => printDiagnostico(detailItem)}>
                 <MdPrint size={18} />Imprimir diagnóstico
               </button>
               <button className="btn btn--primary" disabled={!puedeCrear} onClick={() => { setDetailId(null); openGenerarOrden(detailItem); }}>
                 <MdAssignment size={18} />Generar orden de trabajo
               </button>
-              <button className="btn btn--danger" disabled={!puedeToggle} onClick={() => setConfirmEliminar(detailItem)}>
+              <button className="btn btn--danger" disabled={!puedeToggle} onClick={() => setConfirmEliminar(detailItem)} style={{ marginLeft: 'auto' }}>
                 <MdDeleteForever size={18} />Eliminar
               </button>
             </div>
@@ -942,13 +948,14 @@ export default function AgendaPage() {
         {limpiezaError && <div className="form-error-box">{limpiezaError}</div>}
         <p className="u-mb-md">Elimina de forma definitiva las citas <strong>canceladas</strong> y <strong>no asistió</strong> más antiguas que el período elegido. Las citas atendidas se conservan (están ligadas a órdenes de trabajo).</p>
         <div className="form-group">
-          <label className="form-label">Antigüedad</label>
-          <select className="form-control" value={limpiezaDias} onChange={e => { setLimpiezaDias(e.target.value); setLimpiezaConfirm(''); }}>
-            <option value="30">Más de 30 días</option>
-            <option value="90">Más de 90 días</option>
-            <option value="180">Más de 180 días</option>
-            <option value="365">Más de 1 año</option>
-          </select>
+          <label className="form-label">Eliminar citas anteriores a</label>
+          <input
+            type="date"
+            className="form-control"
+            value={limpiezaFecha}
+            max={fechaHaceNDias(1)}
+            onChange={e => { setLimpiezaFecha(e.target.value); setLimpiezaConfirm(''); }}
+          />
         </div>
         <p className="u-mb-md">
           {limpiezaInfo == null

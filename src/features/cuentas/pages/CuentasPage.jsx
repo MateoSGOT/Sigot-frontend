@@ -169,13 +169,16 @@ export default function CuentasPage() {
     {
       key: 'Id_Rol', label: 'Rol', render: (v, row) => (
         <div className="cuentas-rol-cell">
-          <SearchableSelect
-            options={[{ value: '', label: 'Sin rol administrativo' }, ...rolesOpts]}
-            value={v != null ? String(v) : ''}
-            disabled={busyKey === keyOf(row)}
-            onChange={idRolStr => handleCambiarRol(row, idRolStr)}
-          />
-          {row.EsSuperAdmin && <Badge variant="success"><MdSecurity size={11} className="u-ic-mr" />Super Admin</Badge>}
+          {row.EsSuperAdmin ? (
+            <Badge variant="success"><MdSecurity size={11} className="u-ic-mr" />Super Administrador</Badge>
+          ) : (
+            <SearchableSelect
+              options={[{ value: '', label: 'Sin rol administrativo' }, ...rolesOpts]}
+              value={v != null ? String(v) : ''}
+              disabled={busyKey === keyOf(row)}
+              onChange={idRolStr => handleCambiarRol(row, idRolStr)}
+            />
+          )}
         </div>
       )
     },
