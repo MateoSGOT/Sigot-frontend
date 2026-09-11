@@ -12,6 +12,7 @@ import {
 import { logout } from '../../../features/auth/slices/authSlice';
 import StockAlertBell from '../StockAlertBell/StockAlertBell.jsx';
 import NovedadAlertBell from '../NovedadAlertBell/NovedadAlertBell.jsx';
+import StaffNotifBell from '../StaffNotifBell/StaffNotifBell.jsx';
 import { useSidebar } from '../../contexts/SidebarContext.jsx';
 import './Sidebar.css';
 
@@ -163,6 +164,7 @@ export default function Sidebar() {
         </div>
         <div className="sidebar__header-actions">
           <div className="sidebar__header-bells">
+            <StaffNotifBell />
             <StockAlertBell />
             {esAdminOSuperAdmin && <NovedadAlertBell />}
           </div>

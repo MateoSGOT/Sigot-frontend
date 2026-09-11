@@ -1,22 +1,14 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { useNavigate } from 'react-router-dom';
 import { MdNotifications } from 'react-icons/md';
-import api from '../../../shared/services/api.js';
-import '../../../shared/components/NovedadAlertBell/NovedadAlertBell.css';
+import api from '../../services/api.js';
+import '../NovedadAlertBell/NovedadAlertBell.css';
 
-// Campana de notificaciones del cliente (portal). Antes derivaba los eventos en el
-// navegador a partir de citas/órdenes y marcaba "vistas" en localStorage; ahora lee la
-// tabla de notificaciones del backend (/api/portal/notificaciones) con estado leída/no-leída
-// real y persistente entre dispositivos. Al abrir la campana, marca todas como leídas.
-const TIPO_TAB = {
-  cita_agendada:   'citas',
-  cita_confirmada: 'citas',
-  cita_reagendada: 'citas',
-  cita_cancelada:  'citas',
-  orden_estado:      'ordenes',
-  orden_observacion: 'ordenes',
-};
-
+// Campana de notificaciones del taller (panel). Lee la tabla de notificaciones del backend
+// (audiencia 'staff'): hoy la alimenta la respuesta del cliente a una observación
+// (aprobó/rechazó el trabajo). Mismo patrón visual que NovedadAlertBell/StockAlertBell.
+// Al abrir marca todas como leídas y, al hacer clic, navega a la orden en cuestión.
 const _fechaCorta = (iso) => {
   if (!iso) return '';
   const d = new Date(iso);
@@ -25,7 +17,8 @@ const _fechaCorta = (iso) => {
     ' · ' + d.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' });
 };
 
-export default function PortalNotifBell({ onNavigate }) {
+export default function StaffNotifBell() {
+  const navigate = useNavigate();
   const [items, setItems] = useState([]);
   const [open, setOpen]   = useState(false);
   const [pos, setPos]     = useState({ top: 0, left: 0 });
@@ -34,15 +27,14 @@ export default function PortalNotifBell({ onNavigate }) {
 
   const cargar = async () => {
     try {
-      const r = await api.get('/api/portal/notificaciones');
+      const r = await api.get('/api/notificaciones');
       const rows = r.data?.data || r.data || [];
       setItems(Array.isArray(rows) ? rows : []);
-    } catch { /* silencioso -- no bloquea el resto del portal */ }
+    } catch { /* silencioso */ }
   };
 
   useEffect(() => {
     cargar();
-    // Refresco ligero: las notificaciones nuevas del taller aparecen sin recargar la página.
     const id = setInterval(cargar, 60000);
     return () => clearInterval(id);
   }, []);
@@ -84,10 +76,9 @@ export default function PortalNotifBell({ onNavigate }) {
   const toggle = () => {
     if (!open) {
       recalcPos();
-      // Al abrir se marcan todas como leídas en el backend (y localmente al instante).
       if (items.some(i => !i.Leida)) {
         setItems(prev => prev.map(i => ({ ...i, Leida: true })));
-        api.patch('/api/portal/notificaciones/leidas').catch(() => {});
+        api.patch('/api/notificaciones/leidas').catch(() => {});
       }
     }
     setOpen(o => !o);
@@ -102,21 +93,18 @@ export default function PortalNotifBell({ onNavigate }) {
         <span>Notificaciones ({items.length})</span>
       </div>
       {items.length === 0 && <div className="novedad-bell__empty">Sin notificaciones por ahora</div>}
-      {items.map(item => {
-        const tab = TIPO_TAB[item.Tipo] || null;
-        return (
-          <div
-            key={item.Id_Notificacion}
-            className={`novedad-bell__item${!item.Leida ? ' novedad-bell__item--nuevo' : ''}`}
-            style={onNavigate && tab ? { cursor: 'pointer' } : undefined}
-            onClick={onNavigate && tab ? () => { setOpen(false); onNavigate(tab); } : undefined}
-          >
-            {item.Titulo && <span className="novedad-bell__item-titulo">{item.Titulo}</span>}
-            <span className="novedad-bell__item-desc">{item.Mensaje}</span>
-            <span className="novedad-bell__item-fecha">{_fechaCorta(item.createdAt)}</span>
-          </div>
-        );
-      })}
+      {items.map(item => (
+        <div
+          key={item.Id_Notificacion}
+          className={`novedad-bell__item${!item.Leida ? ' novedad-bell__item--nuevo' : ''}`}
+          style={item.Id_Orden ? { cursor: 'pointer' } : undefined}
+          onClick={item.Id_Orden ? () => { setOpen(false); navigate('/ordenes'); } : undefined}
+        >
+          {item.Titulo && <span className="novedad-bell__item-titulo">{item.Titulo}</span>}
+          <span className="novedad-bell__item-desc">{item.Mensaje}</span>
+          <span className="novedad-bell__item-fecha">{_fechaCorta(item.createdAt)}</span>
+        </div>
+      ))}
     </div>,
     document.body
   );

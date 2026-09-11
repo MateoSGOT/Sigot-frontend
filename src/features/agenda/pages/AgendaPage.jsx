@@ -16,6 +16,7 @@ import SearchBar from '../../../shared/components/SearchBar/SearchBar.jsx';
 import FilterDropdown from '../../../shared/components/FilterDropdown/FilterDropdown.jsx';
 import { StatusBadge } from '../../../shared/components/Badge/Badge.jsx';
 import { filterItems, sortNewestFirst, formatDate, todayLocalYMD, formatHora12 } from '../../../shared/utils/helpers.js';
+import { esFestivo } from '../../../shared/utils/festivosColombia.js';
 import { generarDiagnosticoPDF } from '../../../shared/utils/generarFacturaPDF.js';
 import { useAutoRefresh } from '../../../shared/hooks/useAutoRefresh.js';
 import api from '../../../shared/services/api.js';
@@ -42,8 +43,8 @@ const TODAY = todayLocalYMD();
 const toMinHelper = (h) => { const [hh, mm] = String(h).split(':').map(Number); return hh * 60 + mm; };
 // Fecha YMD -> hace N días (redondeado hacia arriba), para reutilizar la API de
 // limpieza de agenda (que trabaja con una cantidad de días, no una fecha exacta).
-const diasDesde = (ymd) => Math.max(1, Math.ceil((new Date(`${TODAY}T12:00:00`) - new Date(`${ymd}T12:00:00`)) / 86400000));
-const fechaHaceNDias = (n) => { const d = new Date(`${TODAY}T12:00:00`); d.setDate(d.getDate() - n); return d.toISOString().split('T')[0]; };
+// Se admite 0 (fecha = hoy): el backend lo interpreta como "borrar todo lo anterior a hoy".
+const diasDesde = (ymd) => Math.max(0, Math.ceil((new Date(`${TODAY}T12:00:00`) - new Date(`${ymd}T12:00:00`)) / 86400000));
 
 export default function AgendaPage() {
   const dispatch = useDispatch();
@@ -239,6 +240,7 @@ export default function AgendaPage() {
     if (!f) return '';
     if (f < TODAY) return 'La fecha no puede ser en el pasado.';
     if (!esDiaLaboral(f)) return 'El taller no atiende ese día.';
+    if (esFestivo(f)) return 'El taller no atiende días festivos. Elige otra fecha.';
     return '';
   })();
 
@@ -356,6 +358,9 @@ export default function AgendaPage() {
         ymd: fechaYmd,
         enMes: d.getMonth() === mesCal.mes,
         esHoy: fechaYmd === TODAY,
+        // El taller no atiende ese día: domingo/no-laboral o festivo colombiano.
+        noLaboral: !esDiaLaboral(fechaYmd) || esFestivo(fechaYmd),
+        esFestivo: esFestivo(fechaYmd),
         citas: (citasPorDia[fechaYmd] || []).slice().sort((a, b) => (a.Hora || '').localeCompare(b.Hora || '')),
       };
     });
@@ -534,10 +539,11 @@ export default function AgendaPage() {
     else addToast({ type: 'error', message: r.payload || 'No se pudo cancelar la cita.' });
   };
 
-  const openLimpieza = () => { setShowLimpieza(true); setLimpiezaFecha(fechaHaceNDias(90)); setLimpiezaInfo(null); setLimpiezaConfirm(''); setLimpiezaError(''); };
+  // Abre con la fecha de HOY (no un preset de días atrás): el corte por defecto es "hasta hoy".
+  const openLimpieza = () => { setShowLimpieza(true); setLimpiezaFecha(TODAY); setLimpiezaInfo(null); setLimpiezaConfirm(''); setLimpiezaError(''); };
   const handleLimpiezaEjecutar = async () => {
     setLimpiezaError('');
-    if (!limpiezaFecha || limpiezaFecha >= TODAY) { setLimpiezaError('Elige una fecha de corte válida (anterior a hoy).'); return; }
+    if (!limpiezaFecha || limpiezaFecha > TODAY) { setLimpiezaError('Elige una fecha de corte válida (hoy o anterior).'); return; }
     const dias = diasDesde(limpiezaFecha);
     if (!limpiezaConfirm.trim()) { setLimpiezaError('Escribe el texto de confirmación.'); return; }
     setLimpiezaLoading(true);
@@ -714,12 +720,14 @@ export default function AgendaPage() {
               {celdasCalendario.map(celda => (
                 <div
                   key={celda.ymd}
-                  className={`agenda-calendario__celda${celda.enMes ? '' : ' agenda-calendario__celda--fuera'}${celda.esHoy ? ' agenda-calendario__celda--hoy' : ''}${celda.citas.length ? ' agenda-calendario__celda--clickable' : ''}`}
+                  className={`agenda-calendario__celda${celda.enMes ? '' : ' agenda-calendario__celda--fuera'}${celda.esHoy ? ' agenda-calendario__celda--hoy' : ''}${celda.noLaboral ? ' agenda-calendario__celda--nolaboral' : ''}${celda.citas.length ? ' agenda-calendario__celda--clickable' : ''}`}
                   onClick={() => celda.citas.length && setDiaDetalle(celda.ymd)}
                   role={celda.citas.length ? 'button' : undefined}
                   tabIndex={celda.citas.length ? 0 : undefined}
+                  title={celda.noLaboral ? (celda.esFestivo ? 'Festivo — el taller no atiende' : 'El taller no atiende ese día') : undefined}
                 >
                   <span className="agenda-calendario__num">{celda.fecha.getDate()}</span>
+                  {celda.enMes && celda.esFestivo && <span className="agenda-calendario__festivo" title="Festivo">Festivo</span>}
                   <div className="agenda-calendario__citas">
                     {celda.citas.slice(0, 3).map(c => {
                       const s = ESTADO_CITA_STYLE[c.EstadoCita] || ESTADO_CITA_STYLE.Pendiente;
@@ -953,7 +961,7 @@ export default function AgendaPage() {
             type="date"
             className="form-control"
             value={limpiezaFecha}
-            max={fechaHaceNDias(1)}
+            max={TODAY}
             onChange={e => { setLimpiezaFecha(e.target.value); setLimpiezaConfirm(''); }}
           />
         </div>

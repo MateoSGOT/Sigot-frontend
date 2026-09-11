@@ -12,6 +12,7 @@ import FilterDropdown from '../../../shared/components/FilterDropdown/FilterDrop
 import Badge from '../../../shared/components/Badge/Badge.jsx';
 import { StatusBadge } from '../../../shared/components/Badge/Badge.jsx';
 import { filterItems, formatDate, formatCurrency, todayLocalYMD, formatHora12 } from '../../../shared/utils/helpers.js';
+import { esFestivo } from '../../../shared/utils/festivosColombia.js';
 import * as V from '../../../shared/utils/validators.js';
 import { useAutoRefresh } from '../../../shared/hooks/useAutoRefresh.js';
 import api from '../../../shared/services/api.js';
@@ -76,6 +77,10 @@ export default function PortalPage() {
   const [ordLoading,   setOrdLoading]   = useState(false);
   const [ordTab,       setOrdTab]       = useState('info');
   const [ordVehFilter, setOrdVehFilter] = useState('');
+  // Respuesta del cliente a la observación (aprobar/rechazar el trabajo propuesto).
+  const [obsComentario, setObsComentario] = useState('');
+  const [obsLoading,    setObsLoading]    = useState(false);
+  const [obsError,      setObsError]      = useState('');
 
   /* ── MIS CITAS ───────────────────────────────────────────── */
   const [citaSearch,    setCitaSearch]    = useState('');
@@ -267,6 +272,7 @@ export default function PortalPage() {
   const openOrden = async orden => {
     setOrdDetail(null);
     setOrdTab('info');
+    setObsComentario(''); setObsError('');
     setOrdLoading(true);
     try {
       const r = await api.get(`/api/portal/ordenes/${orden.Id_Orden}`, {
@@ -275,6 +281,29 @@ export default function PortalPage() {
       setOrdDetail(r.data?.data || orden);
     } catch { setOrdDetail(orden); }
     finally { setOrdLoading(false); }
+  };
+
+  // El cliente aprueba o rechaza el trabajo propuesto en la observación de una orden.
+  const responderObservacion = async (decision) => {
+    if (!ordDetail) return;
+    setObsError('');
+    setObsLoading(true);
+    try {
+      const r = await api.post(
+        `/api/portal/ordenes/${ordDetail.Id_Orden}/responder-observacion`,
+        { decision, comentario: obsComentario },
+        { headers: { Authorization: `Bearer ${token}` } },
+      );
+      // El backend devuelve la orden actualizada (fila cruda): reflejamos la decisión al
+      // instante en el detalle abierto, conservando los datos de presentación ya cargados.
+      const upd = r.data?.data || {};
+      setOrdDetail(prev => prev ? { ...prev, AprobacionCliente: upd.AprobacionCliente ?? decision, AprobacionComentario: upd.AprobacionComentario ?? (obsComentario || null) } : prev);
+      setObsComentario('');
+    } catch (err) {
+      setObsError(err.response?.data?.message || 'No se pudo registrar tu decisión. Intenta de nuevo.');
+    } finally {
+      setObsLoading(false);
+    }
   };
 
   /* ── Citas ───────────────────────────────────────────────── */
@@ -346,6 +375,14 @@ export default function PortalPage() {
     const dt = new Date(`${citaForm.Fecha}T${citaForm.Hora}:00`);
     if (Number.isNaN(dt.getTime()) || dt.getTime() <= Date.now()) {
       setCitaError('La fecha y la hora de la cita deben ser futuras.'); return;
+    }
+    // El taller no atiende domingos/días no laborales ni festivos (el backend también valida).
+    const isoDia = (() => { const js = new Date(`${citaForm.Fecha}T12:00:00`).getDay(); return js === 0 ? 7 : js; })();
+    if (!(horario.diasLaborales || [1, 2, 3, 4, 5, 6]).includes(isoDia)) {
+      setCitaError('El taller no atiende ese día. Elige otra fecha.'); return;
+    }
+    if (esFestivo(citaForm.Fecha)) {
+      setCitaError('El taller no atiende días festivos. Elige otra fecha.'); return;
     }
     setCitaLoading(true);
     try {
@@ -749,6 +786,32 @@ export default function PortalPage() {
                   <div className="detail-item"><span className="detail-label">Fecha entrega</span><span className="detail-value">{formatDate(ordDetail.FechaEntrega)}</span></div>
                   <div className="detail-item u-span-2"><span className="detail-label">Diagnóstico</span><span className="detail-value">{ordDetail.Diagnostico || '—'}</span></div>
                 </div>
+
+                {ordDetail.Observacion && (
+                  <div className={`portal-obs${ordDetail.AprobacionCliente === 'Pendiente' ? ' portal-obs--pendiente' : ''}`}>
+                    <div className="portal-obs__head">
+                      <span className="portal-obs__title">📝 Observación del taller</span>
+                      {ordDetail.AprobacionCliente === 'Aprobada' && <span className="portal-obs__badge portal-obs__badge--ok">✓ Trabajo aprobado</span>}
+                      {ordDetail.AprobacionCliente === 'Rechazada' && <span className="portal-obs__badge portal-obs__badge--no">✕ Trabajo rechazado</span>}
+                      {ordDetail.AprobacionCliente === 'Pendiente' && <span className="portal-obs__badge portal-obs__badge--wait">Requiere tu decisión</span>}
+                    </div>
+                    <p className="portal-obs__text">{ordDetail.Observacion}</p>
+                    {ordDetail.AprobacionCliente === 'Pendiente' ? (
+                      <div className="portal-obs__actions">
+                        <p className="portal-obs__hint">El taller propone este trabajo. ¿Autorizas que lo realicen?</p>
+                        <textarea className="form-control" rows={2} maxLength={500} placeholder="Comentario para el taller (opcional)..." value={obsComentario} onChange={e => setObsComentario(e.target.value)} />
+                        {obsError && <p className="form-error">{obsError}</p>}
+                        <div className="portal-obs__btns">
+                          <button className="btn btn--outline btn--sm" disabled={obsLoading} onClick={() => responderObservacion('Rechazada')}>No autorizar</button>
+                          <button className="btn btn--primary btn--sm" disabled={obsLoading} onClick={() => responderObservacion('Aprobada')}>{obsLoading ? 'Enviando…' : 'Aprobar trabajo'}</button>
+                        </div>
+                      </div>
+                    ) : ordDetail.AprobacionComentario ? (
+                      <p className="portal-obs__coment"><strong>Tu comentario:</strong> {ordDetail.AprobacionComentario}</p>
+                    ) : null}
+                  </div>
+                )}
+
                 <div className="orden-total-card">
                   <div className="orden-total-breakdown">
                     <div className="orden-total-row"><span>Servicios</span><span>{formatCurrency(totalServ)}</span></div>
@@ -870,6 +933,14 @@ export default function PortalPage() {
                 setHorasOcupadas([]);
                 fetchEmpleadosDisp(f);
               }} required />
+            {citaForm.Fecha && (() => {
+              const js = new Date(`${citaForm.Fecha}T12:00:00`).getDay();
+              const iso = js === 0 ? 7 : js;
+              const noLaboral = !(horario.diasLaborales || [1, 2, 3, 4, 5, 6]).includes(iso);
+              const festivo = esFestivo(citaForm.Fecha);
+              if (!noLaboral && !festivo) return null;
+              return <p className="form-error" style={{ marginTop: 6 }}>{festivo ? 'El taller no atiende días festivos. Elige otra fecha.' : 'El taller no atiende ese día. Elige otra fecha.'}</p>;
+            })()}
           </div>
           <div className="form-group">
             <label className="form-label">Hora <span className="required">*</span></label>

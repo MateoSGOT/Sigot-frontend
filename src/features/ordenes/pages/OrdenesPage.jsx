@@ -1,7 +1,7 @@
 ﻿import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useLocation } from 'react-router-dom';
-import { MdVisibility, MdEdit, MdAdd, MdBuild, MdCheck, MdArrowForward, MdDeleteOutline } from 'react-icons/md';
+import { MdVisibility, MdEdit, MdAdd, MdBuild, MdCheck, MdArrowForward, MdDeleteOutline, MdInventory2 } from 'react-icons/md';
 import { usePermiso } from '../../../shared/hooks/usePermiso.js';
 import { useAutoRefresh } from '../../../shared/hooks/useAutoRefresh.js';
 import {
@@ -710,7 +710,12 @@ export default function OrdenesPage() {
                   <div className="detail-item"><span className="detail-label">Fecha de entrega</span><span className="detail-value">{formatDate(selected.FechaEntrega)}</span></div>
                   <div className="detail-item u-span-2"><span className="detail-label">Diagnóstico</span><span className="detail-value">{selected.Diagnostico || '—'}</span></div>
                   <div className="detail-item u-span-2">
-                    <span className="detail-label">Observación</span>
+                    <span className="detail-label">
+                      Observación
+                      {selected.AprobacionCliente === 'Pendiente' && <span className="orden-aprob-badge orden-aprob-badge--wait">Esperando decisión del cliente</span>}
+                      {selected.AprobacionCliente === 'Aprobada' && <span className="orden-aprob-badge orden-aprob-badge--ok">✓ Cliente aprobó el trabajo</span>}
+                      {selected.AprobacionCliente === 'Rechazada' && <span className="orden-aprob-badge orden-aprob-badge--no">✕ Cliente rechazó el trabajo</span>}
+                    </span>
                     {obsEdit === null ? (
                       <span className="detail-value empleado-value-row">
                         {selected.Observacion || '—'}
@@ -725,7 +730,11 @@ export default function OrdenesPage() {
                           <button className="btn btn--outline btn--sm" onClick={() => setObsEdit(null)} disabled={actionLoading}>Cancelar</button>
                           <button className="btn btn--primary btn--sm" onClick={handleSaveObservacion} disabled={actionLoading}>{actionLoading ? 'Guardando...' : 'Guardar'}</button>
                         </div>
+                        <p className="u-hint u-mt-xs">Al guardar, se notifica al cliente para que apruebe o rechace el trabajo desde su portal.</p>
                       </div>
+                    )}
+                    {['Aprobada', 'Rechazada'].includes(selected.AprobacionCliente) && selected.AprobacionComentario && (
+                      <span className="orden-aprob-coment">Comentario del cliente: “{selected.AprobacionComentario}”</span>
                     )}
                   </div>
                 </div>
@@ -827,186 +836,208 @@ export default function OrdenesPage() {
             )}
 
             {activeTab === 'servicios' && (
-              <div className="u-mt-lg">
-                {(() => {
-                  const servItems = selected?.servicios || [];
-                  const servStart = servPage * ITEMS_PER_PAGE;
-                  const servSlice = servItems.slice(servStart, servStart + ITEMS_PER_PAGE);
-                  return (
-                    <>
-                      <div className="orden-items-list">
-                        {servItems.length > 0 ? (
-                          servSlice.map((s, i) => (
-                            <div key={i} className="orden-item-row">
-                              <span className="orden-item-name">{s.servicio || s.Nombre || s.nombre || `Servicio #${s.Id_Servicio}`}</span>
-                              <span className="orden-item-duracion u-muted-nowrap" title="Duración estimada">{fmtDuracion(s.DuracionMinutos)}</span>
-                              <span className="orden-item-price">{formatCurrency(s.precio_unitario || s.Precio)}</span>
-                              {!contenidoBloqueado && (
-                                <button className="btn btn--ghost btn--icon btn--sm orden-item-delete" title="Eliminar servicio" onClick={() => handleDeleteServicio(s.Id_Servicio)} disabled={actionLoading}>
-                                  <MdDeleteOutline size={16} />
-                                </button>
-                              )}
-                            </div>
-                          ))
-                        ) : <p className="empty-list">No hay servicios agregados.</p>}
-                      </div>
-                      {servItems.length > 0 && (
-                        <div className="orden-item-row u-semibold">
-                          <span className="orden-item-name">Tiempo total estimado</span>
-                          <span className="orden-item-duracion u-nowrap">{fmtDuracion(selected?.DuracionTotalMin)}</span>
-                          <span className="orden-item-price" />
-                        </div>
-                      )}
-                      {servItems.length > ITEMS_PER_PAGE && (
-                        <div className="pagination-controls">
-                          <button className="btn btn--outline btn--sm" onClick={() => setServPage(p => p - 1)} disabled={servPage === 0}>Anterior</button>
-                          <span className="pagination-info">Mostrando {servStart + 1}–{Math.min(servStart + ITEMS_PER_PAGE, servItems.length)} de {servItems.length}</span>
-                          <button className="btn btn--outline btn--sm" onClick={() => setServPage(p => p + 1)} disabled={servStart + ITEMS_PER_PAGE >= servItems.length}>Siguiente</button>
-                        </div>
-                      )}
-                    </>
-                  );
-                })()}
-
-                <div className="mano-de-obra-section">
-                  <div className="mano-de-obra-header">
-                    <MdBuild size={16} className="mano-de-obra-icon" />
-                    <span className="mano-de-obra-title">Mano de obra</span>
+              <div className="u-mt-lg orden-cart">
+                {/* ◀ Izquierda: el "carrito" de servicios que se va llevando */}
+                <div className="orden-cart__main">
+                  <div className="orden-cart__heading">
+                    <MdBuild size={17} />
+                    <span>Servicios agregados</span>
+                    <span className="orden-cart__count">{(selected?.servicios || []).length}</span>
                   </div>
-                  {manoDeObra != null && !editingMano ? (
-                    <div className="mano-de-obra-row">
-                      <span className="mano-de-obra-value">{formatCurrency(manoDeObra)}</span>
-                      {!contenidoBloqueado && (
-                        <button className="btn btn--outline btn--sm" onClick={() => { setManoInput(String(manoDeObra)); setEditingMano(true); }}>
-                          <MdEdit size={15} /> Editar
-                        </button>
-                      )}
-                    </div>
-                  ) : !contenidoBloqueado ? (
-                    <div className="mano-de-obra-form">
-                      <input type="number" min="0" className="form-control" placeholder="Valor mano de obra..." value={manoInput} onChange={e => setManoInput(e.target.value)} />
-                      <button className="btn btn--primary btn--sm" onClick={handleSetMano} disabled={actionLoading || !manoInput}>
-                        {actionLoading ? 'Guardando...' : 'Guardar'}
-                      </button>
-                      {editingMano && <button className="btn btn--outline btn--sm" onClick={() => { setEditingMano(false); setManoInput(''); }}>Cancelar</button>}
-                    </div>
-                  ) : null}
-                </div>
-
-                <div className="orden-subtotal">
-                  <span>Subtotal servicios + mano de obra</span>
-                  <span>{formatCurrency(totalServicios + (manoDeObra || 0))}</span>
-                </div>
-
-                {!contenidoBloqueado && (
-                  <div className="orden-add-form">
-                    <div className="orden-add-form__head">
-                      <h4>Agregar servicio</h4>
-                      <div className="orden-add-toggle">
-                        <button type="button" className={`orden-seg-btn${modoServ === 'existente' ? ' orden-seg-btn--active' : ''}`} onClick={() => { setModoServ('existente'); setAddServError(''); }}>Existente</button>
-                        <button type="button" className={`orden-seg-btn${modoServ === 'nuevo' ? ' orden-seg-btn--active' : ''}`} onClick={() => { setModoServ('nuevo'); setAddServError(''); }}>Crear nuevo</button>
-                      </div>
-                    </div>
-                    {addServError && <div className="form-error-box u-mb-sm">{addServError}</div>}
-                    {modoServ === 'existente' ? (
-                      <div className="orden-add-row">
-                        <SearchableSelect
-                          options={serviciosOpts.map(s => ({ value: String(s.Id_Servicio), label: s.Nombre }))}
-                          value={addServForm.Id_Servicio}
-                          onChange={id => {
-                            const serv = serviciosOpts.find(s => String(s.Id_Servicio) === String(id));
-                            setAddServForm(p => ({ ...p, Id_Servicio: id, precio_unitario: serv ? String(serv.Precio ?? '') : p.precio_unitario }));
-                          }}
-                          placeholder="Seleccionar servicio..."
-                        />
-                        <input type="number" min="0" className="form-control" placeholder="Precio unitario" value={addServForm.precio_unitario} onChange={e => setAddServForm(p => ({ ...p, precio_unitario: e.target.value }))} />
-                        {addServForm.precio_unitario && <span className="u-muted-nowrap">= {formatCurrency(addServForm.precio_unitario)}</span>}
-                        <button className="btn btn--primary btn--sm" onClick={handleAddServicio} disabled={actionLoading}><MdAdd size={16} />Agregar</button>
-                      </div>
-                    ) : (
-                      <div className="orden-add-row">
-                        <div className="orden-add-field">
-                          <input name="Nombre" className={`form-control ${servVal.fieldError('Nombre') ? 'is-error' : ''}`} placeholder="Nombre del servicio" value={nuevoServ.Nombre} onChange={handleServChange} onBlur={handleServBlur} maxLength={80} />
-                          {servVal.fieldError('Nombre') && <p className="form-error">{servVal.fieldError('Nombre')}</p>}
-                        </div>
-                        <div className="orden-add-field">
-                          <input name="Precio" type="number" min="0" className={`form-control ${servVal.fieldError('Precio') ? 'is-error' : ''}`} placeholder="Precio" value={nuevoServ.Precio} onChange={handleServChange} onBlur={handleServBlur} />
-                          {servVal.fieldError('Precio') && <p className="form-error">{servVal.fieldError('Precio')}</p>}
-                        </div>
-                        <div className="orden-add-field">
-                          <input name="DuracionMinutos" type="number" min="1" className="form-control" placeholder="Duración (min, opcional)" value={nuevoServ.DuracionMinutos} onChange={handleServChange} />
-                        </div>
-                        <button className="btn btn--primary btn--sm" onClick={handleCrearServicioInline} disabled={actionLoading || servVal.isInvalid(nuevoServ)}><MdAdd size={16} />Crear y agregar</button>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            )}
-
-            {activeTab === 'repuestos' && (
-              <div className="u-mt-lg">
-                {(() => {
-                  const repItems = selected?.repuestos || [];
-                  const repStart = repPage * ITEMS_PER_PAGE;
-                  const repSlice = repItems.slice(repStart, repStart + ITEMS_PER_PAGE);
-                  return (
-                    <>
-                      <div className="orden-items-list">
-                        {repItems.length > 0 ? (
-                          repSlice.map((r, i) => {
-                            const info = repuestoById[String(r.Id_Repuesto)];
-                            const garantia = r.TiempoGarantia ?? info?.TiempoGarantia;
-                            const unidad = r.UnidadGarantia ?? info?.UnidadGarantia ?? 'meses';
-                            return (
+                  {(() => {
+                    const servItems = selected?.servicios || [];
+                    const servStart = servPage * ITEMS_PER_PAGE;
+                    const servSlice = servItems.slice(servStart, servStart + ITEMS_PER_PAGE);
+                    return (
+                      <>
+                        <div className="orden-items-list">
+                          {servItems.length > 0 ? (
+                            servSlice.map((s, i) => (
                               <div key={i} className="orden-item-row">
-                                <div className="orden-item-name-group">
-                                  <span className="orden-item-name">{r.repuesto || r.Nombre || r.nombre || `Repuesto #${r.Id_Repuesto}`}</span>
-                                  {garantia && (
-                                    <span className="orden-item-garantia">· Garantía: {garantia} {unidad}</span>
-                                  )}
-                                </div>
-                                <span className="orden-item-qty">x{r.cantidad || r.Cantidad}</span>
-                                <span className="orden-item-price">{formatCurrency((r.precio_unitario || r.PrecioVenta || 0) * (r.cantidad || r.Cantidad || 1))}</span>
+                                <span className="orden-item-name">{s.servicio || s.Nombre || s.nombre || `Servicio #${s.Id_Servicio}`}</span>
+                                <span className="orden-item-duracion u-muted-nowrap" title="Duración estimada">{fmtDuracion(s.DuracionMinutos)}</span>
+                                <span className="orden-item-price">{formatCurrency(s.precio_unitario || s.Precio)}</span>
                                 {!contenidoBloqueado && (
-                                  <button className="btn btn--ghost btn--icon btn--sm orden-item-delete" title="Eliminar repuesto" onClick={() => handleDeleteRepuesto(r.Id_Repuesto)} disabled={actionLoading}>
+                                  <button className="btn btn--ghost btn--icon btn--sm orden-item-delete" title="Eliminar servicio" onClick={() => handleDeleteServicio(s.Id_Servicio)} disabled={actionLoading}>
                                     <MdDeleteOutline size={16} />
                                   </button>
                                 )}
                               </div>
-                            );
-                          })
-                        ) : <p className="empty-list">No hay repuestos agregados.</p>}
-                      </div>
-                      {repItems.length > ITEMS_PER_PAGE && (
-                        <div className="pagination-controls">
-                          <button className="btn btn--outline btn--sm" onClick={() => setRepPage(p => p - 1)} disabled={repPage === 0}>Anterior</button>
-                          <span className="pagination-info">Mostrando {repStart + 1}–{Math.min(repStart + ITEMS_PER_PAGE, repItems.length)} de {repItems.length}</span>
-                          <button className="btn btn--outline btn--sm" onClick={() => setRepPage(p => p + 1)} disabled={repStart + ITEMS_PER_PAGE >= repItems.length}>Siguiente</button>
+                            ))
+                          ) : <p className="empty-list orden-cart__empty">Aún no hay servicios. Búscalos y agrégalos desde el panel de la derecha.</p>}
                         </div>
-                      )}
-                    </>
-                  );
-                })()}
-
-                <div className="orden-subtotal">
-                  <span>Total repuestos</span>
-                  <span>{formatCurrency(totalRepuestos)}</span>
+                        {servItems.length > 0 && (
+                          <div className="orden-item-row u-semibold">
+                            <span className="orden-item-name">Tiempo total estimado</span>
+                            <span className="orden-item-duracion u-nowrap">{fmtDuracion(selected?.DuracionTotalMin)}</span>
+                            <span className="orden-item-price" />
+                          </div>
+                        )}
+                        {servItems.length > ITEMS_PER_PAGE && (
+                          <div className="pagination-controls">
+                            <button className="btn btn--outline btn--sm" onClick={() => setServPage(p => p - 1)} disabled={servPage === 0}>Anterior</button>
+                            <span className="pagination-info">Mostrando {servStart + 1}–{Math.min(servStart + ITEMS_PER_PAGE, servItems.length)} de {servItems.length}</span>
+                            <button className="btn btn--outline btn--sm" onClick={() => setServPage(p => p + 1)} disabled={servStart + ITEMS_PER_PAGE >= servItems.length}>Siguiente</button>
+                          </div>
+                        )}
+                      </>
+                    );
+                  })()}
+                  <div className="orden-cart__summary">
+                    <div className="orden-total-row"><span>Servicios</span><span>{formatCurrency(totalServicios)}</span></div>
+                    <div className="orden-total-row"><span>Mano de obra</span><span>{manoDeObra != null ? formatCurrency(manoDeObra) : '—'}</span></div>
+                    <div className="orden-cart__summary-total"><span>Subtotal</span><span>{formatCurrency(totalServicios + (manoDeObra || 0))}</span></div>
+                  </div>
                 </div>
 
-                {!contenidoBloqueado && (
-                  <div className="orden-add-form">
-                    <div className="orden-add-form__head">
-                      <h4>Agregar repuesto</h4>
-                      <div className="orden-add-toggle">
-                        <button type="button" className={`orden-seg-btn${modoRep === 'existente' ? ' orden-seg-btn--active' : ''}`} onClick={() => { setModoRep('existente'); setAddRepError(''); }}>Existente</button>
-                        <button type="button" className={`orden-seg-btn${modoRep === 'nuevo' ? ' orden-seg-btn--active' : ''}`} onClick={() => { setModoRep('nuevo'); setAddRepError(''); }}>Crear nuevo</button>
+                {/* Derecha: buscar y agregar (arriba) + mano de obra ▶ */}
+                <div className="orden-cart__side">
+                  {contenidoBloqueado ? (
+                    <p className="orden-cart__locked">La orden está {selected?.EstadoFlujo === 'Realizado' ? 'realizada' : 'inactiva'}: los servicios ya no se pueden modificar.</p>
+                  ) : (
+                    <>
+                      <div className="orden-add-form orden-add-form--panel">
+                        <div className="orden-add-form__head">
+                          <h4>Agregar servicio</h4>
+                          <div className="orden-add-toggle">
+                            <button type="button" className={`orden-seg-btn${modoServ === 'existente' ? ' orden-seg-btn--active' : ''}`} onClick={() => { setModoServ('existente'); setAddServError(''); }}>Existente</button>
+                            <button type="button" className={`orden-seg-btn${modoServ === 'nuevo' ? ' orden-seg-btn--active' : ''}`} onClick={() => { setModoServ('nuevo'); setAddServError(''); }}>Crear nuevo</button>
+                          </div>
+                        </div>
+                        {addServError && <div className="form-error-box u-mb-sm">{addServError}</div>}
+                        {modoServ === 'existente' ? (
+                          <div className="orden-add-col">
+                            <SearchableSelect
+                              options={serviciosOpts.map(s => ({ value: String(s.Id_Servicio), label: s.Nombre }))}
+                              value={addServForm.Id_Servicio}
+                              onChange={id => {
+                                const serv = serviciosOpts.find(s => String(s.Id_Servicio) === String(id));
+                                setAddServForm(p => ({ ...p, Id_Servicio: id, precio_unitario: serv ? String(serv.Precio ?? '') : p.precio_unitario }));
+                              }}
+                              placeholder="Buscar servicio..."
+                            />
+                            <input type="number" min="0" className="form-control" placeholder="Precio unitario" value={addServForm.precio_unitario} onChange={e => setAddServForm(p => ({ ...p, precio_unitario: e.target.value }))} />
+                            {addServForm.precio_unitario && <span className="u-muted-nowrap orden-add-col__hint">= {formatCurrency(addServForm.precio_unitario)}</span>}
+                            <button className="btn btn--primary orden-add-col__btn" onClick={handleAddServicio} disabled={actionLoading}><MdAdd size={16} />Agregar al carrito</button>
+                          </div>
+                        ) : (
+                          <div className="orden-add-col">
+                            <div className="orden-add-field">
+                              <input name="Nombre" className={`form-control ${servVal.fieldError('Nombre') ? 'is-error' : ''}`} placeholder="Nombre del servicio" value={nuevoServ.Nombre} onChange={handleServChange} onBlur={handleServBlur} maxLength={80} />
+                              {servVal.fieldError('Nombre') && <p className="form-error">{servVal.fieldError('Nombre')}</p>}
+                            </div>
+                            <div className="orden-add-field">
+                              <input name="Precio" type="number" min="0" className={`form-control ${servVal.fieldError('Precio') ? 'is-error' : ''}`} placeholder="Precio" value={nuevoServ.Precio} onChange={handleServChange} onBlur={handleServBlur} />
+                              {servVal.fieldError('Precio') && <p className="form-error">{servVal.fieldError('Precio')}</p>}
+                            </div>
+                            <div className="orden-add-field">
+                              <input name="DuracionMinutos" type="number" min="1" className="form-control" placeholder="Duración (min, opcional)" value={nuevoServ.DuracionMinutos} onChange={handleServChange} />
+                            </div>
+                            <button className="btn btn--primary orden-add-col__btn" onClick={handleCrearServicioInline} disabled={actionLoading || servVal.isInvalid(nuevoServ)}><MdAdd size={16} />Crear y agregar</button>
+                          </div>
+                        )}
                       </div>
-                    </div>
-                    {addRepError && <div className="form-error-box u-mb-sm">{addRepError}</div>}
-                    {modoRep === 'existente' ? (
+
+                      <div className="mano-de-obra-section">
+                        <div className="mano-de-obra-header">
+                          <MdBuild size={16} className="mano-de-obra-icon" />
+                          <span className="mano-de-obra-title">Mano de obra</span>
+                        </div>
+                        {manoDeObra != null && !editingMano ? (
+                          <div className="mano-de-obra-row">
+                            <span className="mano-de-obra-value">{formatCurrency(manoDeObra)}</span>
+                            <button className="btn btn--outline btn--sm" onClick={() => { setManoInput(String(manoDeObra)); setEditingMano(true); }}>
+                              <MdEdit size={15} /> Editar
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="mano-de-obra-form">
+                            <input type="number" min="0" className="form-control" placeholder="Valor mano de obra..." value={manoInput} onChange={e => setManoInput(e.target.value)} />
+                            <button className="btn btn--primary btn--sm" onClick={handleSetMano} disabled={actionLoading || !manoInput}>
+                              {actionLoading ? 'Guardando...' : 'Guardar'}
+                            </button>
+                            {editingMano && <button className="btn btn--outline btn--sm" onClick={() => { setEditingMano(false); setManoInput(''); }}>Cancelar</button>}
+                          </div>
+                        )}
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'repuestos' && (
+              <div className="u-mt-lg orden-cart">
+                {/* ◀ Izquierda: el "carrito" de repuestos que se va llevando */}
+                <div className="orden-cart__main">
+                  <div className="orden-cart__heading">
+                    <MdInventory2 size={17} />
+                    <span>Repuestos agregados</span>
+                    <span className="orden-cart__count">{(selected?.repuestos || []).length}</span>
+                  </div>
+                  {(() => {
+                    const repItems = selected?.repuestos || [];
+                    const repStart = repPage * ITEMS_PER_PAGE;
+                    const repSlice = repItems.slice(repStart, repStart + ITEMS_PER_PAGE);
+                    return (
                       <>
-                        <div className="orden-add-row">
+                        <div className="orden-items-list">
+                          {repItems.length > 0 ? (
+                            repSlice.map((r, i) => {
+                              const info = repuestoById[String(r.Id_Repuesto)];
+                              const garantia = r.TiempoGarantia ?? info?.TiempoGarantia;
+                              const unidad = r.UnidadGarantia ?? info?.UnidadGarantia ?? 'meses';
+                              return (
+                                <div key={i} className="orden-item-row">
+                                  <div className="orden-item-name-group">
+                                    <span className="orden-item-name">{r.repuesto || r.Nombre || r.nombre || `Repuesto #${r.Id_Repuesto}`}</span>
+                                    {garantia && (
+                                      <span className="orden-item-garantia">· Garantía: {garantia} {unidad}</span>
+                                    )}
+                                  </div>
+                                  <span className="orden-item-qty">x{r.cantidad || r.Cantidad}</span>
+                                  <span className="orden-item-price">{formatCurrency((r.precio_unitario || r.PrecioVenta || 0) * (r.cantidad || r.Cantidad || 1))}</span>
+                                  {!contenidoBloqueado && (
+                                    <button className="btn btn--ghost btn--icon btn--sm orden-item-delete" title="Eliminar repuesto" onClick={() => handleDeleteRepuesto(r.Id_Repuesto)} disabled={actionLoading}>
+                                      <MdDeleteOutline size={16} />
+                                    </button>
+                                  )}
+                                </div>
+                              );
+                            })
+                          ) : <p className="empty-list orden-cart__empty">Aún no hay repuestos. Búscalos y agrégalos desde el panel de la derecha.</p>}
+                        </div>
+                        {repItems.length > ITEMS_PER_PAGE && (
+                          <div className="pagination-controls">
+                            <button className="btn btn--outline btn--sm" onClick={() => setRepPage(p => p - 1)} disabled={repPage === 0}>Anterior</button>
+                            <span className="pagination-info">Mostrando {repStart + 1}–{Math.min(repStart + ITEMS_PER_PAGE, repItems.length)} de {repItems.length}</span>
+                            <button className="btn btn--outline btn--sm" onClick={() => setRepPage(p => p + 1)} disabled={repStart + ITEMS_PER_PAGE >= repItems.length}>Siguiente</button>
+                          </div>
+                        )}
+                      </>
+                    );
+                  })()}
+                  <div className="orden-cart__summary">
+                    <div className="orden-cart__summary-total"><span>Total repuestos</span><span>{formatCurrency(totalRepuestos)}</span></div>
+                  </div>
+                </div>
+
+                {/* Derecha: buscar y agregar (arriba) ▶ */}
+                <div className="orden-cart__side">
+                  {contenidoBloqueado ? (
+                    <p className="orden-cart__locked">La orden está {selected?.EstadoFlujo === 'Realizado' ? 'realizada' : 'inactiva'}: los repuestos ya no se pueden modificar.</p>
+                  ) : (
+                    <div className="orden-add-form orden-add-form--panel">
+                      <div className="orden-add-form__head">
+                        <h4>Agregar repuesto</h4>
+                        <div className="orden-add-toggle">
+                          <button type="button" className={`orden-seg-btn${modoRep === 'existente' ? ' orden-seg-btn--active' : ''}`} onClick={() => { setModoRep('existente'); setAddRepError(''); }}>Existente</button>
+                          <button type="button" className={`orden-seg-btn${modoRep === 'nuevo' ? ' orden-seg-btn--active' : ''}`} onClick={() => { setModoRep('nuevo'); setAddRepError(''); }}>Crear nuevo</button>
+                        </div>
+                      </div>
+                      {addRepError && <div className="form-error-box u-mb-sm">{addRepError}</div>}
+                      {modoRep === 'existente' ? (
+                        <div className="orden-add-col">
                           <SearchableSelect
                             options={repuestosOpts.map(r => ({ ...r, _label: r.NombreRepuesto ?? r.Nombre ?? '' }))}
                             value={addRepForm.Id_Repuesto}
@@ -1023,23 +1054,21 @@ export default function OrdenesPage() {
                             onChange={e => setAddRepForm(p => ({ ...p, precio_unitario: e.target.value }))}
                             title="Precio por defecto del repuesto, editable para esta orden"
                           />
-                          <button className="btn btn--primary btn--sm" onClick={handleAddRepuesto} disabled={actionLoading}><MdAdd size={16} />Agregar</button>
+                          {addRepForm.Id_Repuesto && (() => {
+                            const stockRep = repuestoById[String(addRepForm.Id_Repuesto)]?.Stock;
+                            if (stockRep == null) return null;
+                            const excede = addRepForm.cantidad && Number(addRepForm.cantidad) > Number(stockRep);
+                            return <p className={excede ? 'form-error' : 'u-hint'}>Stock disponible: {stockRep}{excede ? ` — no alcanza para ${addRepForm.cantidad}` : ''}</p>;
+                          })()}
+                          {addRepForm.Id_Repuesto && addRepForm.precio_unitario && (
+                            <p className="u-hint">
+                              Precio por defecto: {formatCurrency(addRepForm.precio_unitario)} — puedes modificarlo para esta orden.
+                            </p>
+                          )}
+                          <button className="btn btn--primary orden-add-col__btn" onClick={handleAddRepuesto} disabled={actionLoading}><MdAdd size={16} />Agregar al carrito</button>
                         </div>
-                        {addRepForm.Id_Repuesto && (() => {
-                          const stockRep = repuestoById[String(addRepForm.Id_Repuesto)]?.Stock;
-                          if (stockRep == null) return null;
-                          const excede = addRepForm.cantidad && Number(addRepForm.cantidad) > Number(stockRep);
-                          return <p className={excede ? 'form-error' : 'u-hint u-mt-xs'}>Stock disponible: {stockRep}{excede ? ` — no alcanza para ${addRepForm.cantidad}` : ''}</p>;
-                        })()}
-                        {addRepForm.Id_Repuesto && addRepForm.precio_unitario && (
-                          <p className="u-hint u-mt-xs">
-                            Precio por defecto: {formatCurrency(addRepForm.precio_unitario)} — puedes modificarlo para esta orden.
-                          </p>
-                        )}
-                      </>
-                    ) : (
-                      <>
-                        <div className="orden-add-row">
+                      ) : (
+                        <div className="orden-add-col">
                           <div className="orden-add-field">
                             <input name="NombreRepuesto" className={`form-control ${repVal.fieldError('NombreRepuesto') ? 'is-error' : ''}`} placeholder="Nombre del repuesto" value={nuevoRep.NombreRepuesto} onChange={handleRepChange} onBlur={handleRepBlur} maxLength={120} />
                             {repVal.fieldError('NombreRepuesto') && <p className="form-error">{repVal.fieldError('NombreRepuesto')}</p>}
@@ -1061,13 +1090,13 @@ export default function OrdenesPage() {
                             <input name="precio_unitario" type="number" min="0" className={`form-control ${repVal.fieldError('precio_unitario') ? 'is-error' : ''}`} placeholder="Precio unitario" value={nuevoRep.precio_unitario} onChange={handleRepChange} onBlur={handleRepBlur} />
                             {repVal.fieldError('precio_unitario') && <p className="form-error">{repVal.fieldError('precio_unitario')}</p>}
                           </div>
-                          <button className="btn btn--primary btn--sm" onClick={handleCrearRepuestoInline} disabled={actionLoading || repVal.isInvalid(nuevoRep)}><MdAdd size={16} />Crear y agregar</button>
+                          <p className="u-hint">Se crea la ficha del repuesto (stock y costo se ajustan luego con las compras). El precio unitario es el de venta para esta orden.</p>
+                          <button className="btn btn--primary orden-add-col__btn" onClick={handleCrearRepuestoInline} disabled={actionLoading || repVal.isInvalid(nuevoRep)}><MdAdd size={16} />Crear y agregar</button>
                         </div>
-                        <p className="u-hint u-mt-xs">Se crea la ficha del repuesto (stock y costo se ajustan luego con las compras). El precio unitario es el de venta para esta orden.</p>
-                      </>
-                    )}
-                  </div>
-                )}
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
             )}
           </div>

@@ -85,6 +85,28 @@
 .agenda-calendario__celda--fuera { background: var(--color-surface-solid); }
 .agenda-calendario__celda--fuera .agenda-calendario__num { color: var(--color-text-light); }
 .agenda-calendario__celda--hoy { box-shadow: inset 0 0 0 2px var(--color-primary); }
+/* Domingos y festivos: el taller no atiende. Se atenúan con un rayado sutil. */
+.agenda-calendario__celda--nolaboral {
+  background: repeating-linear-gradient(
+    -45deg,
+    var(--color-surface-solid, #f4f4f5),
+    var(--color-surface-solid, #f4f4f5) 6px,
+    var(--color-surface-hover, #ececee) 6px,
+    var(--color-surface-hover, #ececee) 12px
+  );
+}
+.agenda-calendario__celda--nolaboral .agenda-calendario__num { color: var(--color-text-light); }
+.agenda-calendario__festivo {
+  display: inline-block;
+  margin-left: 4px;
+  padding: 0 6px;
+  border-radius: 999px;
+  font-size: 0.62rem;
+  font-weight: var(--weight-semibold);
+  background: var(--color-danger-soft, #fef2f2);
+  color: var(--color-danger, #b91c1c);
+  vertical-align: middle;
+}
 .agenda-calendario__celda--clickable { cursor: pointer; }
 .agenda-calendario__celda--clickable:hover { background: var(--color-surface-hover, #f4f4f5); }
 .agenda-calendario__num {

@@ -86,15 +86,31 @@
   color: #111827;
 }
 
+.novedad-bell__item-titulo {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #111827;
+}
+
 .novedad-bell__item-desc {
   font-size: 0.75rem;
   color: #6b7280;
   overflow: hidden;
   text-overflow: ellipsis;
   display: -webkit-box;
-  -webkit-line-clamp: 2;
+  -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
 }
+
+.novedad-bell__item-fecha {
+  font-size: 0.68rem;
+  color: #9ca3af;
+  margin-top: 2px;
+}
+
+/* No leída: resalte sutil (el borde rojo de alerta se conserva para el bell de staff). */
+.novedad-bell__item--nuevo { background: #eff6ff; }
+.novedad-bell__item--nuevo:hover { background: #e0edff; }
 
 .novedad-bell__ver-todos {
   display: block;

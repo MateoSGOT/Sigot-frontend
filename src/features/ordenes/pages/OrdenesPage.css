@@ -488,3 +488,124 @@
 
 .orden-obs-edit { display: flex; flex-direction: column; gap: 0.5rem; margin-top: 0.25rem; }
 .orden-obs-edit__actions { display: flex; gap: 0.5rem; }
+
+/* ── Rediseño "carrito" de servicios/repuestos (2 columnas) ──────────────────
+   Izquierda: la lista que se va llevando (el carrito) + resumen.
+   Derecha: buscar y agregar (buscador ARRIBA) + mano de obra.
+   Ergonomía: el documento que se cobra (los renglones) ocupa el área principal
+   a la izquierda; las herramientas de captura quedan en el riel derecho. */
+.orden-cart {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 370px);
+  gap: 1.25rem;
+  align-items: start;
+}
+.orden-cart__main { min-width: 0; }
+.orden-cart__side { min-width: 0; }
+
+.orden-cart__heading {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--color-text);
+  margin-bottom: 0.75rem;
+}
+.orden-cart__count {
+  min-width: 22px;
+  height: 22px;
+  padding: 0 7px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: var(--color-primary, #b5f23d);
+  color: #111827;
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+/* En el carrito la lista es el contenido principal: puede crecer más. */
+.orden-cart .orden-items-list { max-height: 360px; }
+.orden-cart__empty { line-height: 1.5; }
+
+.orden-cart__summary {
+  margin-top: 0.5rem;
+  padding: 0.875rem 1rem;
+  background: var(--color-border-light, #f4f4f5);
+  border-radius: var(--radius, 10px);
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+.orden-cart__summary-total {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 0.35rem;
+  padding-top: 0.5rem;
+  border-top: 1px dashed var(--color-border, #e5e7eb);
+  font-weight: 800;
+  color: var(--color-text);
+}
+.orden-cart__summary-total span:last-child { color: #2d6a2d; }
+
+.orden-cart__locked {
+  padding: 1rem;
+  background: var(--color-border-light, #f4f4f5);
+  border-radius: var(--radius, 10px);
+  color: var(--color-text-muted);
+  font-size: 0.85rem;
+  text-align: center;
+}
+
+/* Panel de acciones (derecha): tarjeta autónoma, sin el borde superior del add-form original. */
+.orden-add-form--panel {
+  border-top: none;
+  padding: 1rem;
+  background: var(--color-surface, #fff);
+  border: 1px solid var(--color-border, #e5e7eb);
+  border-radius: 12px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+/* Campos apilados verticalmente en el riel derecho (el buscador queda arriba). */
+.orden-add-col {
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+}
+.orden-add-col .form-control { width: 100%; }
+.orden-add-col__hint { font-size: 0.8rem; }
+.orden-add-col__btn { width: 100%; justify-content: center; margin-top: 0.25rem; }
+
+/* Mano de obra como bloque dentro del riel derecho, separado del panel de agregar. */
+.orden-cart__side .mano-de-obra-section { margin-top: 1rem; }
+
+@media (max-width: 900px) {
+  .orden-cart { grid-template-columns: 1fr; }
+  /* Apilado: el panel de agregar (con el buscador) va primero para que quede "arriba". */
+  .orden-cart__side { order: -1; }
+  .orden-cart .orden-items-list { max-height: 300px; }
+}
+
+/* Insignia de la decisión del cliente sobre la observación (vista del staff). */
+.orden-aprob-badge {
+  display: inline-block;
+  margin-left: 0.5rem;
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  vertical-align: middle;
+}
+.orden-aprob-badge--wait { background: #fef3c7; color: #92400e; }
+.orden-aprob-badge--ok   { background: #f0fdf4; color: #15803d; }
+.orden-aprob-badge--no   { background: #fef2f2; color: #b91c1c; }
+.orden-aprob-coment {
+  display: block;
+  margin-top: 0.5rem;
+  font-size: 0.8rem;
+  color: var(--color-text-secondary, #374151);
+  font-style: italic;
+}
