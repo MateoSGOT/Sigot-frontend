@@ -22,7 +22,9 @@ import api from '../../../shared/services/api.js';
 import './RepuestosPage.css';
 
 // El repuesto es una ficha de catálogo: Stock y Costo (Precio) se llenan al comprar, no al crear.
-// El margen tiene piso 50% y el precio de venta se calcula (costo × margen × IVA).
+// El margen ya no tiene piso fijo (antes 50%) -- el taller puede vender con un margen
+// más bajo si lo necesita (ej. competir en precio); el precio de venta se calcula
+// igual (costo × margen × IVA).
 const EMPTY = { NombreRepuesto: '', StockMinimo: '5', Id_categoria: '', MargenPorcentaje: '50', _costo: 0, _iva: 19, _precioVenta: null };
 const RULES = {
   NombreRepuesto: (v) => V.nombre(v, 3, 120),
@@ -31,7 +33,7 @@ const RULES = {
     if (v == null || String(v).trim() === '') return ''; // opcional; queda en su default 50
     const n = Number(v);
     if (Number.isNaN(n)) return 'El margen debe ser un número.';
-    if (n < 50) return 'El margen de ganancia no puede ser menor al 50%.';
+    if (n < 0) return 'El margen de ganancia no puede ser negativo.';
     if (n > 1000) return 'El margen no puede superar el 1000%.';
     return '';
   },
@@ -427,7 +429,7 @@ export default function RepuestosPage() {
           </div>
           <div className="form-group span-2">
             <label className="form-label">Margen de ganancia (%)</label>
-            <input name="MargenPorcentaje" type="number" min="50" step="1" className={`form-control ${fieldError('MargenPorcentaje') ? 'is-error' : ''}`} value={formData.MargenPorcentaje} onChange={handleChange} onBlur={handleBlur} placeholder="50" />
+            <input name="MargenPorcentaje" type="number" min="0" step="1" className={`form-control ${fieldError('MargenPorcentaje') ? 'is-error' : ''}`} value={formData.MargenPorcentaje} onChange={handleChange} onBlur={handleBlur} placeholder="50" />
             {fieldError('MargenPorcentaje') && <p className="form-error">{fieldError('MargenPorcentaje')}</p>}
             <p className="form-hint">Mínimo 50%. El precio de venta se calcula automáticamente.</p>
           </div>

@@ -388,6 +388,10 @@ export default function PortalPage() {
   const totalRep  = (ordDetail?.repuestos  || []).reduce((s, x) => s + Number(x.cantidad || 1) * Number(x.precio_unitario || 0), 0);
   const manoObra  = ordDetail?.mano_de_obra ?? null;
   const total     = totalServ + totalRep + (manoObra || 0);
+  // El cliente no ve el desglose de servicios ni la mano de obra mientras la orden
+  // está en curso (son precios/margen internos del taller) -- solo al facturarse
+  // (EstadoFlujo "Realizado" = 3) se destapa el desglose completo con el total real.
+  const ordenFacturada = Number(ordDetail?.Estado) === 3;
 
   /* ── Column definitions ──────────────────────────────────── */
   const vehiculosColumns = [
@@ -732,7 +736,7 @@ export default function PortalPage() {
         ) : ordDetail ? (
           <div>
             <div className="orden-tabs">
-              {[['info', 'Información general'], ['servicios', 'Servicios'], ['repuestos', 'Repuestos']].map(([key, label]) => (
+              {[['info', 'Información general'], ...(ordenFacturada ? [['servicios', 'Servicios']] : []), ['repuestos', 'Repuestos']].map(([key, label]) => (
                 <button key={key} className={`orden-tab${ordTab === key ? ' orden-tab--active' : ''}`} onClick={() => setOrdTab(key)}>
                   {label}
                 </button>
@@ -750,15 +754,26 @@ export default function PortalPage() {
                   <div className="detail-item u-span-2"><span className="detail-label">Diagnóstico</span><span className="detail-value">{ordDetail.Diagnostico || '—'}</span></div>
                 </div>
                 <div className="orden-total-card">
-                  <div className="orden-total-breakdown">
-                    <div className="orden-total-row"><span>Servicios</span><span>{formatCurrency(totalServ)}</span></div>
-                    <div className="orden-total-row"><span>Repuestos</span><span>{formatCurrency(totalRep)}</span></div>
-                    <div className="orden-total-row"><span>Mano de obra</span><span>{manoObra != null ? formatCurrency(manoObra) : '—'}</span></div>
-                  </div>
-                  <div className="orden-total-final">
-                    <span>Total estimado</span>
-                    <span>{formatCurrency(total)}</span>
-                  </div>
+                  {ordenFacturada ? (
+                    <>
+                      <div className="orden-total-breakdown">
+                        <div className="orden-total-row"><span>Servicios</span><span>{formatCurrency(totalServ)}</span></div>
+                        <div className="orden-total-row"><span>Repuestos</span><span>{formatCurrency(totalRep)}</span></div>
+                        <div className="orden-total-row"><span>Mano de obra</span><span>{manoObra != null ? formatCurrency(manoObra) : '—'}</span></div>
+                      </div>
+                      <div className="orden-total-final">
+                        <span>Total</span>
+                        <span>{formatCurrency(total)}</span>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="orden-total-breakdown">
+                        <div className="orden-total-row"><span>Repuestos</span><span>{formatCurrency(totalRep)}</span></div>
+                      </div>
+                      <p className="u-hint" style={{ marginTop: '0.5rem' }}>El costo de servicios y mano de obra se muestra al facturar la orden.</p>
+                    </>
+                  )}
                 </div>
               </div>
             )}
