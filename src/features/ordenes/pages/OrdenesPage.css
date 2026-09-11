@@ -211,6 +211,7 @@
 }
 .orden-item-qty { color: var(--color-text-muted); font-size: 0.8125rem; }
 .orden-item-price { font-weight: 700; color: #2d6a2d; }
+.orden-item-tecnico { font-size: 0.78rem; color: var(--color-text-muted); font-weight: 500; margin-left: 0.35rem; }
 
 /* Sección de garantías en tab "Información general" */
 .orden-garantias-section {
