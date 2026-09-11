@@ -40,7 +40,7 @@
    del sidebar y flotar sobre el contenido. */
 .novedad-bell__dropdown {
   position: fixed;
-  width: 300px;
+  width: min(300px, calc(100vw - 16px));
   background: #fff;
   border: 1px solid #e5e7eb;
   border-radius: 10px;

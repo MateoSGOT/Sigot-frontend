@@ -350,11 +350,11 @@ export default function ComprasPage() {
                     const ganancia = gananciaLinea(row);
                     return (
                       <tr key={i}>
-                        <td>{row.Repuesto || getNombre(repuestos, 'Id_Repuesto', row.Id_Repuesto)}</td>
-                        <td>{row.Cantidad}</td>
-                        <td>{formatCurrency(row.PrecioUnitario)}</td>
-                        <td className="is-total">{formatCurrency(Number(row.Cantidad) * Number(row.PrecioUnitario))}</td>
-                        <td>{ganancia != null ? formatCurrency(ganancia) : '—'}</td>
+                        <td data-label="Repuesto">{row.Repuesto || getNombre(repuestos, 'Id_Repuesto', row.Id_Repuesto)}</td>
+                        <td data-label="Cantidad">{row.Cantidad}</td>
+                        <td data-label="Precio unitario">{formatCurrency(row.PrecioUnitario)}</td>
+                        <td data-label="Subtotal" className="is-total">{formatCurrency(Number(row.Cantidad) * Number(row.PrecioUnitario))}</td>
+                        <td data-label="Ganancia">{ganancia != null ? formatCurrency(ganancia) : '—'}</td>
                       </tr>
                     );
                   })}

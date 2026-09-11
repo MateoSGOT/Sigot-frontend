@@ -164,7 +164,11 @@
   .stats-grid { grid-template-columns: repeat(2, 1fr); }
 }
 
-@media (max-width: 768px) {
+/* Mismo breakpoint que .page__header (1023px, ver shared/styles/page.css) --
+   con 768px quedaba un rango de tablet (769-1023px) donde el header ya usaba
+   el inset angosto (1.25rem) pero estas secciones seguían en 2rem, quedando
+   "no parejas" con el header. */
+@media (max-width: 1023px) {
   /* Contenido alineado (parejo) con el inset del header (1.25rem en móvil):
      título, chips y tarjetas comparten el mismo borde izquierdo/derecho. */
   .stats-grid { grid-template-columns: 1fr; padding: 1rem 1.25rem 0; }

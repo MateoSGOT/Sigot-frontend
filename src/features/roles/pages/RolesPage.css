@@ -85,10 +85,12 @@
 
 .roles-split__table { min-width: 0; }
 
-/* Móvil: el resumen (label + tarjetas) y la tabla se alinean (parejos) con el
-   inset del header (1.25rem), igual que el título y el botón "Nuevo rol".
-   Sin esto usan 2rem y quedan 12px más adentro que el header. */
-@media (max-width: 768px) {
+/* Responsive: el resumen (label + tarjetas) y la tabla se alinean (parejos) con
+   el inset del header (1.25rem), igual que el título y el botón "Nuevo rol".
+   Mismo breakpoint que .page__header (1023px, ver shared/styles/page.css) --
+   con 768px quedaba un rango de tablet (769-1023px) donde el header ya usaba
+   el inset angosto pero el resumen seguía en 2rem, 12px más adentro. */
+@media (max-width: 1023px) {
   .roles-summary { padding: 1.5rem 1.25rem 0; }
   .roles-split { padding: 0 1.25rem 2rem; }
 }

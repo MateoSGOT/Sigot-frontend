@@ -42,7 +42,7 @@
    completo sobre el contenido en vez de recortarse a los 240px. */
 .stock-bell__dropdown {
   position: fixed;
-  width: 280px;
+  width: min(280px, calc(100vw - 16px));
   background: #fff;
   border: 1px solid #e5e7eb;
   border-radius: 10px;

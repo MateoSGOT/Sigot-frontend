@@ -46,10 +46,15 @@ export default function StockAlertBell() {
   }, [open]);
 
   // Recalcular la posición del panel (fixed) desde el botón mientras está abierto.
+  // En pantallas angostas, anclar el dropdown al `left` del botón (pegado a la
+  // derecha del header) lo sacaba del viewport -- se recorta el ancho y se
+  // desplaza hacia la izquierda lo necesario para que quepa completo.
   const recalcPos = () => {
     if (!btnRef.current) return;
     const r = btnRef.current.getBoundingClientRect();
-    setPos({ top: r.bottom + 8, left: r.left });
+    const width = Math.min(280, window.innerWidth - 16);
+    const left = Math.max(8, Math.min(r.left, window.innerWidth - width - 8));
+    setPos({ top: r.bottom + 8, left });
   };
 
   useEffect(() => {

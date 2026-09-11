@@ -635,7 +635,7 @@ export default function AgendaPage() {
     <div className="page">
       <div className="page__header">
         <div><h1 className="page__title">Agenda</h1><p className="page__subtitle">{items.length} cita(s) registrada(s)</p></div>
-        <div style={{ display: 'flex', gap: '0.5rem' }}>
+        <div className="page__actions">
           <div className="agenda-vista-toggle">
             <button type="button" className={`agenda-vista-btn${vista === 'tabla' ? ' agenda-vista-btn--active' : ''}`} onClick={() => setVista('tabla')}>Tabla</button>
             <button type="button" className={`agenda-vista-btn${vista === 'calendario' ? ' agenda-vista-btn--active' : ''}`} onClick={() => setVista('calendario')}>Calendario</button>
