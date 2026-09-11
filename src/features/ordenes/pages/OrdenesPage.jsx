@@ -22,6 +22,7 @@ import { generarFacturaOrden, buildFacturaOrden } from '../../../shared/utils/ge
 import * as V from '../../../shared/utils/validators.js';
 import { useFormValidation } from '../../../shared/hooks/useFormValidation.js';
 import { useToast } from '../../../shared/components/Toast/ToastContext.jsx';
+import PrecioFormulaCalc from '../components/PrecioFormulaCalc.jsx';
 import api from '../../../shared/services/api.js';
 import './OrdenesPage.css';
 
@@ -909,35 +910,41 @@ export default function OrdenesPage() {
                     </div>
                     {addServError && <div className="form-error-box u-mb-sm">{addServError}</div>}
                     {modoServ === 'existente' ? (
-                      <div className="orden-add-row">
-                        <SearchableSelect
-                          options={serviciosOpts.map(s => ({ value: String(s.Id_Servicio), label: s.Nombre }))}
-                          value={addServForm.Id_Servicio}
-                          onChange={id => {
-                            const serv = serviciosOpts.find(s => String(s.Id_Servicio) === String(id));
-                            setAddServForm(p => ({ ...p, Id_Servicio: id, precio_unitario: serv ? String(serv.Precio ?? '') : p.precio_unitario }));
-                          }}
-                          placeholder="Seleccionar servicio..."
-                        />
-                        <input type="number" min="0" className="form-control" placeholder="Precio unitario" value={addServForm.precio_unitario} onChange={e => setAddServForm(p => ({ ...p, precio_unitario: e.target.value }))} />
-                        {addServForm.precio_unitario && <span className="u-muted-nowrap">= {formatCurrency(addServForm.precio_unitario)}</span>}
-                        <button className="btn btn--primary btn--sm" onClick={handleAddServicio} disabled={actionLoading}><MdAdd size={16} />Agregar</button>
-                      </div>
+                      <>
+                        <div className="orden-add-row">
+                          <SearchableSelect
+                            options={serviciosOpts.map(s => ({ value: String(s.Id_Servicio), label: s.Nombre }))}
+                            value={addServForm.Id_Servicio}
+                            onChange={id => {
+                              const serv = serviciosOpts.find(s => String(s.Id_Servicio) === String(id));
+                              setAddServForm(p => ({ ...p, Id_Servicio: id, precio_unitario: serv ? String(serv.Precio ?? '') : p.precio_unitario }));
+                            }}
+                            placeholder="Seleccionar servicio..."
+                          />
+                          <input type="number" min="0" className="form-control" placeholder="Precio unitario" value={addServForm.precio_unitario} onChange={e => setAddServForm(p => ({ ...p, precio_unitario: e.target.value }))} />
+                          {addServForm.precio_unitario && <span className="u-muted-nowrap">= {formatCurrency(addServForm.precio_unitario)}</span>}
+                          <button className="btn btn--primary btn--sm" onClick={handleAddServicio} disabled={actionLoading}><MdAdd size={16} />Agregar</button>
+                        </div>
+                        <PrecioFormulaCalc onAplicar={v => setAddServForm(p => ({ ...p, precio_unitario: String(Math.round(v)) }))} />
+                      </>
                     ) : (
-                      <div className="orden-add-row">
-                        <div className="orden-add-field">
-                          <input name="Nombre" className={`form-control ${servVal.fieldError('Nombre') ? 'is-error' : ''}`} placeholder="Nombre del servicio" value={nuevoServ.Nombre} onChange={handleServChange} onBlur={handleServBlur} maxLength={80} />
-                          {servVal.fieldError('Nombre') && <p className="form-error">{servVal.fieldError('Nombre')}</p>}
+                      <>
+                        <div className="orden-add-row">
+                          <div className="orden-add-field">
+                            <input name="Nombre" className={`form-control ${servVal.fieldError('Nombre') ? 'is-error' : ''}`} placeholder="Nombre del servicio" value={nuevoServ.Nombre} onChange={handleServChange} onBlur={handleServBlur} maxLength={80} />
+                            {servVal.fieldError('Nombre') && <p className="form-error">{servVal.fieldError('Nombre')}</p>}
+                          </div>
+                          <div className="orden-add-field">
+                            <input name="Precio" type="number" min="0" className={`form-control ${servVal.fieldError('Precio') ? 'is-error' : ''}`} placeholder="Precio" value={nuevoServ.Precio} onChange={handleServChange} onBlur={handleServBlur} />
+                            {servVal.fieldError('Precio') && <p className="form-error">{servVal.fieldError('Precio')}</p>}
+                          </div>
+                          <div className="orden-add-field">
+                            <input name="DuracionMinutos" type="number" min="1" className="form-control" placeholder="Duración (min, opcional)" value={nuevoServ.DuracionMinutos} onChange={handleServChange} />
+                          </div>
+                          <button className="btn btn--primary btn--sm" onClick={handleCrearServicioInline} disabled={actionLoading || servVal.isInvalid(nuevoServ)}><MdAdd size={16} />Crear y agregar</button>
                         </div>
-                        <div className="orden-add-field">
-                          <input name="Precio" type="number" min="0" className={`form-control ${servVal.fieldError('Precio') ? 'is-error' : ''}`} placeholder="Precio" value={nuevoServ.Precio} onChange={handleServChange} onBlur={handleServBlur} />
-                          {servVal.fieldError('Precio') && <p className="form-error">{servVal.fieldError('Precio')}</p>}
-                        </div>
-                        <div className="orden-add-field">
-                          <input name="DuracionMinutos" type="number" min="1" className="form-control" placeholder="Duración (min, opcional)" value={nuevoServ.DuracionMinutos} onChange={handleServChange} />
-                        </div>
-                        <button className="btn btn--primary btn--sm" onClick={handleCrearServicioInline} disabled={actionLoading || servVal.isInvalid(nuevoServ)}><MdAdd size={16} />Crear y agregar</button>
-                      </div>
+                        <PrecioFormulaCalc onAplicar={v => setNuevoServ(p => ({ ...p, Precio: String(Math.round(v)) }))} />
+                      </>
                     )}
                   </div>
                 )}
@@ -1036,6 +1043,7 @@ export default function OrdenesPage() {
                             Precio por defecto: {formatCurrency(addRepForm.precio_unitario)} — puedes modificarlo para esta orden.
                           </p>
                         )}
+                        <PrecioFormulaCalc onAplicar={v => setAddRepForm(p => ({ ...p, precio_unitario: String(Math.round(v)) }))} />
                       </>
                     ) : (
                       <>
@@ -1064,6 +1072,7 @@ export default function OrdenesPage() {
                           <button className="btn btn--primary btn--sm" onClick={handleCrearRepuestoInline} disabled={actionLoading || repVal.isInvalid(nuevoRep)}><MdAdd size={16} />Crear y agregar</button>
                         </div>
                         <p className="u-hint u-mt-xs">Se crea la ficha del repuesto (stock y costo se ajustan luego con las compras). El precio unitario es el de venta para esta orden.</p>
+                        <PrecioFormulaCalc onAplicar={v => setNuevoRep(p => ({ ...p, precio_unitario: String(Math.round(v)) }))} />
                       </>
                     )}
                   </div>

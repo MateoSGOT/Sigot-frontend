@@ -487,4 +487,40 @@
 }
 
 .orden-obs-edit { display: flex; flex-direction: column; gap: 0.5rem; margin-top: 0.25rem; }
+
+/* === Calculadora de precio (Valor neto / Factura normal / Factura electrónica) === */
+.precio-calc__toggle {
+  display: inline-flex; align-items: center; gap: 0.35rem;
+  background: none; border: none; color: var(--color-primary-strong, #15803d);
+  font-size: 0.8rem; font-weight: 600; cursor: pointer; padding: 0.35rem 0;
+  font-family: inherit;
+}
+.precio-calc__toggle:hover { text-decoration: underline; }
+.precio-calc {
+  border: 1px dashed var(--color-border); border-radius: var(--radius-md, 8px);
+  padding: 0.65rem 0.75rem; margin-top: 0.4rem; display: flex; flex-direction: column; gap: 0.5rem;
+  background: var(--color-surface-soft, #f8fafc);
+}
+.precio-calc__row { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
+.precio-calc__row .form-control { flex: 1 1 120px; }
+.precio-calc__cerrar {
+  background: none; border: none; color: var(--color-text-muted);
+  font-size: 0.78rem; cursor: pointer; font-family: inherit; padding: 0.25rem 0.5rem;
+}
+.precio-calc__cerrar:hover { color: var(--color-text); }
+.precio-calc__formulas { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+.precio-calc__btn {
+  flex: 1 1 140px; display: flex; flex-direction: column; align-items: flex-start; gap: 0.15rem;
+  border: 1px solid var(--color-border); border-radius: var(--radius-sm, 6px);
+  background: #fff; padding: 0.45rem 0.65rem; cursor: pointer; font-family: inherit;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+.precio-calc__btn:hover:not(:disabled) { border-color: var(--color-primary-strong, #15803d); background: var(--color-primary-soft, #f0fdf4); }
+.precio-calc__btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.precio-calc__btn span { font-size: 0.7rem; color: var(--color-text-muted); text-transform: uppercase; letter-spacing: 0.03em; }
+.precio-calc__btn strong { font-size: 0.95rem; color: var(--color-text); }
+@media (max-width: 640px) {
+  .precio-calc__formulas { flex-direction: column; }
+  .precio-calc__btn { flex: 1 1 auto; }
+}
 .orden-obs-edit__actions { display: flex; gap: 0.5rem; }
