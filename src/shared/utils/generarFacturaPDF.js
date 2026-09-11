@@ -33,11 +33,20 @@ function addHeader(doc, tipo, numero, fecha) {
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(21);
   doc.text('SIGOT', M, 18);
-  // tipo de documento
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(10);
-  doc.setTextColor(...MUTED);
-  doc.text(tipo, M, 25);
+
+  // Tipo de documento: insignia con borde, en mayúsculas y bien visible -- antes
+  // era un subtítulo gris chico (10pt) y "Diagnóstico" se confundía con "Orden de
+  // trabajo" a simple vista. Ancho de caja según el texto (jsPDF getTextWidth).
+  const tipoUpper = String(tipo).toUpperCase();
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(11);
+  const tW = doc.getTextWidth(tipoUpper);
+  const padX = 3, boxH = 7, boxY = 21;
+  doc.setDrawColor(...INK);
+  doc.setLineWidth(0.5);
+  doc.roundedRect(M, boxY, tW + padX * 2, boxH, 1.2, 1.2, 'S');
+  doc.setTextColor(...INK);
+  doc.text(tipoUpper, M + padX, boxY + boxH / 2, { baseline: 'middle' });
 
   // Derecha: número y fecha
   doc.setTextColor(...INK);
