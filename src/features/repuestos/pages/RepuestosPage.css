@@ -109,3 +109,70 @@
   from { opacity: 0; transform: scale(0.4); }
   to { opacity: 1; transform: scale(1); }
 }
+
+/* Panel de resultados de la importación de Excel (ver ImportResumenPanel en
+   RepuestosPage.jsx) -- jerarquía visual por niveles en vez de un solo bloque de alerta:
+   éxito (verde) / advertencias menores (ámbar) / errores reales agrupados por motivo
+   (rojo, colapsados por defecto). */
+.import-resumen {
+  margin: 1rem 2rem;
+  padding: 0.85rem 1rem;
+  border-radius: 10px;
+  font-size: 0.875rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  background: var(--color-surface-solid, #fff);
+  border: 1px solid var(--color-border, #e2e8f0);
+}
+.import-resumen--fatal {
+  flex-direction: row;
+  align-items: center;
+  gap: 0.5rem;
+  background: rgba(220, 38, 38, 0.08);
+  border-color: rgba(220, 38, 38, 0.3);
+  color: #b91c1c;
+}
+.import-resumen__row--header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.import-resumen__title { font-weight: 700; }
+
+.import-resumen__tier {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  padding: 0.6rem 0.75rem;
+  border-radius: 8px;
+}
+.import-resumen__tier p, .import-resumen__tier span { margin: 0; }
+.import-resumen__tier--ok {
+  background: rgba(22, 163, 74, 0.10);
+  border: 1px solid rgba(22, 163, 74, 0.3);
+  color: #136a32;
+}
+.import-resumen__tier--warn {
+  background: #fef9c3;
+  border: 1px solid #fde68a;
+  color: #92400e;
+}
+.import-resumen__tier--error {
+  background: rgba(220, 38, 38, 0.08);
+  border: 1px solid rgba(220, 38, 38, 0.3);
+  color: #b91c1c;
+}
+.import-resumen__error-heading { font-weight: 700; }
+
+.import-resumen__detail summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+.import-resumen__detail ul {
+  margin: 0.4rem 0 0;
+  padding-left: 1.1rem;
+  max-height: 220px;
+  overflow-y: auto;
+}
+.import-resumen__detail--error summary { font-weight: 500; }

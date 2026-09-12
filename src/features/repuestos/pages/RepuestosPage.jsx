@@ -27,6 +27,40 @@ import './RepuestosPage.css';
 // más bajo si lo necesita (ej. competir en precio); el precio de venta se calcula
 // igual (costo × margen × IVA).
 const EMPTY = { NombreRepuesto: '', StockMinimo: '5', Id_categoria: '', MargenPorcentaje: '50', _costo: 0, _iva: 19, _precioVenta: null };
+// Busca una categoría YA EXISTENTE por nombre contra el catálogo actual del servidor --
+// no contra el estado `categorias` cargado al montar la página, que puede estar
+// desactualizado si la categoría se creó en una corrida anterior de este mismo import (o
+// manualmente) después de que la página cargó. Se usa como respaldo cuando createCategoria
+// falla: antes, cualquier categoría ya existente (ej. "Polea" de una corrida anterior)
+// tumbaba TODOS los repuestos de esa categoría uno por uno durante el resto del import,
+// porque nunca se resolvía su Id_categoria real. `cache` es un objeto mutable simple
+// ({ current: null }) creado una vez por corrida de import -- se llena con un solo GET la
+// primera vez que se necesita, y se reutiliza para el resto de la corrida (una categoría
+// resuelta así queda en catByName y no vuelve a pasar por aquí).
+async function _resolverCategoriaExistente(nombre, cache) {
+  if (!cache.current) {
+    try {
+      const r = await api.get('/api/categoria-repuestos');
+      cache.current = r.data?.data || r.data || [];
+    } catch { cache.current = []; }
+  }
+  const objetivo = nombre.trim().toLowerCase();
+  const match = cache.current.find(c => String(c.Nombre ?? c.nombre ?? '').trim().toLowerCase() === objetivo);
+  return match ? (match.Id_categoria ?? match.Id_Categoria ?? null) : null;
+}
+
+// Agrupa la lista de fallos { nombre, motivo } en { motivo: [nombre, ...] }, ordenado por
+// cuántos ítems tiene cada motivo (el más frecuente primero) -- así el panel de resultados
+// muestra "18 repuestos: <motivo real>" en vez de una lista plana de 18 nombres sin contexto.
+function _agruparPorMotivo(faltantes) {
+  const grupos = {};
+  faltantes.forEach(({ nombre, motivo }) => {
+    const key = motivo || 'Motivo desconocido';
+    (grupos[key] = grupos[key] || []).push(nombre);
+  });
+  return Object.fromEntries(Object.entries(grupos).sort((a, b) => b[1].length - a[1].length));
+}
+
 const RULES = {
   NombreRepuesto: (v) => V.nombre(v, 3, 120),
   Id_categoria:   (v) => V.requiredSelect(v, 'La categoría'),
@@ -39,6 +73,85 @@ const RULES = {
     return '';
   },
 };
+
+// Panel de resultados de la importación de Excel, con jerarquía visual clara en vez de
+// un solo bloque de alerta homogéneo: éxito (verde) / advertencias menores de dato
+// incompleto (ámbar) / errores reales agrupados por motivo (rojo, colapsados por
+// defecto con un contador -- expandibles para ver los nombres). Los errores se agrupan
+// por el motivo REAL que devolvió la API (ver _agruparPorMotivo), no por orden de
+// aparición -- así un problema que afecta a muchos repuestos por la misma razón se lee
+// de un vistazo en vez de como una lista plana.
+function ImportResumenPanel({ importMsg, onClose }) {
+  if (importMsg.error) {
+    return (
+      <div className="import-resumen import-resumen--fatal">
+        <span>{importMsg.error}</span>
+        <button className="btn btn--ghost btn--sm" onClick={onClose}>Cerrar</button>
+      </div>
+    );
+  }
+
+  const rr = importMsg.resumenReal;
+  const catsOrdenadas = rr ? Object.entries(rr.porCategoria).sort((a, b) => b[1] - a[1]) : [];
+  const portaCount = rr?.porCategoria?.['Porta'] || 0;
+  const motivos = Object.entries(importMsg.fallosPorMotivo || {});
+  const hayAdvertencias = !!rr && (rr.sinDescripcion > 0 || rr.sinLote > 0 || rr.fallbackSinFecha?.length > 0 || portaCount > 10);
+  // Tope defensivo de nombres mostrados por motivo (un import real puede tener cientos de
+  // filas repitiendo el mismo motivo) -- el conteo del <summary> siempre es el real.
+  const TOPE_NOMBRES = 60;
+
+  return (
+    <div className="import-resumen">
+      <div className="import-resumen__row import-resumen__row--header">
+        <span className="import-resumen__title">Resultado de la importación</span>
+        <button className="btn btn--ghost btn--sm" onClick={onClose} style={{ marginLeft: 'auto' }}>Cerrar</button>
+      </div>
+
+      <div className="import-resumen__tier import-resumen__tier--ok">
+        <span>✓ {importMsg.ok} repuesto(s) creado(s).</span>
+        {importMsg.categoriasCreadas > 0 && <span>{importMsg.categoriasCreadas} categoría(s) nueva(s) creada(s).</span>}
+        {importMsg.categoriasRecuperadas > 0 && <span>{importMsg.categoriasRecuperadas} categoría(s) ya existían (reutilizadas automáticamente, sin error).</span>}
+      </div>
+
+      {hayAdvertencias && (
+        <div className="import-resumen__tier import-resumen__tier--warn">
+          {rr.sinDescripcion > 0 && <p>⚠ {rr.sinDescripcion} repuesto(s) sin descripción en el archivo (se usó el código como nombre).</p>}
+          {rr.sinLote > 0 && <p>⚠ {rr.sinLote} repuesto(s) sin ningún lote asociado (Precio/Margen quedaron en los valores por defecto).</p>}
+          {rr.fallbackSinFecha?.length > 0 && (
+            <p>⚠ {rr.fallbackSinFecha.length} código(s) con más de un lote donde no se pudo determinar cuál es el más reciente por fecha (se usó el último que aparece en la hoja Lotes): {rr.fallbackSinFecha.slice(0, 10).join(', ')}{rr.fallbackSinFecha.length > 10 ? '…' : ''}.</p>
+          )}
+          {portaCount > 10 && (
+            <p style={{ fontWeight: 700 }}>⚠ La categoría "Porta" agrupó {portaCount} repuestos distintos -- revisa si conviene dividirla en categorías más específicas desde el módulo de Categorías.</p>
+          )}
+        </div>
+      )}
+
+      {rr && (
+        <details className="import-resumen__detail">
+          <summary>Ver {catsOrdenadas.length} categoría(s) y cuántos repuestos tiene cada una</summary>
+          <ul>
+            {catsOrdenadas.map(([nombre, cantidad]) => <li key={nombre}>{nombre}: {cantidad}</li>)}
+          </ul>
+        </details>
+      )}
+
+      {importMsg.fail > 0 && (
+        <div className="import-resumen__tier import-resumen__tier--error">
+          <p className="import-resumen__error-heading">✕ {importMsg.fail} repuesto(s) no se pudieron importar:</p>
+          {motivos.map(([motivo, nombres]) => (
+            <details key={motivo} className="import-resumen__detail import-resumen__detail--error">
+              <summary>{nombres.length} repuesto(s): {motivo}</summary>
+              <ul>
+                {nombres.slice(0, TOPE_NOMBRES).map((n, i) => <li key={`${n}-${i}`}>{n}</li>)}
+                {nombres.length > TOPE_NOMBRES && <li>… y {nombres.length - TOPE_NOMBRES} más.</li>}
+              </ul>
+            </details>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function RepuestosPage() {
   const dispatch = useDispatch();
@@ -223,9 +336,10 @@ export default function RepuestosPage() {
     categorias.forEach(c => { const n = String(c.Nombre ?? c.nombre ?? '').trim().toLowerCase(); if (n) catByName[n] = c.Id_categoria ?? c.Id_Categoria; });
     const SIN_CATEGORIA = 'Sin categoría';
 
-    let ok = 0, fail = 0, categoriasCreadas = 0, sinDescripcion = 0, sinLote = 0;
+    let ok = 0, fail = 0, categoriasCreadas = 0, categoriasRecuperadas = 0, sinDescripcion = 0, sinLote = 0;
     const porCategoria = {};
-    const faltantes = [];
+    const faltantes = []; // { nombre, motivo }
+    const categoriasFrescasCache = { current: null };
 
     for (let i = 0; i < repuestoRows.length; i++) {
       const fila = repuestoRows[i];
@@ -246,15 +360,29 @@ export default function RepuestosPage() {
       const catNombre = descripcion ? (_primeraPalabra(descripcion) || SIN_CATEGORIA) : SIN_CATEGORIA;
       const catKey = catNombre.toLowerCase();
       let idCat = catByName[catKey];
+      let motivoFallo = null;
       if (!idCat) {
         const rCat = await dispatch(createCategoria({ Nombre: catNombre }));
         if (!rCat.error && rCat.payload?.Id_categoria) {
           idCat = rCat.payload.Id_categoria;
           catByName[catKey] = idCat;
           if (catKey !== SIN_CATEGORIA.toLowerCase()) categoriasCreadas++;
+        } else {
+          // La creación falló -- el caso más común es que la categoría YA exista (de una
+          // corrida anterior de este mismo import): se busca en el catálogo actual antes
+          // de dar el ítem por perdido. Sin esto, todos los repuestos siguientes de esta
+          // misma categoría repetían el mismo error uno por uno durante el resto del import.
+          const idExistente = await _resolverCategoriaExistente(catNombre, categoriasFrescasCache);
+          if (idExistente) {
+            idCat = idExistente;
+            catByName[catKey] = idCat;
+            categoriasRecuperadas++;
+          } else {
+            motivoFallo = rCat.payload || 'No se pudo crear la categoría';
+          }
         }
       }
-      if (!idCat) { fail++; faltantes.push(nombre); continue; }
+      if (!idCat) { fail++; faltantes.push({ nombre, motivo: motivoFallo || 'Categoría no disponible' }); continue; }
 
       const lote = elegirLote(codigo);
       const payload = { NombreRepuesto: nombre, Id_categoria: idCat, Stock: Number(fila.Stock || 0) || 0 };
@@ -277,11 +405,12 @@ export default function RepuestosPage() {
       }
 
       const r = await dispatch(createRepuesto(payload));
-      if (r.error) { fail++; faltantes.push(nombre); } else { ok++; porCategoria[catNombre] = (porCategoria[catNombre] || 0) + 1; }
+      if (r.error) { fail++; faltantes.push({ nombre, motivo: r.payload || 'Error al crear el repuesto' }); }
+      else { ok++; porCategoria[catNombre] = (porCategoria[catNombre] || 0) + 1; }
     }
 
     setImportMsg({
-      ok, fail, categoriasCreadas, faltantes: faltantes.slice(0, 8),
+      ok, fail, categoriasCreadas, categoriasRecuperadas, fallosPorMotivo: _agruparPorMotivo(faltantes),
       resumenReal: { sinDescripcion, sinLote, porCategoria, fallbackSinFecha },
     });
     fetchPage();
@@ -334,7 +463,9 @@ export default function RepuestosPage() {
       // tienen código/descripción/stock), se agrupan todos en "Sin categoría" en vez
       // de descartarlos -- la categoría igual se puede corregir después por repuesto.
       const SIN_CATEGORIA = 'sin categoría';
-      let ok = 0, fail = 0, categoriasCreadas = 0; const faltantes = [];
+      let ok = 0, fail = 0, categoriasCreadas = 0, categoriasRecuperadas = 0;
+      const faltantes = []; // { nombre, motivo }
+      const categoriasFrescasCache = { current: null };
       for (let i = 0; i < filas.length; i++) {
         const fila = filas[i];
         setImportProgress(Math.round(((i + 1) / filas.length) * 100));
@@ -349,6 +480,7 @@ export default function RepuestosPage() {
         const catNombreOrig = String(fila['Categoría'] ?? fila.Categoria ?? fila.categoria ?? '').trim() || 'Sin categoría';
         const catNombre    = catNombreOrig.toLowerCase();
         let idCat = catByName[catNombre];
+        let motivoFallo = null;
         // Si la categoría no existe todavía (incluida "Sin categoría"), se crea sobre la
         // marcha -- así una sola importación de repuestos no depende de haber importado
         // antes las categorías, ni de que el archivo original tenga esa columna.
@@ -358,9 +490,22 @@ export default function RepuestosPage() {
             idCat = rCat.payload.Id_categoria;
             catByName[catNombre] = idCat;
             if (catNombre !== SIN_CATEGORIA) categoriasCreadas++;
+          } else {
+            // Igual que en importInventarioReal: si la creación falló porque la categoría
+            // YA existe (de una corrida anterior), se busca en el catálogo actual en vez
+            // de dar por perdidos todos los repuestos siguientes de esa categoría.
+            const idExistente = await _resolverCategoriaExistente(catNombreOrig, categoriasFrescasCache);
+            if (idExistente) {
+              idCat = idExistente;
+              catByName[catNombre] = idCat;
+              categoriasRecuperadas++;
+            } else {
+              motivoFallo = rCat.payload || 'No se pudo crear la categoría';
+            }
           }
         }
-        if (!nombre || !idCat) { fail++; if (nombre) faltantes.push(nombre); continue; }
+        if (!nombre) { fail++; continue; } // fila sin ningún nombre reconocible: nada que reportar por nombre
+        if (!idCat) { fail++; faltantes.push({ nombre, motivo: motivoFallo || 'Categoría no disponible' }); continue; }
         const r = await dispatch(createRepuesto({
           NombreRepuesto: nombre,
           Id_categoria: idCat,
@@ -368,9 +513,10 @@ export default function RepuestosPage() {
           StockMinimo: Number(fila['Stock mínimo'] ?? fila.StockMinimo ?? 5) || 5,
           MargenPorcentaje: Number(fila['Margen %'] ?? fila.MargenPorcentaje ?? 50) || 50,
         }));
-        if (r.error) { fail++; faltantes.push(nombre); } else ok++;
+        if (r.error) { fail++; faltantes.push({ nombre, motivo: r.payload || 'Error al crear el repuesto' }); }
+        else ok++;
       }
-      setImportMsg({ ok, fail, categoriasCreadas, faltantes: faltantes.slice(0, 8) });
+      setImportMsg({ ok, fail, categoriasCreadas, categoriasRecuperadas, fallosPorMotivo: _agruparPorMotivo(faltantes) });
       fetchPage();
       if (categoriasCreadas > 0) {
         api.get('/api/categoria-repuestos').then(r => setCategorias(r.data?.data || r.data || [])).catch(() => {});
@@ -522,52 +668,7 @@ export default function RepuestosPage() {
         </div>,
         document.body
       )}
-      {importMsg && (() => {
-        const hayError = !!importMsg.error || importMsg.fail > 0;
-        const rr = importMsg.resumenReal;
-        // Categorías con más repuestos primero -- así se ve de un vistazo cuál agrupación
-        // conviene revisar/dividir desde el módulo de Categorías.
-        const catsOrdenadas = rr ? Object.entries(rr.porCategoria).sort((a, b) => b[1] - a[1]) : [];
-        const portaCount = rr?.porCategoria?.['Porta'] || 0;
-        return (
-          <div style={{
-            margin: '1rem 2rem', padding: '0.75rem 1rem', borderRadius: '10px', fontSize: '0.875rem',
-            display: 'flex', flexDirection: 'column', gap: '0.5rem',
-            background: hayError ? 'rgba(220,38,38,0.08)' : 'rgba(22,163,74,0.10)',
-            border: `1px solid ${hayError ? 'rgba(220,38,38,0.3)' : 'rgba(22,163,74,0.3)'}`,
-            color: hayError ? '#b91c1c' : '#136a32',
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-              <span>{importMsg.error
-                ? importMsg.error
-                : `Importación: ${importMsg.ok} creado(s), ${importMsg.fail} con error.${importMsg.categoriasCreadas ? ` Se crearon ${importMsg.categoriasCreadas} categoría(s) nueva(s).` : ''}${importMsg.faltantes?.length ? ` No se pudieron: ${importMsg.faltantes.join(', ')}.` : ''}`}</span>
-              <button className="btn btn--ghost btn--sm" onClick={() => setImportMsg(null)} style={{ marginLeft: 'auto' }}>Cerrar</button>
-            </div>
-            {rr && (
-              <div style={{ fontSize: '0.82rem', display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
-                <span>
-                  {rr.sinDescripcion > 0 && `${rr.sinDescripcion} repuesto(s) sin descripción en el archivo (se usó el código como nombre). `}
-                  {rr.sinLote > 0 && `${rr.sinLote} repuesto(s) sin ningún lote asociado (Precio/Margen quedaron en los valores por defecto). `}
-                  {rr.fallbackSinFecha?.length > 0 && `${rr.fallbackSinFecha.length} código(s) con más de un lote donde no se pudo determinar cuál es el más reciente por fecha (se usó el último que aparece en la hoja Lotes): ${rr.fallbackSinFecha.slice(0, 10).join(', ')}${rr.fallbackSinFecha.length > 10 ? '…' : ''}.`}
-                </span>
-                {portaCount > 10 && (
-                  <span style={{ fontWeight: 700 }}>
-                    ⚠ La categoría "Porta" agrupó {portaCount} repuestos distintos -- revisa si conviene dividirla en categorías más específicas desde el módulo de Categorías.
-                  </span>
-                )}
-                <details>
-                  <summary style={{ cursor: 'pointer' }}>Ver {catsOrdenadas.length} categoría(s) y cuántos repuestos tiene cada una</summary>
-                  <ul style={{ margin: '0.35rem 0 0', paddingLeft: '1.1rem' }}>
-                    {catsOrdenadas.map(([nombre, cantidad]) => (
-                      <li key={nombre}>{nombre}: {cantidad}</li>
-                    ))}
-                  </ul>
-                </details>
-              </div>
-            )}
-          </div>
-        );
-      })()}
+      {importMsg && <ImportResumenPanel importMsg={importMsg} onClose={() => setImportMsg(null)} />}
       {itemsConStockBajo.length > 0 && (
         <div className={`stock-alerta-banner ${itemsConStockBajo.some(i => i.Stock === 0) ? 'stock-alerta-banner--critico' : 'stock-alerta-banner--bajo'}`}>
           <MdWarning size={18} />
