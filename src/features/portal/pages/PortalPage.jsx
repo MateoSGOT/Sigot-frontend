@@ -736,7 +736,7 @@ export default function PortalPage() {
         ) : ordDetail ? (
           <div>
             <div className="orden-tabs">
-              {[['info', 'Información general'], ...(ordenFacturada ? [['servicios', 'Servicios']] : []), ['repuestos', 'Repuestos']].map(([key, label]) => (
+              {[['info', 'Información general'], ['servicios', 'Servicios'], ['repuestos', 'Repuestos']].map(([key, label]) => (
                 <button key={key} className={`orden-tab${ordTab === key ? ' orden-tab--active' : ''}`} onClick={() => setOrdTab(key)}>
                   {label}
                 </button>
@@ -785,16 +785,24 @@ export default function PortalPage() {
                     ? (ordDetail.servicios || []).map((s, i) => (
                       <div key={i} className="orden-item-row">
                         <span className="orden-item-name u-flex-1">{s.servicio || s.Nombre || `Servicio #${s.Id_Servicio}`}</span>
-                        <span className="orden-item-price">{formatCurrency(s.precio_unitario)}</span>
+                        {/* El costo de servicios/mano de obra es información interna del taller
+                            (margen) -- se destapa solo al facturar la orden (ver ordenFacturada),
+                            pero el CLIENTE siempre debe poder ver QUÉ servicios se le están
+                            realizando, con o sin factura aún. */}
+                        {ordenFacturada && <span className="orden-item-price">{formatCurrency(s.precio_unitario)}</span>}
                       </div>
                     ))
                     : <p className="empty-list">No hay servicios registrados en esta orden.</p>
                   }
                 </div>
-                <div className="orden-subtotal">
-                  <span>Subtotal servicios</span>
-                  <span>{formatCurrency(totalServ)}</span>
-                </div>
+                {ordenFacturada ? (
+                  <div className="orden-subtotal">
+                    <span>Subtotal servicios</span>
+                    <span>{formatCurrency(totalServ)}</span>
+                  </div>
+                ) : (ordDetail.servicios || []).length > 0 && (
+                  <p className="u-hint" style={{ marginTop: '0.5rem' }}>El costo de servicios y mano de obra se muestra al facturar la orden.</p>
+                )}
               </div>
             )}
 
