@@ -1,3 +1,21 @@
+/* === Escala de z-index del layout base (no hay archivo de tokens dedicado en el
+   proyecto -- se documenta aquí porque es el "techo" de capas fijas de toda la app;
+   cualquier overlay/modal de página nueva debe ir en la franja 1300+ para quedar por
+   encima del cajón del sidebar móvil, o usar un valor ya establecido si es del mismo
+   tipo de elemento, en vez de inventar un número a ciegas):
+     1000       — .layout__hamburger (botón hamburguesa, solo móvil/tablet <1024px)
+     1100       — .layout__overlay (fondo oscuro detrás del cajón del sidebar móvil)
+     1200       — .sidebar en modo cajón móvil (Sidebar.css) -- por encima de su propio
+                  fondo (1100), para poder recibir clics/scroll
+     1300+      — overlays de página por encima de TODO lo anterior: modales (Modal.css),
+                  campanas de alerta (StockAlertBell.css, NovedadAlertBell.css) y overlays
+                  de progreso como el de importar Excel (RepuestosPage.css) ya usan 1300.
+   Un overlay de página que se renderice DENTRO del árbol de .page (en vez de vía
+   ReactDOM.createPortal a document.body) puede además quedar "atrapado" como
+   position:fixed relativo a .page en vez del viewport, si .page tiene un transform
+   activo (ver pageFadeIn en page.css, con "animation: ... both" -- el transform de la
+   última keyframe queda pegado aun después de terminar la animación). Portar a
+   document.body evita ese problema de raíz, además del z-index. */
 .layout {
   display: flex;
   min-height: 100vh;

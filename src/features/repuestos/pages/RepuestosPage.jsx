@@ -1,4 +1,5 @@
 ﻿import React, { useEffect, useState, useCallback, useRef } from 'react';
+import ReactDOM from 'react-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { MdAdd, MdVisibility, MdEdit, MdWarning, MdTableChart, MdDeleteForever, MdUploadFile, MdCheckCircle } from 'react-icons/md';
 import { useBorradoReal } from '../../../shared/hooks/useBorradoReal.js';
@@ -146,6 +147,11 @@ export default function RepuestosPage() {
   // mientras se procesan las filas del Excel, fila por fila.
   const [importOverlay, setImportOverlay] = useState('idle');
   const [importProgress, setImportProgress] = useState(0);
+  // Igual que Modal.jsx: bloquea el scroll del body mientras el overlay está abierto.
+  useEffect(() => {
+    document.body.style.overflow = importOverlay !== 'idle' ? 'hidden' : '';
+    return () => { document.body.style.overflow = ''; };
+  }, [importOverlay]);
 
   // --- Importación del INVENTARIO REAL (formato multi-hoja Repuesto/Lotes/Entradas) ---
   // Se detecta por la presencia de una hoja "Repuesto" y una hoja "Lotes" en el mismo
@@ -485,7 +491,17 @@ export default function RepuestosPage() {
           <button className="btn btn--primary" onClick={openCreate} disabled={!puedeCrear}><MdAdd size={18} />Nuevo repuesto</button>
         </div>
       </div>
-      {importOverlay !== 'idle' && (
+      {importOverlay !== 'idle' && ReactDOM.createPortal(
+        // Portal a document.body (mismo patrón que Modal.jsx): si se renderizara aquí
+        // dentro de .page, quedaría "atrapado" como position:fixed relativo a .page en
+        // vez del viewport -- .page tiene una animación de entrada (pageFadeIn, ver
+        // page.css) con "animation: ... both", que dejaba pegado un transform de la
+        // última keyframe (translateY(0)) incluso ya terminada la animación. Cualquier
+        // transform (aunque sea el identity translateY(0)) convierte a ese ancestro en
+        // el containing block de sus descendientes position:fixed -- por eso el overlay
+        // no llegaba a cubrir ni el sidebar ni el resto del viewport (quedaba confinado
+        // al alto/ancho de .page). Un portal a body evita depender de que ningún
+        // ancestro futuro se quede sin transform.
         <div className="import-overlay" role="status" aria-live="polite">
           <div className="import-overlay__card">
             {importOverlay === 'done' ? (
@@ -503,7 +519,8 @@ export default function RepuestosPage() {
               </>
             )}
           </div>
-        </div>
+        </div>,
+        document.body
       )}
       {importMsg && (() => {
         const hayError = !!importMsg.error || importMsg.fail > 0;

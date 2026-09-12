@@ -38,11 +38,14 @@
 }
 
 /* Overlay de progreso de la importación de Excel (barra % mientras procesa fila por
-   fila, check verde un instante al terminar -- ver RepuestosPage.jsx::handleImportFile). */
+   fila, check verde un instante al terminar -- ver RepuestosPage.jsx::handleImportFile).
+   Se renderiza vía portal a document.body (ver el JSX) para no quedar confinado dentro
+   de .page -- z-index 1300: por encima del cajón del sidebar móvil (1200, ver la escala
+   documentada en Layout.css). */
 .import-overlay {
   position: fixed;
   inset: 0;
-  z-index: 1000;
+  z-index: 1300;
   display: flex;
   align-items: center;
   justify-content: center;
