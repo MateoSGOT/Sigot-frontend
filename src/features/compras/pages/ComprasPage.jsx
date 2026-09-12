@@ -15,7 +15,7 @@ import { generarFacturaCompra } from '../../../shared/utils/generarFacturaPDF.js
 import api from '../../../shared/services/api.js';
 import './ComprasPage.css';
 
-const EMPTY_ITEM = { Id_Repuesto: '', Cantidad: '', PrecioUnitario: '' };
+const EMPTY_ITEM = { Id_Repuesto: '', Cantidad: '', PrecioUnitario: '', DescuentoPorcentaje: '' };
 const newForm = () => ({ Id_Proveedor: '', Fecha: todayLocalYMD(), NumeroFactura: '', productos: [{ ...EMPTY_ITEM }] });
 
 export default function ComprasPage() {
@@ -160,6 +160,7 @@ export default function ComprasPage() {
         if (!productos[idx].Cantidad) {
           productos[idx] = { ...productos[idx], Cantidad: '1' };
         }
+        productos[idx] = { ...productos[idx], DescuentoPorcentaje: '' };
         setPriceWarnings(prev => { const next = { ...prev }; delete next[idx]; return next; });
       }
 
@@ -207,6 +208,7 @@ export default function ComprasPage() {
         PrecioUnitario: item.PrecioUnitario,
         Fecha: formData.Fecha,
         NumeroFactura: formData.NumeroFactura,
+        DescuentoPorcentaje: item.DescuentoPorcentaje || 0,
       }));
       if (result.error) {
         setFormError(result.payload || 'Error al registrar compra.');
@@ -230,7 +232,8 @@ export default function ComprasPage() {
   // Validez en tiempo real: habilita "Guardar" solo cuando todo está completo.
   const compraValida = !!formData.Id_Proveedor && !!formData.Fecha
     && formData.productos.length > 0
-    && formData.productos.every(it => it.Id_Repuesto && Number(it.Cantidad) > 0 && Number(it.PrecioUnitario) >= 0 && it.PrecioUnitario !== '');
+    && formData.productos.every(it => it.Id_Repuesto && Number(it.Cantidad) > 0 && Number(it.PrecioUnitario) >= 0 && it.PrecioUnitario !== ''
+      && (it.DescuentoPorcentaje === '' || (Number(it.DescuentoPorcentaje) >= 0 && Number(it.DescuentoPorcentaje) <= 100)));
 
   const columns = [
     { key: '#', label: '#', width: '50px', render: (_, __, i) => i + 1 },
@@ -419,6 +422,7 @@ export default function ComprasPage() {
               <span>Repuesto</span>
               <span>Cantidad</span>
               <span>Precio unitario</span>
+              <span>Descuento %</span>
               <span>Subtotal</span>
               <span></span>
             </div>
@@ -458,6 +462,24 @@ export default function ComprasPage() {
                       />
                       {item.PrecioUnitario && !priceWarnings[idx] ? <small className="price-preview">{formatCurrency(item.PrecioUnitario)}</small> : null}
                     </div>
+                  </div>
+                  <div className="compra-field">
+                    <span className="compra-field-label">Descuento % <span className="u-hint-sm">(opcional)</span></span>
+                    <input
+                      type="number"
+                      min="0"
+                      max="100"
+                      step="0.01"
+                      className="form-control form-control--sm"
+                      value={item.DescuentoPorcentaje}
+                      onChange={e => handleItemChange(idx, 'DescuentoPorcentaje', e.target.value)}
+                      placeholder="0"
+                    />
+                    {item.PrecioUnitario && Number(item.DescuentoPorcentaje) > 0 ? (
+                      <small className="price-preview">
+                        Costo neto: {formatCurrency(Number(item.PrecioUnitario) * (1 - Number(item.DescuentoPorcentaje) / 100))}
+                      </small>
+                    ) : null}
                   </div>
                   <div className="compra-field">
                     <span className="compra-field-label">Subtotal</span>

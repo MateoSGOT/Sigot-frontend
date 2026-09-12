@@ -142,6 +142,138 @@ export default function RepuestosPage() {
   const [importando, setImportando] = useState(false);
   const [importMsg, setImportMsg] = useState(null); // { ok, fail, faltantes: [] }
 
+  // --- Importación del INVENTARIO REAL (formato multi-hoja Repuesto/Lotes/Entradas) ---
+  // Se detecta por la presencia de una hoja "Repuesto" y una hoja "Lotes" en el mismo
+  // libro; si no calzan esos nombres, se usa el importador genérico de una sola hoja
+  // de siempre (más abajo), sin ningún cambio de comportamiento.
+  const _buscarHoja = (wb, re) => wb.SheetNames.find(n => re.test(n.trim()));
+  // Mismo detector de encabezado (primera fila con contenido) que ya usa el importador
+  // genérico, factorizado para reusarlo con las 3 hojas del formato real.
+  const _parsearHoja = (wb, nombreHoja) => {
+    if (!nombreHoja) return [];
+    const ws = wb.Sheets[nombreHoja];
+    const raw = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+    const headerIdx = Math.max(0, raw.findIndex(r => r.some(c => String(c).trim() !== '')));
+    const headers = raw[headerIdx] || [];
+    return raw.slice(headerIdx + 1)
+      .filter(r => r.some(c => String(c).trim() !== ''))
+      .map((r, i) => { const o = { __rowIdx: i }; headers.forEach((h, j) => { const k = String(h).trim(); if (k) o[k] = r[j] ?? ''; }); return o; });
+  };
+  const _tituloCase = (s) => (s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : '');
+  const _primeraPalabra = (desc) => {
+    const m = String(desc || '').trim().match(/[A-Za-zÁÉÍÓÚÑÜáéíóúñü]+/);
+    return m ? _tituloCase(m[0]) : null;
+  };
+  const _parseFechaExcel = (v) => {
+    if (v == null || v === '') return null;
+    if (typeof v === 'number') { const d = XLSX.SSF.parse_date_code(v); return d ? new Date(d.y, d.m - 1, d.d) : null; }
+    const d = new Date(v);
+    return isNaN(d.getTime()) ? null : d;
+  };
+
+  const importInventarioReal = async (wb) => {
+    const repuestoRows = _parsearHoja(wb, _buscarHoja(wb, /^repuesto$/i));
+    const lotesRows    = _parsearHoja(wb, _buscarHoja(wb, /^lotes$/i));
+    const entradasRows = _parsearHoja(wb, _buscarHoja(wb, /^entradas$/i));
+
+    const entradasByCodigo = {};
+    entradasRows.forEach(r => { const c = String(r.Codigo || '').trim(); if (c) entradasByCodigo[c] = r; });
+    const lotesByRepuesto = {};
+    lotesRows.forEach(r => {
+      const c = String(r['Repuesto'] || '').trim();
+      if (c) (lotesByRepuesto[c] = lotesByRepuesto[c] || []).push(r);
+    });
+
+    // Un repuesto puede tener varios lotes (varias compras históricas). Se usa el de
+    // fecha más reciente si se puede resolver (Lotes.Entrada → Entradas.Codigo → "Fecha
+    // de compra"); si ningún lote candidato tiene fecha real, se usa el último que
+    // aparece en la hoja Lotes y se reporta al final (en el archivo real, casi ningún
+    // registro de Entradas trae fecha, así que este fallback es la regla, no la excepción).
+    const fallbackSinFecha = [];
+    const elegirLote = (codigo) => {
+      const candidatos = lotesByRepuesto[codigo] || [];
+      if (candidatos.length === 0) return null;
+      if (candidatos.length === 1) return candidatos[0];
+      const conFecha = candidatos
+        .map(l => {
+          const entrada = entradasByCodigo[String(l['Entrada'] || '').trim()];
+          return { lote: l, fecha: entrada ? _parseFechaExcel(entrada['Fecha de compra']) : null };
+        })
+        .filter(x => x.fecha != null);
+      if (conFecha.length > 0) {
+        conFecha.sort((a, b) => b.fecha - a.fecha);
+        return conFecha[0].lote;
+      }
+      fallbackSinFecha.push(codigo);
+      return candidatos.reduce((max, l) => (l.__rowIdx > max.__rowIdx ? l : max), candidatos[0]);
+    };
+
+    const catByName = {};
+    categorias.forEach(c => { const n = String(c.Nombre ?? c.nombre ?? '').trim().toLowerCase(); if (n) catByName[n] = c.Id_categoria ?? c.Id_Categoria; });
+    const SIN_CATEGORIA = 'Sin categoría';
+
+    let ok = 0, fail = 0, categoriasCreadas = 0, sinDescripcion = 0, sinLote = 0;
+    const porCategoria = {};
+    const faltantes = [];
+
+    for (const fila of repuestoRows) {
+      const codigo = String(fila.Codigo || '').trim();
+      // Filas de relleno del archivo real (sin código ni ningún otro dato): se descartan,
+      // no representan ningún repuesto.
+      if (!codigo) continue;
+      const descripcion = String(fila.Descripcion || '').trim();
+      // Código real con Descripción vacía (dato incompleto del archivo real): se usa el
+      // código como nombre de respaldo -- mejor importarlo identificado por su código
+      // que perder del inventario un ítem con stock real.
+      const nombre = descripcion || codigo;
+      if (!descripcion) sinDescripcion++;
+
+      // Categoría automática: primera palabra de la Descripción, normalizada a
+      // formato título (ej. "Suichet", "Bombillo"). Sin Descripción reconocible → "Sin categoría".
+      const catNombre = descripcion ? (_primeraPalabra(descripcion) || SIN_CATEGORIA) : SIN_CATEGORIA;
+      const catKey = catNombre.toLowerCase();
+      let idCat = catByName[catKey];
+      if (!idCat) {
+        const rCat = await dispatch(createCategoria({ Nombre: catNombre }));
+        if (!rCat.error && rCat.payload?.Id_categoria) {
+          idCat = rCat.payload.Id_categoria;
+          catByName[catKey] = idCat;
+          if (catKey !== SIN_CATEGORIA.toLowerCase()) categoriasCreadas++;
+        }
+      }
+      if (!idCat) { fail++; faltantes.push(nombre); continue; }
+
+      const lote = elegirLote(codigo);
+      const payload = { NombreRepuesto: nombre, Id_categoria: idCat, Stock: Number(fila.Stock || 0) || 0 };
+      if (lote) {
+        const costo  = Number(lote['Prc con dsc']);
+        const margen = Number(lote['Margen de ganancia']) * 100;
+        const precioVentaReal = Number(lote['Precio de venta']);
+        if (!isNaN(costo))  payload.Precio = costo;
+        if (!isNaN(margen)) payload.MargenPorcentaje = margen;
+        // PrecioVenta se importa TAL CUAL del archivo (punto de partida real del
+        // inventario que el taller ya tenía comprado), sin recalcular con la fórmula
+        // estándar -- la SIGUIENTE compra que se registre para este repuesto en el
+        // sistema sí recalculará normalmente, como cualquier otro repuesto (ver
+        // compra.model.js::create).
+        if (!isNaN(precioVentaReal)) payload.PrecioVenta = precioVentaReal;
+      } else {
+        // Sin ningún lote asociado: se importa solo con Nombre/Categoría/Stock,
+        // dejando Precio/Margen en los valores por defecto del backend (0 y 50).
+        sinLote++;
+      }
+
+      const r = await dispatch(createRepuesto(payload));
+      if (r.error) { fail++; faltantes.push(nombre); } else { ok++; porCategoria[catNombre] = (porCategoria[catNombre] || 0) + 1; }
+    }
+
+    setImportMsg({
+      ok, fail, categoriasCreadas, faltantes: faltantes.slice(0, 8),
+      resumenReal: { sinDescripcion, sinLote, porCategoria, fallbackSinFecha },
+    });
+    fetchPage();
+    api.get('/api/categoria-repuestos').then(r => setCategorias(r.data?.data || r.data || [])).catch(() => {});
+  };
 
   const handleImportFile = async (e) => {
     const file = e.target.files?.[0];
@@ -152,6 +284,17 @@ export default function RepuestosPage() {
     try {
       const buf = await file.arrayBuffer();
       const wb = XLSX.read(buf, { type: 'array' });
+
+      // Formato real del taller (varias hojas: Repuesto/Lotes/Entradas/Salidas) --
+      // se detecta por la presencia de hojas "Repuesto" y "Lotes" y toma un camino
+      // separado con categorización automática y cruce de costos/precio de venta.
+      // Cualquier otro archivo (una sola hoja, columnas Nombre/Categoría) sigue el
+      // importador genérico de siempre, sin cambios.
+      if (_buscarHoja(wb, /^repuesto$/i) && _buscarHoja(wb, /^lotes$/i)) {
+        await importInventarioReal(wb);
+        return;
+      }
+
       const ws = wb.Sheets[wb.SheetNames[0]];
       // No se asume que la fila 1 trae los encabezados: muchos Excel reales (ej. el
       // formato que ya usa el taller) traen una fila en blanco antes del encabezado.
@@ -324,18 +467,47 @@ export default function RepuestosPage() {
       </div>
       {importMsg && (() => {
         const hayError = !!importMsg.error || importMsg.fail > 0;
+        const rr = importMsg.resumenReal;
+        // Categorías con más repuestos primero -- así se ve de un vistazo cuál agrupación
+        // conviene revisar/dividir desde el módulo de Categorías.
+        const catsOrdenadas = rr ? Object.entries(rr.porCategoria).sort((a, b) => b[1] - a[1]) : [];
+        const portaCount = rr?.porCategoria?.['Porta'] || 0;
         return (
           <div style={{
             margin: '1rem 2rem', padding: '0.75rem 1rem', borderRadius: '10px', fontSize: '0.875rem',
-            display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap',
+            display: 'flex', flexDirection: 'column', gap: '0.5rem',
             background: hayError ? 'rgba(220,38,38,0.08)' : 'rgba(22,163,74,0.10)',
             border: `1px solid ${hayError ? 'rgba(220,38,38,0.3)' : 'rgba(22,163,74,0.3)'}`,
             color: hayError ? '#b91c1c' : '#136a32',
           }}>
-            <span>{importMsg.error
-              ? importMsg.error
-              : `Importación: ${importMsg.ok} creado(s), ${importMsg.fail} con error.${importMsg.categoriasCreadas ? ` Se crearon ${importMsg.categoriasCreadas} categoría(s) nueva(s).` : ''}${importMsg.faltantes?.length ? ` No se pudieron: ${importMsg.faltantes.join(', ')}.` : ''}`}</span>
-            <button className="btn btn--ghost btn--sm" onClick={() => setImportMsg(null)} style={{ marginLeft: 'auto' }}>Cerrar</button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+              <span>{importMsg.error
+                ? importMsg.error
+                : `Importación: ${importMsg.ok} creado(s), ${importMsg.fail} con error.${importMsg.categoriasCreadas ? ` Se crearon ${importMsg.categoriasCreadas} categoría(s) nueva(s).` : ''}${importMsg.faltantes?.length ? ` No se pudieron: ${importMsg.faltantes.join(', ')}.` : ''}`}</span>
+              <button className="btn btn--ghost btn--sm" onClick={() => setImportMsg(null)} style={{ marginLeft: 'auto' }}>Cerrar</button>
+            </div>
+            {rr && (
+              <div style={{ fontSize: '0.82rem', display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                <span>
+                  {rr.sinDescripcion > 0 && `${rr.sinDescripcion} repuesto(s) sin descripción en el archivo (se usó el código como nombre). `}
+                  {rr.sinLote > 0 && `${rr.sinLote} repuesto(s) sin ningún lote asociado (Precio/Margen quedaron en los valores por defecto). `}
+                  {rr.fallbackSinFecha?.length > 0 && `${rr.fallbackSinFecha.length} código(s) con más de un lote donde no se pudo determinar cuál es el más reciente por fecha (se usó el último que aparece en la hoja Lotes): ${rr.fallbackSinFecha.slice(0, 10).join(', ')}${rr.fallbackSinFecha.length > 10 ? '…' : ''}.`}
+                </span>
+                {portaCount > 10 && (
+                  <span style={{ fontWeight: 700 }}>
+                    ⚠ La categoría "Porta" agrupó {portaCount} repuestos distintos -- revisa si conviene dividirla en categorías más específicas desde el módulo de Categorías.
+                  </span>
+                )}
+                <details>
+                  <summary style={{ cursor: 'pointer' }}>Ver {catsOrdenadas.length} categoría(s) y cuántos repuestos tiene cada una</summary>
+                  <ul style={{ margin: '0.35rem 0 0', paddingLeft: '1.1rem' }}>
+                    {catsOrdenadas.map(([nombre, cantidad]) => (
+                      <li key={nombre}>{nombre}: {cantidad}</li>
+                    ))}
+                  </ul>
+                </details>
+              </div>
+            )}
           </div>
         );
       })()}

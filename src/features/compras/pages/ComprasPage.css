@@ -15,7 +15,7 @@
 
 .compra-productos__header {
   display: grid;
-  grid-template-columns: 2fr 1fr 1.2fr 1.1fr 36px;
+  grid-template-columns: 2fr 1fr 1.2fr 1fr 1.1fr 36px;
   gap: 0.5rem;
   padding: 0.5rem 0.75rem;
   background: var(--color-surface-solid);
@@ -28,7 +28,7 @@
 
 .compra-producto-row {
   display: grid;
-  grid-template-columns: 2fr 1fr 1.2fr 1.1fr 36px;
+  grid-template-columns: 2fr 1fr 1.2fr 1fr 1.1fr 36px;
   gap: 0.5rem;
   align-items: start;
   padding: 0.5rem 0.75rem;
