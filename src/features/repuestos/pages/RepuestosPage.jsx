@@ -61,6 +61,13 @@ function _agruparPorMotivo(faltantes) {
   return Object.fromEntries(Object.entries(grupos).sort((a, b) => b[1].length - a[1].length));
 }
 
+const _sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+// Pausa entre filas del import de Excel: con hasta 2 solicitudes por fila (categoría +
+// repuesto) y archivos reales de cientas de filas, sin ninguna pausa el import dispara
+// cientos de solicitudes seguidas en pocos segundos -- mala práctica de todas formas,
+// con o sin límite en el servidor (ver globalLimiter en app.js, API).
+const PAUSA_ENTRE_FILAS_MS = 60;
+
 const RULES = {
   NombreRepuesto: (v) => V.nombre(v, 3, 120),
   Id_categoria:   (v) => V.requiredSelect(v, 'La categoría'),
@@ -342,6 +349,7 @@ export default function RepuestosPage() {
     const categoriasFrescasCache = { current: null };
 
     for (let i = 0; i < repuestoRows.length; i++) {
+      if (i > 0) await _sleep(PAUSA_ENTRE_FILAS_MS);
       const fila = repuestoRows[i];
       setImportProgress(Math.round(((i + 1) / repuestoRows.length) * 100));
       const codigo = String(fila.Codigo || '').trim();
@@ -467,6 +475,7 @@ export default function RepuestosPage() {
       const faltantes = []; // { nombre, motivo }
       const categoriasFrescasCache = { current: null };
       for (let i = 0; i < filas.length; i++) {
+        if (i > 0) await _sleep(PAUSA_ENTRE_FILAS_MS);
         const fila = filas[i];
         setImportProgress(Math.round(((i + 1) / filas.length) * 100));
         // Si no hay descripción (dato incompleto en el archivo de origen), se usa el
