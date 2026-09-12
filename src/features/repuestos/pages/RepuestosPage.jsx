@@ -1,6 +1,6 @@
 ﻿import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { MdAdd, MdVisibility, MdEdit, MdWarning, MdTableChart, MdDeleteForever, MdUploadFile } from 'react-icons/md';
+import { MdAdd, MdVisibility, MdEdit, MdWarning, MdTableChart, MdDeleteForever, MdUploadFile, MdCheckCircle } from 'react-icons/md';
 import { useBorradoReal } from '../../../shared/hooks/useBorradoReal.js';
 import { repuestosService } from '../services/repuestosService.js';
 import EliminarRealModal from '../../../shared/components/EliminarRealModal/EliminarRealModal.jsx';
@@ -141,6 +141,11 @@ export default function RepuestosPage() {
   const fileImportRef = useRef(null);
   const [importando, setImportando] = useState(false);
   const [importMsg, setImportMsg] = useState(null); // { ok, fail, faltantes: [] }
+  // Overlay de progreso: 'idle' (oculto) | 'loading' (barra + %) | 'done' (check verde,
+  // se muestra un instante antes de cerrarse). importProgress es el % (0-100) mostrado
+  // mientras se procesan las filas del Excel, fila por fila.
+  const [importOverlay, setImportOverlay] = useState('idle');
+  const [importProgress, setImportProgress] = useState(0);
 
   // --- Importación del INVENTARIO REAL (formato multi-hoja Repuesto/Lotes/Entradas) ---
   // Se detecta por la presencia de una hoja "Repuesto" y una hoja "Lotes" en el mismo
@@ -216,7 +221,9 @@ export default function RepuestosPage() {
     const porCategoria = {};
     const faltantes = [];
 
-    for (const fila of repuestoRows) {
+    for (let i = 0; i < repuestoRows.length; i++) {
+      const fila = repuestoRows[i];
+      setImportProgress(Math.round(((i + 1) / repuestoRows.length) * 100));
       const codigo = String(fila.Codigo || '').trim();
       // Filas de relleno del archivo real (sin código ni ningún otro dato): se descartan,
       // no representan ningún repuesto.
@@ -281,6 +288,8 @@ export default function RepuestosPage() {
     if (!file) return;
     setImportando(true);
     setImportMsg(null);
+    setImportProgress(0);
+    setImportOverlay('loading');
     try {
       const buf = await file.arrayBuffer();
       const wb = XLSX.read(buf, { type: 'array' });
@@ -289,9 +298,14 @@ export default function RepuestosPage() {
       // se detecta por la presencia de hojas "Repuesto" y "Lotes" y toma un camino
       // separado con categorización automática y cruce de costos/precio de venta.
       // Cualquier otro archivo (una sola hoja, columnas Nombre/Categoría) sigue el
-      // importador genérico de siempre, sin cambios.
-      if (_buscarHoja(wb, /^repuesto$/i) && _buscarHoja(wb, /^lotes$/i)) {
+      // importador genérico de siempre, sin cambios. Ambos caminos comparten el mismo
+      // cierre (barra al 100% + check verde) más abajo, antes del catch/finally.
+      const esFormatoReal = _buscarHoja(wb, /^repuesto$/i) && _buscarHoja(wb, /^lotes$/i);
+      if (esFormatoReal) {
         await importInventarioReal(wb);
+        setImportProgress(100);
+        setImportOverlay('done');
+        await new Promise((resolve) => setTimeout(resolve, 900));
         return;
       }
 
@@ -315,7 +329,9 @@ export default function RepuestosPage() {
       // de descartarlos -- la categoría igual se puede corregir después por repuesto.
       const SIN_CATEGORIA = 'sin categoría';
       let ok = 0, fail = 0, categoriasCreadas = 0; const faltantes = [];
-      for (const fila of filas) {
+      for (let i = 0; i < filas.length; i++) {
+        const fila = filas[i];
+        setImportProgress(Math.round(((i + 1) / filas.length) * 100));
         // Si no hay descripción (dato incompleto en el archivo de origen), se usa el
         // código como respaldo -- mejor importarlo identificado por su código que
         // perderlo del inventario.
@@ -353,11 +369,15 @@ export default function RepuestosPage() {
       if (categoriasCreadas > 0) {
         api.get('/api/categoria-repuestos').then(r => setCategorias(r.data?.data || r.data || [])).catch(() => {});
       }
+      setImportProgress(100);
+      setImportOverlay('done');
+      await new Promise((resolve) => setTimeout(resolve, 900));
     } catch (err) {
       console.error('Importar repuestos desde Excel:', err);
       setImportMsg({ ok: 0, fail: 0, error: `No se pudo leer el archivo: ${err?.message || 'verifica que sea un Excel válido.'}` });
     } finally {
       setImportando(false);
+      setImportOverlay('idle');
     }
   };
 
@@ -465,6 +485,26 @@ export default function RepuestosPage() {
           <button className="btn btn--primary" onClick={openCreate} disabled={!puedeCrear}><MdAdd size={18} />Nuevo repuesto</button>
         </div>
       </div>
+      {importOverlay !== 'idle' && (
+        <div className="import-overlay" role="status" aria-live="polite">
+          <div className="import-overlay__card">
+            {importOverlay === 'done' ? (
+              <>
+                <MdCheckCircle className="import-overlay__check" size={56} />
+                <p className="import-overlay__title">Importación completada</p>
+              </>
+            ) : (
+              <>
+                <p className="import-overlay__title">Importando repuestos...</p>
+                <div className="import-overlay__bar-track">
+                  <div className="import-overlay__bar-fill" style={{ width: `${importProgress}%` }} />
+                </div>
+                <p className="import-overlay__pct">{importProgress}%</p>
+              </>
+            )}
+          </div>
+        </div>
+      )}
       {importMsg && (() => {
         const hayError = !!importMsg.error || importMsg.fail > 0;
         const rr = importMsg.resumenReal;
