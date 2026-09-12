@@ -102,7 +102,7 @@ function ImportResumenPanel({ importMsg, onClose }) {
   const catsOrdenadas = rr ? Object.entries(rr.porCategoria).sort((a, b) => b[1] - a[1]) : [];
   const portaCount = rr?.porCategoria?.['Porta'] || 0;
   const motivos = Object.entries(importMsg.fallosPorMotivo || {});
-  const hayAdvertencias = !!rr && (rr.sinDescripcion > 0 || rr.sinLote > 0 || rr.fallbackSinFecha?.length > 0 || portaCount > 10);
+  const hayAdvertencias = !!rr && (rr.omitidosSinDescripcion > 0 || rr.sinLote > 0 || rr.fallbackSinFecha?.length > 0 || portaCount > 10);
   // Tope defensivo de nombres mostrados por motivo (un import real puede tener cientos de
   // filas repitiendo el mismo motivo) -- el conteo del <summary> siempre es el real.
   const TOPE_NOMBRES = 60;
@@ -122,7 +122,9 @@ function ImportResumenPanel({ importMsg, onClose }) {
 
       {hayAdvertencias && (
         <div className="import-resumen__tier import-resumen__tier--warn">
-          {rr.sinDescripcion > 0 && <p>⚠ {rr.sinDescripcion} repuesto(s) sin descripción en el archivo (se usó el código como nombre).</p>}
+          {rr.omitidosSinDescripcion > 0 && (
+            <p>⚠ {rr.omitidosSinDescripcion} código(s) reservado(s) en el archivo sin Descripción -- NO se importaron (no son repuestos reales todavía, hay que completarlos en el Excel primero): {rr.omitidosCodigos.slice(0, 10).join(', ')}{rr.omitidosCodigos.length > 10 ? `… y ${rr.omitidosCodigos.length - 10} más` : ''}.</p>
+          )}
           {rr.sinLote > 0 && <p>⚠ {rr.sinLote} repuesto(s) sin ningún lote asociado (Precio/Margen quedaron en los valores por defecto).</p>}
           {rr.fallbackSinFecha?.length > 0 && (
             <p>⚠ {rr.fallbackSinFecha.length} código(s) con más de un lote donde no se pudo determinar cuál es el más reciente por fecha (se usó el último que aparece en la hoja Lotes): {rr.fallbackSinFecha.slice(0, 10).join(', ')}{rr.fallbackSinFecha.length > 10 ? '…' : ''}.</p>
@@ -343,9 +345,10 @@ export default function RepuestosPage() {
     categorias.forEach(c => { const n = String(c.Nombre ?? c.nombre ?? '').trim().toLowerCase(); if (n) catByName[n] = c.Id_categoria ?? c.Id_Categoria; });
     const SIN_CATEGORIA = 'Sin categoría';
 
-    let ok = 0, fail = 0, categoriasCreadas = 0, categoriasRecuperadas = 0, sinDescripcion = 0, sinLote = 0;
+    let ok = 0, fail = 0, categoriasCreadas = 0, categoriasRecuperadas = 0, omitidosSinDescripcion = 0, sinLote = 0;
     const porCategoria = {};
     const faltantes = []; // { nombre, motivo }
+    const omitidosCodigos = []; // códigos con fila reservada pero sin Descripción -- no se importaron
     const categoriasFrescasCache = { current: null };
 
     for (let i = 0; i < repuestoRows.length; i++) {
@@ -357,11 +360,14 @@ export default function RepuestosPage() {
       // no representan ningún repuesto.
       if (!codigo) continue;
       const descripcion = String(fila.Descripcion || '').trim();
-      // Código real con Descripción vacía (dato incompleto del archivo real): se usa el
-      // código como nombre de respaldo -- mejor importarlo identificado por su código
-      // que perder del inventario un ítem con stock real.
-      const nombre = descripcion || codigo;
-      if (!descripcion) sinDescripcion++;
+      // Código con Descripción vacía: NO es un repuesto real con dato incompleto -- es un
+      // código reservado en la plantilla del Excel del taller que todavía no se llenó con
+      // un producto real (confirmado: en el archivo real, 94 de estas filas son casi todas
+      // Stock=0 y sin Ubicación, un patrón de "casillero vacío", no de inventario real). Se
+      // omite por completo en vez de crear un repuesto fantasma con el código como nombre
+      // (que es justo lo que hacía antes esta importación y generó datos basura reales).
+      if (!descripcion) { omitidosSinDescripcion++; omitidosCodigos.push(codigo); continue; }
+      const nombre = descripcion;
 
       // Categoría automática: primera palabra de la Descripción, normalizada a
       // formato título (ej. "Suichet", "Bombillo"). Sin Descripción reconocible → "Sin categoría".
@@ -419,7 +425,7 @@ export default function RepuestosPage() {
 
     setImportMsg({
       ok, fail, categoriasCreadas, categoriasRecuperadas, fallosPorMotivo: _agruparPorMotivo(faltantes),
-      resumenReal: { sinDescripcion, sinLote, porCategoria, fallbackSinFecha },
+      resumenReal: { omitidosSinDescripcion, omitidosCodigos, sinLote, porCategoria, fallbackSinFecha },
     });
     fetchPage();
     api.get('/api/categoria-repuestos').then(r => setCategorias(r.data?.data || r.data || [])).catch(() => {});
