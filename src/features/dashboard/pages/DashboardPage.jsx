@@ -21,6 +21,19 @@ import { filterItems } from '../../../shared/utils/helpers.js';
 import './DashboardPage.css';
 
 const PIE_COLORS = ['#3a6b9e', '#8b2e2e', '#2d5a2d', '#8a7240', '#5c6b8a', '#7a4a6a', '#4a6b5c'];
+// Color fijo (gris neutro) para el balde "Otras" del pie de categorías -- deliberadamente
+// fuera de PIE_COLORS para que nunca coincida por casualidad con el color de una categoría
+// individual (ver TOP_N_CATEGORIAS_PIE más abajo).
+const PIE_COLOR_OTRAS = '#9ca3af';
+// Con pocas categorías, un slice + una línea de leyenda por cada una se ve bien. Pero con
+// un catálogo real (ej. tras importar el inventario del taller, que generó ~75 categorías
+// automáticas), un pie con 75 porciones y 75 líneas de leyenda no cabe en la tarjeta de
+// altura fija (220px) -- el gráfico se aplasta y la leyenda se corta/superpone ("se
+// colapsa"). Se agrupan las categorías que sobran del top N en un único balde "Otras"
+// (suma de sus totales), así el pie siempre tiene como máximo N+1 porciones sin importar
+// cuántas categorías reales existan. N = PIE_COLORS.length para que cada categoría
+// individual tenga un color distinto y "Otras" use su propio color fijo.
+const TOP_N_CATEGORIAS_PIE = PIE_COLORS.length;
 const CHART_STYLE = {
   tooltip: {
     contentStyle: { background: '#ffffff', border: '1px solid rgba(0,0,0,0.10)', borderRadius: '8px', color: '#111111', fontSize: '0.8125rem', boxShadow: '0 4px 16px rgba(0,0,0,0.10)' },
@@ -139,9 +152,20 @@ export default function DashboardPage() {
   const resumen = rep.resumen || {};
   const ingresosSerie = (rep.ingresos?.series || []).map((s) => ({ name: etiquetaPeriodo(s.periodo, rep.ingresos.agrupacion), total: Number(s.total || 0) }));
 
-  const repuestosPie = Array.isArray(repuestos?.porCategoria)
-    ? repuestos.porCategoria.map(r => ({ name: r.Nombre || r.categoria || r.name, value: r.total || r.cantidad || 0 }))
-    : [];
+  const repuestosPie = (() => {
+    const rows = Array.isArray(repuestos?.porCategoria)
+      ? repuestos.porCategoria.map(r => ({ name: r.Nombre || r.categoria || r.name, value: Number(r.total || r.cantidad || 0) }))
+      : [];
+    // El backend ya devuelve esto ordenado DESC por total (dashboard.model.js::
+    // getRepuestosPorCategoria), pero se reordena aquí también por robustez -- no
+    // depender de un contrato implícito para decidir qué categorías son "el top".
+    const ordenadas = [...rows].sort((a, b) => b.value - a.value);
+    if (ordenadas.length <= TOP_N_CATEGORIAS_PIE) return ordenadas;
+    const top = ordenadas.slice(0, TOP_N_CATEGORIAS_PIE);
+    const restantes = ordenadas.slice(TOP_N_CATEGORIAS_PIE);
+    const totalOtras = restantes.reduce((sum, r) => sum + r.value, 0);
+    return [...top, { name: `Otras (${restantes.length})`, value: totalOtras, esOtras: true }];
+  })();
 
   const EMPTY_CHART = (
     <EmptyState variant="empty" title="Aún no hay datos suficientes" description="No hay órdenes entregadas en el rango elegido." />
@@ -324,7 +348,7 @@ export default function DashboardPage() {
               <ResponsiveContainer width="100%" height={220}>
                 <PieChart>
                   <Pie data={repuestosPie} cx="50%" cy="50%" innerRadius={55} outerRadius={90} paddingAngle={3} dataKey="value" nameKey="name" isAnimationActive animationDuration={900} animationEasing="ease-out">
-                    {repuestosPie.map((_, idx) => <Cell key={idx} fill={PIE_COLORS[idx % PIE_COLORS.length]} />)}
+                    {repuestosPie.map((entry, idx) => <Cell key={idx} fill={entry.esOtras ? PIE_COLOR_OTRAS : PIE_COLORS[idx % PIE_COLORS.length]} />)}
                   </Pie>
                   <Tooltip {...CHART_STYLE.tooltip} formatter={(v, _n, p) => [v, p?.payload?.name]} />
                   <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: '12px', color: '#888' }} />
