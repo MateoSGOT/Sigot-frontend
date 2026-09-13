@@ -152,6 +152,27 @@ const fmtDuracion = (min) => {
   return `${r}min`;
 };
 
+// Iniciales de un nombre completo (Empleado.Nombre es un solo campo de texto, ej.
+// "Pablo Mozzo", sin Apellido separado): primera letra de la primera palabra + primera
+// letra de la segunda palabra, en mayúscula. Con una sola palabra, usa solo esa inicial.
+const inicialesDe = (nombre) => {
+  const palabras = String(nombre || '').trim().split(/\s+/).filter(Boolean);
+  if (palabras.length === 0) return '';
+  return palabras.slice(0, 2).map(p => p.charAt(0).toUpperCase()).join('');
+};
+
+// Cuenta cuántos empleados DISTINTOS aparecen asignados en las líneas de servicios y
+// repuestos de una orden (ignora las líneas sin empleado asignado). El prefijo de
+// iniciales por línea solo tiene sentido para distinguir técnicos cuando hay 2 o más
+// -- con uno solo (o ninguno) en toda la orden, es ruido: ya se sabe quién la hizo.
+const contarTecnicosDistintos = (servicios, repuestos) => {
+  const ids = [...(servicios || []), ...(repuestos || [])]
+    .map(x => x.Id_Empleado)
+    .filter(id => id != null)
+    .map(String);
+  return new Set(ids).size;
+};
+
 export default function OrdenesPage() {
   const dispatch = useDispatch();
   const location = useLocation();
@@ -310,6 +331,16 @@ export default function OrdenesPage() {
     if (idEmpleado == null) return null;
     const t = tecnicosOpts.find(e => String(e.Id_Empleado ?? e.id_empleado) === String(idEmpleado));
     return t?.Nombre || null;
+  };
+
+  // El prefijo de iniciales ("PM. ") solo aparece cuando la orden tuvo 2+ técnicos
+  // distintos entre sus líneas -- con uno solo (o ninguno), toda la orden la hizo la
+  // misma persona y el prefijo no aporta nada, solo ruido (ver contarTecnicosDistintos).
+  const mostrarPrefijoTecnico = contarTecnicosDistintos(selected?.servicios, selected?.repuestos) >= 2;
+  const prefijoTecnico = (idEmpleado) => {
+    if (!mostrarPrefijoTecnico) return null;
+    const nombre = getTecnicoNombre(idEmpleado);
+    return nombre ? `${inicialesDe(nombre)}. ` : null;
   };
 
   const totalServicios = (selected?.servicios || []).reduce((sum, s) => sum + Number(s.precio_unitario || s.Precio || 0), 0);
@@ -852,11 +883,13 @@ export default function OrdenesPage() {
                     <>
                       <div className="orden-items-list">
                         {servItems.length > 0 ? (
-                          servSlice.map((s, i) => (
+                          servSlice.map((s, i) => {
+                            const prefijo = prefijoTecnico(s.Id_Empleado);
+                            return (
                             <div key={i} className="orden-item-row">
                               <span className="orden-item-name">
+                                {prefijo && <span className="orden-item-tecnico-prefijo">{prefijo}</span>}
                                 {s.servicio || s.Nombre || s.nombre || `Servicio #${s.Id_Servicio}`}
-                                {getTecnicoNombre(s.Id_Empleado) && <span className="orden-item-tecnico"> · {getTecnicoNombre(s.Id_Empleado)}</span>}
                               </span>
                               <span className="orden-item-duracion u-muted-nowrap" title="Duración estimada">{fmtDuracion(s.DuracionMinutos)}</span>
                               <span className="orden-item-price">{formatCurrency(s.precio_unitario || s.Precio)}</span>
@@ -866,7 +899,8 @@ export default function OrdenesPage() {
                                 </button>
                               )}
                             </div>
-                          ))
+                            );
+                          })
                         ) : <p className="empty-list">No hay servicios agregados.</p>}
                       </div>
                       {servItems.length > 0 && (
@@ -995,15 +1029,16 @@ export default function OrdenesPage() {
                             const info = repuestoById[String(r.Id_Repuesto)];
                             const garantia = r.TiempoGarantia ?? info?.TiempoGarantia;
                             const unidad = r.UnidadGarantia ?? info?.UnidadGarantia ?? 'meses';
+                            const prefijo = prefijoTecnico(r.Id_Empleado);
                             return (
                               <div key={i} className="orden-item-row">
                                 <div className="orden-item-name-group">
-                                  <span className="orden-item-name">{r.repuesto || r.Nombre || r.nombre || `Repuesto #${r.Id_Repuesto}`}</span>
+                                  <span className="orden-item-name">
+                                    {prefijo && <span className="orden-item-tecnico-prefijo">{prefijo}</span>}
+                                    {r.repuesto || r.Nombre || r.nombre || `Repuesto #${r.Id_Repuesto}`}
+                                  </span>
                                   {garantia && (
                                     <span className="orden-item-garantia">· Garantía: {garantia} {unidad}</span>
-                                  )}
-                                  {getTecnicoNombre(r.Id_Empleado) && (
-                                    <span className="orden-item-tecnico">· {getTecnicoNombre(r.Id_Empleado)}</span>
                                   )}
                                 </div>
                                 <span className="orden-item-qty">x{r.cantidad || r.Cantidad}</span>
