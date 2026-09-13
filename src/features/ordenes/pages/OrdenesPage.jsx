@@ -169,7 +169,11 @@ export default function OrdenesPage() {
   const [modoServ, setModoServ] = useState('existente'); // 'existente' | 'nuevo'
   const [nuevoServ, setNuevoServ] = useState({ Nombre: '', Precio: '', DuracionMinutos: '', Id_Empleado: '' });
   const [modoRep, setModoRep] = useState('existente');
-  const [nuevoRep, setNuevoRep] = useState({ NombreRepuesto: '', Id_categoria: '', cantidad: '', precio_unitario: '', Id_Empleado: '' });
+  // Sin Id_Empleado: "¿Quién lo hizo?" y la calculadora de margen solo aplican a
+  // Servicios -- un repuesto es una pieza que se instala, no un trabajo que "hace"
+  // un técnico en particular, y varios técnicos pueden trabajar la misma orden sin
+  // que eso implique repartir los repuestos entre ellos.
+  const [nuevoRep, setNuevoRep] = useState({ NombreRepuesto: '', Id_categoria: '', cantidad: '', precio_unitario: '' });
   const servVal = useFormValidation(RULES_NUEVO_SERV);
   const repVal  = useFormValidation(RULES_NUEVO_REP);
   const setServField = (name, value) => {
@@ -206,7 +210,7 @@ export default function OrdenesPage() {
   const [editFechaBloqueada, setEditFechaBloqueada] = useState(false);
   const [addServForm, setAddServForm]     = useState({ Id_Servicio: '', precio_unitario: '', Id_Empleado: '' });
   const [addServError, setAddServError]   = useState('');
-  const [addRepForm, setAddRepForm]       = useState({ Id_Repuesto: '', cantidad: '', precio_unitario: '', Id_Empleado: '' });
+  const [addRepForm, setAddRepForm]       = useState({ Id_Repuesto: '', cantidad: '', precio_unitario: '' });
   const [addRepError, setAddRepError]     = useState('');
   const [flujoError, setFlujoError]       = useState('');
   const [manoInput, setManoInput]         = useState('');
@@ -312,8 +316,9 @@ export default function OrdenesPage() {
     [repuestosOpts]
   );
 
-  // Nombre del técnico responsable de una línea de servicio/repuesto (si se asignó
-  // uno distinto al empleado principal de la orden).
+  // Nombre del técnico responsable de una línea de SERVICIO (si se asignó uno distinto
+  // al empleado principal de la orden) -- "¿Quién lo hizo?" solo aplica a Servicios, un
+  // repuesto no lleva técnico asignado.
   const getTecnicoNombre = (idEmpleado) => {
     if (idEmpleado == null) return null;
     const t = tecnicosOpts.find(e => String(e.Id_Empleado ?? e.id_empleado) === String(idEmpleado));
@@ -321,9 +326,10 @@ export default function OrdenesPage() {
   };
 
   // El prefijo de iniciales ("PM. ") solo aparece cuando la orden tuvo 2+ técnicos
-  // distintos entre sus líneas -- con uno solo (o ninguno), toda la orden la hizo la
+  // distintos entre sus SERVICIOS -- con uno solo (o ninguno), toda la orden la hizo la
   // misma persona y el prefijo no aporta nada, solo ruido (ver contarTecnicosDistintos).
-  const mostrarPrefijoTecnico = contarTecnicosDistintos(selected?.servicios, selected?.repuestos) >= 2;
+  // Los repuestos ya no participan de este conteo ni del prefijo (ver nuevoRep/addRepForm).
+  const mostrarPrefijoTecnico = contarTecnicosDistintos(selected?.servicios, null) >= 2;
   const prefijoTecnico = (idEmpleado) => {
     if (!mostrarPrefijoTecnico) return null;
     const nombre = getTecnicoNombre(idEmpleado);
@@ -467,7 +473,7 @@ export default function OrdenesPage() {
       return;
     }
     const result = await dispatch(addRepuestoToOrden({ id: detailId, data: addRepForm }));
-    if (!result.error) { setAddRepForm({ Id_Repuesto: '', cantidad: '', precio_unitario: '', Id_Empleado: '' }); setAddRepError(''); dispatch(fetchOrdenById(detailId)); }
+    if (!result.error) { setAddRepForm({ Id_Repuesto: '', cantidad: '', precio_unitario: '' }); setAddRepError(''); dispatch(fetchOrdenById(detailId)); }
     else setAddRepError(result.payload || 'Error al agregar repuesto.');
   };
 
@@ -490,9 +496,9 @@ export default function OrdenesPage() {
       const newId = creado?.Id_Repuesto ?? creado?.id;
       const list = await api.get('/api/repuestos');
       setRepuestosOpts(list.data?.data || list.data || []);
-      const result = await dispatch(addRepuestoToOrden({ id: detailId, data: { Id_Repuesto: newId, cantidad: nuevoRep.cantidad, precio_unitario: nuevoRep.precio_unitario, Id_Empleado: nuevoRep.Id_Empleado || null } }));
+      const result = await dispatch(addRepuestoToOrden({ id: detailId, data: { Id_Repuesto: newId, cantidad: nuevoRep.cantidad, precio_unitario: nuevoRep.precio_unitario } }));
       if (!result.error) {
-        setNuevoRep({ NombreRepuesto: '', Id_categoria: '', cantidad: '', precio_unitario: '', Id_Empleado: '' });
+        setNuevoRep({ NombreRepuesto: '', Id_categoria: '', cantidad: '', precio_unitario: '' });
         repVal.reset();
         setModoRep('existente');
         dispatch(fetchOrdenById(detailId));
@@ -1016,12 +1022,12 @@ export default function OrdenesPage() {
                             const info = repuestoById[String(r.Id_Repuesto)];
                             const garantia = r.TiempoGarantia ?? info?.TiempoGarantia;
                             const unidad = r.UnidadGarantia ?? info?.UnidadGarantia ?? 'meses';
-                            const prefijo = prefijoTecnico(r.Id_Empleado);
+                            // Sin prefijo de técnico aquí: "¿Quién lo hizo?" solo aplica a
+                            // Servicios (ver mostrarPrefijoTecnico).
                             return (
                               <div key={i} className="orden-item-row">
                                 <div className="orden-item-name-group">
                                   <span className="orden-item-name">
-                                    {prefijo && <span className="orden-item-tecnico-prefijo">{prefijo}</span>}
                                     {r.repuesto || r.Nombre || r.nombre || `Repuesto #${r.Id_Repuesto}`}
                                   </span>
                                   {garantia && (
@@ -1098,13 +1104,6 @@ export default function OrdenesPage() {
                             Precio por defecto: {formatCurrency(addRepForm.precio_unitario)} — puedes modificarlo para esta orden.
                           </p>
                         )}
-                        <SearchableSelect
-                          options={tecnicosOpts.map(t => ({ value: String(t.Id_Empleado ?? t.id_empleado), label: t.Nombre }))}
-                          value={addRepForm.Id_Empleado}
-                          onChange={id => setAddRepForm(p => ({ ...p, Id_Empleado: id }))}
-                          placeholder="¿Quién lo hizo? (opcional)"
-                        />
-                        <PrecioFormulaCalc onAplicar={v => setAddRepForm(p => ({ ...p, precio_unitario: String(Math.round(v)) }))} />
                       </>
                     ) : (
                       <>
@@ -1133,13 +1132,6 @@ export default function OrdenesPage() {
                           <button className="btn btn--primary btn--sm" onClick={handleCrearRepuestoInline} disabled={actionLoading || repVal.isInvalid(nuevoRep)}><MdAdd size={16} />Crear y agregar</button>
                         </div>
                         <p className="u-hint u-mt-xs">Se crea la ficha del repuesto (stock y costo se ajustan luego con las compras). El precio unitario es el de venta para esta orden.</p>
-                        <SearchableSelect
-                          options={tecnicosOpts.map(t => ({ value: String(t.Id_Empleado ?? t.id_empleado), label: t.Nombre }))}
-                          value={nuevoRep.Id_Empleado}
-                          onChange={id => setNuevoRep(p => ({ ...p, Id_Empleado: id }))}
-                          placeholder="¿Quién lo hizo? (opcional)"
-                        />
-                        <PrecioFormulaCalc onAplicar={v => setNuevoRep(p => ({ ...p, precio_unitario: String(Math.round(v)) }))} />
                       </>
                     )}
                   </div>

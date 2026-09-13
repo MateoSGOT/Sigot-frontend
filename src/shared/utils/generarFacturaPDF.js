@@ -162,11 +162,11 @@ const tableBase = {
 // getTecnicoPrefijo: función opcional (idEmpleado) => "PM. " | null, EXACTAMENTE la
 // misma que arma el prefijo de iniciales en pantalla (ver OrdenesPage.jsx::
 // prefijoTecnico) -- ya trae aplicada la regla de solo mostrarlo con 2+ técnicos
-// distintos en la orden. Este módulo no conoce el catálogo de empleados ni la lógica
-// de conteo por su cuenta (a propósito, mismo patrón que generarFacturaCompra: el
-// llamador resuelve nombres/IDs, el builder del PDF solo formatea); sin esta función
-// la factura no mostraba NINGÚN dato de técnico, ni siquiera el prefijo que ya se ve
-// en el detalle en pantalla.
+// distintos entre los SERVICIOS de la orden. Este módulo no conoce el catálogo de
+// empleados ni la lógica de conteo por su cuenta (a propósito, mismo patrón que
+// generarFacturaCompra: el llamador resuelve nombres/IDs, el builder del PDF solo
+// formatea). Se aplica SOLO a la tabla de Servicios -- "¿Quién lo hizo?" no existe
+// para Repuestos (ver OrdenesPage.jsx), así que su tabla nunca lleva prefijo.
 export function buildFacturaOrden(orden, { getTecnicoPrefijo } = {}) {
   const prefijoDe = (idEmpleado) => (typeof getTecnicoPrefijo === 'function' ? getTecnicoPrefijo(idEmpleado) : null) || '';
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
@@ -212,7 +212,7 @@ export function buildFacturaOrden(orden, { getTecnicoPrefijo } = {}) {
       startY: y,
       head: [['Repuesto', 'Cantidad', 'Precio unit.', 'Subtotal']],
       body: orden.repuestos.map(r => [
-        prefijoDe(r.Id_Empleado) + (r.repuesto || r.NombreRepuesto || r.Nombre || '—'),
+        r.repuesto || r.NombreRepuesto || r.Nombre || '—',
         r.cantidad ?? r.Cantidad ?? 1,
         fmt(r.precio_unitario ?? r.PrecioUnitario),
         fmt(r.subtotal ?? r.Subtotal),
