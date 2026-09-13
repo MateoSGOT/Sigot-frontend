@@ -27,6 +27,23 @@ export function SidebarProvider({ children }) {
     try { localStorage.setItem(COLLAPSE_KEY, collapsed ? '1' : '0'); } catch { /* ignore */ }
   }, [collapsed]);
 
+  // Con el drawer móvil abierto, bloqueamos el scroll del body para que la página de
+  // atrás no se mueva -- y se cierra con Escape. Centralizado aquí (antes cada consumidor
+  // del sidebar -- Layout.jsx del panel principal y PortalSidebar.jsx del portal del
+  // cliente -- reimplementaba este mismo par de efectos por su cuenta) para que
+  // cualquier pantalla que use el sidebar (actual o futura) se comporte igual sin
+  // duplicar la lógica.
+  useEffect(() => {
+    document.body.style.overflow = mobileOpen ? 'hidden' : '';
+    return () => { document.body.style.overflow = ''; };
+  }, [mobileOpen]);
+  useEffect(() => {
+    if (!mobileOpen) return undefined;
+    const onKey = (e) => { if (e.key === 'Escape') closeMobile(); };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [mobileOpen, closeMobile]);
+
   return (
     <SidebarContext.Provider value={{ mobileOpen, openMobile, closeMobile, toggleMobile, collapsed, toggleCollapsed, setCollapsed }}>
       {children}

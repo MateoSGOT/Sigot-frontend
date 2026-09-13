@@ -1,12 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import {
   MdHome, MdDirectionsCar, MdAssignment, MdCalendarMonth,
-  MdExitToApp, MdMenu, MdClose, MdMenuOpen,
+  MdExitToApp, MdClose, MdMenuOpen,
 } from 'react-icons/md';
 import { logout } from '../../auth/slices/authSlice.js';
 import PortalNotifBell from './PortalNotifBell.jsx';
+import { useSidebar } from '../../../shared/contexts/SidebarContext.jsx';
 import '../../../shared/components/Sidebar/Sidebar.css';
 
 const NAV_ITEMS = [
@@ -20,36 +21,28 @@ export default function PortalSidebar({ activeTab, onTabChange }) {
   const dispatch    = useDispatch();
   const navigate    = useNavigate();
   const { cliente } = useSelector(s => s.auth);
-  const [mobileOpen, setMobileOpen] = useState(false);
-  // Colapso a solo íconos -- mismo comportamiento y clases (sidebar--collapsed) que
-  // el sidebar principal (Sidebar.jsx), para que ambos se vean/comporten igual.
-  const [collapsed, setCollapsed] = useState(false);
-
-  // Con el drawer abierto (móvil) bloqueamos el scroll del body para que la
-  // página de atrás no se mueva mientras el menú está abierto.
-  useEffect(() => {
-    document.body.style.overflow = mobileOpen ? 'hidden' : '';
-    return () => { document.body.style.overflow = ''; };
-  }, [mobileOpen]);
+  // Mismo SidebarContext que usa el sidebar del panel principal (Sidebar.jsx vía
+  // Layout.jsx) -- antes este componente llevaba su propio useState local para
+  // mobileOpen/collapsed, duplicando el estado y perdiendo el colapso persistido en
+  // localStorage que sí tiene el panel principal. El hamburger + overlay del drawer
+  // móvil los renderiza el propio PortalPage vía <MobileSidebarChrome />, igual que
+  // Layout.jsx hace para el panel principal.
+  const { mobileOpen, closeMobile, collapsed, toggleCollapsed } = useSidebar();
 
   const handleLogout = () => { dispatch(logout()); window.location.replace('/login'); };
 
   const handleNav = (key) => {
     onTabChange(key);
-    setMobileOpen(false);
+    closeMobile();
   };
 
   return (
-    <>
-      <button className={`portal-hamburger${mobileOpen ? ' portal-hamburger--hidden' : ''}`} onClick={() => setMobileOpen(true)} aria-label="Abrir menú">
-        <MdMenu size={22} />
-      </button>
-
-      {mobileOpen && (
-        <div className="portal-sidebar-overlay" onClick={() => setMobileOpen(false)} />
-      )}
-
-      <aside className={`sidebar portal-sidebar${mobileOpen ? ' portal-sidebar--open' : ''}${collapsed ? ' sidebar--collapsed' : ''}`}>
+      // "sidebar--open" (no "portal-sidebar--open") a propósito: es la MISMA clase que usa
+      // el drawer móvil del panel principal (Sidebar.jsx) -- así hereda directo de
+      // Sidebar.css el mismo transform/sombra/z-index (1200, por encima del overlay 1100),
+      // en vez de una copia propia que antes tenía su propio z-index (100), mucho más bajo
+      // y desalineado de la escala real de capas fijas de la app (ver Layout.css).
+      <aside className={`sidebar portal-sidebar${mobileOpen ? ' sidebar--open' : ''}${collapsed ? ' sidebar--collapsed' : ''}`}>
         <div className="sidebar__header">
           <div className="sidebar__logo">
             <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.25 }}>
@@ -63,13 +56,13 @@ export default function PortalSidebar({ activeTab, onTabChange }) {
             </div>
             <button
               className="sidebar__collapse-btn"
-              onClick={() => setCollapsed(c => !c)}
+              onClick={toggleCollapsed}
               title={collapsed ? 'Expandir menú' : 'Colapsar menú'}
               aria-label={collapsed ? 'Expandir menú' : 'Colapsar menú'}
             >
               <MdMenuOpen size={20} />
             </button>
-            <button className="portal-sidebar-close" onClick={() => setMobileOpen(false)} aria-label="Cerrar menú">
+            <button className="portal-sidebar-close" onClick={closeMobile} aria-label="Cerrar menú">
               <MdClose size={18} />
             </button>
           </div>
@@ -103,6 +96,5 @@ export default function PortalSidebar({ activeTab, onTabChange }) {
           </div>
         </div>
       </aside>
-    </>
   );
 }

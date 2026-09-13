@@ -3,6 +3,8 @@ import { useDispatch, useSelector } from 'react-redux';
 import { MdAdd, MdVisibility, MdCheck, MdCameraAlt, MdDirectionsCar, MdEventBusy, MdEdit } from 'react-icons/md';
 import { logout, updateCliente } from '../../auth/slices/authSlice.js';
 import PortalSidebar from '../components/PortalSidebar.jsx';
+import MobileSidebarChrome from '../../../shared/components/Layout/MobileSidebarChrome.jsx';
+import { SidebarProvider } from '../../../shared/contexts/SidebarContext.jsx';
 import Modal from '../../../shared/components/Modal/Modal.jsx';
 import { useToast } from '../../../shared/components/Toast/ToastContext.jsx';
 import Table from '../../../shared/components/Table/Table.jsx';
@@ -41,7 +43,19 @@ function OrdenEstadoBadge({ estado }) {
 }
 
 
+// Mismo SidebarProvider que envuelve el panel principal (ver Layout.jsx) -- así el
+// hamburger/overlay/colapso/bloqueo-de-scroll del drawer móvil del portal usan
+// exactamente la misma lógica y persistencia (localStorage) que el panel principal,
+// en vez de una copia propia divergente.
 export default function PortalPage() {
+  return (
+    <SidebarProvider>
+      <PortalPageInner />
+    </SidebarProvider>
+  );
+}
+
+function PortalPageInner() {
   const dispatch = useDispatch();
   const { addToast } = useToast();
   const { cliente, token, tipo } = useSelector(s => s.auth);
@@ -463,6 +477,7 @@ export default function PortalPage() {
   /* ── Render ──────────────────────────────────────────────── */
   return (
     <div className="portal-layout">
+      <MobileSidebarChrome />
       <PortalSidebar activeTab={tab} onTabChange={setTab} />
 
       <main className="portal-layout__main">

@@ -1,40 +1,23 @@
 import React, { useEffect } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
-import { MdMenu } from 'react-icons/md';
 import Sidebar from '../Sidebar/Sidebar.jsx';
+import MobileSidebarChrome from './MobileSidebarChrome.jsx';
 import { SidebarProvider, useSidebar } from '../../contexts/SidebarContext.jsx';
 import './Layout.css';
 
 function LayoutInner() {
-  const { mobileOpen, toggleMobile, closeMobile, collapsed } = useSidebar();
+  const { closeMobile, collapsed } = useSidebar();
   const location = useLocation();
 
-  // Cerrar el drawer al cambiar de ruta y con la tecla Escape.
+  // Cerrar el drawer al cambiar de ruta (el bloqueo de scroll del body y el cierre con
+  // Escape ya los cubre SidebarProvider -- ver SidebarContext.jsx -- para que el portal
+  // del cliente, que no navega por rutas sino por pestañas, también los tenga gratis).
   useEffect(() => { closeMobile(); }, [location.pathname, closeMobile]);
-  useEffect(() => {
-    const onKey = (e) => { if (e.key === 'Escape') closeMobile(); };
-    document.addEventListener('keydown', onKey);
-    return () => document.removeEventListener('keydown', onKey);
-  }, [closeMobile]);
-
-  // Con el drawer abierto (móvil) bloqueamos el scroll del body para que la
-  // página de atrás no se mueva mientras el menú está abierto.
-  useEffect(() => {
-    document.body.style.overflow = mobileOpen ? 'hidden' : '';
-    return () => { document.body.style.overflow = ''; };
-  }, [mobileOpen]);
 
   return (
     <div className={`layout${collapsed ? ' layout--collapsed' : ''}`}>
-      <button className="layout__hamburger" onClick={toggleMobile} aria-label="Abrir menú">
-        <MdMenu size={22} />
-      </button>
+      <MobileSidebarChrome />
       <Sidebar />
-      <div
-        className={`layout__overlay${mobileOpen ? ' layout__overlay--show' : ''}`}
-        onClick={closeMobile}
-        aria-hidden="true"
-      />
       <main className="layout__main">
         <Outlet />
       </main>

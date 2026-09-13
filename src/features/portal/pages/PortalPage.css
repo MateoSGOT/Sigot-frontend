@@ -71,42 +71,11 @@
 }
 .portal-sidebar-close:hover { background: rgba(255,255,255,0.1); color: #fff; }
 
-/* Hamburger — hidden on desktop. Discreto: vidrio translúcido, sin glow, se
-   nota poco y deja entrever el contenido de atrás (no lo "opaca"). */
-.portal-hamburger {
-  display: none;
-  position: fixed;
-  top: 12px;
-  left: 12px;
-  z-index: 200;
-  width: 40px;
-  height: 40px;
-  background: rgba(14, 26, 44, 0.5);
-  -webkit-backdrop-filter: blur(8px) saturate(1.2);
-  backdrop-filter: blur(8px) saturate(1.2);
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  border-radius: 11px;
-  cursor: pointer;
-  color: rgba(255, 255, 255, 0.82);
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.14);
-  transition: transform 0.16s ease, background 0.22s ease, box-shadow 0.22s ease;
-}
-.portal-hamburger:hover {
-  background: rgba(14, 26, 44, 0.7);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-}
-.portal-hamburger:active { transform: scale(0.94); }
-
-/* Mobile overlay */
-.portal-sidebar-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 99;
-  background: rgba(0, 0, 0, 0.55);
-  backdrop-filter: blur(2px);
-}
+/* El hamburger y el fondo oscuro del drawer móvil ya NO tienen su propia copia aquí --
+   son los mismos elementos compartidos que usa el panel principal (.layout__hamburger /
+   .layout__overlay, ver Layout.css y MobileSidebarChrome.jsx), renderizados por
+   PortalPage.jsx. Antes esta hoja tenía una copia casi idéntica con su propio z-index
+   (200/99), desalineado de la escala del resto de la app (documentada en Layout.css). */
 
 /* ── Feedback ───────────────────────────────────────────────*/
 .portal-success {
@@ -372,20 +341,11 @@
     padding-top: 3.5rem;
   }
 
-  .portal-hamburger { display: flex; }
-  /* Al abrir el sidebar, la hamburguesa se oculta para no tapar "SIGOT" */
-  .portal-hamburger--hidden { display: none; }
-
-  .portal-sidebar {
-    transform: translateX(-100%);
-    transition: transform var(--duration-entrance) var(--ease-entrance);
-    z-index: 100;
-  }
-  .portal-sidebar--open {
-    transform: translateX(0);
-    box-shadow: 4px 0 40px rgba(0,0,0,0.5);
-  }
-
+  /* El transform/sombra/z-index del drawer (abierto y cerrado) ya los aporta
+     Sidebar.css vía las clases compartidas ".sidebar"/".sidebar--open" -- el <aside>
+     del portal las lleva ambas (ver PortalSidebar.jsx), así que no hace falta
+     repetirlas aquí. El hamburger/overlay compartidos (.layout__hamburger/
+     .layout__overlay) ya traen su propia visibilidad responsive desde Layout.css. */
   .portal-sidebar-close { display: flex; }
 }
 
