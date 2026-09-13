@@ -159,7 +159,16 @@ const tableBase = {
 };
 
 /* ═══════════════ FACTURA DE ORDEN DE TRABAJO ═══════════════ */
-export function buildFacturaOrden(orden) {
+// getTecnicoPrefijo: función opcional (idEmpleado) => "PM. " | null, EXACTAMENTE la
+// misma que arma el prefijo de iniciales en pantalla (ver OrdenesPage.jsx::
+// prefijoTecnico) -- ya trae aplicada la regla de solo mostrarlo con 2+ técnicos
+// distintos en la orden. Este módulo no conoce el catálogo de empleados ni la lógica
+// de conteo por su cuenta (a propósito, mismo patrón que generarFacturaCompra: el
+// llamador resuelve nombres/IDs, el builder del PDF solo formatea); sin esta función
+// la factura no mostraba NINGÚN dato de técnico, ni siquiera el prefijo que ya se ve
+// en el detalle en pantalla.
+export function buildFacturaOrden(orden, { getTecnicoPrefijo } = {}) {
+  const prefijoDe = (idEmpleado) => (typeof getTecnicoPrefijo === 'function' ? getTecnicoPrefijo(idEmpleado) : null) || '';
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
   const id = orden.Id_Orden || orden.id || '?';
 
@@ -187,7 +196,7 @@ export function buildFacturaOrden(orden) {
       startY: y,
       head: [['Servicio', 'Precio unitario', 'Subtotal']],
       body: orden.servicios.map(s => [
-        s.servicio || s.Nombre || s.nombre || '—',
+        prefijoDe(s.Id_Empleado) + (s.servicio || s.Nombre || s.nombre || '—'),
         fmt(s.precio_unitario ?? s.PrecioUnitario),
         fmt(s.subtotal ?? s.Subtotal),
       ]),
@@ -203,7 +212,7 @@ export function buildFacturaOrden(orden) {
       startY: y,
       head: [['Repuesto', 'Cantidad', 'Precio unit.', 'Subtotal']],
       body: orden.repuestos.map(r => [
-        r.repuesto || r.NombreRepuesto || r.Nombre || '—',
+        prefijoDe(r.Id_Empleado) + (r.repuesto || r.NombreRepuesto || r.Nombre || '—'),
         r.cantidad ?? r.Cantidad ?? 1,
         fmt(r.precio_unitario ?? r.PrecioUnitario),
         fmt(r.subtotal ?? r.Subtotal),
@@ -229,8 +238,8 @@ export function buildFacturaOrden(orden) {
   return doc;
 }
 
-export function generarFacturaOrden(orden) {
-  const doc = buildFacturaOrden(orden);
+export function generarFacturaOrden(orden, opts) {
+  const doc = buildFacturaOrden(orden, opts);
   const id = orden.Id_Orden || orden.id || '?';
   doc.save(`factura-orden-${id}-${todayLocalYMD()}.pdf`);
 }

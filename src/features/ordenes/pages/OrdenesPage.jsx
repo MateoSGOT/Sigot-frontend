@@ -17,7 +17,7 @@ import SearchBar from '../../../shared/components/SearchBar/SearchBar.jsx';
 import SearchableSelect from '../../../shared/components/SearchableSelect/SearchableSelect.jsx';
 import FilterDropdown from '../../../shared/components/FilterDropdown/FilterDropdown.jsx';
 import Badge from '../../../shared/components/Badge/Badge.jsx';
-import { formatDate, formatCurrency, todayLocalYMD } from '../../../shared/utils/helpers.js';
+import { formatDate, formatCurrency, todayLocalYMD, inicialesDe, contarTecnicosDistintos } from '../../../shared/utils/helpers.js';
 import { generarFacturaOrden, buildFacturaOrden } from '../../../shared/utils/generarFacturaPDF.js';
 import * as V from '../../../shared/utils/validators.js';
 import { useFormValidation } from '../../../shared/hooks/useFormValidation.js';
@@ -150,27 +150,6 @@ const fmtDuracion = (min) => {
   if (h > 0 && r > 0) return `${h}h ${r}min`;
   if (h > 0) return `${h}h`;
   return `${r}min`;
-};
-
-// Iniciales de un nombre completo (Empleado.Nombre es un solo campo de texto, ej.
-// "Pablo Mozzo", sin Apellido separado): primera letra de la primera palabra + primera
-// letra de la segunda palabra, en mayúscula. Con una sola palabra, usa solo esa inicial.
-const inicialesDe = (nombre) => {
-  const palabras = String(nombre || '').trim().split(/\s+/).filter(Boolean);
-  if (palabras.length === 0) return '';
-  return palabras.slice(0, 2).map(p => p.charAt(0).toUpperCase()).join('');
-};
-
-// Cuenta cuántos empleados DISTINTOS aparecen asignados en las líneas de servicios y
-// repuestos de una orden (ignora las líneas sin empleado asignado). El prefijo de
-// iniciales por línea solo tiene sentido para distinguir técnicos cuando hay 2 o más
-// -- con uno solo (o ninguno) en toda la orden, es ruido: ya se sabe quién la hizo.
-const contarTecnicosDistintos = (servicios, repuestos) => {
-  const ids = [...(servicios || []), ...(repuestos || [])]
-    .map(x => x.Id_Empleado)
-    .filter(id => id != null)
-    .map(String);
-  return new Set(ids).size;
 };
 
 export default function OrdenesPage() {
@@ -359,7 +338,7 @@ export default function OrdenesPage() {
     if (!selected.ClienteCorreo) { addToast({ type: 'error', message: 'Este cliente no tiene correo registrado.' }); return; }
     setEnviandoFactura(true);
     try {
-      const doc = buildFacturaOrden(selected);
+      const doc = buildFacturaOrden(selected, { getTecnicoPrefijo: prefijoTecnico });
       const pdfBase64 = doc.output('datauristring').split('base64,').pop();
       await ordenesService.facturarPorCorreo(selected.Id_Orden, pdfBase64);
       addToast({ type: 'success', message: `Factura enviada a ${selected.ClienteCorreo}.` });
@@ -693,7 +672,7 @@ export default function OrdenesPage() {
             </button>
             <button
               className="btn btn--primary"
-              onClick={puedeFacturar ? () => generarFacturaOrden(selected) : undefined}
+              onClick={puedeFacturar ? () => generarFacturaOrden(selected, { getTecnicoPrefijo: prefijoTecnico }) : undefined}
               disabled={!puedeFacturar}
               title={!puedeFacturar ? 'Solo se puede facturar una orden Realizada' : undefined}
               style={!puedeFacturar ? { opacity: 0.45, cursor: 'not-allowed' } : undefined}

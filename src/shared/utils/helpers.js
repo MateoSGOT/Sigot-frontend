@@ -41,6 +41,29 @@ export const getErrorMessage = (error) => {
   return error?.response?.data?.message || error?.message || 'Ha ocurrido un error inesperado';
 };
 
+// Iniciales de un nombre completo (Empleado.Nombre es un solo campo de texto, ej.
+// "Pablo Mozzo", sin Apellido separado): primera letra de la primera palabra + primera
+// letra de la segunda palabra, en mayúscula. Con una sola palabra, usa solo esa inicial.
+// Usado tanto en el detalle de la orden en pantalla (OrdenesPage.jsx) como en la
+// factura en PDF (generarFacturaPDF.js) -- una sola fuente de verdad para el formato.
+export const inicialesDe = (nombre) => {
+  const palabras = String(nombre || '').trim().split(/\s+/).filter(Boolean);
+  if (palabras.length === 0) return '';
+  return palabras.slice(0, 2).map(p => p.charAt(0).toUpperCase()).join('');
+};
+
+// Cuenta cuántos empleados DISTINTOS aparecen asignados en las líneas de servicios y
+// repuestos de una orden (ignora las líneas sin empleado asignado). El prefijo de
+// iniciales por línea solo tiene sentido para distinguir técnicos cuando hay 2 o más
+// -- con uno solo (o ninguno) en toda la orden, es ruido: ya se sabe quién la hizo.
+export const contarTecnicosDistintos = (servicios, repuestos) => {
+  const ids = [...(servicios || []), ...(repuestos || [])]
+    .map(x => x.Id_Empleado)
+    .filter(id => id != null)
+    .map(String);
+  return new Set(ids).size;
+};
+
 // Ordena por fecha de creación (o el campo ID como respaldo, ya que es autoincremental)
 // descendente, para que el registro recién creado aparezca primero. Combínalo con
 // sortByStatus pasándole el resultado de esta función: el orden "nuevo primero" se
