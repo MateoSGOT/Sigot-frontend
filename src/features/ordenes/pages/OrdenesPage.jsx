@@ -268,7 +268,15 @@ export default function OrdenesPage() {
       .catch(() => addToast({ type: 'error', message: 'No se pudieron cargar las categorías de repuesto. Verifica tus permisos o intenta de nuevo.' }));
     api.get('/api/empleados').then(r => {
       const data = r.data?.data || r.data || [];
-      setTecnicosOpts(data.filter(e => e.Estado !== false && e.Estado !== 0 && /mec|tec/i.test(e.Rol || '')));
+      // Bug real encontrado: /mec|tec/i NO hace match con "Técnico" (con tilde) -- en JS,
+      // una regex literal distingue "e" de "é", así que CUALQUIER empleado con el rol
+      // "Técnico" (el más común, tal como se llama en toda la app) quedaba silenciosamente
+      // afuera, dejando el select "¿Quién lo hizo?" vacío tanto en Servicios como en
+      // Repuestos (comparten este mismo tecnicosOpts). Se normalizan tildes antes de
+      // filtrar, para que sea robusto sin importar cómo lo haya escrito el admin del rol
+      // (Rol.Nombre es texto libre, editable desde RolesPage.jsx).
+      const sinTildes = (s) => String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+      setTecnicosOpts(data.filter(e => e.Estado !== false && e.Estado !== 0 && /mec|tec/i.test(sinTildes(e.Rol))));
     }).catch(() => {});
   }, [addToast]);
 
