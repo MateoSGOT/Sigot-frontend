@@ -448,7 +448,12 @@ export default function OrdenesPage() {
       setAddServError('Esta orden tiene varios mecánicos asignados -- selecciona quién realizó este servicio antes de agregarlo.');
       return;
     }
-    const result = await dispatch(addServicioToOrden({ id: detailId, data: addServForm }));
+    // Id_Empleado se normaliza a null en vez de mandar '' (string vacío, el valor por
+    // defecto de addServForm cuando el select "¿Quién lo hizo?" está oculto/sin tocar) --
+    // el backend ya lo tolera (Joi .empty('')), pero se manda limpio de todas formas para
+    // no depender de esa tolerancia y quedar consistente con handleCrearServicioInline,
+    // que ya hacía esta misma normalización.
+    const result = await dispatch(addServicioToOrden({ id: detailId, data: { ...addServForm, Id_Empleado: addServForm.Id_Empleado || null } }));
     if (!result.error) { setAddServForm({ Id_Servicio: '', precio_unitario: '', Id_Empleado: '' }); setAddServError(''); dispatch(fetchOrdenById(detailId)); }
     else setAddServError(result.payload || 'Error al agregar servicio.');
   };
