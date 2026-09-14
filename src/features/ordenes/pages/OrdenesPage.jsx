@@ -442,6 +442,12 @@ export default function OrdenesPage() {
   const handleAddServicio = async (e) => {
     e.preventDefault();
     if (!addServForm.Id_Servicio || !addServForm.precio_unitario) { setAddServError('Selecciona un servicio e ingresa el precio.'); return; }
+    // Con 2+ mecánicos asignados a la orden, "¿Quién lo hizo?" deja de ser opcional -- ya
+    // no hay una única persona obvia a quién atribuirle el servicio (ver hayMultiplesMecanicos).
+    if (hayMultiplesMecanicos && !addServForm.Id_Empleado) {
+      setAddServError('Esta orden tiene varios mecánicos asignados -- selecciona quién realizó este servicio antes de agregarlo.');
+      return;
+    }
     const result = await dispatch(addServicioToOrden({ id: detailId, data: addServForm }));
     if (!result.error) { setAddServForm({ Id_Servicio: '', precio_unitario: '', Id_Empleado: '' }); setAddServError(''); dispatch(fetchOrdenById(detailId)); }
     else setAddServError(result.payload || 'Error al agregar servicio.');
@@ -452,6 +458,10 @@ export default function OrdenesPage() {
     const errs = servVal.validateNow(nuevoServ);
     servVal.setErrors(errs); servVal.touchAll();
     if (V.hasErrors(errs)) { setAddServError('Corrige los campos marcados antes de crear el servicio.'); return; }
+    if (hayMultiplesMecanicos && !nuevoServ.Id_Empleado) {
+      setAddServError('Esta orden tiene varios mecánicos asignados -- selecciona quién realizó este servicio antes de crearlo.');
+      return;
+    }
     setAddServError('');
     try {
       const res = await api.post('/api/servicios', {
@@ -1024,15 +1034,18 @@ export default function OrdenesPage() {
                           />
                           <input type="number" min="0" className="form-control" placeholder="Precio unitario" value={addServForm.precio_unitario} onChange={e => setAddServForm(p => ({ ...p, precio_unitario: e.target.value }))} />
                           {addServForm.precio_unitario && <span className="u-muted-nowrap">= {formatCurrency(addServForm.precio_unitario)}</span>}
-                          <button className="btn btn--primary btn--sm" onClick={handleAddServicio} disabled={actionLoading}><MdAdd size={16} />Agregar</button>
+                          <button className="btn btn--primary btn--sm" onClick={handleAddServicio} disabled={actionLoading || (hayMultiplesMecanicos && !addServForm.Id_Empleado)}><MdAdd size={16} />Agregar</button>
                         </div>
                         {hayMultiplesMecanicos && (
-                          <SearchableSelect
-                            options={mecanicosAsignados.map(t => ({ value: String(t.Id_Empleado), label: t.Nombre }))}
-                            value={addServForm.Id_Empleado}
-                            onChange={id => setAddServForm(p => ({ ...p, Id_Empleado: id }))}
-                            placeholder="¿Quién lo hizo? (opcional)"
-                          />
+                          <>
+                            <SearchableSelect
+                              options={mecanicosAsignados.map(t => ({ value: String(t.Id_Empleado), label: t.Nombre }))}
+                              value={addServForm.Id_Empleado}
+                              onChange={id => setAddServForm(p => ({ ...p, Id_Empleado: id }))}
+                              placeholder="¿Quién lo hizo? *"
+                            />
+                            <p className="u-hint">Obligatorio: esta orden tiene varios mecánicos asignados.</p>
+                          </>
                         )}
                         <PrecioFormulaCalc onAplicar={v => setAddServForm(p => ({ ...p, precio_unitario: String(Math.round(v)) }))} />
                       </>
@@ -1050,15 +1063,18 @@ export default function OrdenesPage() {
                           <div className="orden-add-field">
                             <input name="DuracionMinutos" type="number" min="1" className="form-control" placeholder="Duración (min, opcional)" value={nuevoServ.DuracionMinutos} onChange={handleServChange} />
                           </div>
-                          <button className="btn btn--primary btn--sm" onClick={handleCrearServicioInline} disabled={actionLoading || servVal.isInvalid(nuevoServ)}><MdAdd size={16} />Crear y agregar</button>
+                          <button className="btn btn--primary btn--sm" onClick={handleCrearServicioInline} disabled={actionLoading || servVal.isInvalid(nuevoServ) || (hayMultiplesMecanicos && !nuevoServ.Id_Empleado)}><MdAdd size={16} />Crear y agregar</button>
                         </div>
                         {hayMultiplesMecanicos && (
-                          <SearchableSelect
-                            options={mecanicosAsignados.map(t => ({ value: String(t.Id_Empleado), label: t.Nombre }))}
-                            value={nuevoServ.Id_Empleado}
-                            onChange={id => setNuevoServ(p => ({ ...p, Id_Empleado: id }))}
-                            placeholder="¿Quién lo hizo? (opcional)"
-                          />
+                          <>
+                            <SearchableSelect
+                              options={mecanicosAsignados.map(t => ({ value: String(t.Id_Empleado), label: t.Nombre }))}
+                              value={nuevoServ.Id_Empleado}
+                              onChange={id => setNuevoServ(p => ({ ...p, Id_Empleado: id }))}
+                              placeholder="¿Quién lo hizo? *"
+                            />
+                            <p className="u-hint">Obligatorio: esta orden tiene varios mecánicos asignados.</p>
+                          </>
                         )}
                         <PrecioFormulaCalc onAplicar={v => setNuevoServ(p => ({ ...p, Precio: String(Math.round(v)) }))} />
                       </>
