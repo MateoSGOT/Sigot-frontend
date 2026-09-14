@@ -212,10 +212,63 @@
 .orden-item-qty { color: var(--color-text-muted); font-size: 0.8125rem; }
 .orden-item-price { font-weight: 700; color: #2d6a2d; }
 /* Prefijo de iniciales del técnico ("PM. ") antes del nombre de la línea -- solo
-   aparece cuando la orden tuvo 2+ técnicos distintos (ver OrdenesPage.jsx::
-   contarTecnicosDistintos/prefijoTecnico). Va DENTRO de .orden-item-name, así que
+   aparece cuando la orden tiene 2+ mecánicos asignados (ver OrdenesPage.jsx::
+   hayMultiplesMecanicos/prefijoTecnico). Va DENTRO de .orden-item-name, así que
    hereda su weight/color y solo se distingue un poco más discreto (muted). */
 .orden-item-tecnico-prefijo { color: var(--color-text-muted); font-weight: 700; }
+
+/* Mecánicos asignados a la orden (Información general) -- chips + control de agregar.
+   El chip "Responsable" (Agenda.id_empleado) lleva una etiqueta y su acción es un lápiz
+   (reasignar, con las validaciones de horario de siempre); los demás chips llevan una X
+   para quitarlos sin restricción de horario (ver OrdenesPage.jsx). */
+.mecanicos-asignados {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+}
+.mecanicos-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+.mecanico-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 999px;
+  background: var(--color-border-light, #f3f4f6);
+  color: var(--color-text);
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+.mecanico-chip--responsable {
+  background: rgba(74, 222, 128, 0.14);
+  border: 1px solid rgba(74, 222, 128, 0.3);
+}
+.mecanico-chip__tag {
+  font-size: 0.625rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--color-primary-soft-on, #16a34a);
+}
+.mecanico-chip__action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  padding: 0;
+}
+.mecanico-chip__action:hover { background: rgba(0, 0, 0, 0.08); color: var(--color-text); }
+.mecanico-add { max-width: 260px; }
 
 /* Sección de garantías en tab "Información general" */
 .orden-garantias-section {

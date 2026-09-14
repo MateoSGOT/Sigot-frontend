@@ -20,4 +20,9 @@ export const ordenesService = {
   getEmpleadosLibres: () => api.get('/api/empleados/libres').then(r => r.data),
   // Envía por correo al cliente la misma factura (PDF) que "Facturar (PDF)" descarga.
   facturarPorCorreo: (id, pdfBase64) => api.post(`${BASE}/${id}/facturar-correo`, { pdfBase64 }).then(r => r.data),
+  // Mecánicos asignados a la orden (Orden_de_Trabajo_x_Empleados) -- distinto de
+  // reasignarEmpleado: no reserva horario, solo agrega/quita crédito de productividad y
+  // opciones para "¿Quién lo hizo?" en Servicios.
+  agregarMecanico: (id, Id_Empleado) => api.post(`${BASE}/${id}/mecanicos`, { Id_Empleado }).then(r => r.data),
+  quitarMecanico:  (id, idEmpleado)  => api.delete(`${BASE}/${id}/mecanicos/${idEmpleado}`).then(r => r.data),
 };

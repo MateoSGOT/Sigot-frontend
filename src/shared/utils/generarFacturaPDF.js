@@ -161,12 +161,12 @@ const tableBase = {
 /* ═══════════════ FACTURA DE ORDEN DE TRABAJO ═══════════════ */
 // getTecnicoPrefijo: función opcional (idEmpleado) => "PM. " | null, EXACTAMENTE la
 // misma que arma el prefijo de iniciales en pantalla (ver OrdenesPage.jsx::
-// prefijoTecnico) -- ya trae aplicada la regla de solo mostrarlo con 2+ técnicos
-// distintos entre los SERVICIOS de la orden. Este módulo no conoce el catálogo de
-// empleados ni la lógica de conteo por su cuenta (a propósito, mismo patrón que
-// generarFacturaCompra: el llamador resuelve nombres/IDs, el builder del PDF solo
-// formatea). Se aplica SOLO a la tabla de Servicios -- "¿Quién lo hizo?" no existe
-// para Repuestos (ver OrdenesPage.jsx), así que su tabla nunca lleva prefijo.
+// prefijoTecnico) -- ya trae aplicada la regla de solo mostrarlo con 2+ mecánicos
+// ASIGNADOS a la orden (Orden_de_Trabajo_x_Empleados, no simplemente encontrados en las
+// líneas). Este módulo no conoce el catálogo de empleados ni esa regla por su cuenta (a
+// propósito, mismo patrón que generarFacturaCompra: el llamador resuelve nombres/IDs, el
+// builder del PDF solo formatea). Se aplica SOLO a la tabla de Servicios -- "¿Quién lo
+// hizo?" no existe para Repuestos (ver OrdenesPage.jsx), así que su tabla nunca lleva prefijo.
 export function buildFacturaOrden(orden, { getTecnicoPrefijo } = {}) {
   const prefijoDe = (idEmpleado) => (typeof getTecnicoPrefijo === 'function' ? getTecnicoPrefijo(idEmpleado) : null) || '';
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });

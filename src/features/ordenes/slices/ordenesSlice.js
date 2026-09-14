@@ -45,6 +45,14 @@ export const extenderDuracionOrden = createAsyncThunk('ordenes/extenderDuracion'
   try { const r = await ordenesService.extenderDuracion(id, minutosAdicionales); return r.data || r; }
   catch (e) { return rejectWithValue(e?.response?.data?.message || 'Error'); }
 });
+export const agregarMecanicoOrden = createAsyncThunk('ordenes/agregarMecanico', async ({ id, idEmpleado }, { rejectWithValue }) => {
+  try { const r = await ordenesService.agregarMecanico(id, idEmpleado); return r.data || r; }
+  catch (e) { return rejectWithValue(e?.response?.data?.message || 'Error'); }
+});
+export const quitarMecanicoOrden = createAsyncThunk('ordenes/quitarMecanico', async ({ id, idEmpleado }, { rejectWithValue }) => {
+  try { const r = await ordenesService.quitarMecanico(id, idEmpleado); return r.data || r; }
+  catch (e) { return rejectWithValue(e?.response?.data?.message || 'Error'); }
+});
 
 const ordenesSlice = createSlice({
   name: 'ordenes',
@@ -79,7 +87,13 @@ const ordenesSlice = createSlice({
      .addCase(reasignarEmpleadoOrden.rejected, (s,a) => { s.actionLoading=false; s.error=a.payload; })
      .addCase(extenderDuracionOrden.pending, s => { s.actionLoading=true; })
      .addCase(extenderDuracionOrden.fulfilled, (s,a) => { s.actionLoading=false; if(a.payload) s.selected=a.payload; })
-     .addCase(extenderDuracionOrden.rejected, (s,a) => { s.actionLoading=false; s.error=a.payload; });
+     .addCase(extenderDuracionOrden.rejected, (s,a) => { s.actionLoading=false; s.error=a.payload; })
+     .addCase(agregarMecanicoOrden.pending, s => { s.actionLoading=true; })
+     .addCase(agregarMecanicoOrden.fulfilled, (s,a) => { s.actionLoading=false; if(a.payload) s.selected=a.payload; })
+     .addCase(agregarMecanicoOrden.rejected, (s,a) => { s.actionLoading=false; s.error=a.payload; })
+     .addCase(quitarMecanicoOrden.pending, s => { s.actionLoading=true; })
+     .addCase(quitarMecanicoOrden.fulfilled, (s,a) => { s.actionLoading=false; if(a.payload) s.selected=a.payload; })
+     .addCase(quitarMecanicoOrden.rejected, (s,a) => { s.actionLoading=false; s.error=a.payload; });
   },
 });
 export const { clearError, clearSelected } = ordenesSlice.actions;

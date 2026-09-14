@@ -1,13 +1,14 @@
 ﻿import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useLocation } from 'react-router-dom';
-import { MdVisibility, MdEdit, MdAdd, MdBuild, MdCheck, MdArrowForward, MdDeleteOutline } from 'react-icons/md';
+import { MdVisibility, MdEdit, MdAdd, MdBuild, MdCheck, MdArrowForward, MdDeleteOutline, MdClose } from 'react-icons/md';
 import { usePermiso } from '../../../shared/hooks/usePermiso.js';
 import { useAutoRefresh } from '../../../shared/hooks/useAutoRefresh.js';
 import {
   fetchOrdenById, updateOrden, toggleOrdenEstado,
   addServicioToOrden, addRepuestoToOrden, setManoDeObra, clearSelected,
-  deleteServicioFromOrden, deleteRepuestoFromOrden, reasignarEmpleadoOrden, extenderDuracionOrden
+  deleteServicioFromOrden, deleteRepuestoFromOrden, reasignarEmpleadoOrden, extenderDuracionOrden,
+  agregarMecanicoOrden, quitarMecanicoOrden,
 } from '../slices/ordenesSlice.js';
 import { ordenesService } from '../services/ordenesService.js';
 import Modal from '../../../shared/components/Modal/Modal.jsx';
@@ -17,7 +18,7 @@ import SearchBar from '../../../shared/components/SearchBar/SearchBar.jsx';
 import SearchableSelect from '../../../shared/components/SearchableSelect/SearchableSelect.jsx';
 import FilterDropdown from '../../../shared/components/FilterDropdown/FilterDropdown.jsx';
 import Badge from '../../../shared/components/Badge/Badge.jsx';
-import { formatDate, formatCurrency, todayLocalYMD, inicialesDe, contarTecnicosDistintos } from '../../../shared/utils/helpers.js';
+import { formatDate, formatCurrency, todayLocalYMD, inicialesDe } from '../../../shared/utils/helpers.js';
 import { generarFacturaOrden, buildFacturaOrden } from '../../../shared/utils/generarFacturaPDF.js';
 import * as V from '../../../shared/utils/validators.js';
 import { useFormValidation } from '../../../shared/hooks/useFormValidation.js';
@@ -316,24 +317,44 @@ export default function OrdenesPage() {
     [repuestosOpts]
   );
 
-  // Nombre del técnico responsable de una línea de SERVICIO (si se asignó uno distinto
-  // al empleado principal de la orden) -- "¿Quién lo hizo?" solo aplica a Servicios, un
-  // repuesto no lleva técnico asignado.
+  // Mecánicos asignados a la orden (Orden_de_Trabajo_x_Empleados, ver backend) -- el
+  // conjunto de personas que efectivamente trabajaron/trabajan esta orden. Distinto del
+  // catálogo completo de técnicos (tecnicosOpts): "¿Quién lo hizo?" solo debe ofrecer
+  // elegir entre quienes están realmente asignados aquí.
+  const mecanicosAsignados = selected?.mecanicos || [];
+
+  // Nombre de un mecánico asignado (para el prefijo de iniciales en las líneas de
+  // servicio). Se busca primero en el catálogo completo (tecnicosOpts, siempre trae el
+  // nombre más fresco) y, si no aparece ahí -- ej. desactivado después de haber trabajado
+  // la orden -- se usa el nombre que ya vino en mecanicosAsignados como respaldo.
   const getTecnicoNombre = (idEmpleado) => {
     if (idEmpleado == null) return null;
     const t = tecnicosOpts.find(e => String(e.Id_Empleado ?? e.id_empleado) === String(idEmpleado));
-    return t?.Nombre || null;
+    if (t?.Nombre) return t.Nombre;
+    const m = mecanicosAsignados.find(e => String(e.Id_Empleado) === String(idEmpleado));
+    return m?.Nombre || null;
   };
 
-  // El prefijo de iniciales ("PM. ") solo aparece cuando la orden tuvo 2+ técnicos
-  // distintos entre sus SERVICIOS -- con uno solo (o ninguno), toda la orden la hizo la
-  // misma persona y el prefijo no aporta nada, solo ruido (ver contarTecnicosDistintos).
-  // Los repuestos ya no participan de este conteo ni del prefijo (ver nuevoRep/addRepForm).
-  const mostrarPrefijoTecnico = contarTecnicosDistintos(selected?.servicios, null) >= 2;
+  // Regla pedida: con 1 solo mecánico asignado a la orden (o ninguno todavía), el select
+  // "¿Quién lo hizo?" de Servicios queda oculto -- no hace falta preguntar, solo puede
+  // haber sido esa persona. Con 2+ mecánicos asignados, se muestra para poder especificar
+  // cuál de ellos hizo cada servicio.
+  const hayMultiplesMecanicos = mecanicosAsignados.length >= 2;
   const prefijoTecnico = (idEmpleado) => {
-    if (!mostrarPrefijoTecnico) return null;
+    if (!hayMultiplesMecanicos) return null;
     const nombre = getTecnicoNombre(idEmpleado);
     return nombre ? `${inicialesDe(nombre)}. ` : null;
+  };
+
+  const handleAgregarMecanico = async (idEmpleado) => {
+    if (!idEmpleado) return;
+    const result = await dispatch(agregarMecanicoOrden({ id: detailId, idEmpleado: Number(idEmpleado) }));
+    if (result.error) addToast({ type: 'error', message: result.payload || 'No se pudo agregar el mecánico.' });
+  };
+
+  const handleQuitarMecanico = async (idEmpleado) => {
+    const result = await dispatch(quitarMecanicoOrden({ id: detailId, idEmpleado: Number(idEmpleado) }));
+    if (result.error) addToast({ type: 'error', message: result.payload || 'No se pudo quitar el mecánico.' });
   };
 
   const totalServicios = (selected?.servicios || []).reduce((sum, s) => sum + Number(s.precio_unitario || s.Precio || 0), 0);
@@ -712,10 +733,11 @@ export default function OrdenesPage() {
                   <div className="detail-item"><span className="detail-label">Cliente</span><span className="detail-value">{selected.Cliente || '—'}</span></div>
                   <div className="detail-item"><span className="detail-label">Documento del cliente</span><span className="detail-value">{selected.ClienteDoc || '—'}</span></div>
                   <div className="detail-item"><span className="detail-label">Correo del cliente</span><span className="detail-value">{selected.ClienteCorreo || '—'}</span></div>
-                  <div className="detail-item">
-                    <span className="detail-label">Empleado asignado</span>
+                  <div className="detail-item u-span-2">
+                    <span className="detail-label">Empleado(s) asignado(s)</span>
                     {editingEmpleado ? (
                       <div className="empleado-edit-row">
+                        <p className="u-hint">Cambiar el responsable de la orden (reserva su horario en Agenda):</p>
                         {loadingLibres ? (
                           <p className="u-hint">Buscando empleados libres…</p>
                         ) : (
@@ -735,14 +757,48 @@ export default function OrdenesPage() {
                         </div>
                       </div>
                     ) : (
-                      <span className="detail-value empleado-value-row">
-                        {selected.Empleado || '—'}
+                      <div className="mecanicos-asignados">
+                        <div className="mecanicos-chips">
+                          {(mecanicosAsignados.length > 0
+                            ? mecanicosAsignados
+                            : (selected.Empleado ? [{ Id_Empleado: selected.Id_Empleado, Nombre: selected.Empleado }] : [])
+                          ).map(m => {
+                            const esResponsable = selected.Id_Empleado != null && String(m.Id_Empleado) === String(selected.Id_Empleado);
+                            return (
+                              <span key={m.Id_Empleado ?? m.Nombre} className={`mecanico-chip${esResponsable ? ' mecanico-chip--responsable' : ''}`}>
+                                {m.Nombre}
+                                {esResponsable && <span className="mecanico-chip__tag">Responsable</span>}
+                                {!contenidoBloqueado && puedeEditar && (
+                                  esResponsable ? (
+                                    <button className="mecanico-chip__action" title="Cambiar responsable" onClick={openEditarEmpleado}>
+                                      <MdEdit size={12} />
+                                    </button>
+                                  ) : (
+                                    <button className="mecanico-chip__action" title="Quitar mecánico" onClick={() => handleQuitarMecanico(m.Id_Empleado)} disabled={actionLoading}>
+                                      <MdClose size={12} />
+                                    </button>
+                                  )
+                                )}
+                              </span>
+                            );
+                          })}
+                          {mecanicosAsignados.length === 0 && !selected.Empleado && (
+                            <span className="detail-value">—</span>
+                          )}
+                        </div>
                         {!contenidoBloqueado && puedeEditar && (
-                          <button className="btn btn--ghost btn--icon btn--sm" title="Cambiar empleado asignado" onClick={openEditarEmpleado}>
-                            <MdEdit size={15} />
-                          </button>
+                          <div className="mecanico-add">
+                            <SearchableSelect
+                              options={tecnicosOpts
+                                .filter(t => !mecanicosAsignados.some(m => String(m.Id_Empleado) === String(t.Id_Empleado ?? t.id_empleado)))
+                                .map(t => ({ value: String(t.Id_Empleado ?? t.id_empleado), label: t.Nombre }))}
+                              value=""
+                              onChange={handleAgregarMecanico}
+                              placeholder="+ Agregar mecánico..."
+                            />
+                          </div>
                         )}
-                      </span>
+                      </div>
                     )}
                   </div>
                   <div className="detail-item"><span className="detail-label">Vehículo</span><span className="detail-value">{selected.Vehiculo || selected.Placa || '—'}{selected.Marca ? ` · ${selected.Marca}${selected.Modelo ? ` ${selected.Modelo}` : ''}` : ''}</span></div>
@@ -970,12 +1026,14 @@ export default function OrdenesPage() {
                           {addServForm.precio_unitario && <span className="u-muted-nowrap">= {formatCurrency(addServForm.precio_unitario)}</span>}
                           <button className="btn btn--primary btn--sm" onClick={handleAddServicio} disabled={actionLoading}><MdAdd size={16} />Agregar</button>
                         </div>
-                        <SearchableSelect
-                          options={tecnicosOpts.map(t => ({ value: String(t.Id_Empleado ?? t.id_empleado), label: t.Nombre }))}
-                          value={addServForm.Id_Empleado}
-                          onChange={id => setAddServForm(p => ({ ...p, Id_Empleado: id }))}
-                          placeholder="¿Quién lo hizo? (opcional)"
-                        />
+                        {hayMultiplesMecanicos && (
+                          <SearchableSelect
+                            options={mecanicosAsignados.map(t => ({ value: String(t.Id_Empleado), label: t.Nombre }))}
+                            value={addServForm.Id_Empleado}
+                            onChange={id => setAddServForm(p => ({ ...p, Id_Empleado: id }))}
+                            placeholder="¿Quién lo hizo? (opcional)"
+                          />
+                        )}
                         <PrecioFormulaCalc onAplicar={v => setAddServForm(p => ({ ...p, precio_unitario: String(Math.round(v)) }))} />
                       </>
                     ) : (
@@ -994,12 +1052,14 @@ export default function OrdenesPage() {
                           </div>
                           <button className="btn btn--primary btn--sm" onClick={handleCrearServicioInline} disabled={actionLoading || servVal.isInvalid(nuevoServ)}><MdAdd size={16} />Crear y agregar</button>
                         </div>
-                        <SearchableSelect
-                          options={tecnicosOpts.map(t => ({ value: String(t.Id_Empleado ?? t.id_empleado), label: t.Nombre }))}
-                          value={nuevoServ.Id_Empleado}
-                          onChange={id => setNuevoServ(p => ({ ...p, Id_Empleado: id }))}
-                          placeholder="¿Quién lo hizo? (opcional)"
-                        />
+                        {hayMultiplesMecanicos && (
+                          <SearchableSelect
+                            options={mecanicosAsignados.map(t => ({ value: String(t.Id_Empleado), label: t.Nombre }))}
+                            value={nuevoServ.Id_Empleado}
+                            onChange={id => setNuevoServ(p => ({ ...p, Id_Empleado: id }))}
+                            placeholder="¿Quién lo hizo? (opcional)"
+                          />
+                        )}
                         <PrecioFormulaCalc onAplicar={v => setNuevoServ(p => ({ ...p, Precio: String(Math.round(v)) }))} />
                       </>
                     )}

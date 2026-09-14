@@ -52,18 +52,6 @@ export const inicialesDe = (nombre) => {
   return palabras.slice(0, 2).map(p => p.charAt(0).toUpperCase()).join('');
 };
 
-// Cuenta cuántos empleados DISTINTOS aparecen asignados en las líneas de servicios y
-// repuestos de una orden (ignora las líneas sin empleado asignado). El prefijo de
-// iniciales por línea solo tiene sentido para distinguir técnicos cuando hay 2 o más
-// -- con uno solo (o ninguno) en toda la orden, es ruido: ya se sabe quién la hizo.
-export const contarTecnicosDistintos = (servicios, repuestos) => {
-  const ids = [...(servicios || []), ...(repuestos || [])]
-    .map(x => x.Id_Empleado)
-    .filter(id => id != null)
-    .map(String);
-  return new Set(ids).size;
-};
-
 // Ordena por fecha de creación (o el campo ID como respaldo, ya que es autoincremental)
 // descendente, para que el registro recién creado aparezca primero. Combínalo con
 // sortByStatus pasándole el resultado de esta función: el orden "nuevo primero" se
