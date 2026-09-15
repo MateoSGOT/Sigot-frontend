@@ -19,11 +19,10 @@ import SearchableSelect from '../../../shared/components/SearchableSelect/Search
 import FilterDropdown from '../../../shared/components/FilterDropdown/FilterDropdown.jsx';
 import Badge from '../../../shared/components/Badge/Badge.jsx';
 import { formatDate, formatCurrency, todayLocalYMD, inicialesDe } from '../../../shared/utils/helpers.js';
-import { generarFacturaOrden, buildFacturaOrden } from '../../../shared/utils/generarFacturaPDF.js';
+import { generarComprobanteOrden, buildComprobanteOrden } from '../../../shared/utils/generarFacturaPDF.js';
 import * as V from '../../../shared/utils/validators.js';
 import { useFormValidation } from '../../../shared/hooks/useFormValidation.js';
 import { useToast } from '../../../shared/components/Toast/ToastContext.jsx';
-import PrecioFormulaCalc from '../components/PrecioFormulaCalc.jsx';
 import api from '../../../shared/services/api.js';
 import './OrdenesPage.css';
 
@@ -365,22 +364,22 @@ export default function OrdenesPage() {
   // Bloquea SOLO la edición de contenido (servicios, repuestos, mano de obra).
   // El toggle de estado (activar/inactivar) permanece siempre disponible.
   const contenidoBloqueado = selected?.EstadoFlujo === 'Realizado' || selected?.Estado === 0;
-  const puedeFacturar  = selected?.EstadoFlujo === 'Realizado';
+  const puedeGenerarComprobante  = selected?.EstadoFlujo === 'Realizado';
 
-  const [enviandoFactura, setEnviandoFactura] = useState(false);
-  const handleEnviarFacturaCorreo = async () => {
-    if (!selected || !puedeFacturar) return;
+  const [enviandoComprobante, setEnviandoComprobante] = useState(false);
+  const handleEnviarComprobanteCorreo = async () => {
+    if (!selected || !puedeGenerarComprobante) return;
     if (!selected.ClienteCorreo) { addToast({ type: 'error', message: 'Este cliente no tiene correo registrado.' }); return; }
-    setEnviandoFactura(true);
+    setEnviandoComprobante(true);
     try {
-      const doc = buildFacturaOrden(selected, { getTecnicoPrefijo: prefijoTecnico });
+      const doc = buildComprobanteOrden(selected, { getTecnicoPrefijo: prefijoTecnico });
       const pdfBase64 = doc.output('datauristring').split('base64,').pop();
-      await ordenesService.facturarPorCorreo(selected.Id_Orden, pdfBase64);
-      addToast({ type: 'success', message: `Factura enviada a ${selected.ClienteCorreo}.` });
+      await ordenesService.enviarComprobantePorCorreo(selected.Id_Orden, pdfBase64);
+      addToast({ type: 'success', message: `Comprobante enviado a ${selected.ClienteCorreo}.` });
     } catch (e) {
-      addToast({ type: 'error', message: e?.response?.data?.message || 'No se pudo enviar la factura por correo.' });
+      addToast({ type: 'error', message: e?.response?.data?.message || 'No se pudo enviar el comprobante por correo.' });
     } finally {
-      setEnviandoFactura(false);
+      setEnviandoComprobante(false);
     }
   };
 
@@ -713,21 +712,21 @@ export default function OrdenesPage() {
           <>
             <button
               className="btn btn--outline"
-              onClick={puedeFacturar ? handleEnviarFacturaCorreo : undefined}
-              disabled={!puedeFacturar || enviandoFactura}
-              title={!puedeFacturar ? 'Solo se puede facturar una orden Realizada' : (!selected.ClienteCorreo ? 'El cliente no tiene correo registrado' : undefined)}
-              style={!puedeFacturar ? { opacity: 0.45, cursor: 'not-allowed' } : undefined}
+              onClick={puedeGenerarComprobante ? handleEnviarComprobanteCorreo : undefined}
+              disabled={!puedeGenerarComprobante || enviandoComprobante}
+              title={!puedeGenerarComprobante ? 'Solo se puede generar el comprobante de una orden Realizada' : (!selected.ClienteCorreo ? 'El cliente no tiene correo registrado' : undefined)}
+              style={!puedeGenerarComprobante ? { opacity: 0.45, cursor: 'not-allowed' } : undefined}
             >
-              {enviandoFactura ? 'Enviando...' : 'Enviar factura por correo'}
+              {enviandoComprobante ? 'Enviando...' : 'Enviar comprobante por correo'}
             </button>
             <button
               className="btn btn--primary"
-              onClick={puedeFacturar ? () => generarFacturaOrden(selected, { getTecnicoPrefijo: prefijoTecnico }) : undefined}
-              disabled={!puedeFacturar}
-              title={!puedeFacturar ? 'Solo se puede facturar una orden Realizada' : undefined}
-              style={!puedeFacturar ? { opacity: 0.45, cursor: 'not-allowed' } : undefined}
+              onClick={puedeGenerarComprobante ? () => generarComprobanteOrden(selected, { getTecnicoPrefijo: prefijoTecnico }) : undefined}
+              disabled={!puedeGenerarComprobante}
+              title={!puedeGenerarComprobante ? 'Solo se puede generar el comprobante de una orden Realizada' : undefined}
+              style={!puedeGenerarComprobante ? { opacity: 0.45, cursor: 'not-allowed' } : undefined}
             >
-              Facturar (PDF)
+              Comprobante (PDF)
             </button>
           </>
         ) : null}
@@ -1052,7 +1051,6 @@ export default function OrdenesPage() {
                             <p className="u-hint">Obligatorio: esta orden tiene varios mecánicos asignados.</p>
                           </>
                         )}
-                        <PrecioFormulaCalc onAplicar={v => setAddServForm(p => ({ ...p, precio_unitario: String(Math.round(v)) }))} />
                       </>
                     ) : (
                       <>
@@ -1081,7 +1079,6 @@ export default function OrdenesPage() {
                             <p className="u-hint">Obligatorio: esta orden tiene varios mecánicos asignados.</p>
                           </>
                         )}
-                        <PrecioFormulaCalc onAplicar={v => setNuevoServ(p => ({ ...p, Precio: String(Math.round(v)) }))} />
                       </>
                     )}
                   </div>

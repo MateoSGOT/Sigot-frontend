@@ -3,9 +3,10 @@ import autoTable from 'jspdf-autotable';
 import { todayLocalYMD, formatDate } from './helpers.js';
 
 /* ═══════════════════════════════════════════════════════════════════
-   Facturas SIGOT — diseño alineado con la marca de la app, pero en
-   escala de grises: la factura se imprime mucho (para el cliente), así
-   que va toda a blanco y negro para no gastar tinta de color.
+   PDFs SIGOT (comprobante de orden / factura de compra a proveedor) —
+   diseño alineado con la marca de la app, pero en escala de grises: se
+   imprimen mucho (para el cliente o para archivo del taller), así que
+   van todos a blanco y negro para no gastar tinta de color.
    ═══════════════════════════════════════════════════════════════════ */
 
 // Escala de grises minimalista: texto negro sobre blanco y reglas finas.
@@ -158,7 +159,7 @@ const tableBase = {
   margin: { left: M, right: M },
 };
 
-/* ═══════════════ FACTURA DE ORDEN DE TRABAJO ═══════════════ */
+/* ═══════════════ COMPROBANTE DE ORDEN DE TRABAJO ═══════════════ */
 // getTecnicoPrefijo: función opcional (idEmpleado) => "PM. " | null, EXACTAMENTE la
 // misma que arma el prefijo de iniciales en pantalla (ver OrdenesPage.jsx::
 // prefijoTecnico) -- ya trae aplicada la regla de solo mostrarlo con 2+ mecánicos
@@ -167,7 +168,7 @@ const tableBase = {
 // propósito, mismo patrón que generarFacturaCompra: el llamador resuelve nombres/IDs, el
 // builder del PDF solo formatea). Se aplica SOLO a la tabla de Servicios -- "¿Quién lo
 // hizo?" no existe para Repuestos (ver OrdenesPage.jsx), así que su tabla nunca lleva prefijo.
-export function buildFacturaOrden(orden, { getTecnicoPrefijo } = {}) {
+export function buildComprobanteOrden(orden, { getTecnicoPrefijo } = {}) {
   const prefijoDe = (idEmpleado) => (typeof getTecnicoPrefijo === 'function' ? getTecnicoPrefijo(idEmpleado) : null) || '';
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
   const id = orden.Id_Orden || orden.id || '?';
@@ -238,10 +239,10 @@ export function buildFacturaOrden(orden, { getTecnicoPrefijo } = {}) {
   return doc;
 }
 
-export function generarFacturaOrden(orden, opts) {
-  const doc = buildFacturaOrden(orden, opts);
+export function generarComprobanteOrden(orden, opts) {
+  const doc = buildComprobanteOrden(orden, opts);
   const id = orden.Id_Orden || orden.id || '?';
-  doc.save(`factura-orden-${id}-${todayLocalYMD()}.pdf`);
+  doc.save(`comprobante-orden-${id}-${todayLocalYMD()}.pdf`);
 }
 
 /* ═══════════════ FACTURA DE COMPRA DE REPUESTOS ═══════════════ */
@@ -323,7 +324,7 @@ export function generarFacturaCompra(compra) {
 
 /* ═══════════════ DIAGNÓSTICO (impresión desde Diagnóstico/Orden) ═══════════════ */
 /* Documento enfocado SOLO en el diagnóstico: datos de cliente/vehículo, fecha y
-   el texto del diagnóstico (sin precios ni ítems, eso es la factura). Acepta tanto
+   el texto del diagnóstico (sin precios ni ítems, eso es el comprobante). Acepta tanto
    una cita "Diagnosticada" como una orden. */
 export function buildDiagnostico(d) {
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });

@@ -403,9 +403,9 @@ function PortalPageInner() {
   const manoObra  = ordDetail?.mano_de_obra ?? null;
   const total     = totalServ + totalRep + (manoObra || 0);
   // El cliente no ve el desglose de servicios ni la mano de obra mientras la orden
-  // está en curso (son precios/margen internos del taller) -- solo al facturarse
-  // (EstadoFlujo "Realizado" = 3) se destapa el desglose completo con el total real.
-  const ordenFacturada = Number(ordDetail?.Estado) === 3;
+  // está en curso (son precios/margen internos del taller) -- solo cuando queda
+  // Realizada (EstadoFlujo "Realizado" = 3) se destapa el desglose completo con el total real.
+  const ordenConComprobante = Number(ordDetail?.Estado) === 3;
 
   /* ── Column definitions ──────────────────────────────────── */
   const vehiculosColumns = [
@@ -769,7 +769,7 @@ function PortalPageInner() {
                   <div className="detail-item u-span-2"><span className="detail-label">Diagnóstico</span><span className="detail-value">{ordDetail.Diagnostico || '—'}</span></div>
                 </div>
                 <div className="orden-total-card">
-                  {ordenFacturada ? (
+                  {ordenConComprobante ? (
                     <>
                       <div className="orden-total-breakdown">
                         <div className="orden-total-row"><span>Servicios</span><span>{formatCurrency(totalServ)}</span></div>
@@ -786,7 +786,7 @@ function PortalPageInner() {
                       <div className="orden-total-breakdown">
                         <div className="orden-total-row"><span>Repuestos</span><span>{formatCurrency(totalRep)}</span></div>
                       </div>
-                      <p className="u-hint" style={{ marginTop: '0.5rem' }}>El costo de servicios y mano de obra se muestra al facturar la orden.</p>
+                      <p className="u-hint" style={{ marginTop: '0.5rem' }}>El costo de servicios y mano de obra se muestra cuando la orden queda con comprobante.</p>
                     </>
                   )}
                 </div>
@@ -801,22 +801,22 @@ function PortalPageInner() {
                       <div key={i} className="orden-item-row">
                         <span className="orden-item-name u-flex-1">{s.servicio || s.Nombre || `Servicio #${s.Id_Servicio}`}</span>
                         {/* El costo de servicios/mano de obra es información interna del taller
-                            (margen) -- se destapa solo al facturar la orden (ver ordenFacturada),
-                            pero el CLIENTE siempre debe poder ver QUÉ servicios se le están
-                            realizando, con o sin factura aún. */}
-                        {ordenFacturada && <span className="orden-item-price">{formatCurrency(s.precio_unitario)}</span>}
+                            (margen) -- se destapa solo cuando la orden queda con comprobante
+                            (ver ordenConComprobante), pero el CLIENTE siempre debe poder ver QUÉ
+                            servicios se le están realizando, con o sin comprobante aún. */}
+                        {ordenConComprobante && <span className="orden-item-price">{formatCurrency(s.precio_unitario)}</span>}
                       </div>
                     ))
                     : <p className="empty-list">No hay servicios registrados en esta orden.</p>
                   }
                 </div>
-                {ordenFacturada ? (
+                {ordenConComprobante ? (
                   <div className="orden-subtotal">
                     <span>Subtotal servicios</span>
                     <span>{formatCurrency(totalServ)}</span>
                   </div>
                 ) : (ordDetail.servicios || []).length > 0 && (
-                  <p className="u-hint" style={{ marginTop: '0.5rem' }}>El costo de servicios y mano de obra se muestra al facturar la orden.</p>
+                  <p className="u-hint" style={{ marginTop: '0.5rem' }}>El costo de servicios y mano de obra se muestra cuando la orden queda con comprobante.</p>
                 )}
               </div>
             )}
