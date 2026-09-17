@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, lazy, Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { restoreSession, fetchUserPermisos } from './features/auth/slices/authSlice.js';
@@ -7,22 +7,26 @@ import LandingPage from './features/landing/pages/LandingPage.jsx';
 import LoginPage from './features/auth/pages/LoginPage.jsx';
 import ResetPasswordPage from './features/auth/pages/ResetPasswordPage.jsx';
 import CambiarPasswordInicialPage from './features/auth/pages/CambiarPasswordInicialPage.jsx';
-import PortalPage from './features/portal/pages/PortalPage.jsx';
-import DashboardPage from './features/dashboard/pages/DashboardPage.jsx';
-import ClientesPage from './features/clientes/pages/ClientesPage.jsx';
-import VehiculosPage from './features/vehiculos/pages/VehiculosPage.jsx';
-import MarcasPage from './features/marcas/pages/MarcasPage.jsx';
-import EmpleadosPage from './features/empleados/pages/EmpleadosPage.jsx';
-import RepuestosPage from './features/repuestos/pages/RepuestosPage.jsx';
-import CategoriasPage from './features/categorias/pages/CategoriasPage.jsx';
-import ProveedoresPage from './features/proveedores/pages/ProveedoresPage.jsx';
-import ComprasPage from './features/compras/pages/ComprasPage.jsx';
-import ServiciosPage from './features/servicios/pages/ServiciosPage.jsx';
-import AgendaPage from './features/agenda/pages/AgendaPage.jsx';
-import OrdenesPage from './features/ordenes/pages/OrdenesPage.jsx';
-import NovedadesPage from './features/novedades/pages/NovedadesPage.jsx';
-import RolesPage from './features/roles/pages/RolesPage.jsx';
-import CuentasPage from './features/cuentas/pages/CuentasPage.jsx';
+
+// Panel del taller y portal del cliente: se cargan solo cuando alguien realmente entra ahí
+// (lazy), para que un visitante anónimo de la landing pública no descargue las ~17 páginas
+// del panel de administración junto con el bundle inicial.
+const PortalPage = lazy(() => import('./features/portal/pages/PortalPage.jsx'));
+const DashboardPage = lazy(() => import('./features/dashboard/pages/DashboardPage.jsx'));
+const ClientesPage = lazy(() => import('./features/clientes/pages/ClientesPage.jsx'));
+const VehiculosPage = lazy(() => import('./features/vehiculos/pages/VehiculosPage.jsx'));
+const MarcasPage = lazy(() => import('./features/marcas/pages/MarcasPage.jsx'));
+const EmpleadosPage = lazy(() => import('./features/empleados/pages/EmpleadosPage.jsx'));
+const RepuestosPage = lazy(() => import('./features/repuestos/pages/RepuestosPage.jsx'));
+const CategoriasPage = lazy(() => import('./features/categorias/pages/CategoriasPage.jsx'));
+const ProveedoresPage = lazy(() => import('./features/proveedores/pages/ProveedoresPage.jsx'));
+const ComprasPage = lazy(() => import('./features/compras/pages/ComprasPage.jsx'));
+const ServiciosPage = lazy(() => import('./features/servicios/pages/ServiciosPage.jsx'));
+const AgendaPage = lazy(() => import('./features/agenda/pages/AgendaPage.jsx'));
+const OrdenesPage = lazy(() => import('./features/ordenes/pages/OrdenesPage.jsx'));
+const NovedadesPage = lazy(() => import('./features/novedades/pages/NovedadesPage.jsx'));
+const RolesPage = lazy(() => import('./features/roles/pages/RolesPage.jsx'));
+const CuentasPage = lazy(() => import('./features/cuentas/pages/CuentasPage.jsx'));
 
 function ProtectedRoute({ children }) {
   const { token, restoring, debeCambiarPassword } = useSelector((state) => state.auth);
@@ -87,6 +91,7 @@ function App() {
   const loginRedirect = debeCambiarPassword ? '/cambiar-password' : (tipo === 'cliente' ? '/portal' : '/dashboard');
 
   return (
+    <Suspense fallback={null}>
     <Routes>
       {/* Public routes */}
       <Route path="/" element={token && debeCambiarPassword ? <Navigate to="/cambiar-password" replace /> : <LandingPage />} />
@@ -139,6 +144,7 @@ function App() {
 
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
+    </Suspense>
   );
 }
 
