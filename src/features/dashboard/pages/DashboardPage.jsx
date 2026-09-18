@@ -6,8 +6,9 @@ import { dashboardService } from '../services/dashboardService.js';
 import { formatCurrency } from '../../../shared/utils/helpers.js';
 import {
   MdShoppingCart, MdMiscellaneousServices, MdPeople,
-  MdPayments, MdReceiptLong, MdRefresh, MdWarning, MdBuild, MdLockOutline,
+  MdPayments, MdReceiptLong, MdRefresh, MdWarning, MdBuild, MdLockOutline, MdPictureAsPdf,
 } from 'react-icons/md';
+import { generarReporteDashboard } from '../../../shared/utils/generarFacturaPDF.js';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend, Area, AreaChart,
@@ -167,6 +168,19 @@ export default function DashboardPage() {
     return [...top, { name: `Otras (${restantes.length})`, value: totalOtras, esOtras: true }];
   })();
 
+  const handleExportarPDF = () => {
+    generarReporteDashboard({
+      rango,
+      resumen,
+      ingresosSerie,
+      ingresosTotal: rep.ingresos?.total ?? 0,
+      topServicios: rep.topServicios,
+      topRepuestos: rep.topRepuestos,
+      productividad: rep.productividad,
+      repuestosPorCategoria: repuestosPie,
+    });
+  };
+
   const EMPTY_CHART = (
     <EmptyState variant="empty" title="Aún no hay datos suficientes" description="No hay órdenes entregadas en el rango elegido." />
   );
@@ -196,9 +210,14 @@ export default function DashboardPage() {
           <h1 className="page__title">Dashboard</h1>
           <p className="page__subtitle">Reportes del taller · {rango.desde} → {rango.hasta}</p>
         </div>
-        <button className="btn btn--outline" onClick={() => setRefreshKey(k => k + 1)} disabled={loading}>
-          <MdRefresh size={18} className={loading ? 'spin' : ''} /> Actualizar
-        </button>
+        <div className="page__actions">
+          <button className="btn btn--outline" onClick={handleExportarPDF} disabled={loading}>
+            <MdPictureAsPdf size={18} /> Exportar PDF
+          </button>
+          <button className="btn btn--outline" onClick={() => setRefreshKey(k => k + 1)} disabled={loading}>
+            <MdRefresh size={18} className={loading ? 'spin' : ''} /> Actualizar
+          </button>
+        </div>
       </div>
 
       {/* Selector de rango — control segmentado */}

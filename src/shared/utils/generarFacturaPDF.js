@@ -28,7 +28,10 @@ const fmt = (n) =>
 const today = () => new Date().toLocaleDateString('es-CO');
 
 /* ── Encabezado: wordmark + tipo + N°/fecha con una regla fina (sin banda). ── */
-function addHeader(doc, tipo, numero, fecha) {
+// etiquetaNumero: por defecto "N°" (documentos con un número consecutivo real);
+// el reporte de dashboard no tiene uno, así que pasa "Rango" y usa ese slot
+// para el rango de fechas en vez de un número.
+function addHeader(doc, tipo, numero, fecha, etiquetaNumero = 'N°') {
   // Wordmark
   doc.setTextColor(...INK);
   doc.setFont('helvetica', 'bold');
@@ -53,7 +56,7 @@ function addHeader(doc, tipo, numero, fecha) {
   doc.setTextColor(...INK);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(12);
-  doc.text(`N° ${numero}`, RIGHT, 16, { align: 'right' });
+  doc.text(`${etiquetaNumero} ${numero}`, RIGHT, 16, { align: 'right' });
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(9);
   doc.setTextColor(...MUTED);
@@ -367,4 +370,87 @@ export function generarDiagnosticoPDF(d) {
   const doc = buildDiagnostico(d);
   const id = d.Id ?? d.Id_Agenda ?? d.Id_Orden ?? '?';
   doc.save(`diagnostico-${id}-${todayLocalYMD()}.pdf`);
+}
+
+/* ═══════════════ REPORTE DE DASHBOARD ═══════════════ */
+// Todo lo que ya está en pantalla en DashboardPage (KPIs + gráficas), en tablas --
+// mismo criterio de tinta que el resto de este módulo: sin capturar los gráficos de
+// Recharts como imagen (eso obligaría a arrastrar html2canvas solo para esto), la
+// data que alimenta cada gráfica ya es tabular de por sí, así que se listra tal cual.
+function nuevaPaginaSiNoCabe(doc, y, necesita = 45) {
+  if (y + necesita <= 275) return y;
+  doc.addPage();
+  return 20;
+}
+
+function tablaSeccion(doc, titulo, y, head, body, columnStyles) {
+  y = nuevaPaginaSiNoCabe(doc, y);
+  sectionLabel(doc, titulo, M, y); y += 2.5;
+  autoTable(doc, { ...tableBase, startY: y, head: [head], body, columnStyles });
+  return doc.lastAutoTable.finalY + 8;
+}
+
+export function buildReporteDashboard({
+  rango, resumen = {}, ingresosSerie = [], ingresosTotal = 0,
+  topServicios = [], topRepuestos = [], productividad = [], repuestosPorCategoria = [],
+} = {}) {
+  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+  addHeader(doc, 'Reporte de dashboard', `${rango?.desde ?? '—'} → ${rango?.hasta ?? '—'}`, today(), 'Rango');
+
+  let y = 46;
+
+  y = tablaSeccion(doc, 'Indicadores', y,
+    ['Indicador', 'Valor'],
+    [
+      ['Ingreso del rango', fmt(resumen.ingresoTotal ?? 0)],
+      ['Órdenes realizadas', String(resumen.ordenesRealizadas ?? 0)],
+      ['Ticket promedio', fmt(resumen.ticketPromedio ?? 0)],
+      ['Stock bajo', `${resumen.stockBajo ?? 0}${resumen.stockCritico ? ` (${resumen.stockCritico} agotado(s))` : ''}`],
+    ],
+    { 1: { halign: 'right' } });
+
+  if (ingresosSerie.length) {
+    y = tablaSeccion(doc, `Ingresos por periodo (total: ${fmt(ingresosTotal)})`, y,
+      ['Periodo', 'Ingreso'],
+      ingresosSerie.map(s => [s.name, fmt(s.total)]),
+      { 1: { halign: 'right' } });
+  }
+
+  if (topServicios.length) {
+    y = tablaSeccion(doc, 'Servicios más realizados', y,
+      ['Servicio', 'Veces'],
+      topServicios.map(s => [s.nombre, String(s.veces)]),
+      { 1: { halign: 'right' } });
+  }
+
+  if (topRepuestos.length) {
+    y = tablaSeccion(doc, 'Repuestos más usados', y,
+      ['Repuesto', 'Cantidad'],
+      topRepuestos.map(r => [r.nombre, String(r.cantidad)]),
+      { 1: { halign: 'right' } });
+  }
+
+  if (productividad.length) {
+    y = tablaSeccion(doc, 'Productividad por mecánico', y,
+      ['Mecánico', 'Órdenes', 'Ingreso'],
+      productividad.map(p => [p.empleado, String(p.ordenes), fmt(p.ingreso)]),
+      { 1: { halign: 'right' }, 2: { halign: 'right' } });
+  }
+
+  if (repuestosPorCategoria.length) {
+    tablaSeccion(doc, 'Repuestos por categoría (inventario)', y,
+      ['Categoría', 'Cantidad'],
+      repuestosPorCategoria.map(c => [c.name, String(c.value)]),
+      { 1: { halign: 'right' } });
+  }
+
+  addFooter(doc);
+  return doc;
+}
+
+export function generarReporteDashboard(data) {
+  const doc = buildReporteDashboard(data);
+  const desde = data?.rango?.desde ?? 'inicio';
+  const hasta = data?.rango?.hasta ?? 'hoy';
+  doc.save(`reporte-dashboard-${desde}_a_${hasta}-${todayLocalYMD()}.pdf`);
 }
