@@ -395,7 +395,10 @@ export function buildReporteDashboard({
   topServicios = [], topRepuestos = [], productividad = [], repuestosPorCategoria = [],
 } = {}) {
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-  addHeader(doc, 'Reporte de dashboard', `${rango?.desde ?? '—'} → ${rango?.hasta ?? '—'}`, today(), 'Rango');
+  // "al" en vez de "→": jsPDF no tiene la flecha en las métricas de Helvetica -- la
+  // muestra como un glifo roto y, peor, calcula mal su ancho al alinear a la derecha,
+  // lo que empuja el resto del texto contra el margen.
+  addHeader(doc, 'Reporte de dashboard', `${rango?.desde ?? '—'} al ${rango?.hasta ?? '—'}`, today(), 'Rango');
 
   let y = 46;
 
