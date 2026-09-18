@@ -21,6 +21,14 @@ const PAGE_W = 210;
 const M = 14;                     // margen lateral
 const RIGHT = PAGE_W - M;         // 196
 
+// Mismo 19% que usa RepuestosPage.jsx (_iva) para calcular PrecioVenta = costo ×
+// margen × IVA -- el IVA de los repuestos ya viene INCLUIDO en ese precio, no se
+// suma aparte. Servicios y Mano de obra no tienen IVA calculado en ningún lado
+// (precios fijos que pone el admin), así que la línea de IVA del comprobante es
+// puramente informativa: solo desglosa cuánto del subtotal de repuestos ya es IVA,
+// sin tocar el total (ver buildComprobanteOrden).
+const IVA_PORCENTAJE = 19;
+
 const fmt = (n) =>
   new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 })
     .format(Number(n) || 0);
@@ -230,10 +238,14 @@ export function buildComprobanteOrden(orden, { getTecnicoPrefijo } = {}) {
   const subtotalServ = (orden.servicios || []).reduce((s, x) => s + Number(x.subtotal ?? x.Subtotal ?? 0), 0);
   const subtotalRep  = (orden.repuestos || []).reduce((s, x) => s + Number(x.subtotal ?? x.Subtotal ?? 0), 0);
   const total = subtotalServ + subtotalRep + manoDeObra;
+  // Desglose informativo: cuánto del subtotal de repuestos ya es IVA (no se suma
+  // al total, solo lo hace explícito -- ver comentario de IVA_PORCENTAJE arriba).
+  const ivaIncluido = subtotalRep * (IVA_PORCENTAJE / (100 + IVA_PORCENTAJE));
 
   y = summary(doc, y, [
     ['Subtotal servicios', subtotalServ],
     ['Subtotal repuestos', subtotalRep],
+    ...(subtotalRep > 0 ? [[`  · IVA incluido en repuestos (${IVA_PORCENTAJE}%)`, ivaIncluido]] : []),
     ['Mano de obra', manoDeObra],
   ]) + 1;
   totalBox(doc, y, total);
