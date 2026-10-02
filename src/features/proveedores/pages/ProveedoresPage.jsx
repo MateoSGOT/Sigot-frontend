@@ -21,9 +21,12 @@ import './ProveedoresPage.css';
 
 const DEPARTAMENTOS = Object.keys(MUNICIPIOS_POR_DEPARTAMENTO).sort().map(d => ({ label: d, value: d }));
 
+// El representante legal se retiró del formulario: de un proveedor jurídico solo se piden
+// NIT, razón social y los datos de contacto. Los 4 campos Representante* siguen existiendo
+// en la BD (nullable) con el dato de proveedores antiguos, pero ya no se piden ni se envían
+// -- el validador de la API los dejó opcionales para permitirlo.
 const EMPTY = {
   TipoProveedor: '', Documento: '', nombre: '', correo: '', contacto: '', departamento: '', ciudad: '', direccion: '', detalles: '',
-  Representante: '', RepresentanteDocumento: '', RepresentanteTelefono: '', RepresentanteCorreo: '',
 };
 // Documento condicional según el tipo: Jurídico -> NIT (9-10), Natural -> Cédula (6-10).
 const documentoPorTipo = (v, values = {}) => {
@@ -36,20 +39,6 @@ const documentoPorTipo = (v, values = {}) => {
   if (s.length < min || s.length > max) return `${label} debe tener entre ${min} y ${max} dígitos.`;
   return '';
 };
-// Representante legal: obligatorio SOLO cuando TipoProveedor = "Juridico" (el backend lo
-// rechaza si se envía para "Natural"). Para "Natural"/sin elegir, no valida nada.
-const representanteDocumento = (v, values = {}) => {
-  if (values.TipoProveedor !== 'Juridico') return '';
-  const s = String(v ?? '').trim();
-  if (!s) return 'El documento del representante es obligatorio.';
-  if (!/^\d+$/.test(s)) return 'El documento del representante solo puede contener números.';
-  if (s.length < 6 || s.length > 10) return 'El documento del representante debe tener entre 6 y 10 dígitos.';
-  return '';
-};
-const representanteRequerido = (label) => (v, values = {}) => {
-  if (values.TipoProveedor !== 'Juridico') return '';
-  return V.isBlank(v) ? `${label} es obligatorio.` : '';
-};
 const RULES = {
   TipoProveedor: (v) => V.requiredSelect(v, 'El tipo de proveedor'),
   Documento:     documentoPorTipo,
@@ -58,17 +47,6 @@ const RULES = {
   contacto:      (v) => V.maxLen(v, 20, 'El contacto'),
   direccion:     (v) => V.maxLen(v, 150, 'La dirección'),
   detalles:      (v) => V.maxLen(v, 200, 'Los detalles'),
-  Representante:          representanteRequerido('El nombre del representante'),
-  RepresentanteDocumento: representanteDocumento,
-  RepresentanteTelefono:  (v, values = {}) => {
-    if (values.TipoProveedor !== 'Juridico') return '';
-    const s = String(v ?? '').trim();
-    if (!s) return 'El teléfono del representante es obligatorio.';
-    if (!/^\d+$/.test(s)) return 'El teléfono del representante solo puede contener números.';
-    if (s.length < 7 || s.length > 10) return 'El teléfono del representante debe tener entre 7 y 10 dígitos.';
-    return '';
-  },
-  RepresentanteCorreo:    (v, values = {}) => (values.TipoProveedor === 'Juridico' ? (V.correo(v, false) || V.maxLen(v, 120, 'El correo del representante')) : ''),
 };
 
 export default function ProveedoresPage() {
@@ -124,10 +102,6 @@ export default function ProveedoresPage() {
       ciudad: item.ciudad || '',
       direccion: item.direccion || '',
       detalles: item.detalles || '',
-      Representante: item.Representante || '',
-      RepresentanteDocumento: item.RepresentanteDocumento || '',
-      RepresentanteTelefono: item.RepresentanteTelefono || '',
-      RepresentanteCorreo: item.RepresentanteCorreo || '',
     });
     setEditingId(item.Id_Proveedor); setFormError(''); reset(); setShowForm(true);
   };
@@ -147,15 +121,11 @@ export default function ProveedoresPage() {
     setErrors(errs); touchAll();
     if (V.hasErrors(errs)) { setFormError('Corrige los campos marcados antes de guardar.'); return; }
     setFormError('');
-    // El backend rechaza (400) los campos de Representante si TipoProveedor no es "Juridico":
-    // no alcanza con dejarlos vacíos, hay que omitirlos del payload por completo.
+    // Ya no hay que depurar nada del payload: los campos de Representante* salieron del
+    // formulario, así que formData no los contiene y la API los dejó opcionales. Un
+    // proveedor antiguo que los tenga cargados los CONSERVA: el modelo solo sobrescribe
+    // los campos que llegan en el body (`if (X !== undefined)`), ver proveedor.model.js.
     const payload = { ...formData };
-    if (formData.TipoProveedor !== 'Juridico') {
-      delete payload.Representante;
-      delete payload.RepresentanteDocumento;
-      delete payload.RepresentanteTelefono;
-      delete payload.RepresentanteCorreo;
-    }
     const action = editingId ? updateProveedor({ id: editingId, data: payload }) : createProveedor(payload);
     const result = await dispatch(action);
     if (!result.error) { setShowForm(false); dispatch(fetchProveedores()); }
@@ -212,15 +182,6 @@ export default function ProveedoresPage() {
             <div className="detail-item" style={{ gridColumn: 'span 2' }}><span className="detail-label">Detalles</span><span className="detail-value">{detailItem.detalles}</span></div>
           )}
           <div className="detail-item"><span className="detail-label">Estado</span><span className="detail-value"><StatusBadge estado={detailItem.Estado} /></span></div>
-          {detailItem.TipoProveedor === 'Juridico' && (
-            <>
-              <div className="detail-item" style={{ gridColumn: 'span 2' }}><span className="detail-label representante-section__title">Representante legal</span></div>
-              <div className="detail-item"><span className="detail-label">Nombre</span><span className="detail-value">{detailItem.Representante || '—'}</span></div>
-              <div className="detail-item"><span className="detail-label">Documento</span><span className="detail-value">{detailItem.RepresentanteDocumento || '—'}</span></div>
-              <div className="detail-item"><span className="detail-label">Teléfono</span><span className="detail-value">{detailItem.RepresentanteTelefono || '—'}</span></div>
-              <div className="detail-item"><span className="detail-label">Correo</span><span className="detail-value">{detailItem.RepresentanteCorreo || '—'}</span></div>
-            </>
-          )}
         </div>}
       </Modal>
 
@@ -293,33 +254,6 @@ export default function ProveedoresPage() {
             {fieldError('detalles') && <p className="form-error">{fieldError('detalles')}</p>}
           </div>
 
-          {esJuridico && (
-            <>
-              <div className="form-group span-2 representante-section">
-                <span className="representante-section__title">Representante legal</span>
-              </div>
-              <div className="form-group span-2">
-                <label className="form-label">Nombre del representante <span className="required">*</span></label>
-                <input name="Representante" className={`form-control ${fieldError('Representante') ? 'is-error' : ''}`} value={formData.Representante} onChange={handleChange} onBlur={handleBlur} maxLength={120} placeholder="Nombre completo del representante" />
-                {fieldError('Representante') && <p className="form-error">{fieldError('Representante')}</p>}
-              </div>
-              <div className="form-group">
-                <label className="form-label">Documento del representante <span className="required">*</span></label>
-                <input name="RepresentanteDocumento" className={`form-control ${fieldError('RepresentanteDocumento') ? 'is-error' : ''}`} value={formData.RepresentanteDocumento} onChange={handleChange} onBlur={handleBlur} inputMode="numeric" maxLength={10} placeholder="Cédula (6 a 10 dígitos)" />
-                {fieldError('RepresentanteDocumento') && <p className="form-error">{fieldError('RepresentanteDocumento')}</p>}
-              </div>
-              <div className="form-group">
-                <label className="form-label">Teléfono del representante <span className="required">*</span></label>
-                <input name="RepresentanteTelefono" className={`form-control ${fieldError('RepresentanteTelefono') ? 'is-error' : ''}`} value={formData.RepresentanteTelefono} onChange={e => handleChange({ target: { name: 'RepresentanteTelefono', value: e.target.value.replace(/\D/g, '').slice(0, 10) } })} onBlur={handleBlur} inputMode="numeric" maxLength={10} placeholder="Teléfono de contacto (solo números)" />
-                {fieldError('RepresentanteTelefono') && <p className="form-error">{fieldError('RepresentanteTelefono')}</p>}
-              </div>
-              <div className="form-group span-2">
-                <label className="form-label">Correo del representante <span className="required">*</span></label>
-                <input name="RepresentanteCorreo" type="email" className={`form-control ${fieldError('RepresentanteCorreo') ? 'is-error' : ''}`} value={formData.RepresentanteCorreo} onChange={handleChange} onBlur={handleBlur} maxLength={120} placeholder="correo@representante.com" />
-                {fieldError('RepresentanteCorreo') && <p className="form-error">{fieldError('RepresentanteCorreo')}</p>}
-              </div>
-            </>
-          )}
         </form>
       </Modal>
 

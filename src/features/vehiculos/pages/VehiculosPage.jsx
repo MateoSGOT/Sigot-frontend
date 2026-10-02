@@ -22,7 +22,6 @@ import './VehiculosPage.css';
 
 const RULES = {
   Placa:      V.placa,
-  VIN:        (v) => V.maxLen(v, 30, 'El VIN'),
   Color:      (v) => V.maxLen(v, 30, 'El color'),
   Id_Marca:   (v) => V.requiredSelect(v, 'La marca'),
   Id_Modelo:  (v) => V.requiredSelect(v, 'El modelo'),
@@ -38,7 +37,10 @@ const RULES = {
   },
 };
 
-const EMPTY = { Placa: '', VIN: '', Id_Marca: '', Id_Modelo: '', Anio: '', Color: '', Id_Cliente: '', Kilometraje: '' };
+// El VIN se retiró de la interfaz del taller (ya no se pide ni se muestra). No se envía
+// en el payload: la API lo tiene como opcional (VIN String? @unique), así que omitirlo es
+// válido y los vehículos que ya lo tenían guardado lo conservan intacto en la BD.
+const EMPTY = { Placa: '', Id_Marca: '', Id_Modelo: '', Anio: '', Color: '', Id_Cliente: '', Kilometraje: '' };
 
 export default function VehiculosPage() {
   const dispatch = useDispatch();
@@ -168,7 +170,7 @@ export default function VehiculosPage() {
   };
 
   const openEdit = (item) => {
-    setFormData({ Placa: item.Placa || '', VIN: item.VIN || '', Id_Marca: item.Id_Marca || '', Id_Modelo: item.Id_Modelo || '', Anio: item.Anio || '', Color: item.Color || '', Id_Cliente: item.Id_Cliente || '', Kilometraje: item.Kilometraje ?? '' });
+    setFormData({ Placa: item.Placa || '', Id_Marca: item.Id_Marca || '', Id_Modelo: item.Id_Modelo || '', Anio: item.Anio || '', Color: item.Color || '', Id_Cliente: item.Id_Cliente || '', Kilometraje: item.Kilometraje ?? '' });
     setEditingId(item.Id_Vehiculo); setFormError(''); reset();
     loadModelos(item.Id_Marca, item.Id_Modelo);
     setShowForm(true);
@@ -208,7 +210,6 @@ export default function VehiculosPage() {
   const columns = [
     { key: '#', label: '#', width: '50px', render: (_, __, i) => i + 1 },
     { key: 'Placa', label: 'Placa', render: v => <span className="font-medium">{v}</span> },
-    { key: 'VIN', label: 'VIN' },
     { key: 'Marca', label: 'Marca' },
     { key: 'Modelo', label: 'Modelo' },
     { key: 'Anio', label: 'Año' },
@@ -240,7 +241,7 @@ export default function VehiculosPage() {
           <SearchBar
             value={search}
             onChange={onSearch}
-            placeholder="Buscar por placa, VIN, modelo..."
+            placeholder="Buscar por placa, color..."
             filterSlot={
               <>
                 <select className="filter-select" value={marcaFilter} onChange={e => onMarca(e.target.value)}>
@@ -276,7 +277,6 @@ export default function VehiculosPage() {
       <Modal isOpen={!!detailItem} onClose={() => setDetailId(null)} title="Detalle del vehículo" size="md">
         {detailItem && <div className="detail-grid">
           <div className="detail-item"><span className="detail-label">Placa</span><span className="detail-value">{detailItem.Placa}</span></div>
-          <div className="detail-item"><span className="detail-label">VIN</span><span className="detail-value">{detailItem.VIN || '—'}</span></div>
           <div className="detail-item"><span className="detail-label">Marca</span><span className="detail-value">{detailItem.Marca || detailItem.Id_Marca}</span></div>
           <div className="detail-item"><span className="detail-label">Modelo</span><span className="detail-value">{detailItem.Modelo}</span></div>
           <div className="detail-item"><span className="detail-label">Año</span><span className="detail-value">{detailItem.Anio}</span></div>
@@ -342,11 +342,6 @@ export default function VehiculosPage() {
             <label className="form-label">Color</label>
             <input name="Color" className={`form-control ${fieldError('Color') ? 'is-error' : ''}`} value={formData.Color} onChange={handleChange} onBlur={handleBlur} maxLength={30} placeholder="Blanco" />
             {fieldError('Color') && <p className="form-error">{fieldError('Color')}</p>}
-          </div>
-          <div className="form-group">
-            <label className="form-label">VIN</label>
-            <input name="VIN" className={`form-control ${fieldError('VIN') ? 'is-error' : ''}`} value={formData.VIN} onChange={handleChange} onBlur={handleBlur} maxLength={30} placeholder="Número VIN" />
-            {fieldError('VIN') && <p className="form-error">{fieldError('VIN')}</p>}
           </div>
           <div className="form-group span-2">
             <label className="form-label">Cliente <span className="required">*</span></label>
