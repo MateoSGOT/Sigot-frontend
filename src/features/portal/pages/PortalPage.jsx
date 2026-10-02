@@ -339,7 +339,19 @@ function PortalPageInner() {
     } catch { setHorasOcupadas([]); }
   };
 
+  // Vehículos que realmente se pueden elegir para una cita (los inactivos no cuentan:
+  // el select del modal ya los filtraba, así que con 0 activos quedaba vacío).
+  const vehiculosAgendables = vehiculos.filter(v => v.Estado !== false && v.Estado !== 0);
+
   const openCrearCita = () => {
+    // Regla de negocio: agendar exige un vehículo registrado. Sin ninguno, este modal era
+    // un callejón sin salida -- se abría con el select de vehículo VACÍO y la validación
+    // pedía uno que no se podía crear desde el portal. Se delega a /agendar, que detecta
+    // este caso e inyecta el paso "Vehículo" antes de la cita (ver AgendarCitaPage::pasos).
+    if (vehiculosAgendables.length === 0) {
+      navigate('/agendar');
+      return;
+    }
     setEditingCitaId(null);
     setCitaForm({ Id_Vehiculo: '', Fecha: '', Hora: '', Descripcion: '', Id_Empleado: '', TipoCita: 'Mantenimiento' });
     setCitaError(''); setEmpleadosDisp([]); setHorasOcupadas([]); setShowCitaModal(true);
@@ -610,13 +622,21 @@ function PortalPageInner() {
                 <h1 className="page__title">Mis Vehículos</h1>
                 <p className="page__subtitle">{vehiculos.length} vehículo(s) registrado(s)</p>
               </div>
+              {/* Sin vehículos no se puede agendar (regla de negocio) y el portal no tenía
+                  ninguna forma de registrar uno: el alta vive en el flujo de /agendar, que
+                  inyecta el paso del vehículo antes de la cita. */}
+              {vehiculosAgendables.length === 0 && (
+                <button className="btn btn--primary" onClick={() => navigate('/agendar')}>
+                  <MdAdd size={18} /> Registrar vehículo y agendar
+                </button>
+              )}
             </div>
             <div className="card">
               <div className="card__header">
                 <SearchBar
                   value={vehSearch}
                   onChange={setVehSearch}
-                  placeholder="Buscar por placa, marca, modelo, color..."
+                  placeholder="Buscar por placa, color..."
                   filterSlot={
                     <FilterDropdown
                       statusFilter="todos"
@@ -903,7 +923,7 @@ function PortalPageInner() {
           <div className="form-group">
             <label className="form-label">Vehículo <span className="required">*</span></label>
             <SearchableSelect
-              options={vehiculos.filter(v => v.Estado !== false && v.Estado !== 0).map(v => ({ value: String(v.Id_Vehiculo), label: v.Placa }))}
+              options={vehiculosAgendables.map(v => ({ value: String(v.Id_Vehiculo), label: v.Placa }))}
               value={citaForm.Id_Vehiculo}
               onChange={v => setCitaForm(p => ({ ...p, Id_Vehiculo: v }))}
               placeholder="Seleccionar vehículo..."
