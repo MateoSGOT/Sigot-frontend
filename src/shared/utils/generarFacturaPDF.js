@@ -195,9 +195,8 @@ export function buildComprobanteOrden(orden, { getTecnicoPrefijo } = {}) {
   ]);
   const hVeh = infoCard(doc, M + colW + 4, y, colW, 'Vehículo', [
     ['Placa', orden.Vehiculo || '—'],
-    ['Marca', orden.Marca || '—'],
-    ['Modelo', orden.Modelo || '—'],
     ['Año', orden.Anio || '—'],
+    ['Color', orden.Color || '—'],
   ]);
   y += Math.max(hCli, hVeh) + 9;
 
@@ -356,8 +355,7 @@ export function buildDiagnostico(d) {
   ]);
   const hVeh = infoCard(doc, M + colW + 4, y, colW, 'Vehículo', [
     ['Placa', d.Vehiculo || '—'],
-    ['Marca', d.Marca || '—'],
-    ['Modelo', d.Modelo || '—'],
+    ['Color', d.Color || '—'],
   ]);
   y += Math.max(hCli, hVeh) + 9;
 

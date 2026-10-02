@@ -5,7 +5,7 @@ import {
   MdDashboard, MdPeople, MdDirectionsCar, MdBuild, MdShoppingCart,
   MdMiscellaneousServices, MdAssignment, MdEventNote,
   MdNewReleases, MdSecurity, MdCategory, MdLocalShipping,
-  MdLogout, MdPerson, MdBrandingWatermark,
+  MdLogout, MdPerson,
   MdSettings, MdStorage, MdChevronRight, MdAdminPanelSettings,
   MdMenuOpen,
 } from 'react-icons/md';
@@ -34,7 +34,6 @@ const NAV_STRUCTURE = [
     type: 'group', name: 'Vehículos', icon: MdDirectionsCar,
     children: [
       { to: '/vehiculos', icon: MdDirectionsCar,     label: 'Vehículos',        permiso: 'VEHICULOS' },
-      { to: '/marcas',    icon: MdBrandingWatermark, label: 'Marcas y modelos', permiso: 'VEHICULOS' },
     ],
   },
   { type: 'link', to: '/agenda',    icon: MdEventNote,             label: 'Agenda',    permiso: 'AGENDA'    },

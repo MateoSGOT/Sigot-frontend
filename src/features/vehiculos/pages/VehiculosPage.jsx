@@ -9,22 +9,18 @@ import SearchableSelect from '../../../shared/components/SearchableSelect/Search
 import ToggleSwitch from '../../../shared/components/ToggleSwitch/ToggleSwitch.jsx';
 import { createVehiculo, updateVehiculo, toggleVehiculoEstado } from '../slices/vehiculosSlice.js';
 import Modal from '../../../shared/components/Modal/Modal.jsx';
-import MarcasPage from '../../marcas/pages/MarcasPage.jsx';
 import Table from '../../../shared/components/Table/Table.jsx';
 import SearchBar from '../../../shared/components/SearchBar/SearchBar.jsx';
 import FilterDropdown from '../../../shared/components/FilterDropdown/FilterDropdown.jsx';
 import { StatusBadge } from '../../../shared/components/Badge/Badge.jsx';
 import * as V from '../../../shared/utils/validators.js';
 import { useFormValidation } from '../../../shared/hooks/useFormValidation.js';
-import { useToast } from '../../../shared/components/Toast/ToastContext.jsx';
 import api from '../../../shared/services/api.js';
 import './VehiculosPage.css';
 
 const RULES = {
   Placa:      V.placa,
   Color:      (v) => V.maxLen(v, 30, 'El color'),
-  Id_Marca:   (v) => V.requiredSelect(v, 'La marca'),
-  Id_Modelo:  (v) => V.requiredSelect(v, 'El modelo'),
   Anio:       V.anioVehiculo,
   Id_Cliente: (v) => V.requiredSelect(v, 'El cliente'),
   // Opcional: si se llena, entero >= 0.
@@ -40,7 +36,7 @@ const RULES = {
 // El VIN se retiró de la interfaz del taller (ya no se pide ni se muestra). No se envía
 // en el payload: la API lo tiene como opcional (VIN String? @unique), así que omitirlo es
 // válido y los vehículos que ya lo tenían guardado lo conservan intacto en la BD.
-const EMPTY = { Placa: '', Id_Marca: '', Id_Modelo: '', Anio: '', Color: '', Id_Cliente: '', Kilometraje: '' };
+const EMPTY = { Placa: '', Anio: '', Color: '', Id_Cliente: '', Kilometraje: '' };
 
 export default function VehiculosPage() {
   const dispatch = useDispatch();
@@ -49,14 +45,9 @@ export default function VehiculosPage() {
   const puedeEditar  = usePermiso('VEHICULOS.EDITAR');
   const puedeToggle  = usePermiso('VEHICULOS.CAMBIAR_ESTADO');
   const esSuperadmin = useSelector(s => s.auth.empleado?.EsSuperAdmin === true);
-  const { addToast } = useToast();
-  const [marcas, setMarcas] = useState([]);
   const [clientes, setClientes] = useState([]);
-  const [modelos, setModelos] = useState([]);        // modelos de la marca seleccionada
-  const [modelosLoading, setModelosLoading] = useState(false);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('todos');
-  const [marcaFilter, setMarcaFilter] = useState('');
   const [pageSize, setPageSize] = useState(5);
   // Estado del listado SERVER-SIDE (mismo patrón que RepuestosPage).
   const [page, setPage]         = useState(1);
@@ -67,7 +58,6 @@ export default function VehiculosPage() {
   const [formData, setFormData] = useState(EMPTY);
   const [editingId, setEditingId] = useState(null);
   const [showForm, setShowForm] = useState(false);
-  const [showMarcas, setShowMarcas] = useState(false);
   const [formError, setFormError] = useState('');
   const { errors, touched, setErrors, revalidate, markTouched, touchAll, fieldError, isInvalid, validateNow, reset } = useFormValidation(RULES);
 
@@ -77,19 +67,17 @@ export default function VehiculosPage() {
       const ps = pageSize === 'all' ? 9999 : pageSize;
       const params = new URLSearchParams({ page: String(page), pageSize: String(ps), estado: statusFilter });
       if (search) params.set('search', search);
-      if (marcaFilter) params.set('marca', marcaFilter);
       const r = await api.get(`/api/vehiculos?${params.toString()}`);
       // Estado viene como booleano crudo de Postgres -- ToggleSwitch compara === 1.
       setRows((r.data?.data || []).map(x => ({ ...x, Estado: x.Estado === true ? 1 : x.Estado === false ? 0 : x.Estado })));
       setTotal(r.data?.total ?? 0);
     } catch { setRows([]); setTotal(0); }
     finally { setListLoading(false); }
-  }, [page, pageSize, search, statusFilter, marcaFilter]);
+  }, [page, pageSize, search, statusFilter]);
 
   const del = useBorradoReal(vehiculosService, { entidadLabel: 'vehículo', onDeleted: fetchPage });
 
   useEffect(() => {
-    api.get('/api/catalogos/marcas').then(r => setMarcas(r.data?.data || r.data || [])).catch(() => {});
     api.get('/api/clientes').then(r => setClientes(r.data?.data || r.data || [])).catch(() => {});
   }, []);
 
@@ -97,66 +85,16 @@ export default function VehiculosPage() {
 
   const onSearch  = (v) => { setSearch(v); setPage(1); };
   const onStatus  = (v) => { setStatusFilter(v); setPage(1); };
-  const onMarca   = (v) => { setMarcaFilter(v); setPage(1); };
   const onPageSize = (v) => { setPageSize(v); setPage(1); };
 
 
-  // Carga los modelos de una marca (selector dependiente). incluir = Id_Modelo actual
-  // a conservar aunque esté inactivo (caso edición).
-  const loadModelos = (idMarca, incluir = null) => {
-    if (!idMarca) { setModelos([]); return; }
-    setModelosLoading(true);
-    api.get(`/api/marcas/${idMarca}/modelos`)
-      .then(r => {
-        const data = r.data?.data || r.data || [];
-        setModelos(data.filter(m => m.Estado !== false && m.Estado !== 0) .concat(
-          data.filter(m => (m.Estado === false || m.Estado === 0) && incluir != null && String(m.Id_Modelo) === String(incluir))
-        ));
-      })
-      .catch(() => setModelos([]))
-      .finally(() => setModelosLoading(false));
-  };
 
-  // Crea una marca nueva al vuelo desde el select del formulario (sin salir a la
-  // pantalla de Marcas). Requiere el mismo permiso que crear vehículos (backend:
-  // POST /api/marcas exige VEHICULOS.REGISTRAR).
-  const handleCrearMarca = async (nombre) => {
-    try {
-      const r = await api.post('/api/marcas', { Nombre: nombre });
-      const nueva = r.data?.data || r.data;
-      setMarcas(prev => [...prev, nueva]);
-      addToast({ type: 'success', message: `Marca "${nueva.Nombre}" creada.` });
-      return { value: String(nueva.Id_Marca), label: nueva.Nombre };
-    } catch (e) {
-      addToast({ type: 'error', message: e?.response?.data?.message || 'No se pudo crear la marca.' });
-      throw e;
-    }
-  };
 
-  // Crea un modelo nuevo al vuelo, dentro de la marca ya elegida, sin salir a
-  // la pantalla de Marcas (antes solo Marca tenía esta opción, no Modelo).
-  const handleCrearModelo = async (nombre) => {
-    try {
-      const r = await api.post(`/api/marcas/${formData.Id_Marca}/modelos`, { Nombre: nombre });
-      const nuevo = r.data?.data || r.data;
-      setModelos(prev => [...prev, nuevo]);
-      addToast({ type: 'success', message: `Modelo "${nuevo.Nombre}" creado.` });
-      return { value: String(nuevo.Id_Modelo), label: nuevo.Nombre };
-    } catch (e) {
-      addToast({ type: 'error', message: e?.response?.data?.message || 'No se pudo crear el modelo.' });
-      throw e;
-    }
-  };
 
-  // Una marca/cliente desactivado no debe poder elegirse para un vehículo NUEVO (mismo
-  // criterio que ya aplica AgendaPage.jsx a su select de empleados); al editar, conserva
-  // visible la marca/cliente ya asignados aunque se hayan desactivado después (mismo
-  // patrón que loadModelos de arriba, vía "incluir").
+  // Un cliente desactivado no debe poder elegirse para un vehículo NUEVO (mismo criterio
+  // que ya aplica AgendaPage.jsx a su select de empleados); al editar, conserva visible el
+  // cliente ya asignado aunque se haya desactivado después.
   const esActivo = (x) => x?.Estado !== false && x?.Estado !== 0;
-  const marcasOpts = marcas
-    .filter(m => esActivo(m) || String(m.Id_Marca) === String(formData.Id_Marca))
-    .map(m => ({ value: String(m.Id_Marca), label: m.Nombre }));
-  const modelosOpts  = modelos.map(m => ({ value: String(m.Id_Modelo), label: m.Nombre }));
   const clientesOpts = clientes
     .filter(c => esActivo(c) || String(c.Id_Cliente) === String(formData.Id_Cliente))
     .map(c => ({ value: String(c.Id_Cliente), label: `${c.Nombre} — ${c.Documento}` }));
@@ -166,13 +104,12 @@ export default function VehiculosPage() {
   const detailItem = detailId ? rows.find(i => i.Id_Vehiculo === detailId) || null : null;
 
   const openCreate = () => {
-    setFormData(EMPTY); setEditingId(null); setFormError(''); reset(); setModelos([]); setShowForm(true);
+    setFormData(EMPTY); setEditingId(null); setFormError(''); reset(); setShowForm(true);
   };
 
   const openEdit = (item) => {
-    setFormData({ Placa: item.Placa || '', Id_Marca: item.Id_Marca || '', Id_Modelo: item.Id_Modelo || '', Anio: item.Anio || '', Color: item.Color || '', Id_Cliente: item.Id_Cliente || '', Kilometraje: item.Kilometraje ?? '' });
+    setFormData({ Placa: item.Placa || '', Anio: item.Anio || '', Color: item.Color || '', Id_Cliente: item.Id_Cliente || '', Kilometraje: item.Kilometraje ?? '' });
     setEditingId(item.Id_Vehiculo); setFormError(''); reset();
-    loadModelos(item.Id_Marca, item.Id_Modelo);
     setShowForm(true);
   };
 
@@ -183,7 +120,6 @@ export default function VehiculosPage() {
   };
   const handleChange = (e) => {
     const { name, value } = e.target;
-    if (name === 'Id_Marca') { setField(name, value, { Id_Modelo: '' }); loadModelos(value); return; }
     setField(name, value);
   };
   const handleBlur = (e) => { markTouched(e.target.name); revalidate(formData); };
@@ -210,8 +146,6 @@ export default function VehiculosPage() {
   const columns = [
     { key: '#', label: '#', width: '50px', render: (_, __, i) => i + 1 },
     { key: 'Placa', label: 'Placa', render: v => <span className="font-medium">{v}</span> },
-    { key: 'Marca', label: 'Marca' },
-    { key: 'Modelo', label: 'Modelo' },
     { key: 'Anio', label: 'Año' },
     { key: 'Kilometraje', label: 'Kilometraje', render: v => (v != null && v !== '' ? `${Number(v).toLocaleString('es-CO')} km` : '—') },
     { key: 'Color', label: 'Color' },
@@ -244,10 +178,6 @@ export default function VehiculosPage() {
             placeholder="Buscar por placa, color..."
             filterSlot={
               <>
-                <select className="filter-select" value={marcaFilter} onChange={e => onMarca(e.target.value)}>
-                  <option value="">Todas las marcas</option>
-                  {marcas.map(m => <option key={m.Id_Marca} value={m.Id_Marca}>{m.Nombre}</option>)}
-                </select>
                 <FilterDropdown
                   statusFilter={statusFilter}
                   onStatusChange={onStatus}
@@ -277,8 +207,6 @@ export default function VehiculosPage() {
       <Modal isOpen={!!detailItem} onClose={() => setDetailId(null)} title="Detalle del vehículo" size="md">
         {detailItem && <div className="detail-grid">
           <div className="detail-item"><span className="detail-label">Placa</span><span className="detail-value">{detailItem.Placa}</span></div>
-          <div className="detail-item"><span className="detail-label">Marca</span><span className="detail-value">{detailItem.Marca || detailItem.Id_Marca}</span></div>
-          <div className="detail-item"><span className="detail-label">Modelo</span><span className="detail-value">{detailItem.Modelo}</span></div>
           <div className="detail-item"><span className="detail-label">Año</span><span className="detail-value">{detailItem.Anio}</span></div>
           <div className="detail-item"><span className="detail-label">Color</span><span className="detail-value">{detailItem.Color || '—'}</span></div>
           <div className="detail-item"><span className="detail-label">Cliente</span><span className="detail-value">{detailItem.Cliente || detailItem.Id_Cliente}</span></div>
@@ -295,38 +223,6 @@ export default function VehiculosPage() {
             <label className="form-label">Placa <span className="required">*</span></label>
             <input name="Placa" className={`form-control ${fieldError('Placa') ? 'is-error' : ''}`} value={formData.Placa} onChange={handleChange} onBlur={handleBlur} maxLength={10} placeholder="ABC-123" />
             {fieldError('Placa') && <p className="form-error">{fieldError('Placa')}</p>}
-          </div>
-          <div className="form-group">
-            <label className="form-label" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span>Marca <span className="required">*</span></span>
-              {/* Gestiona marcas/modelos SIN salir de Vehículos ni abrir otra pestaña:
-                  abre el administrador embebido en un modal (item 7). */}
-              <button type="button" className="vehiculo-gestionar-link" onClick={() => setShowMarcas(true)}>
-                Gestionar marcas
-              </button>
-            </label>
-            <SearchableSelect
-              options={marcasOpts}
-              value={String(formData.Id_Marca)}
-              onChange={v => { setField('Id_Marca', v, { Id_Modelo: '' }); loadModelos(v); markTouched('Id_Marca'); }}
-              placeholder="Seleccionar marca..."
-              onCreateOption={puedeCrear ? handleCrearMarca : undefined}
-              createLabel={q => `+ Crear marca "${q}"`}
-            />
-            {fieldError('Id_Marca') && <p className="form-error">{fieldError('Id_Marca')}</p>}
-          </div>
-          <div className="form-group">
-            <label className="form-label">Modelo <span className="required">*</span></label>
-            <SearchableSelect
-              options={modelosOpts}
-              value={String(formData.Id_Modelo)}
-              onChange={v => { setField('Id_Modelo', v); markTouched('Id_Modelo'); }}
-              placeholder={!formData.Id_Marca ? 'Primero selecciona una marca' : modelosLoading ? 'Cargando modelos...' : (modelosOpts.length ? 'Seleccionar modelo...' : 'Esta marca no tiene modelos activos')}
-              disabled={!formData.Id_Marca || modelosLoading}
-              onCreateOption={puedeCrear && formData.Id_Marca ? handleCrearModelo : undefined}
-              createLabel={q => `+ Crear modelo "${q}"`}
-            />
-            {fieldError('Id_Modelo') && <p className="form-error">{fieldError('Id_Modelo')}</p>}
           </div>
           <div className="form-group">
             <label className="form-label">Año <span className="required">*</span></label>
@@ -358,17 +254,6 @@ export default function VehiculosPage() {
 
       <EliminarRealModal isOpen={del.isOpen} onClose={del.close} entidadLabel="vehículo"
         preview={del.preview} loadingPreview={del.loadingPreview} deleting={del.deleting} error={del.error} onConfirm={del.confirm} />
-
-      {/* Gestión de marcas y modelos embebida (sin salir del módulo de vehículos).
-          Al cerrar se recargan las marcas para que el select refleje los cambios. */}
-      <Modal
-        isOpen={showMarcas}
-        onClose={() => { setShowMarcas(false); api.get('/api/catalogos/marcas').then(r => setMarcas(r.data?.data || r.data || [])).catch(() => {}); }}
-        title="Marcas y modelos"
-        size="xl"
-      >
-        <MarcasPage embedded />
-      </Modal>
     </div>
   );
 }

@@ -282,7 +282,7 @@ export default function AgendaPage() {
   // Se incluye el Documento en la etiqueta (no solo el Nombre) para poder distinguir
   // clientes/empleados que comparten el mismo nombre.
   const clientesOpts  = clientes.filter(esActivo).map(c => ({ value: String(c.Id_Cliente), label: `${c.Nombre} — ${c.Documento}` }));
-  const vehiculosOpts = vehiculosFiltered.map(v => ({ value: String(v.Id_Vehiculo), label: `${v.Placa} — ${v.Modelo}` }));
+  const vehiculosOpts = vehiculosFiltered.map(v => ({ value: String(v.Id_Vehiculo), label: v.Placa }));
   // Solo empleados con rol mecánico/técnico pueden asignarse a una cita (igual que
   // ya filtra el portal del cliente en /api/portal/empleados-disponibles).
   const esMecanicoOTecnico = (e) => /mec|tec/i.test(e.Rol || e.rol?.Nombre || '');
@@ -568,8 +568,7 @@ export default function AgendaPage() {
       ClienteDoc: cli?.Documento,
       ClienteContacto: cli?.Telefono || cli?.Contacto,
       Vehiculo: row.Vehiculo || veh?.Placa || getVehiculoPlaca(row.Id_Vehiculo),
-      Marca: veh?.Marca || veh?.marca?.Nombre,
-      Modelo: veh?.Modelo,
+      Color: veh?.Color,
       Empleado: row.Empleado || getEmpleadoNombre(row.id_empleado || row.Id_Empleado),
       Fecha: row.FechaAgendamiento,
       Diagnostico: row.DiagnosticoNota,

@@ -16,7 +16,6 @@ const PortalPage = lazy(() => import('./features/portal/pages/PortalPage.jsx'));
 const DashboardPage = lazy(() => import('./features/dashboard/pages/DashboardPage.jsx'));
 const ClientesPage = lazy(() => import('./features/clientes/pages/ClientesPage.jsx'));
 const VehiculosPage = lazy(() => import('./features/vehiculos/pages/VehiculosPage.jsx'));
-const MarcasPage = lazy(() => import('./features/marcas/pages/MarcasPage.jsx'));
 const EmpleadosPage = lazy(() => import('./features/empleados/pages/EmpleadosPage.jsx'));
 const RepuestosPage = lazy(() => import('./features/repuestos/pages/RepuestosPage.jsx'));
 const CategoriasPage = lazy(() => import('./features/categorias/pages/CategoriasPage.jsx'));
@@ -135,7 +134,6 @@ function App() {
         <Route path="/dashboard"   element={<DashboardPage />} />
         <Route path="/clientes"    element={<ClientesPage />} />
         <Route path="/vehiculos"   element={<VehiculosPage />} />
-        <Route path="/marcas"      element={<MarcasPage />} />
         <Route path="/empleados"   element={<EmpleadosPage />} />
         <Route path="/repuestos"   element={<RepuestosPage />} />
         <Route path="/categorias"  element={<CategoriasPage />} />

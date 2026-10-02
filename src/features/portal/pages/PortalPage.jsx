@@ -381,7 +381,7 @@ function PortalPageInner() {
   };
 
   /* ── Filtered lists ──────────────────────────────────────── */
-  const filteredVehiculos = filterItems(vehiculos, vehSearch, ['Placa', 'Marca', 'Modelo', 'Color']);
+  const filteredVehiculos = filterItems(vehiculos, vehSearch, ['Placa', 'Color']);
 
   const filteredOrdenes = (() => {
     let list = ordenes;
@@ -411,8 +411,6 @@ function PortalPageInner() {
   const vehiculosColumns = [
     { key: '#',      label: '#',      width: '50px', render: (_, __, i) => i + 1 },
     { key: 'Placa',  label: 'Placa',  render: v => <span className="font-medium">{v}</span> },
-    { key: 'Marca',  label: 'Marca'  },
-    { key: 'Modelo', label: 'Modelo' },
     { key: 'Anio',   label: 'Año'    },
     { key: 'Color',  label: 'Color',  render: v => v || '—' },
     {
@@ -730,9 +728,6 @@ function PortalPageInner() {
         {vehDetail && (
           <div className="detail-grid">
             <div className="detail-item"><span className="detail-label">Placa</span><span className="detail-value">{vehDetail.Placa}</span></div>
-            <div className="detail-item"><span className="detail-label">VIN</span><span className="detail-value">{vehDetail.VIN || '—'}</span></div>
-            <div className="detail-item"><span className="detail-label">Marca</span><span className="detail-value">{vehDetail.Marca || '—'}</span></div>
-            <div className="detail-item"><span className="detail-label">Modelo</span><span className="detail-value">{vehDetail.Modelo}</span></div>
             <div className="detail-item"><span className="detail-label">Año</span><span className="detail-value">{vehDetail.Anio}</span></div>
             <div className="detail-item"><span className="detail-label">Color</span><span className="detail-value">{vehDetail.Color || '—'}</span></div>
           </div>
@@ -892,7 +887,7 @@ function PortalPageInner() {
           <div className="form-group">
             <label className="form-label">Vehículo <span className="required">*</span></label>
             <SearchableSelect
-              options={vehiculos.filter(v => v.Estado !== false && v.Estado !== 0).map(v => ({ value: String(v.Id_Vehiculo), label: `${v.Placa} — ${v.Marca || ''}` }))}
+              options={vehiculos.filter(v => v.Estado !== false && v.Estado !== 0).map(v => ({ value: String(v.Id_Vehiculo), label: v.Placa }))}
               value={citaForm.Id_Vehiculo}
               onChange={v => setCitaForm(p => ({ ...p, Id_Vehiculo: v }))}
               placeholder="Seleccionar vehículo..."
