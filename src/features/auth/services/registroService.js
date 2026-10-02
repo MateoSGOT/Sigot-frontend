@@ -33,8 +33,10 @@ export const registroService = {
 
   // Catálogo público (no requiere sesión, que es justo lo que hace falta acá: en el paso 3
   // el usuario todavía no tiene cuenta). Ver catalogo.routes.js::/tipos-documento.
+  // OJO con el prefijo: el mount en app.js es '/api/catalogos' en PLURAL, aunque el
+  // archivo de rutas se llame catalogo.routes.js en singular.
   async getTiposDocumento() {
-    const r = await api.get('/api/catalogo/tipos-documento');
+    const r = await api.get('/api/catalogos/tipos-documento');
     return Array.isArray(r.data?.data) ? r.data.data : [];
   },
 };
