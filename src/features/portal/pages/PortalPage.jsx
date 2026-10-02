@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { MdAdd, MdVisibility, MdCheck, MdCameraAlt, MdDirectionsCar, MdEventBusy, MdEdit } from 'react-icons/md';
 import { logout, updateCliente } from '../../auth/slices/authSlice.js';
@@ -58,7 +59,22 @@ export default function PortalPage() {
 function PortalPageInner() {
   const dispatch = useDispatch();
   const { addToast } = useToast();
+  const location = useLocation();
+  const navigate = useNavigate();
   const { cliente, token, tipo } = useSelector(s => s.auth);
+
+  // Mensajes con los que AgendarCitaPage redirige hasta acá. El caso que importa es
+  // `agendarError`: si la cuenta y el vehículo se crearon pero la cita falló (ej. la hora
+  // quedó ocupada), el usuario YA está registrado y con sesión -- se lo trae al portal con
+  // el motivo en vez de dejarlo en un formulario que ya no puede reenviar. Se limpia el
+  // state de la ruta para que el aviso no reaparezca al recargar.
+  useEffect(() => {
+    const st = location.state;
+    if (!st) return;
+    if (st.citaAgendada) addToast({ type: 'success', message: 'Tu cita quedó agendada.' });
+    if (st.agendarError) addToast({ type: 'error', message: st.agendarError });
+    if (st.citaAgendada || st.agendarError) navigate('/portal', { replace: true, state: null });
+  }, [location.state]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const [tab, setTab] = useState('cuenta');
   const [vehiculos, setVehiculos] = useState([]);

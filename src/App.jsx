@@ -13,6 +13,9 @@ import CambiarPasswordInicialPage from './features/auth/pages/CambiarPasswordIni
 // (lazy), para que un visitante anónimo de la landing pública no descargue las ~17 páginas
 // del panel de administración junto con el bundle inicial.
 const PortalPage = lazy(() => import('./features/portal/pages/PortalPage.jsx'));
+// Agendamiento publico con autoregistro en caliente: entra gente sin sesion desde la
+// landing, asi que va lazy igual que el portal (no lo descarga quien solo mira la landing).
+const AgendarCitaPage = lazy(() => import('./features/portal/pages/AgendarCitaPage.jsx'));
 const DashboardPage = lazy(() => import('./features/dashboard/pages/DashboardPage.jsx'));
 const ClientesPage = lazy(() => import('./features/clientes/pages/ClientesPage.jsx'));
 const VehiculosPage = lazy(() => import('./features/vehiculos/pages/VehiculosPage.jsx'));
@@ -96,6 +99,10 @@ function App() {
       {/* Public routes */}
       <Route path="/" element={token && debeCambiarPassword ? <Navigate to="/cambiar-password" replace /> : <LandingPage />} />
       <Route path="/portal" element={<PortalRoute><PortalPage /></PortalRoute>} />
+      {/* Agendamiento publico: SIN guard a proposito -- es el punto de entrada para
+          clientes nuevos. La propia pagina detecta si hay sesion y arma el flujo
+          (con sesion omite cuenta/codigo; sin sesion registra todo en caliente). */}
+      <Route path="/agendar" element={<AgendarCitaPage />} />
       <Route path="/reset-password" element={<ResetPasswordPage />} />
       <Route path="/cambiar-password" element={<RequirePasswordChange><CambiarPasswordInicialPage /></RequirePasswordChange>} />
       <Route

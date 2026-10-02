@@ -171,7 +171,12 @@ export default function LandingPage() {
             de vehículos en La Balladera. Tecnología de punta, técnicos certificados.
           </p>
           <div className="landing-hero__actions">
-            <button className="landing-btn landing-btn--primary landing-btn--lg" onClick={() => scrollTo('servicios')}>
+            {/* Agendar es la accion de negocio principal: un cliente nuevo crea cuenta,
+                registra su vehiculo y agenda en el mismo flujo (ver AgendarCitaPage). */}
+            <button className="landing-btn landing-btn--primary landing-btn--lg" onClick={() => navigate('/agendar')}>
+              Agendar una cita
+            </button>
+            <button className="landing-btn landing-btn--outline landing-btn--lg" onClick={() => scrollTo('servicios')}>
               Ver servicios
             </button>
           </div>
@@ -402,6 +407,7 @@ export default function LandingPage() {
             </div>
             <div className="landing-footer__links">
               <strong>Acceso</strong>
+              <button onClick={() => navigate('/agendar')}>Agendar una cita</button>
               <button onClick={() => navigate('/login')}>Ingresar al sistema</button>
             </div>
           </div>

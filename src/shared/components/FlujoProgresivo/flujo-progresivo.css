@@ -1,20 +1,23 @@
 /* ═══════════════════════════════════════════════════════════════════
-   Autoregistro de clientes — flujo de 3 pasos.
-   Usa los tokens globales (variables.css); sin Tailwind, igual que el
-   resto del proyecto.
+   Flujo progresivo multi-paso (slide horizontal + barra líquida +
+   labels flotantes + OTP + feedback de carga/error).
 
-   Las duraciones viven acá Y en RegistroPage.jsx (DUR_SALIDA /
+   Extraído de RegistroPage para que el autoregistro y el agendamiento
+   público compartan exactamente la misma transición y no divergan.
+   Usa los tokens globales (variables.css); sin Tailwind.
+
+   Las duraciones viven acá Y en useFlujoProgresivo.js (DUR_SALIDA /
    DUR_ENTRADA), porque el swap de paso lo coordina JS con setTimeout:
    si se cambia una hay que cambiar la otra o el contenido salta antes
-   de que termine de desvanecerse.
+   de terminar de desvanecerse.
    ═══════════════════════════════════════════════════════════════════ */
 :root {
-  --registro-dur-salida: 220ms;
-  --registro-dur-entrada: 260ms;
-  --registro-ease: cubic-bezier(0.16, 1, 0.3, 1); /* ease-out marcado */
+  --flujo-dur-salida: 220ms;
+  --flujo-dur-entrada: 260ms;
+  --flujo-ease: cubic-bezier(0.16, 1, 0.3, 1); /* ease-out marcado */
 }
 
-.registro-page {
+.flujo-page {
   min-height: 100vh;
   display: flex;
   align-items: center;
@@ -23,25 +26,26 @@
   background: var(--color-bg);
 }
 
-.registro-card {
+.flujo-card {
   width: 100%;
   max-width: 460px;
   background: var(--color-surface);
   border: var(--card-border);
-  border-radius: var(--radius-lg, 14px);
+  border-radius: var(--radius-lg);
   box-shadow: var(--shadow-lg);
   overflow: hidden;
 }
+.flujo-card--ancha { max-width: 560px; }
 
 /* ── Header ── */
-.registro-card__header {
+.flujo-card__header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: var(--space-lg) var(--space-xl);
   border-bottom: 1px solid var(--color-border-light);
 }
-.registro-volver {
+.flujo-volver {
   display: inline-flex;
   align-items: center;
   gap: 4px;
@@ -49,11 +53,14 @@
   font-weight: 600;
   color: var(--color-text-muted);
   text-decoration: none;
-  transition: color 160ms var(--registro-ease);
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: color 160ms var(--flujo-ease);
 }
-.registro-volver:hover { color: var(--color-text); }
-.registro-marca { display: inline-flex; align-items: center; gap: 8px; }
-.registro-marca__logo {
+.flujo-volver:hover { color: var(--color-text); }
+.flujo-marca { display: inline-flex; align-items: center; gap: 8px; }
+.flujo-marca__logo {
   width: 28px; height: 28px;
   display: grid; place-items: center;
   background: var(--color-accent);
@@ -61,41 +68,42 @@
   border-radius: 8px;
   font-weight: 900; font-size: 0.95rem;
 }
-.registro-marca__nombre { font-weight: 800; letter-spacing: -0.5px; color: var(--color-text); }
+.flujo-marca__nombre { font-weight: 800; letter-spacing: -0.5px; color: var(--color-text); }
 
 /* ══ Barra de progreso líquida ══ */
-.registro-progreso { padding: var(--space-xl) var(--space-xl) 0; }
-.registro-progreso__riel {
+.flujo-progreso { padding: var(--space-xl) var(--space-xl) 0; }
+.flujo-progreso__riel {
   position: relative;
   height: 4px;
-  /* El riel va de centro a centro de las bolitas extremas, no de borde a borde:
-     así el relleno llega exactamente al centro de la bolita del paso actual. */
-  margin: 0 16.67% var(--space-md);
+  /* De centro a centro de las bolitas extremas (no de borde a borde): así el relleno
+     llega exactamente al centro de la bolita del paso actual. El margen depende de
+     cuántos pasos haya, por eso se calcula inline en el componente. */
+  margin-bottom: var(--space-md);
   background: var(--color-neutral-soft);
   border-radius: 999px;
   overflow: hidden;
 }
-.registro-progreso__relleno {
+.flujo-progreso__relleno {
   height: 100%;
   background: linear-gradient(90deg, var(--color-primary-strong), var(--color-primary-light));
   border-radius: 999px;
-  /* El "líquido": la barra crece sola con una curva suave al cambiar de paso. */
-  transition: width 460ms var(--registro-ease);
+  /* El "líquido": crece solo con una curva suave al cambiar de paso. */
+  transition: width 460ms var(--flujo-ease);
 }
-.registro-progreso__pasos {
+.flujo-progreso__pasos {
   display: flex;
   justify-content: space-between;
   list-style: none;
   margin: 0; padding: 0;
 }
-.registro-paso {
+.flujo-paso {
   flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 6px;
 }
-.registro-paso__bolita {
+.flujo-paso__bolita {
   width: 26px; height: 26px;
   display: grid; place-items: center;
   border-radius: 50%;
@@ -103,71 +111,72 @@
   border: 2px solid var(--color-border);
   color: var(--color-text-light);
   font-size: 0.75rem; font-weight: 700;
-  transition: background 240ms var(--registro-ease),
-              border-color 240ms var(--registro-ease),
-              color 240ms var(--registro-ease),
-              transform 240ms var(--registro-ease);
+  transition: background 240ms var(--flujo-ease),
+              border-color 240ms var(--flujo-ease),
+              color 240ms var(--flujo-ease),
+              transform 240ms var(--flujo-ease);
 }
-.registro-paso__nombre {
+.flujo-paso__nombre {
   font-size: 0.6875rem;
   font-weight: 600;
   color: var(--color-text-light);
-  transition: color 240ms var(--registro-ease);
+  text-align: center;
+  transition: color 240ms var(--flujo-ease);
 }
-.registro-paso--activo .registro-paso__bolita {
+.flujo-paso--activo .flujo-paso__bolita {
   background: var(--color-primary-strong);
   border-color: var(--color-primary-strong);
   color: var(--color-primary-on);
   transform: scale(1.12);
 }
-.registro-paso--activo .registro-paso__nombre { color: var(--color-text); }
-.registro-paso--completo .registro-paso__bolita {
+.flujo-paso--activo .flujo-paso__nombre { color: var(--color-text); }
+.flujo-paso--completo .flujo-paso__bolita {
   background: var(--color-primary-soft);
   border-color: var(--color-primary-strong);
   color: var(--color-primary-soft-on);
 }
-.registro-paso--completo .registro-paso__nombre { color: var(--color-primary-soft-on); }
+.flujo-paso--completo .flujo-paso__nombre { color: var(--color-primary-soft-on); }
 
 /* ══ Cuerpo + slide horizontal entre pasos ══ */
-.registro-card__cuerpo { padding: var(--space-xl); }
+.flujo-card__cuerpo { padding: var(--space-xl); }
 
 /* Sale hacia la izquierda desvaneciéndose; el nuevo entra desde la derecha. */
-.registro-card__cuerpo--saliendo {
-  animation: registro-salida var(--registro-dur-salida) var(--registro-ease) forwards;
+.flujo-card__cuerpo--saliendo {
+  animation: flujo-salida var(--flujo-dur-salida) var(--flujo-ease) forwards;
 }
-.registro-card__cuerpo--entrando {
-  animation: registro-entrada var(--registro-dur-entrada) var(--registro-ease);
+.flujo-card__cuerpo--entrando {
+  animation: flujo-entrada var(--flujo-dur-entrada) var(--flujo-ease);
 }
-@keyframes registro-salida {
+@keyframes flujo-salida {
   from { opacity: 1; transform: translateX(0); }
   to   { opacity: 0; transform: translateX(-28px); }
 }
-@keyframes registro-entrada {
+@keyframes flujo-entrada {
   from { opacity: 0; transform: translateX(28px); }
   to   { opacity: 1; transform: translateX(0); }
 }
 
 /* Vibración lateral para errores de validación/API. */
-.registro-card__cuerpo--shake { animation: registro-shake 400ms var(--registro-ease); }
-@keyframes registro-shake {
-  0%, 100%     { transform: translateX(0); }
+.flujo-card__cuerpo--shake { animation: flujo-shake 400ms var(--flujo-ease); }
+@keyframes flujo-shake {
+  0%, 100%      { transform: translateX(0); }
   15%, 45%, 75% { transform: translateX(-7px); }
   30%, 60%, 90% { transform: translateX(7px); }
 }
 
-.registro-titulo {
+.flujo-titulo {
   margin: 0 0 6px;
   font-size: var(--text-h1);
   font-weight: 700;
   color: var(--color-text);
 }
-.registro-sub {
+.flujo-sub {
   margin: 0 0 var(--space-xl);
   font-size: 0.875rem;
   line-height: 1.55;
   color: var(--color-text-muted);
 }
-.registro-sub strong { color: var(--color-text); font-weight: 600; }
+.flujo-sub strong { color: var(--color-text); font-weight: 600; }
 
 /* ══ Campos con label flotante ══ */
 .campo { margin-bottom: var(--space-lg); }
@@ -178,7 +187,7 @@
   transform: translateY(-50%);
   color: var(--color-text-light);
   pointer-events: none;
-  transition: color 180ms var(--registro-ease);
+  transition: color 180ms var(--flujo-ease);
 }
 .campo__input {
   width: 100%;
@@ -188,11 +197,11 @@
   color: var(--color-text);
   background: var(--color-input-bg);
   border: 1.5px solid var(--color-border);
-  border-radius: var(--radius-md, 10px);
+  border-radius: var(--radius-md);
   outline: none;
-  transition: border-color 180ms var(--registro-ease),
-              box-shadow 180ms var(--registro-ease),
-              background 180ms var(--registro-ease);
+  transition: border-color 180ms var(--flujo-ease),
+              box-shadow 180ms var(--flujo-ease),
+              background 180ms var(--flujo-ease);
 }
 .campo__input:focus {
   border-color: var(--color-focus);
@@ -202,8 +211,8 @@
 .campo__input:focus ~ .campo__icono { color: var(--color-primary-strong); }
 .campo__input--select { padding-top: 6px; appearance: none; cursor: pointer; }
 
-/* El label arranca centrado como placeholder y se contrae hacia arriba al
-   enfocar o cuando ya hay texto (de ahí el placeholder=" " en el JSX). */
+/* El label arranca centrado como placeholder y se contrae hacia arriba al enfocar o
+   cuando ya hay texto (de ahí el placeholder=" " en el JSX). */
 .campo__label {
   position: absolute;
   left: 38px; top: 50%;
@@ -212,7 +221,7 @@
   color: var(--color-text-light);
   pointer-events: none;
   transform-origin: left center;
-  transition: transform 200ms var(--registro-ease), color 200ms var(--registro-ease);
+  transition: transform 200ms var(--flujo-ease), color 200ms var(--flujo-ease);
 }
 .campo__input:focus + .campo__label,
 .campo__input:not(:placeholder-shown) + .campo__label {
@@ -227,15 +236,13 @@
   right: 12px; top: 50%;
   margin-top: -9px;
   color: var(--color-success-strong);
-  animation: registro-pop 260ms var(--registro-ease);
+  animation: flujo-pop 260ms var(--flujo-ease);
 }
-@keyframes registro-pop {
+@keyframes flujo-pop {
   0%   { transform: scale(0.4); opacity: 0; }
   60%  { transform: scale(1.18); opacity: 1; }
   100% { transform: scale(1); opacity: 1; }
 }
-/* El ojo de la contraseña comparte el slot derecho con el check: cuando los dos
-   aplican, el check se corre para no superponerse. */
 .campo__ojo {
   position: absolute;
   right: 8px; top: 50%;
@@ -246,12 +253,11 @@
   color: var(--color-text-light);
   cursor: pointer;
   border-radius: 6px;
-  transition: color 160ms var(--registro-ease), background 160ms var(--registro-ease);
+  transition: color 160ms var(--flujo-ease), background 160ms var(--flujo-ease);
 }
 .campo__ojo:hover { color: var(--color-text); background: var(--color-neutral-soft); }
-/* En el DOM el check va ANTES del ojo (ver CampoFlotante: children se renderiza al
-   final), así que el desplazamiento se selecciona con :has y un hermano POSTERIOR --
-   un `.campo__ojo ~ .campo__check` nunca llegaría a aplicar. */
+/* En el DOM el check va ANTES del ojo (children se renderiza al final), así que el
+   desplazamiento se selecciona con :has y un hermano POSTERIOR. */
 .campo__check:has(~ .campo__ojo) { right: 42px; }
 
 .campo--error .campo__input { border-color: var(--color-danger-strong); }
@@ -262,6 +268,13 @@
   margin-top: 5px;
   font-size: 0.75rem;
   color: var(--color-danger-soft-on);
+}
+
+/* Dos campos en una fila (ej. tipo + número de documento, año + color). */
+.flujo-fila-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-md);
 }
 
 /* ══ Código OTP: 6 casillas ══ */
@@ -281,11 +294,11 @@
   color: var(--color-text);
   background: var(--color-input-bg);
   border: 1.5px solid var(--color-border);
-  border-radius: var(--radius-md, 10px);
+  border-radius: var(--radius-md);
   outline: none;
-  transition: border-color 180ms var(--registro-ease),
-              box-shadow 180ms var(--registro-ease),
-              transform 180ms var(--registro-ease);
+  transition: border-color 180ms var(--flujo-ease),
+              box-shadow 180ms var(--flujo-ease),
+              transform 180ms var(--flujo-ease);
 }
 .otp__caja:focus {
   border-color: var(--color-focus);
@@ -299,7 +312,7 @@
 .otp--error .otp__caja { border-color: var(--color-danger-strong); }
 
 /* ══ Botón principal + spinner ══ */
-.registro-btn {
+.flujo-btn {
   width: 100%;
   height: 48px;
   display: grid;
@@ -310,58 +323,108 @@
   color: var(--color-primary-on);
   background: var(--color-primary-strong);
   border: none;
-  border-radius: var(--radius-md, 10px);
+  border-radius: var(--radius-md);
   cursor: pointer;
-  transition: background 180ms var(--registro-ease),
-              transform 180ms var(--registro-ease),
-              opacity 180ms var(--registro-ease),
-              box-shadow 180ms var(--registro-ease);
+  transition: background 180ms var(--flujo-ease),
+              transform 180ms var(--flujo-ease),
+              opacity 180ms var(--flujo-ease),
+              box-shadow 180ms var(--flujo-ease);
 }
-.registro-btn:hover:not(:disabled) {
+.flujo-btn:hover:not(:disabled) {
   background: var(--color-primary-strong-hover);
   box-shadow: var(--shadow-green);
   transform: translateY(-1px);
 }
-.registro-btn:active:not(:disabled) { transform: translateY(0); }
-.registro-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+.flujo-btn:active:not(:disabled) { transform: translateY(0); }
+.flujo-btn:disabled { opacity: 0.55; cursor: not-allowed; }
 /* Durante la espera de la API el botón se desvanece un poco y muestra el spinner. */
-.registro-btn--cargando { opacity: 0.8; cursor: progress; }
-.registro-spinner {
+.flujo-btn--cargando { opacity: 0.8; cursor: progress; }
+.flujo-btn--secundario {
+  background: none;
+  color: var(--color-text-muted);
+  font-weight: 600;
+  height: 40px;
+  margin-top: 0;
+}
+.flujo-btn--secundario:hover:not(:disabled) {
+  background: var(--color-neutral-soft);
+  color: var(--color-text);
+  box-shadow: none;
+  transform: none;
+}
+.flujo-spinner {
   width: 19px; height: 19px;
   border: 2.5px solid rgba(255, 255, 255, 0.35);
   border-top-color: var(--color-primary-on);
   border-radius: 50%;
-  animation: registro-giro 680ms linear infinite;
+  animation: flujo-giro 680ms linear infinite;
 }
-@keyframes registro-giro { to { transform: rotate(360deg); } }
+@keyframes flujo-giro { to { transform: rotate(360deg); } }
 
-.registro-error {
+.flujo-error {
   margin: 0 0 var(--space-md);
   padding: 10px 12px;
   font-size: 0.8125rem;
   color: var(--color-danger-soft-on);
   background: var(--color-danger-soft);
   border: 1px solid var(--color-danger-strong);
-  border-radius: var(--radius-sm, 8px);
+  border-radius: var(--radius-sm);
 }
 
+/* ══ Carga unificada del envío final (los 3 POST secuenciales) ══ */
+.flujo-carga {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-lg);
+  padding: var(--space-2xl) var(--space-lg);
+  text-align: center;
+}
+.flujo-carga__spinner {
+  width: 44px; height: 44px;
+  border: 3.5px solid var(--color-neutral-soft);
+  border-top-color: var(--color-primary-strong);
+  border-radius: 50%;
+  animation: flujo-giro 760ms linear infinite;
+}
+.flujo-carga__titulo {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--color-text);
+}
+/* Lista de las etapas del envío: la actual resaltada, las hechas con check. */
+.flujo-carga__etapas { list-style: none; margin: 0; padding: 0; width: 100%; max-width: 280px; }
+.flujo-carga__etapa {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 0;
+  font-size: 0.8125rem;
+  color: var(--color-text-light);
+  transition: color 220ms var(--flujo-ease);
+}
+.flujo-carga__etapa--activa { color: var(--color-text); font-weight: 600; }
+.flujo-carga__etapa--hecha  { color: var(--color-success-soft-on); }
+.flujo-carga__etapa svg { flex-shrink: 0; }
+
 /* ══ Reenvío del código ══ */
-.registro-reenvio { margin-top: var(--space-lg); text-align: center; }
-.registro-reenvio__espera { font-size: 0.8125rem; color: var(--color-text-light); }
-.registro-reenvio__btn {
+.flujo-reenvio { margin-top: var(--space-lg); text-align: center; }
+.flujo-reenvio__espera { font-size: 0.8125rem; color: var(--color-text-light); }
+.flujo-reenvio__btn {
   background: none; border: none;
   font-size: 0.8125rem; font-weight: 700;
   color: var(--color-primary-soft-on);
   cursor: pointer;
   padding: 4px 8px;
   border-radius: 6px;
-  transition: background 160ms var(--registro-ease);
+  transition: background 160ms var(--flujo-ease);
 }
-.registro-reenvio__btn:hover:not(:disabled) { background: var(--color-primary-soft); }
-.registro-reenvio__btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.flujo-reenvio__btn:hover:not(:disabled) { background: var(--color-primary-soft); }
+.flujo-reenvio__btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
-/* ══ Aviso legal del paso 3 ══ */
-.registro-aviso-legal {
+/* ══ Aviso sutil (leyenda legal, nota informativa) ══ */
+.flujo-aviso {
   display: flex;
   align-items: flex-start;
   gap: 7px;
@@ -371,39 +434,48 @@
   line-height: 1.5;
   color: var(--color-text-muted);
   background: var(--color-surface-solid);
-  border-radius: var(--radius-sm, 8px);
+  border-radius: var(--radius-sm);
 }
-.registro-aviso-legal svg { flex-shrink: 0; margin-top: 1px; color: var(--color-text-light); }
+.flujo-aviso svg { flex-shrink: 0; margin-top: 1px; color: var(--color-text-light); }
 
-.registro-pie {
+.flujo-pie {
   margin: var(--space-lg) 0 0;
   text-align: center;
   font-size: 0.8125rem;
   color: var(--color-text-muted);
 }
-.registro-pie a { color: var(--color-primary-soft-on); font-weight: 700; text-decoration: none; }
-.registro-pie a:hover { text-decoration: underline; }
+.flujo-pie a, .flujo-pie button {
+  color: var(--color-primary-soft-on);
+  font-weight: 700;
+  text-decoration: none;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: inherit;
+}
+.flujo-pie a:hover, .flujo-pie button:hover { text-decoration: underline; }
 
 @media (max-width: 480px) {
-  .registro-page { padding: 0; align-items: stretch; }
-  .registro-card { max-width: none; border-radius: 0; box-shadow: none; min-height: 100vh; }
+  .flujo-page { padding: 0; align-items: stretch; }
+  .flujo-card { max-width: none; border-radius: 0; box-shadow: none; min-height: 100vh; }
   .otp { gap: 6px; }
   .otp__caja { height: 48px; font-size: 1.125rem; }
+  .flujo-fila-2 { grid-template-columns: 1fr; gap: 0; }
 }
 
-/* Respeta la preferencia del sistema por menos movimiento: se mantiene el
-   feedback de color/estado, se quitan los desplazamientos y el giro infinito.
-   El JS además se salta los setTimeout del slide (ver sinMovimiento()). */
+/* Respeta la preferencia del sistema por menos movimiento: se mantiene el feedback de
+   color/estado, se quitan los desplazamientos y el giro infinito. El JS además se salta
+   los setTimeout del slide (ver useFlujoProgresivo::sinMovimiento). */
 @media (prefers-reduced-motion: reduce) {
-  .registro-card__cuerpo--saliendo,
-  .registro-card__cuerpo--entrando,
-  .registro-card__cuerpo--shake,
+  .flujo-card__cuerpo--saliendo,
+  .flujo-card__cuerpo--entrando,
+  .flujo-card__cuerpo--shake,
   .campo__check {
     animation: none;
   }
-  .registro-progreso__relleno { transition: none; }
-  .registro-spinner { animation-duration: 2s; }
-  .registro-btn:hover:not(:disabled),
+  .flujo-progreso__relleno { transition: none; }
+  .flujo-spinner, .flujo-carga__spinner { animation-duration: 2s; }
+  .flujo-btn:hover:not(:disabled),
   .otp__caja:focus,
-  .registro-paso--activo .registro-paso__bolita { transform: none; }
+  .flujo-paso--activo .flujo-paso__bolita { transform: none; }
 }
