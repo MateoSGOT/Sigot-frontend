@@ -261,6 +261,16 @@
 .login-form-footer strong { color: var(--color-text-secondary); font-weight: var(--weight-semibold); }
 .login-recovery-link:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }
 
+/* Enlace al autoregistro de clientes (el taller ya no crea todas las cuentas). */
+.login-registro-link {
+  color: var(--color-accent);
+  font-weight: var(--weight-bold, 700);
+  text-decoration: none;
+}
+.login-registro-link:hover { text-decoration: underline; }
+.login-registro-link:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }
+.login-form-footer__sep { margin: 0 6px; opacity: 0.5; }
+
 /* ── Modal de recuperación ── */
 .login-modal-overlay {
   position: fixed; inset: 0; z-index: 200;

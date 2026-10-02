@@ -5,6 +5,7 @@ import { restoreSession, fetchUserPermisos } from './features/auth/slices/authSl
 import Layout from './shared/components/Layout/Layout.jsx';
 import LandingPage from './features/landing/pages/LandingPage.jsx';
 import LoginPage from './features/auth/pages/LoginPage.jsx';
+import RegistroPage from './features/auth/pages/RegistroPage.jsx';
 import ResetPasswordPage from './features/auth/pages/ResetPasswordPage.jsx';
 import CambiarPasswordInicialPage from './features/auth/pages/CambiarPasswordInicialPage.jsx';
 
@@ -101,6 +102,12 @@ function App() {
       <Route
         path="/login"
         element={token ? <Navigate to={loginRedirect} replace /> : <LoginPage />}
+      />
+      {/* Autoregistro de clientes (self-service). Con sesión abierta no tiene sentido:
+          redirige igual que /login. */}
+      <Route
+        path="/registro"
+        element={token ? <Navigate to={loginRedirect} replace /> : <RegistroPage />}
       />
 
       {/* Protected admin/employee routes */}

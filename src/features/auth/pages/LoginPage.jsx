@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { loginThunk, clearError } from '../slices/authSlice.js';
 import { authService } from '../services/authService.js';
 import { MdLock, MdEmail, MdVisibility, MdVisibilityOff, MdClose, MdBuild, MdAssignment, MdEventNote, MdSend, MdInsights, MdLocationOn, MdArrowBack } from 'react-icons/md';
@@ -218,8 +218,13 @@ export default function LoginPage() {
             </button>
           </div>
 
+          {/* El modelo pasó de "el taller crea todas las cuentas" a autoregistro para
+              CLIENTES. Los empleados siguen recibiendo sus credenciales del admin
+              (POST /api/empleados), así que el pie menciona los dos casos. */}
           <div className="login-form-footer">
-            ¿Sin acceso? Solicita tus credenciales al <strong>administrador del taller</strong>.
+            ¿Eres cliente y no tienes cuenta? <Link to="/registro" className="login-registro-link">Regístrate aquí</Link>
+            <span className="login-form-footer__sep">·</span>
+            Si eres del equipo del taller, solicita tus credenciales al <strong>administrador</strong>.
           </div>
         </div>
       </div>

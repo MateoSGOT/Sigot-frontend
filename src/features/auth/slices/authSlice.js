@@ -1,5 +1,6 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import { authService } from '../services/authService.js';
+import { registroService } from '../services/registroService.js';
 import { TOKEN_KEY } from '../../../shared/services/api.js';
 import api from '../../../shared/services/api.js';
 
@@ -22,6 +23,17 @@ export const loginThunk = createAsyncThunk('auth/login', async ({ Correo, Passwo
     return data;
   } catch (err) {
     return rejectWithValue(err?.response?.data?.message || 'Credenciales inválidas');
+  }
+});
+
+// Último paso del autoregistro de clientes: la API devuelve el token igual que un login,
+// así que al resolverse deja la sesión iniciada y el usuario entra directo al portal sin
+// tener que volver a escribir sus credenciales (ver RegistroPage.jsx).
+export const completarRegistroThunk = createAsyncThunk('auth/completarRegistro', async (datos, { rejectWithValue }) => {
+  try {
+    return await registroService.completarRegistro(datos);
+  } catch (err) {
+    return rejectWithValue(err?.response?.data?.message || 'No pudimos completar tu registro');
   }
 });
 
@@ -75,28 +87,33 @@ const authSlice = createSlice({
     },
   },
   extraReducers: (builder) => {
+    // Un login y un autoregistro recién completado dejan la sesión en el mismo estado
+    // (la API devuelve el mismo payload con token + tipo + cliente), así que comparten
+    // este handler en vez de duplicarlo.
+    const sesionIniciada = (state, action) => {
+      state.loading = false;
+      const payload = action.payload.data || action.payload;
+      state.token = payload.token;
+      state.tipo = payload.tipo;
+      state.empleado = payload.empleado || null;
+      state.cliente = payload.cliente || null;
+      state.debeCambiarPassword = !!(payload.debeCambiarPassword ?? payload.empleado?.debeCambiarPassword ?? payload.cliente?.debeCambiarPassword);
+      state.restoring = false;
+      localStorage.setItem(TOKEN_KEY, payload.token);
+      if (payload.tipo) localStorage.setItem(TIPO_KEY, payload.tipo);
+    };
+    const cargando = (state) => { state.loading = true; state.error = null; };
+    const fallo = (state, action) => { state.loading = false; state.error = action.payload; };
+
     builder
       // Login
-      .addCase(loginThunk.pending, (state) => {
-        state.loading = true;
-        state.error = null;
-      })
-      .addCase(loginThunk.fulfilled, (state, action) => {
-        state.loading = false;
-        const payload = action.payload.data || action.payload;
-        state.token = payload.token;
-        state.tipo = payload.tipo;
-        state.empleado = payload.empleado || null;
-        state.cliente = payload.cliente || null;
-        state.debeCambiarPassword = !!(payload.debeCambiarPassword ?? payload.empleado?.debeCambiarPassword ?? payload.cliente?.debeCambiarPassword);
-        state.restoring = false;
-        localStorage.setItem(TOKEN_KEY, payload.token);
-        if (payload.tipo) localStorage.setItem(TIPO_KEY, payload.tipo);
-      })
-      .addCase(loginThunk.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.payload;
-      })
+      .addCase(loginThunk.pending, cargando)
+      .addCase(loginThunk.fulfilled, sesionIniciada)
+      .addCase(loginThunk.rejected, fallo)
+      // Autoregistro completado (paso 3): misma sesión que un login
+      .addCase(completarRegistroThunk.pending, cargando)
+      .addCase(completarRegistroThunk.fulfilled, sesionIniciada)
+      .addCase(completarRegistroThunk.rejected, fallo)
       // Restore session
       .addCase(restoreSession.fulfilled, (state, action) => {
         const payload = action.payload;
