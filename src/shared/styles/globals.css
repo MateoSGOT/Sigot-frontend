@@ -1,4 +1,7 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+/* Tres familias, tres roles (ver --font-* en variables.css): Archivo para
+   titulares, Inter para UI densa, JetBrains Mono para identificadores. Se piden
+   en una sola petición y solo los pesos que realmente se usan. */
+@import url('https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;800&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600&display=swap');
 @import './variables.css';
 @import './buttons.css';
 @import './forms.css';
@@ -33,12 +36,23 @@ html { font-size: 16px; scroll-behavior: smooth; }
 }
 
 body {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-family: var(--font-body);
+  /* Canvas con los dos halos fríos, no un gris plano (ver --bg-app). */
   background-color: var(--color-bg);
+  background-image: var(--bg-app);
+  background-attachment: fixed;
   color: var(--color-text);
-  line-height: 1.5;
+  line-height: var(--leading-normal);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+/* Titulares con la display y tracking cerrado: a tamaños grandes Inter con
+   tracking normal se ve suelta y "de plantilla". */
+h1, h2, h3, h4 {
+  font-family: var(--font-display);
+  letter-spacing: var(--tracking-tight);
+  line-height: var(--leading-tight);
 }
 
 a { color: inherit; text-decoration: none; }
@@ -49,8 +63,11 @@ img { max-width: 100%; }
 /* === Scrollbar === */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.12); border-radius: var(--radius-full); }
-::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.22); }
+/* El thumb era blanco translúcido (servía sobre el sidebar oscuro) y quedaba
+   invisible sobre el canvas claro. Ahora es tinta translúcida, que funciona en
+   los dos; el sidebar lo sobreescribe con su propia variante clara. */
+::-webkit-scrollbar-thumb { background: rgba(16, 24, 40, 0.18); border-radius: var(--radius-full); }
+::-webkit-scrollbar-thumb:hover { background: rgba(16, 24, 40, 0.30); }
 
 /* === Utility Classes === */
 .text-muted    { color: var(--color-text-muted); }
@@ -101,3 +118,72 @@ img { max-width: 100%; }
 }
 .table-summary__total { margin-left: auto; font-size: var(--text-small); color: var(--color-text-muted); }
 .u-ic-mr    { margin-right: var(--space-xs); vertical-align: middle; }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   IDENTIFICADORES — el gesto distintivo del sistema.
+
+   Una placa, un N.° de orden o una hora no son prosa: son códigos que el
+   operario COMPARA de un barrido vertical. Van en mono con cifras de ancho
+   fijo y tracking abierto, para que las columnas se alineen y el ojo detecte
+   la diferencia entre ABC123 y ABC128 sin leer carácter por carácter.
+   Es el mismo criterio con el que se imprime un manifiesto de carga.
+
+   .u-id        -> identificador (placa, N.° de orden, documento)
+   .u-id--chip  -> además con fondo tenue, para cuando es el dato principal
+   .u-num       -> cifras tabulares sin cambiar de familia (dinero, cantidades)
+   ═══════════════════════════════════════════════════════════════════════════ */
+.u-id {
+  font-family: var(--font-mono);
+  font-weight: 600;
+  font-size: 0.8125rem;
+  letter-spacing: var(--tracking-code);
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text);
+}
+.u-id--chip {
+  display: inline-block;
+  padding: 2px 7px;
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-raised);
+}
+/* Cifras alineadas sin cambiar de familia: para columnas de dinero y cantidad,
+   donde el mono completo se vería pesado pero el salto de ancho molesta. */
+.u-num {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: var(--tracking-normal);
+}
+
+/* Microetiqueta en mayúsculas: encabezados de grupo y eyebrows. */
+.u-eyebrow {
+  font-size: var(--text-caption);
+  font-weight: var(--weight-semibold);
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  color: var(--color-text-light);
+}
+
+/* ── Módulo bento ──
+   Contenedor base de los paneles: blanco puro, canto definido, elevación de
+   reposo que sube en hover. Separa por FONDO y aire, no por líneas grises
+   (de ahí que el "borde" sea un filo casi invisible). */
+.bento {
+  background: var(--color-surface);
+  border: var(--card-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow var(--duration-base) var(--ease),
+              transform var(--duration-base) var(--ease);
+}
+.bento:hover { box-shadow: var(--shadow-md); }
+/* Solo los módulos declarados interactivos se levantan: subir una tarjeta que
+   no se puede clickear es ruido. */
+.bento--interactivo:hover { transform: translateY(-2px); }
+
+/* Área táctil mínima en móvil para botones e inputs (el brief pide 48px: un
+   mecánico opera esto con guantes). Se aplica por media query y no en el
+   componente para no engordar los controles del escritorio. */
+@media (max-width: 640px) {
+  .btn, .form-control, select.form-control, .filter-select {
+    min-height: var(--touch-min);
+  }
+}

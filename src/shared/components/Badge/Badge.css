@@ -1,18 +1,47 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   BADGES DE ESTADO
+
+   Píldora con fondo de baja opacidad y texto de alta saturación DEL MISMO
+   color. Cada variante está verificada ≥4.5:1 sobre su propio tinte (ver los
+   ratios anotados en variables.css) -- es la razón de usar el par
+   --color-X-soft / --color-X-soft-on en vez de inventar combinaciones.
+
+   El color encoda el punto del flujo, no decora: ámbar = en proceso,
+   esmeralda = completado, rosa = cancelado, gris = inactivo, cobalto = info.
+   ═══════════════════════════════════════════════════════════════════════════ */
 .badge {
   display: inline-flex;
   align-items: center;
   gap: var(--space-xs);
-  padding: 0.25rem 0.625rem;
+  padding: 0.3rem 0.6rem;
   border-radius: var(--radius-full);
   font-size: var(--text-caption);
   font-weight: var(--weight-semibold);
-  letter-spacing: 0.025em;
+  letter-spacing: 0.015em;
+  white-space: nowrap;
+  /* Filo del mismo color a muy baja opacidad: define el canto de la píldora
+     sobre fondos claros sin añadir una línea gris ajena a la paleta. */
+  box-shadow: inset 0 0 0 1px rgba(16, 24, 40, 0.06);
 }
 
-/* Cada variante: fondo tenue + foreground de par (legibilidad garantizada) */
+/* Punto indicador: con los estados del flujo el color ya informa, pero el
+   punto hace que se distingan también en escala de grises y para quien no
+   diferencia bien los colores (no depender SOLO del color es requisito AA). */
+.badge::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: var(--radius-full);
+  background: currentColor;
+  flex-shrink: 0;
+  opacity: 0.85;
+}
+/* Variante sin punto, para badges que ya llevan su propio icono. */
+.badge--sin-punto::before { content: none; }
+
 .badge--success { background: var(--color-success-soft); color: var(--color-success-soft-on); }
 .badge--danger  { background: var(--color-danger-soft);  color: var(--color-danger-soft-on); }
 .badge--warning { background: var(--color-warning-soft); color: var(--color-warning-soft-on); }
 .badge--info    { background: var(--color-info-soft);    color: var(--color-info-soft-on); }
-.badge--default { background: var(--color-success-soft); color: var(--color-success-soft-on); }
+.badge--default { background: var(--color-primary-soft); color: var(--color-primary-soft-on); }
 .badge--gray    { background: var(--color-neutral-soft); color: var(--color-neutral-soft-on); }

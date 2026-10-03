@@ -219,7 +219,7 @@
 }
 
 .rol-mat-row--alt { background: rgba(0, 0, 0, 0.018); }
-.rol-mat-row:hover { background: rgba(181, 242, 61, 0.07); }
+.rol-mat-row:hover { background: rgba(245, 158, 11, 0.07); }
 .rol-mat-row--on .rol-mat-td--mod { font-weight: 600; }
 
 .rol-mat-td {
@@ -248,7 +248,7 @@
 .rol-mat-chk {
   width: 15px;
   height: 15px;
-  accent-color: #b5f23d;
+  accent-color: #F59E0B;
   cursor: pointer;
   vertical-align: middle;
   border-radius: 3px;
@@ -291,7 +291,7 @@
 .rol-toast--success {
   background: #f0fdf4;
   border: 1px solid #86efac;
-  color: #15803d;
+  color: #1D4ED8;
 }
 
 .rol-toast--error {

@@ -27,7 +27,7 @@ const DURACION_POR_TIPO = { Diagnostico: '45', Mantenimiento: '60' };
 const ESTADO_CITA_STYLE = {
   Pendiente:  { bg: '#eff6ff', fg: '#1d4ed8', label: 'Pendiente' },
   Confirmada: { bg: '#ecfeff', fg: '#0e7490', label: 'Confirmada' },
-  Atendida:   { bg: '#f0fdf4', fg: '#15803d', label: 'Atendida' },
+  Atendida:   { bg: '#f0fdf4', fg: '#1D4ED8', label: 'Atendida' },
   Diagnosticada: { bg: '#f5f3ff', fg: '#6d28d9', label: 'Diagnosticada' },
   Cancelada:  { bg: '#fef2f2', fg: '#b91c1c', label: 'Cancelada' },
   NoAsistio:  { bg: '#fefce8', fg: '#a16207', label: 'No asistió' },

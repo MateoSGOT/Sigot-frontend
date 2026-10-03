@@ -40,7 +40,7 @@
 /* ── Portal sidebar overrides ───────────────────────────────*/
 .portal-sidebar__subtitle {
   font-size: 0.6875rem;
-  color: rgba(74, 222, 128, 0.78);
+  color: rgba(96, 165, 250, 0.78);
   font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -79,9 +79,9 @@
 
 /* ── Feedback ───────────────────────────────────────────────*/
 .portal-success {
-  background: #dcfce7;
+  background: #DBEAFE;
   color: var(--color-primary);
-  border: 1px solid rgba(22,163,74,0.3);
+  border: 1px solid rgba(37, 99, 235,0.3);
   border-radius: 10px;
   padding: 0.75rem 1rem;
   font-size: 0.875rem;
@@ -91,8 +91,8 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  background: rgba(22,163,74,0.10);
-  border: 1px solid rgba(22,163,74,0.3);
+  background: rgba(37, 99, 235,0.10);
+  border: 1px solid rgba(37, 99, 235,0.3);
   border-radius: 10px;
   padding: 0.75rem 1rem;
   color: var(--color-primary);
@@ -236,7 +236,7 @@
 
 .portal-profile-field-input:focus {
   border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px rgba(22,163,74,0.12);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235,0.12);
 }
 
 .portal-profile-field-input--readonly {

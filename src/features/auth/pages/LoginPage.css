@@ -37,11 +37,11 @@
      (--1/--2/--3). Antes había opacity:0.5 que se MULTIPLICABA con el alfa
      del rgba (0.55×0.5=0.275…) dejando los blobs casi invisibles. */
 }
-/* Blob 1 (arriba-izq) en azul marino para reforzar ese lado; 2 y 3 en verde
-   abajo → transición marino → esmeralda como el sidebar. */
+/* Blob 1 (arriba-izq) marino profundo; 2 y 3 en cobalto abajo → transición
+   marino → cobalto, igual que el degradado del sidebar. */
 .login-left__blob--1 { width: 340px; height: 340px; top: -80px; left: -60px; background: rgba(42, 84, 140, 0.40); }
-.login-left__blob--2 { width: 260px; height: 260px; bottom: 40px; right: -60px; background: rgba(74, 222, 128, 0.30); }
-.login-left__blob--3 { width: 220px; height: 220px; bottom: -60px; left: 35%; background: rgba(22, 163, 74, 0.45); }
+.login-left__blob--2 { width: 260px; height: 260px; bottom: 40px; right: -60px; background: rgba(96, 165, 250, 0.30); }
+.login-left__blob--3 { width: 220px; height: 220px; bottom: -60px; left: 35%; background: rgba(37, 99, 235, 0.45); }
 
 .login-left__content {
   position: relative; z-index: 1;
@@ -53,19 +53,19 @@
 
 .login-left__top { display: flex; flex-direction: column; }
 
-/* Wordmark: solo el nombre, blanco → verde como el sidebar */
+/* Wordmark: solo el nombre, blanco → cobalto como el sidebar */
 .login-left__wordmark {
   align-self: flex-start;
   font-size: 1.75rem;
   font-weight: 800;
   letter-spacing: 0.22em;
-  background: linear-gradient(95deg, #ffffff 0%, #eafff2 45%, #4ade80 100%);
+  background: linear-gradient(95deg, #ffffff 0%, #EAF1FE 45%, #60A5FA 100%);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
   color: #ffffff; /* fallback */
   margin-bottom: var(--space-xl);
-  filter: drop-shadow(0 0 12px rgba(74, 222, 128, 0.25));
+  filter: drop-shadow(0 0 12px rgba(96, 165, 250, 0.25));
 }
 
 .login-left__title {
@@ -80,7 +80,7 @@
   color: rgba(255, 255, 255, 0.72);
   margin-bottom: 0;   /* la distribución la maneja el space-between del contenido */
 }
-.login-left__title-accent { color: #4ade80; }
+.login-left__title-accent { color: #60A5FA; }
 
 .login-left__cards { display: flex; flex-direction: column; gap: var(--space-md); }
 
@@ -100,17 +100,17 @@
 }
 .login-feature-card:hover {
   background: rgba(255, 255, 255, 0.10);
-  border-color: rgba(74, 222, 128, 0.30);
+  border-color: rgba(96, 165, 250, 0.30);
   transform: translateX(3px);
 }
 .login-feature-card__icon {
   width: 36px; height: 36px; flex-shrink: 0;
   border-radius: var(--radius-full);
-  /* Mismo verde del botón "Ingresar" (antes era lima #b5f23d) + icono blanco */
+  /* Mismo cobalto del botón "Ingresar" + icono blanco */
   background: linear-gradient(180deg, var(--color-primary-strong), var(--color-primary-strong-hover));
   color: var(--color-primary-on);
   display: flex; align-items: center; justify-content: center;
-  box-shadow: 0 2px 8px rgba(21, 128, 61, 0.30);
+  box-shadow: 0 2px 8px rgba(29, 78, 216, 0.30);
 }
 .login-feature-card__title { font-size: var(--text-body); font-weight: var(--weight-semibold); color: #fff; }
 .login-feature-card__desc  { font-size: var(--text-small); color: rgba(255, 255, 255, 0.66); line-height: var(--leading-normal); }
@@ -215,17 +215,17 @@
   font-weight: var(--weight-semibold);
   letter-spacing: 0.01em;
   display: flex; align-items: center; justify-content: center; gap: var(--space-sm);
-  box-shadow: 0 4px 14px rgba(22, 163, 74, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.14);
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.14);
   transition: transform var(--duration-fast) var(--ease),
               box-shadow var(--duration-base) var(--ease),
               filter var(--duration-fast) var(--ease);
 }
 .login-form__submit:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 10px 26px rgba(22, 163, 74, 0.40), inset 0 1px 0 rgba(255, 255, 255, 0.20);
+  box-shadow: 0 10px 26px rgba(37, 99, 235, 0.40), inset 0 1px 0 rgba(255, 255, 255, 0.20);
   filter: brightness(1.04);
 }
-.login-form__submit:active:not(:disabled) { transform: translateY(0); box-shadow: 0 3px 10px rgba(22, 163, 74, 0.3); }
+.login-form__submit:active:not(:disabled) { transform: translateY(0); box-shadow: 0 3px 10px rgba(37, 99, 235, 0.3); }
 .login-form__submit:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }
 .login-form__submit:disabled { opacity: 0.7; cursor: not-allowed; }
 

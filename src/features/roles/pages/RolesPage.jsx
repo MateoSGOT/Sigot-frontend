@@ -49,10 +49,10 @@ const MODULE_META = {
   'Proveedores': { icon: MdLocalShipping,         label: 'Proveedores',        color: '#f97316' },
   'Compras':     { icon: MdShoppingCart,          label: 'Compras',            color: '#ef4444' },
   'Servicios':   { icon: MdMiscellaneousServices, label: 'Servicios',          color: '#a855f7' },
-  'Agenda':      { icon: MdEventNote,             label: 'Agenda',             color: '#22c55e' },
+  'Agenda':      { icon: MdEventNote,             label: 'Agenda',             color: '#3B82F6' },
   'Órdenes':{ icon: MdAssignment,            label: 'Órdenes de Trabajo', color: '#eab308' },
   'Novedades':   { icon: MdNewReleases,           label: 'Novedades',          color: '#ec4899' },
-  'Roles':       { icon: MdSecurity,              label: 'Roles',              color: '#b5f23d' },
+  'Roles':       { icon: MdSecurity,              label: 'Roles',              color: '#F59E0B' },
 };
 
 // 'Dashboard' es de solo lectura: no tiene Crear/Editar/Eliminar (esas columnas
@@ -535,7 +535,7 @@ export default function RolesPage() {
                       <td className="rol-mat-td rol-mat-td--mod">
                         <div className="rol-mat-mod-cell">
                           {Icon && (
-                            <span className="rol-mat-mod-icon" style={{ color: meta?.color || '#b5f23d' }}>
+                            <span className="rol-mat-mod-icon" style={{ color: meta?.color || '#F59E0B' }}>
                               <Icon size={15} />
                             </span>
                           )}

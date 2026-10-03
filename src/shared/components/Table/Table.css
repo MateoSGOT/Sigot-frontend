@@ -1,8 +1,12 @@
 .table-wrapper {
   overflow-x: auto;
-  border-radius: var(--radius-md);
-  border: 1px solid var(--color-border);
+  /* Módulo bento: blanco puro, canto definido, sin borde gris divisorio -- la
+     separación la da el contraste con el canvas, no una línea. */
+  border-radius: var(--radius-lg);
+  border: var(--card-border);
+  box-shadow: var(--shadow-sm);
   -webkit-overflow-scrolling: touch;
+  transition: box-shadow var(--duration-base) var(--ease);
   /* Indicador de scroll horizontal (técnica CSS pura): aparece una sombra
      en el borde que tiene más contenido oculto y desaparece al llegar al
      extremo. Las capas "cover" (attachment local) se mueven con el scroll;
@@ -14,6 +18,7 @@
     radial-gradient(farthest-side at 100% 50%, rgba(0,0,0,0.10), transparent) 100% 0 / 14px 100% no-repeat;
   background-attachment: local, local, scroll, scroll;
 }
+.table-wrapper:hover { box-shadow: var(--shadow-md); }
 
 .table {
   width: 100%;
@@ -33,13 +38,15 @@
   font-weight: var(--weight-semibold);
   color: var(--color-text-muted);
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: var(--tracking-wide);
   white-space: nowrap;
-  border-bottom: 1px solid var(--color-border);
+  /* Sin línea divisoria: el cambio de fondo de la cabecera ya separa. */
+  border-bottom: none;
 }
 
 .table__td {
-  height: 48px;
+  /* Más aire vertical: densa pero legible. */
+  height: 56px;
   padding: var(--space-md) var(--space-lg);
   color: var(--color-text);
   border-top: 1px solid var(--color-border-light);
@@ -62,12 +69,23 @@
 }
 
 .table__row {
-  transition: background 0.15s ease;
+  position: relative;
+  transition: background var(--duration-base) var(--ease),
+              box-shadow var(--duration-base) var(--ease);
   animation: rowFadeIn 0.18s ease both;
 }
 
+/* Hover: tinte de acción + elevación milimétrica + barra de acento a la
+   izquierda, que marca la fila apuntada sin desplazar nada.
+   NOTA -- deliberadamente NO se usa `transform: scale()` en la fila: sobre
+   `display: table-row` el escalado produce texto borroso por subpíxel y la
+   fila se recorta contra el `overflow-x` del wrapper. En una tabla de datos
+   densa la legibilidad gana; la elevación se consigue con la sombra. */
 .table__row:hover {
-  background: rgba(22, 163, 74, 0.05);
+  background: var(--color-primary-soft);
+  box-shadow: inset 3px 0 0 0 var(--color-primary),
+              0 2px 10px rgba(16, 24, 40, 0.07);
+  z-index: 1;
 }
 
 .table__row--inactive {
@@ -84,8 +102,8 @@
   font-weight: 600;
   color: var(--color-text-light);
   text-transform: uppercase;
-  letter-spacing: 0.07em;
-  border-top: 1px solid var(--color-border);
+  letter-spacing: var(--tracking-wide);
+  border-top: 1px solid var(--color-border-light);
   background: var(--color-surface-solid);
   text-align: center;
 }
@@ -203,15 +221,17 @@
 
   /* Fila de datos = tarjeta */
   .table__row {
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-md);
+    border: var(--card-border);
+    border-radius: var(--radius-lg);
     background: var(--color-surface);
     box-shadow: var(--shadow-sm);
-    padding: 0.25rem 0.875rem;
-    margin-bottom: 0.75rem;
+    padding: var(--space-xs) var(--space-lg);
+    margin-bottom: var(--space-md);
     animation: none;
   }
-  .table__row:hover { background: var(--color-surface); }
+  /* En móvil la tarjeta no se tinta ni se eleva: no hay puntero que seguir y
+     el inset de la barra de acento desalinearía el contenido. */
+  .table__row:hover { background: var(--color-surface); box-shadow: var(--shadow-sm); }
 
   /* Celda = fila "etiqueta : valor" */
   .table__td {
@@ -232,11 +252,11 @@
     content: attr(data-label);
     flex-shrink: 0;
     max-width: 42%;
-    font-size: 0.68rem;
-    font-weight: 700;
+    font-size: var(--text-caption);
+    font-weight: var(--weight-semibold);
     text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: var(--color-text-muted);
+    letter-spacing: var(--tracking-wide);
+    color: var(--color-text-light);
     text-align: left;
   }
   /* Columna índice "#" y celdas sin etiqueta: sin prefijo */

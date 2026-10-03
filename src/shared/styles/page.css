@@ -16,10 +16,10 @@
   justify-content: space-between;
   gap: 1rem;
   padding: 1.75rem 2rem 1.25rem;
-  /* Fondo sutil de marca (verde tenue + textura) en todos los módulos */
+  /* Velo de marca + textura de puntos (ver --bg-header). */
   background: var(--bg-header);
   background-size: 22px 22px, cover;
-  border-bottom: 1px solid var(--color-primary-soft);
+  border-bottom: 1px solid var(--color-border-light);
   position: sticky;
   top: 0;
   z-index: 10;
@@ -33,16 +33,17 @@
 
 /* Cards inside page: dark floating blocks on light background */
 .page > .card {
-  margin: 1.25rem 2rem;
+  margin: var(--space-xl) var(--space-2xl);
   border-radius: var(--radius-lg);
 }
 
 .page__title {
-  font-size: 1.625rem;
-  font-weight: 800;
+  font-family: var(--font-display);
+  font-size: var(--text-h1);
+  font-weight: var(--weight-extrabold);
   color: var(--color-text);
-  line-height: 1.2;
-  letter-spacing: -0.02em;
+  line-height: var(--leading-tight);
+  letter-spacing: var(--tracking-tight);
 }
 
 .page__subtitle {
@@ -59,15 +60,22 @@
 }
 
 /* === Card — superficie sólida, definición nítida (border hairline + shadow-sm) === */
+ /* Módulo bento: blanco puro, canto de 16px, elevación de reposo que sube al
+    pasar el puntero. La separación entre módulos la da el canvas y el aire, no
+    una línea gris. */
 .card {
   background: var(--color-surface);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-lg);
   box-shadow: var(--shadow-sm);
   border: var(--card-border);
   transition: box-shadow var(--duration-base) var(--ease),
               transform var(--duration-base) var(--ease);
   color: var(--color-text);
 }
+/* El realce de elevación aplica a todo módulo; el DESPLAZAMIENTO sigue
+   reservado a los clicables (ver .card--interactive): levantar algo que no se
+   puede pulsar es ruido. */
+.card:hover { box-shadow: var(--shadow-md); }
 
 /* Solo las cards clicables se elevan en hover (microinteracción) */
 .card--interactive {
@@ -86,8 +94,8 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 1.25rem 1.5rem;
-  border-bottom: 1px solid var(--color-border);
+  /* Más padding y SIN borde inferior: el aire separa la cabecera del cuerpo. */
+  padding: var(--space-xl) var(--space-xl) var(--space-lg);
   gap: 1rem;
   flex-wrap: wrap;
 }

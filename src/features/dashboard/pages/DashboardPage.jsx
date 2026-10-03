@@ -279,12 +279,12 @@ export default function DashboardPage() {
             {loading ? <Skeleton height={220} /> : ingresosSerie.length > 0 ? (
               <ResponsiveContainer width="100%" height={240}>
                 <AreaChart data={ingresosSerie}>
-                  <defs><linearGradient id="colorIng" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#16a34a" stopOpacity={0.28} /><stop offset="60%" stopColor="#16a34a" stopOpacity={0.10} /><stop offset="100%" stopColor="#b5f23d" stopOpacity={0.02} /></linearGradient></defs>
+                  <defs><linearGradient id="colorIng" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#2563EB" stopOpacity={0.26} /><stop offset="60%" stopColor="#2563EB" stopOpacity={0.09} /><stop offset="100%" stopColor="#F59E0B" stopOpacity={0.02} /></linearGradient></defs>
                   <CartesianGrid {...CHART_STYLE.grid} />
                   <XAxis dataKey="name" tick={CHART_STYLE.tick} axisLine={false} tickLine={false} />
                   <YAxis tick={CHART_STYLE.tick} axisLine={false} tickLine={false} tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`} />
                   <Tooltip {...CHART_STYLE.tooltip} formatter={(v) => [formatCurrency(v), 'Ingreso']} />
-                  <Area type="monotone" dataKey="total" name="Ingreso" stroke="#16a34a" strokeWidth={2.5} fill="url(#colorIng)" isAnimationActive animationDuration={900} animationEasing="ease-out" />
+                  <Area type="monotone" dataKey="total" name="Ingreso" stroke="#2563EB" strokeWidth={2.5} fill="url(#colorIng)" isAnimationActive animationDuration={900} animationEasing="ease-out" />
                 </AreaChart>
               </ResponsiveContainer>
             ) : EMPTY_CHART}
@@ -300,7 +300,7 @@ export default function DashboardPage() {
             {loading ? <Skeleton height={220} /> : rep.topServicios.length > 0 ? (
               <ResponsiveContainer width="100%" height={220}>
                 <BarChart data={rep.topServicios.map(s => ({ name: s.nombre, value: s.veces }))} layout="vertical">
-                  <defs><linearGradient id="gradServ" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stopColor="#15803d" /><stop offset="100%" stopColor="#22c55e" /></linearGradient></defs>
+                  <defs><linearGradient id="gradServ" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stopColor="#1D4ED8" /><stop offset="100%" stopColor="#3B82F6" /></linearGradient></defs>
                   <CartesianGrid {...CHART_STYLE.grid} horizontal={false} />
                   <XAxis type="number" tick={CHART_STYLE.tick} axisLine={false} tickLine={false} allowDecimals={false} />
                   <YAxis type="category" dataKey="name" tick={CHART_STYLE.tick} axisLine={false} tickLine={false} width={130} />

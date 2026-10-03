@@ -131,7 +131,7 @@ select.form-control--sm {
 .compra-detail__total-label { color: var(--color-text-muted); font-size: var(--text-small); }
 .compra-detail__total-value { font-weight: var(--weight-bold); font-size: var(--text-h3); }
 .compra-detail__total-row--ganancia .compra-detail__total-label { font-size: var(--text-body); }
-.compra-detail__total-value--ganancia { font-size: var(--text-body); font-weight: var(--weight-semibold); color: var(--color-success, #16a34a); }
+.compra-detail__total-value--ganancia { font-size: var(--text-body); font-weight: var(--weight-semibold); color: var(--color-success, #059669); }
 .compra-detail__total-value--ganancia.is-negative { color: var(--color-danger, #dc2626); }
 
 /* === Móvil: la tabla de PRODUCTOS DEL DETALLE también se apila en tarjetas

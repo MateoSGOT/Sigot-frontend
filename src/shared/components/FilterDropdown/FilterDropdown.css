@@ -134,20 +134,20 @@
 }
 
 .fdd__chip:hover {
-  border-color: rgba(181, 242, 61, 0.4);
-  color: #b5f23d;
-  background: rgba(181, 242, 61, 0.06);
+  border-color: rgba(245, 158, 11, 0.4);
+  color: #F59E0B;
+  background: rgba(245, 158, 11, 0.06);
 }
 
 .fdd__chip--active {
-  background: #b5f23d;
+  background: #F59E0B;
   border-color: transparent;
   color: #000000;
   font-weight: 700;
 }
 
 .fdd__chip--active:hover {
-  background: #c8f55a;
+  background: #FBBF24;
   color: #000000;
 }
 
@@ -180,5 +180,5 @@
 
 .fdd__custom-input:focus {
   border-color: var(--color-primary);
-  box-shadow: 0 0 0 2px rgba(181, 242, 61, 0.15);
+  box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.15);
 }

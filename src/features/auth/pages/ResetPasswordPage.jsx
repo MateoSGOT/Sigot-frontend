@@ -12,7 +12,7 @@ const getPasswordStrength = (pass) => {
   const hasNumber  = /\d/.test(pass);
   const hasUpper   = /[A-Z]/.test(pass);
   if (hasSpecial && hasNumber && hasUpper && pass.length >= 10)
-    return { level: 'strong', label: 'Fuerte', color: '#16a34a', width: '100%' };
+    return { level: 'strong', label: 'Fuerte', color: '#059669', width: '100%' };
   if ((hasNumber || hasSpecial) && pass.length >= 8)
     return { level: 'medium', label: 'Media',  color: '#3b82f6', width: '75%' };
   return { level: 'fair', label: 'Débil', color: '#f59e0b', width: '50%' };
@@ -102,7 +102,7 @@ export default function ResetPasswordPage() {
           </div>
           <div className="rsp-success-state">
             <div className="rsp-success-icon">
-              <MdCheckCircle size={48} color="#16a34a" />
+              <MdCheckCircle size={48} color="#059669" />
             </div>
             <h2 className="rsp-success-title">¡Contraseña actualizada!</h2>
             <p className="rsp-success-desc">

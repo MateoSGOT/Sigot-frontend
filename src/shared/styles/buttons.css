@@ -29,9 +29,10 @@
   cursor: not-allowed;
 }
 
-/* === Primary (Esmeralda sólida + texto blanco) ===
-   Usa -strong (#15803d, 5.02:1 con blanco) porque el texto del botón es 14px
-   (no "grande"); la base #16a34a solo cumple 3:1 y sería sub-AA aquí. */
+/* === Primary (cobalto sólido + texto blanco) ===
+   Usa -strong (#1D4ED8, 6.70:1 con blanco) porque el texto del botón es 14px
+   (no "grande"); la base #2563EB queda en 5.17:1 -- también AA, pero se reserva
+   para bordes/iconos y así el sólido mantiene margen de sobra. */
 .btn--primary {
   background: var(--color-primary-strong);
   color: var(--color-primary-on);
@@ -41,7 +42,7 @@
 
 .btn--primary:hover:not(:disabled) {
   background: var(--color-primary-strong-hover);
-  box-shadow: 0 4px 16px rgba(21, 128, 61, 0.28);
+  box-shadow: 0 4px 16px rgba(29, 78, 216, 0.28);
 }
 
 .btn--primary:active:not(:disabled) {

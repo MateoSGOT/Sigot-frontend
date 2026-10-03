@@ -1,122 +1,157 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   SIGOT — SISTEMA DE TOKENS VISUALES (fuente única de verdad)
+
+   IDENTIDAD: "logística de precisión". Estructura en azul marino pulido,
+   lienzo gris técnico, y el color reservado para ENCODAR ESTADO del vehículo
+   en el taller, no para decorar:
+       cobalto  -> acción y navegación (lo que el operario hace)
+       ámbar    -> en proceso / requiere atención
+       esmeralda-> completado
+       rosa     -> cancelado / error
+   Esa correspondencia es la razón de la paleta: al barrer una tabla, el color
+   ya dice en qué punto del flujo está cada orden antes de leer el texto.
+
+   ⚠️ REGLA DE MANTENIMIENTO: los NOMBRES de token son API pública -- las ~25
+   páginas y los componentes compartidos los referencian. Se cambian VALORES,
+   nunca se elimina un nombre. Los alias marcados "legacy" existen solo para
+   que las páginas antiguas no rompan; su nombre puede mentir sobre el color
+   actual (ej. --shadow-green ya es cobalto) y se retiran al migrar cada página.
+
+   CONTRASTE: cada par fondo/texto de abajo está verificado ≥ 4.5:1 (AA texto
+   normal). Los ratios anotados se midieron sobre el fondo indicado; si se
+   cambia un valor, hay que volver a medirlo.
+   ═══════════════════════════════════════════════════════════════════════════ */
 :root {
-  /* Layout — ancho del sidebar (normal y colapsado a solo iconos) */
-  --sidebar-width: 240px;
-  --sidebar-collapsed-width: 76px;
+  /* ══════════════════ TIPOGRAFÍA ══════════════════
+     Tres roles distintos, a propósito:
+       display -> Archivo: grotesca de raíz industrial, aguanta pesos altos con
+                  tracking negativo sin cerrarse. Titulares y landing.
+       body    -> Inter: hecha para UI densa, la mejor opción para tablas.
+       mono    -> JetBrains Mono: para IDENTIFICADORES (placas, N.° de orden,
+                  horas, dinero). Una placa ES un código: tratarla como texto
+                  corrido la vuelve ilegible de un barrido. Con cifras de ancho
+                  fijo las columnas se alinean y el ojo compara vertical. */
+  --font-display: 'Archivo', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-body:    'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-mono:    'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 
-  /* ============================================================
-     ROLES DE COLOR — cada color con su foreground OBLIGATORIO.
-     Regla dura: nunca uses un color de fondo sin su `-on` encima.
-       Esmeralda #16a34a → primary / éxito / "Realizado" / superficies con TEXTO BLANCO
-       Lima     #b5f23d → acento de marca / sidebar activo / highlights / TEXTO OSCURO
-     ============================================================ */
+  /* Tracking: los titulares grandes necesitan cerrarse; las microetiquetas
+     en mayúsculas necesitan abrirse para no amontonarse. */
+  --tracking-tighter: -0.035em;  /* hero de la landing */
+  --tracking-tight:   -0.02em;   /* h1 / h2 / métricas */
+  --tracking-normal:  0;
+  --tracking-wide:    0.06em;    /* microetiquetas en MAYÚSCULAS */
+  --tracking-code:    0.04em;    /* identificadores en mono */
 
-  /* Primary (Esmeralda)
-     - base: bordes, iconos, focus ring, texto sobre fondo claro (NO como fondo con texto blanco <24px)
-     - strong: superficies sólidas con texto blanco <24px (cumple AA-normal 4.5:1) */
-  --color-primary:              #16a34a;               /* base — 3.30:1 con blanco (solo UI/large) */
-  --color-primary-strong:       #15803d;               /* fondo sólido + texto blanco — 5.02:1 (AA-normal) */
-  --color-primary-strong-hover: #166534;               /* hover del sólido — 7.13:1 */
-  --color-primary-hover:        #15803d;
-  --color-primary-active:       #166534;
-  --color-primary-on:           #ffffff;               /* foreground sobre -strong */
-  --color-primary-soft:         rgba(22, 163, 74, 0.12);
-  --color-primary-soft-on:      #136a32;               /* texto sobre fondo tenue — 5.86:1 */
+  /* ══════════════════ COLOR — ACCIÓN (cobalto) ══════════════════ */
+  --color-primary:              #2563EB;  /* base — 5.17:1 con blanco */
+  --color-primary-strong:       #1D4ED8;  /* fondo sólido + texto blanco — 6.70:1 */
+  --color-primary-strong-hover: #1E40AF;  /* hover del sólido — 8.72:1 */
+  --color-primary-hover:        #1D4ED8;
+  --color-primary-active:       #1E40AF;
+  --color-primary-on:           #FFFFFF;  /* foreground sobre -strong */
+  --color-primary-soft:         rgba(37, 99, 235, 0.10);
+  --color-primary-soft-on:      #1D4ED8;  /* texto sobre el tinte — 5.82:1 */
 
-  /* Accent (Lima) — foreground OSCURO (lima es de alta luminosidad) */
-  --color-accent:          #b5f23d;
-  --color-accent-hover:    #c8f55a;
-  --color-accent-on:       #111827;               /* texto/icono sobre lima sólida */
-  --color-accent-soft:     rgba(181, 242, 61, 0.14);
-  --color-accent-soft-on:  #4d7c0f;
+  /* ══════════════════ COLOR — ACENTO (ámbar industrial) ══════════════════
+     Segunda voz de la paleta: métricas destacadas y "en proceso". Es el
+     "naranja industrial refinado" del brief, no un amarillo de advertencia. */
+  --color-accent:          #F59E0B;
+  --color-accent-hover:    #FBBF24;
+  --color-accent-on:       #1C1206;  /* texto/icono sobre ámbar sólido */
+  --color-accent-soft:     rgba(245, 158, 11, 0.12);
+  --color-accent-soft-on:  #B45309;  /* 4.57:1 sobre el tinte */
 
-  /* Semántica (cada una con foreground sólido y tenue) */
-  /* success = esmeralda (mismo -strong que primary) */
-  --color-success:         #16a34a; --color-success-strong: #15803d; --color-success-on: #ffffff;
-  --color-success-soft:    rgba(22, 163, 74, 0.12); --color-success-soft-on: #136a32;
-  /* info: base #3b82f6 (borde/icono); strong #2563eb para fondo sólido + blanco (5.17:1) */
-  --color-info:            #3b82f6; --color-info-strong: #2563eb; --color-info-on: #ffffff;
-  --color-info-soft:       rgba(59, 130, 246, 0.12); --color-info-soft-on: #1d4ed8;
-  /* warning usa foreground OSCURO (8.26:1), no requiere -strong */
-  --color-warning:         #f59e0b; --color-warning-on: #111827;
-  --color-warning-soft:    rgba(245, 158, 11, 0.14); --color-warning-soft-on: #b45309;
-  /* danger: base #ef4444 (borde/icono); strong #dc2626 para fondo sólido + blanco (4.83:1) */
-  --color-danger:          #ef4444; --color-danger-strong: #dc2626; --color-danger-on: #ffffff;
-  --color-danger-soft:     rgba(239, 68, 68, 0.10); --color-danger-soft-on: #b91c1c;
-  /* neutral #6b7280 sólido + blanco ya cumple 4.83:1; strong para superficies más grandes */
-  --color-neutral:         #6b7280; --color-neutral-strong: #4b5563; --color-neutral-on: #ffffff;
-  --color-neutral-soft:    rgba(0, 0, 0, 0.06); --color-neutral-soft-on: #4b5563;
+  /* ══════════════════ COLOR — ESTADO DEL FLUJO ══════════════════ */
+  --color-success:         #059669; --color-success-strong: #047857; --color-success-on: #FFFFFF;
+  --color-success-soft:    rgba(5, 150, 105, 0.12);  --color-success-soft-on: #047857;  /* 4.84:1 */
 
-  /* Foco funcional — esmeralda (lima no alcanza 3:1 sobre blanco) */
-  --color-focus:           #16a34a;
-  --color-focus-ring:      rgba(22, 163, 74, 0.35);
+  --color-info:            #2563EB; --color-info-strong: #1D4ED8; --color-info-on: #FFFFFF;
+  --color-info-soft:       rgba(37, 99, 235, 0.10);  --color-info-soft-on: #1D4ED8;     /* 5.82:1 */
 
-  /* Escala primary (tints esmeralda) — compat con nombres existentes */
-  --color-primary-50:  rgba(22, 163, 74, 0.06);
-  --color-primary-100: rgba(22, 163, 74, 0.12);
-  --color-primary-200: rgba(22, 163, 74, 0.22);
-  --color-primary-500: #16a34a;
-  --color-primary-600: #15803d;
-  --color-primary-700: #166534;
-  --color-primary-800: #14532d;
-  --color-primary-900: #0f3d21;
-  --color-primary-light: #22c55e;
-  --color-primary-dark:  #15803d;
+  --color-warning:         #F59E0B; --color-warning-on: #1C1206;
+  --color-warning-soft:    rgba(245, 158, 11, 0.12); --color-warning-soft-on: #B45309;  /* 4.57:1 */
 
-  /* Aliases legacy (se retiran al migrar páginas) */
-  --color-info-light:    rgba(59, 130, 246, 0.12);
-  --color-warning-light: rgba(245, 158, 11, 0.14);
-  --color-danger-light:  rgba(239, 68, 68, 0.10);
-  --color-success-light: rgba(22, 163, 74, 0.12);
+  --color-danger:          #E11D48; --color-danger-strong: #BE123C; --color-danger-on: #FFFFFF;
+  --color-danger-soft:     rgba(225, 29, 72, 0.10);  --color-danger-soft-on: #BE123C;   /* 5.37:1 */
 
-  /* === Sidebar (Deep Navy → Emerald) === */
-  --sidebar-bg: #0e1a2c;
-  --sidebar-hover: rgba(181, 242, 61, 0.08);
-  --sidebar-active-bg: #1a3a1a;
-  --sidebar-text: rgba(255, 255, 255, 0.78);
-  --sidebar-text-muted: rgba(255, 255, 255, 0.30);
-  --sidebar-icon: rgba(255, 255, 255, 0.55);
-  --sidebar-border: rgba(0, 0, 0, 0.18);
-  --sidebar-width: 240px;
-  --sidebar-collapsed: 240px;
+  --color-neutral:         #64748B; --color-neutral-strong: #475569; --color-neutral-on: #FFFFFF;
+  --color-neutral-soft:    rgba(15, 23, 42, 0.06);   --color-neutral-soft-on: #475569;  /* 6.64:1 */
 
-  /* === Background & Surfaces (Light Mode) === */
-  --color-bg: #f0f2f5;
-  --color-surface: #ffffff;
-  --color-surface-solid: #f8f9fa;
-  --color-surface-raised: #f0f2f5;
-  --color-input-bg: #f8f9fa;
-  --color-border: rgba(0, 0, 0, 0.09);
-  --color-border-light: rgba(0, 0, 0, 0.05);
+  /* Foco visible: obligatorio para teclado, en el color de acción. */
+  --color-focus:           #2563EB;
+  --color-focus-ring:      rgba(37, 99, 235, 0.32);
 
-  /* === Text (Dark on Light) === */
-  --color-text: #111111;
-  --color-text-secondary: #374151;
-  --color-text-muted: #6b7280;
-  --color-text-light: #9ca3af;
-  --color-text-disabled: #d1d5db;
+  /* Rampa de cobalto (usada por gráficas y fondos graduados). */
+  --color-primary-50:  rgba(37, 99, 235, 0.05);
+  --color-primary-100: rgba(37, 99, 235, 0.10);
+  --color-primary-200: rgba(37, 99, 235, 0.20);
+  --color-primary-500: #3B82F6;
+  --color-primary-600: #2563EB;
+  --color-primary-700: #1D4ED8;
+  --color-primary-800: #1E40AF;
+  --color-primary-900: #1E3A8A;
+  --color-primary-light: #60A5FA;
+  --color-primary-dark:  #1D4ED8;
 
-  /* === Sombras — 3 niveles con propósito ===
-     Las cards combinan --shadow-sm CON --card-border para definición nítida
-     sin efecto flotante (no dependen solo de la sombra). */
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.06), 0 1px 3px rgba(0, 0, 0, 0.10);   /* reposo */
-  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.10), 0 2px 4px rgba(0, 0, 0, 0.06);  /* hover */
-  --shadow-lg: 0 16px 40px rgba(0, 0, 0, 0.16), 0 4px 12px rgba(0, 0, 0, 0.08); /* modales */
-  --card-border: 1px solid rgba(0, 0, 0, 0.06);
+  /* Alias legacy de tintes (se retiran al migrar páginas). */
+  --color-info-light:    rgba(37, 99, 235, 0.10);
+  --color-warning-light: rgba(245, 158, 11, 0.12);
+  --color-danger-light:  rgba(225, 29, 72, 0.10);
+  --color-success-light: rgba(5, 150, 105, 0.12);
 
-  /* Aliases legacy de sombra (se retiran al migrar) */
+  /* ══════════════════ SIDEBAR — azul marino pulido ══════════════════
+     Estructura oscura para que el contenido (blanco) sea lo que destaca.
+     El activo se marca con el cobalto translúcido + barra, no con un bloque
+     sólido: se lee como "acá estás" sin competir con las tarjetas. */
+  --sidebar-bg: #0B1220;
+  --sidebar-hover: rgba(255, 255, 255, 0.06);
+  --sidebar-active-bg: rgba(37, 99, 235, 0.16);
+  --sidebar-text: rgba(233, 237, 243, 0.82);   /* 11.26:1 sobre el fondo */
+  --sidebar-text-muted: rgba(233, 237, 243, 0.38);
+  --sidebar-icon: rgba(233, 237, 243, 0.60);
+  --sidebar-border: rgba(255, 255, 255, 0.07);
+  --sidebar-width: 248px;
+  --sidebar-collapsed: 248px;
+  --sidebar-collapsed-width: 248px;
+
+  /* ══════════════════ SUPERFICIES ══════════════════
+     El brief pide quitar los bordes divisorios y separar con fondo y aire:
+     canvas gris frío, tarjetas blanco puro. El "borde" de tarjeta queda como
+     filo casi invisible, solo para definir el canto contra el canvas. */
+  --color-bg: #F6F7F9;
+  --color-surface: #FFFFFF;
+  --color-surface-solid: #FBFCFD;   /* cabeceras de tabla / zonas tenues */
+  --color-surface-raised: #F1F3F6;  /* chips, celdas alternas */
+  --color-input-bg: #FFFFFF;
+  --color-border: rgba(16, 24, 40, 0.08);
+  --color-border-light: rgba(16, 24, 40, 0.05);
+
+  /* ══════════════════ TEXTO ══════════════════ */
+  --color-text: #0B1220;            /* 17.47:1 sobre el canvas */
+  --color-text-secondary: #334155;
+  --color-text-muted: #475569;      /* 7.58:1 sobre blanco */
+  --color-text-light: #64748B;
+  --color-text-disabled: #94A3B8;
+
+  /* ══════════════════ ELEVACIÓN — 3 niveles con propósito ══════════════════
+     Difusas y de tinte frío (no negro puro): el negro puro sobre un canvas
+     frío se ve sucio. sm = reposo · md = hover · lg = modal. */
+  --shadow-sm: 0 1px 2px rgba(16, 24, 40, 0.04), 0 1px 3px rgba(16, 24, 40, 0.06);
+  --shadow-md: 0 4px 14px rgba(16, 24, 40, 0.08), 0 2px 6px rgba(16, 24, 40, 0.04);
+  --shadow-lg: 0 24px 56px rgba(11, 18, 32, 0.18), 0 8px 20px rgba(11, 18, 32, 0.08);
+  --card-border: 1px solid rgba(16, 24, 40, 0.06);
+
+  /* Alias legacy de sombra. */
   --shadow-xs: var(--shadow-sm);
   --shadow: var(--shadow-md);
   --shadow-xl: var(--shadow-lg);
-  --shadow-green: 0 4px 12px rgba(22, 163, 74, 0.20);
-  --shadow-green-sm: 0 2px 8px rgba(22, 163, 74, 0.15);
+  /* OJO -- nombre legacy: ya NO es verde. Es el realce del botón de acción
+     (cobalto). Se conserva el nombre porque varias páginas lo referencian. */
+  --shadow-green: 0 6px 18px rgba(37, 99, 235, 0.26);
+  --shadow-green-sm: 0 2px 10px rgba(37, 99, 235, 0.20);
 
-  /* ============================================================
-     SISTEMA DE TOKENS SIGOT (fuente única de verdad)
-     Añadido en el refactor de diseño. Los tokens legacy de más
-     abajo se migran a estos durante el refactor de componentes.
-     ============================================================ */
-
-  /* === Espaciado — escala base 4px (única permitida) === */
+  /* ══════════════════ ESPACIADO — escala base 4px ══════════════════ */
   --space-xs:  4px;
   --space-sm:  8px;
   --space-md:  12px;
@@ -125,9 +160,12 @@
   --space-2xl: 32px;
   --space-3xl: 48px;
 
-  /* === Tipografía — jerarquía real (size / weight) === */
-  --text-display: 2rem;      /* 32px */
-  --text-h1:      1.5rem;    /* 24px */
+  /* ══════════════════ ESCALA TIPOGRÁFICA ══════════════════
+     display sube a 40px: el brief pide titulares imponentes y 32px no
+     sostenía un hero. --text-hero es nuevo, solo para la landing. */
+  --text-hero:    clamp(2.5rem, 6vw, 4.25rem);
+  --text-display: 2.5rem;    /* 40px */
+  --text-h1:      1.625rem;  /* 26px */
   --text-h2:      1.25rem;   /* 20px */
   --text-h3:      1rem;      /* 16px */
   --text-body:    0.875rem;  /* 14px */
@@ -138,86 +176,79 @@
   --weight-medium:   500;
   --weight-semibold: 600;
   --weight-bold:     700;
+  --weight-extrabold: 800;
 
-  --leading-tight:  1.25;
+  --leading-tight:  1.2;
   --leading-normal: 1.5;
 
-  /* === Radios canónicos: sm/md/lg/full ya existen arriba con estos valores.
-     Canon: input=sm(6) · card/botón/modal=md(10) · feature=lg(14) · badge/pill=full.
-     Legacy a retirar en el refactor: --radius(8), --radius-xl(20), --radius-2xl(24). */
+  /* ══════════════════ GEOMETRÍA ══════════════════
+     Equivalencia con el brief: md = rounded-xl (12) · lg = rounded-2xl (16).
+     input=sm(8) · tarjeta/botón/modal=md(12) · módulo bento=lg(16) · pill=full. */
+  --radius-sm:   8px;
+  --radius-md:   12px;
+  --radius-lg:   16px;
+  --radius-full: 999px;
+  /* Alias legacy. */
+  --radius:      12px;
+  --radius-xl:   16px;
+  --radius-2xl:  20px;
 
-  /* === Motion (escala nueva; --transition/--transition-slow legacy siguen abajo) === */
+  /* Altura mínima táctil: el brief la pide en 48px para que un mecánico pueda
+     operar con guantes desde el celular. */
+  --touch-min: 48px;
+
+  /* ══════════════════ MOVIMIENTO ══════════════════ */
   --ease:            cubic-bezier(0.4, 0, 0.2, 1);
   --duration-fast:   150ms;
   --duration-base:   200ms;
   --duration-slow:   300ms;
   --transition-fast: all 150ms cubic-bezier(0.4, 0, 0.2, 1);
   --transition-base: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
-  /* Capa de ENTRADA con "peso" (reveals, stagger, drawer, hero). La escala
-     fast/base/slow de arriba (150/200/300) es para micro-interacciones de UI
-     (hover, foco) y se conserva; ésta es para animaciones de entrada. */
+  /* Capa de ENTRADA con peso (reveals, stagger, drawer, hero), distinta de las
+     micro-interacciones de arriba. */
   --ease-entrance:      cubic-bezier(0.16, 1, 0.3, 1);
-  --duration-entrance:  400ms;   /* "slow" para entradas con peso */
-  --duration-enter-md:  250ms;   /* entrada media */
+  --duration-entrance:  400ms;
+  --duration-enter-md:  250ms;
 
-  /* === Breakpoints canónicos ===
+  /* ══════════════════ BREAKPOINTS ══════════════════
      móvil <640 · tablet 640–1023 · desktop ≥1024.
      CSS no permite var() dentro de @media: estos son la ÚNICA fuente de verdad,
      replicados textualmente en cada @media y expuestos a JS en breakpoints.js. */
   --bp-mobile: 640px;
   --bp-tablet: 1024px;
 
-  /* NOTA: la consolidación de sombras a 3 niveles (sm reposo / md hover / lg modal)
-     se aplica en el refactor de componentes, no aquí, para no cambiar el aspecto
-     antes de tu revisión. Valores objetivo en la tabla de equivalencia. */
-
-  /* === Backdrop Blur === */
   --blur-sm: blur(8px);
   --blur: blur(16px);
   --blur-lg: blur(24px);
   --blur-xl: blur(40px);
 
-  /* === Radios canónicos (antes referenciados pero sin definir) ===
-     input=sm(6) · card/botón/modal=md(10) · feature=lg(14) · badge/pill=full. */
-  --radius-sm:   6px;
-  --radius-md:   10px;
-  --radius-lg:   14px;
-  --radius-full: 999px;
-  /* aliases legacy usados en páginas antiguas */
-  --radius:      10px;
-  --radius-xl:   16px;
-  --radius-2xl:  20px;
-
-  /* ============================================================
-     TEXTURA Y FONDOS (Tanda F) — riqueza visual sobre el sistema,
-     con moderación. Todos derivados de la paleta actual.
-     ============================================================ */
-  /* Patrón de puntos tenue (SVG propio, sin imágenes de stock). Dos variantes
-     según el fondo para no perder contraste. */
+  /* ══════════════════ TEXTURA Y FONDOS ══════════════════
+     Trama de puntos propia (SVG inline, sin imágenes externas). Dos variantes
+     para no perder contraste según el fondo. */
   --pattern-dots-dark:  url("data:image/svg+xml,%3Csvg width='22' height='22' viewBox='0 0 22 22' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='2' cy='2' r='1' fill='%23ffffff' fill-opacity='0.05'/%3E%3C/svg%3E");
-  --pattern-dots-light: url("data:image/svg+xml,%3Csvg width='22' height='22' viewBox='0 0 22 22' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='2' cy='2' r='1' fill='%23166534' fill-opacity='0.05'/%3E%3C/svg%3E");
+  --pattern-dots-light: url("data:image/svg+xml,%3Csvg width='22' height='22' viewBox='0 0 22 22' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='2' cy='2' r='1' fill='%231D4ED8' fill-opacity='0.05'/%3E%3C/svg%3E");
 
-  /* Fondo de la app: degradados MUY sutiles de marca en las esquinas, sobre --color-bg.
-     No afecta legibilidad del contenido (las cards son superficies sólidas encima). */
+  /* Fondo de la app: dos halos fríos muy tenues en esquinas opuestas sobre el
+     canvas. Las tarjetas son superficies sólidas encima, así que no afecta
+     legibilidad; solo evita que el gris plano se sienta muerto. */
   --bg-app:
-    radial-gradient(1200px 620px at 100% -8%,  rgba(22, 163, 74, 0.055), transparent 60%),
-    radial-gradient(1000px 520px at -8% 108%,  rgba(181, 242, 61, 0.06),  transparent 55%),
+    radial-gradient(1200px 620px at 100% -8%, rgba(37, 99, 235, 0.07), transparent 60%),
+    radial-gradient(1000px 520px at -8% 108%, rgba(245, 158, 11, 0.05), transparent 55%),
     var(--color-bg);
 
-  /* Header del dashboard: velo de marca + puntos discretos. */
+  /* Cabecera de sección: velo cobalto + puntos discretos. */
   --bg-header:
     var(--pattern-dots-light),
-    linear-gradient(135deg, rgba(22, 163, 74, 0.10) 0%, rgba(74, 222, 128, 0.06) 100%);
+    linear-gradient(135deg, rgba(37, 99, 235, 0.07) 0%, rgba(96, 165, 250, 0.04) 100%);
 
-  /* Panel decorativo del login: mismo esquema del sidebar (azul marino →
-     esmeralda) con brillo esmeralda + puntos. */
+  /* Degradado del sidebar: marino profundo que aclara apenas hacia abajo, para
+     que no se lea como un bloque plano en pantallas altas. */
+  --sidebar-bg-gradient:
+    linear-gradient(180deg, #0B1220 0%, #0E1627 62%, #131C2E 100%);
+
+  /* Panel decorativo del login: mismo marino + brillo cobalto + puntos. */
   --bg-login-panel:
     var(--pattern-dots-dark),
-    radial-gradient(820px 560px at 82% 88%, rgba(22, 163, 74, 0.40), transparent 60%),
-    linear-gradient(150deg, #0e1a2c 0%, #0d2e2a 52%, #0a4735 100%);
-
-  /* Sidebar: degradado de marca azul marino profundo → verde esmeralda,
-     horizontal (90deg) tal como la imagen de referencia: marino a la izquierda,
-     esmeralda a la derecha. */
-  --sidebar-bg-gradient: linear-gradient(90deg, #0e1a2c 0%, #0d2e2a 52%, #0a4735 100%);
+    radial-gradient(900px 500px at 15% 10%, rgba(37, 99, 235, 0.30), transparent 60%),
+    linear-gradient(160deg, #0B1220 0%, #0E1627 55%, #16233A 100%);
 }
