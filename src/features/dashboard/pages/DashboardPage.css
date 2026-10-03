@@ -18,41 +18,59 @@
 
 .stats-grid {
   display: grid;
-  /* Bento: el KPI de ingresos (primero) es más grande que los demás */
-  grid-template-columns: 1.8fr 1fr 1fr 1fr;
-  gap: 1.25rem;
-  padding: 1.5rem 2rem 0;
-  margin-bottom: 1rem;
+  /* Cuatro tiles iguales. El ancho desigual (1.8fr) desequilibraba la fila sin
+     aportar jerarquía: la jerarquía la da el tamaño de la CIFRA, no la caja. */
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-xl);
+  padding: var(--space-xl) var(--space-2xl) 0;
+  margin-bottom: var(--space-lg);
 }
-.stats-grid .stat-card:first-child .stat-card__value { font-size: 2rem; }
+/* El KPI de ingresos es la métrica principal: su cifra manda sobre las demás. */
+.stats-grid .stat-card:first-child .stat-card__value { font-size: 2.25rem; }
 
 .dashboard-stock-alerta {
   display: flex;
   align-items: center;
   gap: 0.75rem;
   padding: 0.875rem 1.5rem;
-  margin: 0 2rem 1.5rem;
-  border-radius: 10px;
+  margin: 0 var(--space-2xl) var(--space-xl);
+  border-radius: var(--radius-md);
+  border: none;
   font-size: 0.9rem;
   font-weight: 500;
   transition: opacity 0.15s;
 }
 .dashboard-stock-alerta:hover { opacity: 0.85; }
-.dashboard-stock-alerta--bajo { background: #fef9c3; color: #92400e; border: 1px solid #fde68a; }
-.dashboard-stock-alerta--critico { background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
+ /* Con los tokens del sistema: el par soft/soft-on ya tiene el contraste
+    verificado, y así la alerta sigue a la paleta si ésta cambia. */
+.dashboard-stock-alerta--bajo {
+  background: var(--color-warning-soft);
+  color: var(--color-warning-soft-on);
+  box-shadow: inset 0 0 0 1px rgba(245, 158, 11, 0.30);
+}
+.dashboard-stock-alerta--critico {
+  background: var(--color-danger-soft);
+  color: var(--color-danger-soft-on);
+  box-shadow: inset 0 0 0 1px rgba(225, 29, 72, 0.28);
+}
 
-/* Stat cards — glassmorphism */
+/* Stat cards — módulo bento en blanco puro.
+   Antes eran glassmorphism (blanco al 75% + blur): sobre el canvas gris se
+   veía lechoso y la cifra perdía contraste. Blanco sólido + sombra da la
+   elevación sin ensuciar el número, que es lo único que importa acá. */
 .stat-card {
-  background: rgba(255, 255, 255, 0.75);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
+  background: var(--color-surface);
   border-radius: var(--radius-lg);
   padding: 1.375rem 1.5rem;
   display: flex;
   align-items: center;
   gap: 1.125rem;
-  box-shadow: 0 4px 24px rgba(0,0,0,0.07), 0 1px 0 rgba(255,255,255,0.85) inset;
-  border: 1px solid rgba(255, 255, 255, 0.60);
+  /* Residuo del glassmorphism anterior: el borde era BLANCO sobre tarjeta
+     blanca (invisible, el canto quedaba sin definir contra el canvas) y el
+     `inset` blanco era el brillo del cristal, que sobre superficie sólida no
+     aporta nada. Ahora: filo del sistema + elevación de reposo. */
+  box-shadow: var(--shadow-sm);
+  border: var(--card-border);
   transition: box-shadow var(--duration-base) var(--ease),
               transform var(--duration-base) var(--ease),
               background var(--duration-base) var(--ease);
@@ -71,10 +89,12 @@
 .stats-grid .stat-card:nth-child(3) { animation-delay: 180ms; }
 .stats-grid .stat-card:nth-child(4) { animation-delay: 270ms; }
 
+ /* Hover contenido: 2px y la sombra de hover del sistema. Los -4px con una
+    sombra de 44px eran un salto grande para una tarjeta que solo muestra una
+    cifra, y el `background` translúcido volvía a ensuciar el blanco. */
 .stat-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 16px 44px rgba(0,0,0,0.15), 0 1px 0 rgba(255,255,255,0.90) inset;
-  background: rgba(255, 255, 255, 0.92);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
 }
 
 .stat-card__icon-wrap {
@@ -88,17 +108,20 @@
 }
 
 /* Franja de acento a la izquierda de cada KPI, en su color semántico */
+ /* El acento nombra el ROL de la métrica. `--purple` usaba un #a855f7 fuera de
+    paleta; "stock" pasa al ámbar del sistema, que además es el color con el que
+    el resto de la app marca "requiere atención". */
 .stat-card { position: relative; border-left: 3px solid transparent; }
-.stat-card--green  { border-left-color: var(--color-primary); }
-.stat-card--blue   { border-left-color: var(--color-info); }
-.stat-card--amber  { border-left-color: var(--color-warning); }
-.stat-card--purple { border-left-color: #a855f7; }
+.stat-card--ingreso { border-left-color: var(--color-primary); }
+.stat-card--ordenes { border-left-color: var(--color-primary-light); }
+.stat-card--ticket  { border-left-color: var(--color-accent); }
+.stat-card--stock   { border-left-color: var(--color-warning); }
 
 /* Íconos en badge circular tintado (tokens -soft por color semántico) */
-.stat-card--green .stat-card__icon-wrap  { background: var(--color-success-soft); color: var(--color-success-soft-on); }
-.stat-card--blue .stat-card__icon-wrap   { background: var(--color-info-soft);    color: var(--color-info-soft-on); }
-.stat-card--amber .stat-card__icon-wrap  { background: var(--color-warning-soft); color: var(--color-warning-soft-on); }
-.stat-card--purple .stat-card__icon-wrap { background: rgba(168, 85, 247, 0.14);  color: #7c3aed; }
+.stat-card--ingreso .stat-card__icon-wrap { background: var(--color-primary-soft); color: var(--color-primary-soft-on); }
+.stat-card--ordenes .stat-card__icon-wrap { background: var(--color-info-soft);    color: var(--color-info-soft-on); }
+.stat-card--ticket .stat-card__icon-wrap  { background: var(--color-accent-soft);  color: var(--color-accent-soft-on); }
+.stat-card--stock .stat-card__icon-wrap   { background: var(--color-warning-soft); color: var(--color-warning-soft-on); }
 
 .stat-card__body {
   display: flex;
@@ -108,18 +131,23 @@
 }
 
 .stat-card__label {
-  font-size: 0.8125rem;
-  font-weight: 500;
-  color: var(--color-text-muted);
+  font-size: var(--text-caption);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text-light);
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: var(--tracking-wide);
 }
 
 .stat-card__value {
-  font-size: 1.75rem;
-  font-weight: 800;
+  font-family: var(--font-display);
+  font-size: 1.875rem;
+  font-weight: var(--weight-extrabold);
   color: var(--color-text);
-  line-height: 1.1;
+  line-height: 1.05;
+  letter-spacing: var(--tracking-tight);
+  /* Cifras de ancho fijo: al refrescar el rango el número cambia sin que el
+     resto de la tarjeta "salte" por el cambio de ancho de los dígitos. */
+  font-variant-numeric: tabular-nums;
 }
 
 .stat-card__value--loading {
@@ -131,25 +159,38 @@
   color: var(--color-text-muted);
 }
 
-/* Charts */
-.dashboard-charts {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1.25rem;
-  padding: 0 2rem 1.5rem;
-}
+/* ═══════════════════════════════════════════════════════════════════════
+   BENTO — un solo grid de 12 columnas para todos los módulos del dashboard.
 
-.dashboard-chart-card--wide {
-  grid-column: span 2;
+   Antes eran TRES grids independientes de 2 columnas apilados, así que todo
+   quedaba del mismo ancho: filas, no bento. Con un grid único cada módulo
+   declara cuánto ocupa y el ritmo visual sale del reparto desigual
+   (12 · 6+6 · 7+5): la tabla de productividad necesita más ancho que el pie
+   de categorías, y ese desbalance es lo que hace que se lea como bento.
+   ═══════════════════════════════════════════════════════════════════════ */
+.dashboard-bento {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: var(--space-xl);
+  padding: 0 var(--space-2xl) var(--space-xl);
+  align-items: start;
 }
+.dashboard-modulo--12 { grid-column: span 12; }
+.dashboard-modulo--7  { grid-column: span 7; }
+.dashboard-modulo--6  { grid-column: span 6; }
+.dashboard-modulo--5  { grid-column: span 5; }
 
 /* La tabla de "Productividad por mecánico" crece con el número de filas y
    quedaba más alta o más baja que la tarjeta vecina (el pie de "Repuestos por
    categoría", que tiene una altura fija de 220px) -- se le pone un tope con
    scroll propio para que ambas tarjetas de la fila queden parejas. */
-.dashboard-chart-card .table-wrapper {
+.dashboard-modulo .table-wrapper {
   max-height: 260px;
   overflow-y: auto;
+  /* Dentro de un módulo la tabla ya está sobre una superficie elevada: su
+     propia sombra y borde sobrarían (doble marco). */
+  box-shadow: none;
+  border: none;
 }
 
 .spin {
@@ -160,8 +201,13 @@
   to { transform: rotate(360deg); }
 }
 
+/* Tablet ancha: los KPI a 2x2 y los módulos pares a mitad y mitad; el par
+   asimétrico (7+5) pasa a mitades porque a este ancho la diferencia ya no
+   aporta y deja el pie demasiado estrecho. */
 @media (max-width: 1200px) {
   .stats-grid { grid-template-columns: repeat(2, 1fr); }
+  .dashboard-modulo--7,
+  .dashboard-modulo--5 { grid-column: span 6; }
 }
 
 /* Mismo breakpoint que .page__header (1023px, ver shared/styles/page.css) --
@@ -172,8 +218,12 @@
   /* Contenido alineado (parejo) con el inset del header (1.25rem en móvil):
      título, chips y tarjetas comparten el mismo borde izquierdo/derecho. */
   .stats-grid { grid-template-columns: 1fr; padding: 1rem 1.25rem 0; }
-  .dashboard-charts { grid-template-columns: 1fr; padding: 0 1.25rem 1rem; }
-  .dashboard-chart-card--wide { grid-column: span 1; }
+  /* Una sola columna: cada módulo ocupa las 12 pistas. */
+  .dashboard-bento { gap: var(--space-lg); padding: 0 1.25rem 1rem; }
+  .dashboard-modulo--12,
+  .dashboard-modulo--7,
+  .dashboard-modulo--6,
+  .dashboard-modulo--5 { grid-column: span 12; }
   /* Mayor especificidad para ganarle a la regla base .dashboard-rango que
      aparece después en el archivo (si no, el padding de 2rem se impondría). */
   .dashboard-page .dashboard-rango { padding: 1rem 1.25rem 0.25rem; }
@@ -198,9 +248,10 @@
   display: inline-flex;
   gap: 2px;
   padding: 3px;
-  background: var(--color-surface-raised, rgba(0, 0, 0, 0.04));
-  border: 1px solid var(--color-border);
-  border-radius: 999px;
+  background: var(--color-surface-raised);
+  /* Sin borde: el cambio de fondo contra el canvas ya delimita la píldora. */
+  border: none;
+  border-radius: var(--radius-md);
   flex-wrap: wrap;
 }
 .dashboard-seg-btn {
@@ -209,19 +260,25 @@
   color: var(--color-text-muted);
   font-size: 0.8125rem;
   font-weight: 600;
-  padding: 0.4rem 0.9rem;
-  border-radius: 999px;
+  padding: 0.45rem 0.95rem;
+  border-radius: calc(var(--radius-md) - 3px);
+  letter-spacing: var(--tracking-tight);
   cursor: pointer;
   font-family: inherit;
   white-space: nowrap;
-  transition: background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+  transition: background var(--duration-base) var(--ease),
+              color var(--duration-base) var(--ease),
+              box-shadow var(--duration-base) var(--ease);
 }
 .dashboard-seg-btn:hover { color: var(--color-text); background: rgba(0, 0, 0, 0.04); }
+ /* Pestaña física: el activo se eleva en blanco sobre la pista hundida, en vez
+    de pintarse de un color sólido. Se conserva el par con :hover para que el
+    estado activo no cambie al pasar el puntero por encima. */
 .dashboard-seg-btn--active,
 .dashboard-seg-btn--active:hover {
-  background: var(--color-primary-strong, #1D4ED8);
-  color: #fff;
-  box-shadow: 0 2px 8px rgba(29, 78, 216, 0.28);
+  background: var(--color-surface);
+  color: var(--color-text);
+  box-shadow: var(--shadow-sm);
 }
 .dashboard-rango__summary {
   font-size: 0.8125rem;
@@ -240,4 +297,31 @@
   background-size: 22px 22px, cover;
   border-bottom: 1px solid var(--color-primary-soft);
   border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   Pulido de los módulos del bento
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* Título del módulo: la cifra entre paréntesis del módulo de Ingresos es un
+   DATO, así que se alinea con el resto de cifras del sistema (tabulares). */
+.dashboard-modulo .card__title {
+  font-size: var(--text-h3);
+  font-weight: var(--weight-semibold);
+  letter-spacing: var(--tracking-tight);
+  font-variant-numeric: tabular-nums;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+/* El cuerpo de un módulo con gráfica necesita menos padding arriba: la
+   cabecera ya dejó aire y el SVG trae su propio margen interno. */
+.dashboard-modulo .card__body { padding-top: 0; }
+
+/* Leyenda del pie: las etiquetas de categoría son muchas y cortas, así que
+   van en caption para que entren sin cortarse. */
+.dashboard-modulo .recharts-legend-item-text {
+  font-size: var(--text-caption) !important;
+  color: var(--color-text-muted) !important;
 }

@@ -21,11 +21,15 @@ import SearchBar from '../../../shared/components/SearchBar/SearchBar.jsx';
 import { filterItems } from '../../../shared/utils/helpers.js';
 import './DashboardPage.css';
 
-const PIE_COLORS = ['#3a6b9e', '#8b2e2e', '#2d5a2d', '#8a7240', '#5c6b8a', '#7a4a6a', '#4a6b5c'];
+// Paleta categórica del inventario: recorrido cobalto -> teal -> ámbar. Los tonos
+// se eligieron para que sean distinguibles ENTRE SÍ (no solo bonitos juntos) y
+// para que ninguno se confunda con los colores de estado del flujo, que significan
+// otra cosa. Antes eran colores desaturados y ajenos a la identidad.
+const PIE_COLORS = ['#1D4ED8', '#3B82F6', '#0E7490', '#14B8A6', '#6366F1', '#F59E0B', '#8B5CF6'];
 // Color fijo (gris neutro) para el balde "Otras" del pie de categorías -- deliberadamente
 // fuera de PIE_COLORS para que nunca coincida por casualidad con el color de una categoría
 // individual (ver TOP_N_CATEGORIAS_PIE más abajo).
-const PIE_COLOR_OTRAS = '#9ca3af';
+const PIE_COLOR_OTRAS = '#94A3B8';
 // Con pocas categorías, un slice + una línea de leyenda por cada una se ve bien. Pero con
 // un catálogo real (ej. tras importar el inventario del taller, que generó ~75 categorías
 // automáticas), un pie con 75 porciones y 75 líneas de leyenda no cabe en la tarjeta de
@@ -35,14 +39,24 @@ const PIE_COLOR_OTRAS = '#9ca3af';
 // cuántas categorías reales existan. N = PIE_COLORS.length para que cada categoría
 // individual tenga un color distinto y "Otras" use su propio color fijo.
 const TOP_N_CATEGORIAS_PIE = PIE_COLORS.length;
+// Recharts recibe valores en JS, no clases, así que los tokens se replican acá.
+// Si cambian en variables.css hay que actualizarlos también aquí.
 const CHART_STYLE = {
   tooltip: {
-    contentStyle: { background: '#ffffff', border: '1px solid rgba(0,0,0,0.10)', borderRadius: '8px', color: '#111111', fontSize: '0.8125rem', boxShadow: '0 4px 16px rgba(0,0,0,0.10)' },
-    labelStyle: { color: '#6b7280' },
-    cursor: { fill: 'rgba(0,0,0,0.03)' },
+    contentStyle: {
+      background: '#FFFFFF',
+      border: '1px solid rgba(16, 24, 40, 0.08)',
+      borderRadius: '12px',                 // --radius-md
+      color: '#0B1220',                     // --color-text
+      fontSize: '0.8125rem',
+      boxShadow: '0 4px 14px rgba(16, 24, 40, 0.08)',  // --shadow-md
+      padding: '10px 12px',
+    },
+    labelStyle: { color: '#475569', fontWeight: 600 },  // --color-text-muted
+    cursor: { fill: 'rgba(37, 99, 235, 0.06)' },        // tinte de acción
   },
-  grid: { strokeDasharray: '3 3', stroke: 'rgba(0,0,0,0.07)' },
-  tick: { fontSize: 12, fill: '#9ca3af' },
+  grid: { strokeDasharray: '3 3', stroke: 'rgba(16, 24, 40, 0.07)' },
+  tick: { fontSize: 12, fill: '#64748B' },              // --color-text-light
 };
 
 const RANGOS = [
@@ -79,7 +93,9 @@ const etiquetaPeriodo = (ymd, agrupacion) => {
   return `${d}/${m}`;
 };
 
-function StatCard({ icon: Icon, label, value, format = (n) => Math.round(n).toLocaleString('es-CO'), sub, color = 'green', loading }) {
+// `color` nombra el ROL de la métrica, no un color: así el nombre no queda
+// mintiendo si la paleta cambia (antes era 'green'/'blue'/'purple').
+function StatCard({ icon: Icon, label, value, format = (n) => Math.round(n).toLocaleString('es-CO'), sub, color = 'ingreso', loading }) {
   return (
     <div className={`stat-card stat-card--${color}`}>
       <div className="stat-card__icon-wrap"><Icon size={24} /></div>
@@ -257,10 +273,10 @@ export default function DashboardPage() {
 
       {/* KPIs */}
       <div className="stats-grid">
-        <StatCard icon={MdPayments}   label="Ingreso del rango"  value={resumen.ingresoTotal ?? 0} format={formatCurrency} sub="Órdenes entregadas" color="green"  loading={loading} />
-        <StatCard icon={MdReceiptLong} label="Órdenes realizadas" value={resumen.ordenesRealizadas ?? 0}          sub="En el rango"         color="blue"   loading={loading} />
-        <StatCard icon={MdMiscellaneousServices} label="Ticket promedio" value={resumen.ticketPromedio ?? 0} format={formatCurrency} sub="Por orden"    color="amber"  loading={loading} />
-        <StatCard icon={MdShoppingCart} label="Stock bajo"        value={resumen.stockBajo ?? 0}                  sub={resumen.stockCritico ? `${resumen.stockCritico} agotado(s)` : 'Repuestos'} color="purple" loading={loading} />
+        <StatCard icon={MdPayments}   label="Ingreso del rango"  value={resumen.ingresoTotal ?? 0} format={formatCurrency} sub="Órdenes entregadas" color="ingreso"  loading={loading} />
+        <StatCard icon={MdReceiptLong} label="Órdenes realizadas" value={resumen.ordenesRealizadas ?? 0}          sub="En el rango"         color="ordenes"  loading={loading} />
+        <StatCard icon={MdMiscellaneousServices} label="Ticket promedio" value={resumen.ticketPromedio ?? 0} format={formatCurrency} sub="Por orden"    color="ticket"   loading={loading} />
+        <StatCard icon={MdShoppingCart} label="Stock bajo"        value={resumen.stockBajo ?? 0}                  sub={resumen.stockCritico ? `${resumen.stockCritico} agotado(s)` : 'Repuestos'} color="stock"    loading={loading} />
       </div>
 
       {(resumen.stockBajo > 0) && (
@@ -271,9 +287,11 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* Ingresos */}
-      <div className="dashboard-charts">
-        <div className="card dashboard-chart-card dashboard-chart-card--wide">
+      {/* ═══ Bento: un solo grid de 12 columnas. Cada módulo declara su ancho,
+           de ahí la variedad (12 · 6+6 · 7+5) en vez de filas iguales. ═══ */}
+      <div className="dashboard-bento">
+        {/* Ingresos — módulo principal, ancho completo */}
+        <div className="card dashboard-modulo dashboard-modulo--12">
           <div className="card__header"><span className="card__title">Ingresos ({formatCurrency(rep.ingresos?.total ?? 0)} en el rango)</span></div>
           <div className="card__body">
             {loading ? <Skeleton height={220} /> : ingresosSerie.length > 0 ? (
@@ -290,11 +308,9 @@ export default function DashboardPage() {
             ) : EMPTY_CHART}
           </div>
         </div>
-      </div>
 
-      {/* Top servicios / Top repuestos */}
-      <div className="dashboard-charts">
-        <div className="card dashboard-chart-card">
+        {/* Top servicios / Top repuestos — mitad y mitad */}
+        <div className="card dashboard-modulo dashboard-modulo--6">
           <div className="card__header"><span className="card__title">Servicios más realizados</span></div>
           <div className="card__body">
             {loading ? <Skeleton height={220} /> : rep.topServicios.length > 0 ? (
@@ -312,7 +328,7 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        <div className="card dashboard-chart-card">
+        <div className="card dashboard-modulo dashboard-modulo--6">
           <div className="card__header"><span className="card__title">Repuestos más usados</span></div>
           <div className="card__body">
             {loading ? <Skeleton height={220} /> : rep.topRepuestos.length > 0 ? (
@@ -329,11 +345,9 @@ export default function DashboardPage() {
             ) : EMPTY_CHART}
           </div>
         </div>
-      </div>
 
-      {/* Productividad + inventario por categoría */}
-      <div className="dashboard-charts">
-        <div className="card dashboard-chart-card">
+        {/* Productividad (más ancha: es una tabla) + inventario por categoría */}
+        <div className="card dashboard-modulo dashboard-modulo--7">
           <div className="card__header"><span className="card__title"><MdBuild size={15} style={{ verticalAlign: '-2px', marginRight: 6 }} />Productividad por mecánico</span></div>
           <div className="card__body">
             {loading ? <Skeleton height={200} /> : rep.productividad.length > 0 ? (
@@ -348,8 +362,8 @@ export default function DashboardPage() {
                       {filterItems(rep.productividad, buscarMecanico, ['empleado']).map((p, i) => (
                         <tr key={i} className="table__row">
                           <td className="table__td">{p.empleado}</td>
-                          <td className="table__td table__td--num">{p.ordenes}</td>
-                          <td className="table__td table__td--num">{formatCurrency(p.ingreso)}</td>
+                          <td className="table__td table__td--num"><span className="u-num">{p.ordenes}</span></td>
+                          <td className="table__td table__td--num"><span className="u-num">{formatCurrency(p.ingreso)}</span></td>
                         </tr>
                       ))}
                     </tbody>
@@ -361,7 +375,7 @@ export default function DashboardPage() {
         </div>
 
         {repuestosPie.length > 0 && (
-          <div className="card dashboard-chart-card">
+          <div className="card dashboard-modulo dashboard-modulo--5">
             <div className="card__header"><span className="card__title">Repuestos por categoría (inventario)</span></div>
             <div className="card__body">
               <ResponsiveContainer width="100%" height={220}>
