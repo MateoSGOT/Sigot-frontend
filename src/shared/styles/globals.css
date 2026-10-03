@@ -37,11 +37,13 @@ html { font-size: 16px; scroll-behavior: smooth; }
 
 body {
   font-family: var(--font-body);
-  /* Canvas con los dos halos fríos, no un gris plano (ver --bg-app). */
+  /* Color de respaldo si ::before no pintara. */
   background-color: var(--color-bg);
-  background-image: var(--bg-app);
-  background-attachment: fixed;
   color: var(--color-text);
+  /* Contexto de apilamiento para que la capa de fondo (::before, z-index:-1)
+     quede DETRÁS del contenido pero DELANTE de este background-color. */
+  position: relative;
+  z-index: 0;
   line-height: var(--leading-normal);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -53,6 +55,25 @@ h1, h2, h3, h4 {
   font-family: var(--font-display);
   letter-spacing: var(--tracking-tight);
   line-height: var(--leading-tight);
+}
+
+/* ── Capa de fondo de la app ──
+   Los halos de --bg-app van en una capa FIJA y compuesta, no en
+   `background-attachment: fixed` del body.
+
+   Por qué: con `fixed` el fondo no se puede desplazar junto al contenido, así
+   que el navegador tiene que REPINTARLO en cada frame de scroll. Se notaba
+   justo donde más duele -- las tablas largas de órdenes e inventario -- y en
+   móvil es peor (varios navegadores directamente traban o lo ignoran).
+   Una capa `position: fixed` se promueve a su propia capa y el scroll pasa a
+   ser una composición sin repintado. El resultado visual es idéntico. */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background: var(--bg-app);
+  pointer-events: none;
 }
 
 a { color: inherit; text-decoration: none; }

@@ -25,9 +25,11 @@
 .layout__main {
   flex: 1;
   margin-left: var(--sidebar-width);
-  /* Fondo de la app con textura sutil de marca (no afecta legibilidad del contenido) */
-  background: var(--bg-app);
-  background-attachment: fixed;
+  /* El fondo lo pinta la capa fija de body::before (ver globals.css): acá iba
+     `background: var(--bg-app)` con `background-attachment: fixed`, y como este
+     ES el contenedor que scrollea, obligaba a repintar el fondo en cada frame
+     de scroll. Transparente para que se vea la capa compuesta de abajo. */
+  background: transparent;
   overflow-x: hidden;
   min-height: 100vh;
   color: var(--color-text);
