@@ -39,7 +39,7 @@
 }
 /* Blob 1 (arriba-izq) marino profundo; 2 y 3 en cobalto abajo → transición
    marino → cobalto, igual que el degradado del sidebar. */
-.login-left__blob--1 { width: 340px; height: 340px; top: -80px; left: -60px; background: rgba(42, 84, 140, 0.40); }
+.login-left__blob--1 { width: 340px; height: 340px; top: -80px; left: -60px; background: rgba(30, 58, 138, 0.42);  /* --color-primary-900 */ }
 .login-left__blob--2 { width: 260px; height: 260px; bottom: 40px; right: -60px; background: rgba(96, 165, 250, 0.30); }
 .login-left__blob--3 { width: 220px; height: 220px; bottom: -60px; left: 35%; background: rgba(37, 99, 235, 0.45); }
 
