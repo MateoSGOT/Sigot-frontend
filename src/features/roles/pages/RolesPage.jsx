@@ -40,18 +40,18 @@ const isPrimaryRol = (nombre) => PRIMARY_ROLES.some(pr => matchRol(pr.nombre, no
 const ACTIONS = ['Ver', 'Crear', 'Editar', 'Eliminar'];
 
 const MODULE_META = {
-  'Dashboard':   { icon: MdDashboard,             label: 'Dashboard',          color: '#6366f1' },
-  'Clientes':    { icon: MdPerson,                label: 'Clientes',           color: '#0ea5e9' },
-  'Vehículos':{ icon: MdDirectionsCar,         label: 'Vehículos',     color: '#14b8a6' },
-  'Empleados':   { icon: MdPeopleAlt,             label: 'Empleados',          color: '#8b5cf6' },
-  'Repuestos':   { icon: MdBuild,                 label: 'Repuestos',          color: '#f59e0b' },
-  'Categorías': { icon: MdCategory,          label: 'Categorías',    color: '#10b981' },
-  'Proveedores': { icon: MdLocalShipping,         label: 'Proveedores',        color: '#f97316' },
-  'Compras':     { icon: MdShoppingCart,          label: 'Compras',            color: '#ef4444' },
-  'Servicios':   { icon: MdMiscellaneousServices, label: 'Servicios',          color: '#a855f7' },
+  'Dashboard':   { icon: MdDashboard,             label: 'Dashboard',          color: '#6366F1' },
+  'Clientes':    { icon: MdPerson,                label: 'Clientes',           color: '#0E7490' },
+  'Vehículos':{ icon: MdDirectionsCar,         label: 'Vehículos',     color: '#14B8A6' },
+  'Empleados':   { icon: MdPeopleAlt,             label: 'Empleados',          color: '#8B5CF6' },
+  'Repuestos':   { icon: MdBuild,                 label: 'Repuestos',          color: '#F59E0B' },
+  'Categorías': { icon: MdCategory,          label: 'Categorías',    color: '#14B8A6' },
+  'Proveedores': { icon: MdLocalShipping,         label: 'Proveedores',        color: '#F59E0B' },
+  'Compras':     { icon: MdShoppingCart,          label: 'Compras',            color: '#E11D48' },
+  'Servicios':   { icon: MdMiscellaneousServices, label: 'Servicios',          color: '#8B5CF6' },
   'Agenda':      { icon: MdEventNote,             label: 'Agenda',             color: '#3B82F6' },
-  'Órdenes':{ icon: MdAssignment,            label: 'Órdenes de Trabajo', color: '#eab308' },
-  'Novedades':   { icon: MdNewReleases,           label: 'Novedades',          color: '#ec4899' },
+  'Órdenes':{ icon: MdAssignment,            label: 'Órdenes de Trabajo', color: '#FBBF24' },
+  'Novedades':   { icon: MdNewReleases,           label: 'Novedades',          color: '#8B5CF6' },
   'Roles':       { icon: MdSecurity,              label: 'Roles',              color: '#F59E0B' },
 };
 

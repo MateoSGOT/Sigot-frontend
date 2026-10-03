@@ -29,7 +29,7 @@
 .img-uploader__initials {
   font-size: 1.5rem;
   font-weight: 700;
-  color: #F59E0B;
+  color: var(--color-accent);
   line-height: 1;
 }
 .img-uploader__overlay {

@@ -151,7 +151,7 @@ export default function CategoriasPage() {
             display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap',
             background: hayError ? 'rgba(220,38,38,0.08)' : 'rgba(37, 99, 235,0.10)',
             border: `1px solid ${hayError ? 'rgba(220,38,38,0.3)' : 'rgba(37, 99, 235,0.3)'}`,
-            color: hayError ? '#b91c1c' : '#1D4ED8',
+            color: hayError ? '#BE123C' : '#1D4ED8',
           }}>
             <span>{importMsg.error
               ? importMsg.error

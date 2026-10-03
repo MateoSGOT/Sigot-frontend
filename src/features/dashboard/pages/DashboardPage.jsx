@@ -334,7 +334,7 @@ export default function DashboardPage() {
             {loading ? <Skeleton height={220} /> : rep.topRepuestos.length > 0 ? (
               <ResponsiveContainer width="100%" height={220}>
                 <BarChart data={rep.topRepuestos.map(s => ({ name: s.nombre, value: s.cantidad }))} layout="vertical">
-                  <defs><linearGradient id="gradRep" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stopColor="#2563eb" /><stop offset="100%" stopColor="#3b82f6" /></linearGradient></defs>
+                  <defs><linearGradient id="gradRep" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stopColor="#2563EB" /><stop offset="100%" stopColor="#3B82F6" /></linearGradient></defs>
                   <CartesianGrid {...CHART_STYLE.grid} horizontal={false} />
                   <XAxis type="number" tick={CHART_STYLE.tick} axisLine={false} tickLine={false} allowDecimals={false} />
                   <YAxis type="category" dataKey="name" tick={CHART_STYLE.tick} axisLine={false} tickLine={false} width={130} />
@@ -384,7 +384,7 @@ export default function DashboardPage() {
                     {repuestosPie.map((entry, idx) => <Cell key={idx} fill={entry.esOtras ? PIE_COLOR_OTRAS : PIE_COLORS[idx % PIE_COLORS.length]} />)}
                   </Pie>
                   <Tooltip {...CHART_STYLE.tooltip} formatter={(v, _n, p) => [v, p?.payload?.name]} />
-                  <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: '12px', color: '#888' }} />
+                  <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: '12px', color: '#64748B' }} />
                 </PieChart>
               </ResponsiveContainer>
             </div>

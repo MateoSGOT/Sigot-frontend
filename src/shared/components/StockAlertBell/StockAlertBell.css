@@ -15,7 +15,7 @@
   transition: background 0.15s, color 0.15s;
 }
 .stock-bell__btn:hover { background: rgba(255,255,255,0.13); color: #fff; }
-.stock-bell__btn--alert { color: #fbbf24; }
+.stock-bell__btn--alert { color: var(--color-accent-hover); }
 .stock-bell__btn--alert:hover { color: #f59e0b; }
 
 .stock-bell__badge {
@@ -26,7 +26,7 @@
   height: 16px;
   padding: 0 3px;
   border-radius: 8px;
-  background: #ef4444;
+  background: var(--color-danger);
   color: #fff;
   font-size: 9px;
   font-weight: 700;
@@ -43,8 +43,8 @@
 .stock-bell__dropdown {
   position: fixed;
   width: min(280px, calc(100vw - 16px));
-  background: #fff;
-  border: 1px solid #e5e7eb;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
   border-radius: 10px;
   box-shadow: 0 8px 24px rgba(0,0,0,0.13);
   /* Sobre el drawer del sidebar en móvil (z 1200); el bell vive dentro del
@@ -58,18 +58,18 @@
   align-items: center;
   gap: 6px;
   padding: 0.625rem 0.875rem;
-  background: #f9fafb;
-  border-bottom: 1px solid #f3f4f6;
+  background: var(--color-surface-solid);
+  border-bottom: 1px solid var(--color-border-light);
   font-size: 0.8rem;
   font-weight: 600;
-  color: #374151;
+  color: var(--color-text-secondary);
 }
 
 .stock-bell__empty {
   padding: 1rem;
   text-align: center;
   font-size: 0.8rem;
-  color: #9ca3af;
+  color: var(--color-text-disabled);
 }
 
 .stock-bell__item {
@@ -78,18 +78,18 @@
   justify-content: space-between;
   gap: 8px;
   padding: 0.5rem 0.875rem;
-  border-bottom: 1px solid #f3f4f6;
+  border-bottom: 1px solid var(--color-border-light);
   cursor: pointer;
   transition: background 0.1s;
 }
-.stock-bell__item:hover { background: #f9fafb; }
-.stock-bell__item--critico { border-left: 3px solid #ef4444; }
-.stock-bell__item--bajo { border-left: 3px solid #f59e0b; }
+.stock-bell__item:hover { background: #FBFCFD; }
+.stock-bell__item--critico { border-left: 3px solid var(--color-danger); }
+.stock-bell__item--bajo { border-left: 3px solid var(--color-accent); }
 
 .stock-bell__item-name {
   font-size: 0.8rem;
   font-weight: 500;
-  color: #111827;
+  color: var(--color-text);
   flex: 1;
   min-width: 0;
   overflow: hidden;
@@ -105,8 +105,8 @@
   padding: 2px 6px;
   border-radius: 4px;
 }
-.stock-bell__chip--critico { background: #fee2e2; color: #dc2626; }
-.stock-bell__chip--bajo { background: #fef9c3; color: #a16207; }
+.stock-bell__chip--critico { background: var(--color-danger-soft); color: var(--color-danger-soft-on); }
+.stock-bell__chip--bajo { background: var(--color-warning-soft); color: var(--color-warning-soft-on); }
 
 .stock-bell__ver-todos {
   display: block;
@@ -114,15 +114,17 @@
   padding: 0.625rem;
   background: none;
   border: none;
-  border-top: 1px solid #f3f4f6;
-  color: #2563EB;
+  border-top: 1px solid var(--color-border-light);
+  color: var(--color-primary);
   font-size: 0.8rem;
   font-weight: 600;
   cursor: pointer;
   text-align: center;
   transition: background 0.1s;
 }
-.stock-bell__ver-todos:hover { background: #f0fdf4; }
+/* Mismo caso que NovedadAlertBell: el tinte de hover era esmeralda sobre un
+   enlace cobalto, resto de la identidad anterior. */
+.stock-bell__ver-todos:hover { background: var(--color-primary-soft); }
 
 /* Skeleton de carga (reemplaza el texto "Cargando...") */
 .stock-bell__loading { display: flex; flex-direction: column; gap: var(--space-sm); padding: var(--space-md) var(--space-lg); }

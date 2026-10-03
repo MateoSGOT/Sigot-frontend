@@ -3,11 +3,11 @@
 .text-success { color: var(--color-success); }
 .text-danger { color: var(--color-danger); }
 .stock-cell { display: inline-flex; align-items: center; gap: 4px; font-weight: 600; }
-.stock-cell--low { color: #b45309; }
-.stock-cell--agotado { color: #dc2626; }
+.stock-cell--low { color: var(--color-warning-soft-on); }
+.stock-cell--agotado { color: var(--color-danger-soft-on); }
 .stock-badge { font-size: 10px; font-weight: 700; padding: 1px 5px; border-radius: 4px; letter-spacing: 0.3px; }
-.stock-badge--agotado { background: #fee2e2; color: #dc2626; }
-.stock-badge--bajo { background: #fef9c3; color: #a16207; }
+.stock-badge--agotado { background: var(--color-danger-soft); color: var(--color-danger-soft-on); }
+.stock-badge--bajo { background: var(--color-warning-soft); color: var(--color-warning-soft-on); }
 
 .stock-alerta-banner {
   display: flex;
@@ -19,8 +19,8 @@
   font-size: 0.875rem;
   font-weight: 500;
 }
-.stock-alerta-banner--bajo { background: #fef9c3; color: #92400e; border: 1px solid #fde68a; }
-.stock-alerta-banner--critico { background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
+.stock-alerta-banner--bajo { background: var(--color-warning-soft); color: var(--color-warning-soft-on); border: 1px solid var(--color-warning-soft-border); }
+.stock-alerta-banner--critico { background: var(--color-danger-soft); color: var(--color-danger-soft-on); border: 1px solid var(--color-danger-soft-border); }
 
 /* Campo de garantía: número + selector de unidad en línea */
 .garantia-field {
@@ -54,7 +54,7 @@
   animation: import-overlay-fade-in 0.15s ease-out;
 }
 .import-overlay__card {
-  background: var(--color-surface-solid, #fff);
+  background: var(--color-surface-solid, var(--color-surface));
   border-radius: 14px;
   padding: 2rem 2.5rem;
   min-width: 280px;
@@ -70,14 +70,14 @@
   margin: 0;
   font-size: 0.95rem;
   font-weight: 600;
-  color: var(--color-text, #1e293b);
+  color: var(--color-text, var(--color-text));
   text-align: center;
 }
 .import-overlay__bar-track {
   width: 220px;
   height: 8px;
   border-radius: 999px;
-  background: var(--color-border, #e2e8f0);
+  background: var(--color-border);
   overflow: hidden;
 }
 .import-overlay__bar-fill {
@@ -90,11 +90,11 @@
   margin: 0;
   font-size: 1.15rem;
   font-weight: 700;
-  color: #2563EB;
+  color: var(--color-primary);
   font-variant-numeric: tabular-nums;
 }
 .import-overlay__check {
-  color: #2563EB;
+  color: var(--color-primary);
   animation: import-overlay-check-in 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 @keyframes import-overlay-fade-in {
@@ -122,8 +122,8 @@
   display: flex;
   flex-direction: column;
   gap: 0.6rem;
-  background: var(--color-surface-solid, #fff);
-  border: 1px solid var(--color-border, #e2e8f0);
+  background: var(--color-surface-solid, var(--color-surface));
+  border: 1px solid var(--color-border, var(--color-border));
 }
 .import-resumen--fatal {
   flex-direction: row;
@@ -131,7 +131,7 @@
   gap: 0.5rem;
   background: rgba(220, 38, 38, 0.08);
   border-color: rgba(220, 38, 38, 0.3);
-  color: #b91c1c;
+  color: var(--color-danger-soft-on);
 }
 .import-resumen__row--header {
   display: flex;
@@ -151,17 +151,17 @@
 .import-resumen__tier--ok {
   background: rgba(37, 99, 235, 0.10);
   border: 1px solid rgba(37, 99, 235, 0.3);
-  color: #1D4ED8;
+  color: var(--color-primary-soft-on);
 }
 .import-resumen__tier--warn {
-  background: #fef9c3;
-  border: 1px solid #fde68a;
-  color: #92400e;
+  background: var(--color-warning-soft);
+  border: 1px solid var(--color-warning-soft-border);
+  color: var(--color-warning-soft-on);
 }
 .import-resumen__tier--error {
   background: rgba(220, 38, 38, 0.08);
   border: 1px solid rgba(220, 38, 38, 0.3);
-  color: #b91c1c;
+  color: var(--color-danger-soft-on);
 }
 .import-resumen__error-heading { font-weight: 700; }
 

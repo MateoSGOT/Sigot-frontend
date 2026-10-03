@@ -35,7 +35,7 @@
 }
 
 .progreso-step--done .progreso-dot {
-  /* Completado = esmeralda del sistema (antes un verde apagado #2d6a2d fuera
+  /* Completado = esmeralda del sistema (antes un verde apagado fuera
      de paleta, que mi auditoría de identidad no tenía en la lista). */
   background: var(--color-success-soft);
   border-color: var(--color-success-strong);
@@ -59,7 +59,7 @@
 }
 
 .progreso-step--active .progreso-label {
-  color: #2d6a2d;
+  color: var(--color-success-soft-on);
 }
 
 .progreso-step--done .progreso-label {
@@ -76,7 +76,7 @@
 }
 
 .progreso-line--done {
-  background: #2d6a2d;
+  background: var(--color-success-strong);
 }
 
 .progreso-actions {
@@ -171,7 +171,7 @@
 }
 
 .orden-tab:hover { color: var(--color-text); }
-.orden-tab--active { color: #2d6a2d; border-bottom-color: #2d6a2d; }
+.orden-tab--active { color: var(--color-success-soft-on); border-bottom-color: var(--color-success-strong); }
 
 /* Items list */
 .orden-items-list {
@@ -205,7 +205,7 @@
 .orden-item-garantia {
   font-size: 0.7rem;
   font-weight: 600;
-  color: #2563EB;
+  color: var(--color-primary);
   background: rgba(96, 165, 250, 0.10);
   border: 1px solid rgba(96, 165, 250, 0.28);
   border-radius: 20px;
@@ -214,7 +214,7 @@
   letter-spacing: 0.01em;
 }
 .orden-item-qty { color: var(--color-text-muted); font-size: 0.8125rem; }
-.orden-item-price { font-weight: 700; color: #2d6a2d; }
+.orden-item-price { font-weight: 700; color: var(--color-success-soft-on); }
 /* Prefijo de iniciales del técnico ("PM. ") antes del nombre de la línea -- solo
    aparece cuando la orden tiene 2+ mecánicos asignados (ver OrdenesPage.jsx::
    hayMultiplesMecanicos/prefijoTecnico). Va DENTRO de .orden-item-name, así que
@@ -256,7 +256,7 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.03em;
-  color: var(--color-primary-soft-on, #2563EB);
+  color: var(--color-primary-soft-on, var(--color-primary));
 }
 .mecanico-chip__action {
   display: inline-flex;
@@ -301,7 +301,7 @@
 .orden-garantia-badge {
   font-size: 0.75rem;
   font-weight: 700;
-  color: #2563EB;
+  color: var(--color-primary);
   background: rgba(96, 165, 250, 0.12);
   border: 1px solid rgba(96, 165, 250, 0.28);
   border-radius: 20px;
@@ -415,7 +415,7 @@
 }
 
 .orden-total-final span:last-child {
-  color: #2d6a2d;
+  color: var(--color-success-soft-on);
   font-size: 1.125rem;
 }
 
@@ -432,7 +432,7 @@
   color: var(--color-text);
 }
 
-.orden-subtotal span:last-child { color: #2d6a2d; }
+.orden-subtotal span:last-child { color: #047857; }
 
 /* Mano de obra */
 .mano-de-obra-section {
@@ -450,7 +450,7 @@
   margin-bottom: 0.625rem;
 }
 
-.mano-de-obra-icon { color: #2d6a2d; }
+.mano-de-obra-icon { color: var(--color-success-soft-on); }
 
 .mano-de-obra-title {
   font-size: 0.875rem;
@@ -467,7 +467,7 @@
 .mano-de-obra-value {
   font-size: 1rem;
   font-weight: 700;
-  color: #2d6a2d;
+  color: var(--color-success-soft-on);
   flex: 1;
 }
 
@@ -544,7 +544,7 @@
 .orden-seg-btn:hover { color: var(--color-text); background: rgba(0, 0, 0, 0.04); }
 .orden-seg-btn--active,
 .orden-seg-btn--active:hover {
-  background: var(--color-primary-strong, #1D4ED8);
+  background: var(--color-primary-strong, var(--color-primary-strong));
   color: #fff;
 }
 

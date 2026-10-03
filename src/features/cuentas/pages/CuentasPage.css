@@ -39,4 +39,4 @@
 .cuentas-limpieza-item__nombre { font-size: var(--text-small); }
 .cuentas-limpieza-item__nombre small { color: var(--color-text-muted); }
 .cuentas-limpieza-item__fecha { font-size: 0.75rem; color: var(--color-text-muted); white-space: nowrap; }
-.cuentas-limpieza-item__motivo { font-size: 0.75rem; color: var(--color-danger, #b91c1c); text-align: right; }
+.cuentas-limpieza-item__motivo { font-size: 0.75rem; color: var(--color-danger, var(--color-danger-soft-on)); text-align: right; }

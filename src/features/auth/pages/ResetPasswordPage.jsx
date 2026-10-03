@@ -6,7 +6,7 @@ import './ResetPasswordPage.css';
 
 const getPasswordStrength = (pass) => {
   if (pass.length === 0) return null;
-  if (pass.length < 6) return { level: 'weak',   label: 'Muy débil', color: '#ef4444', width: '25%' };
+  if (pass.length < 6) return { level: 'weak',   label: 'Muy débil', color: '#E11D48', width: '25%' };
   if (pass.length < 8) return { level: 'fair',   label: 'Débil',     color: '#f59e0b', width: '50%' };
   const hasSpecial = /[!@#$%^&*(),.?":{}|<>]/.test(pass);
   const hasNumber  = /\d/.test(pass);
@@ -191,7 +191,7 @@ export default function ResetPasswordPage() {
                 {showPass2 ? <MdVisibilityOff size={18} /> : <MdVisibility size={18} />}
               </button>
             </div>
-            {noCoincide && <p style={{ color: '#ef4444', fontSize: '0.8rem', marginTop: '0.4rem' }}>Las contraseñas no coinciden.</p>}
+            {noCoincide && <p style={{ color: '#E11D48', fontSize: '0.8rem', marginTop: '0.4rem' }}>Las contraseñas no coinciden.</p>}
           </div>
 
           <button type="submit" className="rsp-btn rsp-btn--primary rsp-btn--full" disabled={loading || formInvalido}>

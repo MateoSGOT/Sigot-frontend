@@ -13,7 +13,7 @@
 
 .combobox__control--open {
   border-color: var(--color-primary) !important;
-  box-shadow: 0 0 0 2px rgba(var(--color-primary-rgb, 99, 102, 241), 0.18);
+  box-shadow: 0 0 0 2px rgba(var(--color-primary-rgb), 0.18);
 }
 
 .combobox__input {
@@ -66,7 +66,7 @@
   top: calc(100% + 3px);
   left: 0;
   right: 0;
-  background: var(--color-surface, #1e1e2e);
+  background: var(--color-surface, var(--sidebar-bg-raised));
   border: 1.5px solid var(--color-border);
   border-radius: var(--radius-md, 6px);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
@@ -98,7 +98,7 @@
 }
 
 .combobox__option:hover {
-  background: var(--color-surface-hover, rgba(255,255,255,0.06));
+  background: var(--color-surface-hover);
 }
 
 .combobox__option--selected {

@@ -77,8 +77,8 @@ select.form-control:focus {
 }
 
 select.form-control option {
-  background: #ffffff;
-  color: #111111;
+  background: var(--color-surface);
+  color: var(--color-text);
 }
 
 textarea.form-control {
@@ -120,7 +120,7 @@ textarea.form-control {
   background: rgba(220, 38, 38, 0.07);
   border: 1px solid rgba(220, 38, 38, 0.22);
   border-radius: var(--radius);
-  color: #dc2626;
+  color: var(--color-danger-soft-on);
   font-size: 0.875rem;
 }
 

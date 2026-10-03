@@ -60,7 +60,7 @@
   box-shadow: 0 4px 14px rgba(37, 99, 235,0.30);
 }
 .landing-btn--primary:hover {
-  background: #1D4ED8;
+  background: var(--color-primary-strong);
   box-shadow: 0 6px 20px rgba(37, 99, 235,0.40);
   transform: translateY(-1px);
 }
@@ -205,7 +205,7 @@
 }
 .landing-hero__blob--1 {
   width: 600px; height: 600px;
-  background: radial-gradient(circle, #86efac, transparent);
+  background: radial-gradient(circle, #93C5FD, transparent);
   top: -100px; right: -100px;
 }
 .landing-hero__blob--2 {
@@ -308,9 +308,9 @@
 .landing-hero__dot {
   width: 10px; height: 10px; border-radius: 50%;
 }
-.landing-hero__dot--red { background: #f87171; }
-.landing-hero__dot--yellow { background: #fbbf24; }
-.landing-hero__dot--green { background: #60A5FA; }
+.landing-hero__dot--red { background: var(--color-danger-on-dark); }
+.landing-hero__dot--yellow { background: var(--color-accent-hover); }
+.landing-hero__dot--green { background: var(--color-primary-light); }
 .landing-hero__stat-row {
   display: flex; justify-content: space-between; align-items: center;
   padding: 0.7rem 0;
@@ -336,7 +336,7 @@
   font-size: 0.8rem; color: var(--lnd-text-muted); margin-bottom: 0.5rem;
 }
 .landing-hero__progress-bar {
-  height: 6px; background: #e5e7eb; border-radius: 99px; overflow: hidden;
+  height: 6px; background: #E2E8F0; border-radius: 99px; overflow: hidden;
 }
 .landing-hero__progress-fill {
   height: 100%; background: linear-gradient(90deg, var(--lnd-cobalt), var(--lnd-cobalt-light));
@@ -346,7 +346,7 @@
 
 /* ── STATS ──────────────────────────────────────────────────── */
 .landing-stats {
-  background: linear-gradient(135deg, #111827 0%, #064e3b 100%);
+  background: linear-gradient(135deg, #0B1220 0%, #1E3A8A 100%);
   padding: 4rem 0;
 }
 .landing-stats__grid {
@@ -387,7 +387,7 @@
   border-radius: var(--radius-full, 999px);
   display: flex; align-items: center; justify-content: center;
   background: rgba(96, 165, 250, 0.14);
-  color: #60A5FA;
+  color: var(--color-primary-light);
   margin-bottom: 0.25rem;
 }
 
@@ -478,7 +478,7 @@
     veía lechoso y restaba contraste al texto, el mismo problema que tenían los
     KPI del dashboard. */
 .landing-service-card {
-  background: #ffffff;
+  background: var(--color-surface);
   border: 1px solid var(--lnd-border);
   border-radius: var(--lnd-radius);
   padding: 2rem;
@@ -511,7 +511,7 @@
 }
 
 /* ── REASONS ────────────────────────────────────────────────── */
-.landing-reasons { background: #fff; }
+.landing-reasons { background: var(--color-surface); }
 .landing-reasons__grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -565,7 +565,7 @@
   margin-top: 3rem;
 }
 .landing-team-card {
-  background: #fff;
+  background: var(--color-surface);
   border: 1px solid var(--lnd-border);
   border-radius: var(--lnd-radius);
   padding: 2rem 1.5rem;
@@ -579,7 +579,7 @@
 }
 .landing-team-card__avatar {
   width: 72px; height: 72px; border-radius: 50%;
-  background: linear-gradient(135deg, var(--lnd-cobalt), #86efac);
+  background: linear-gradient(135deg, var(--lnd-cobalt), #93C5FD);
   color: #fff; font-size: 1.5rem; font-weight: 800;
   display: flex; align-items: center; justify-content: center;
   margin: 0 auto 1rem;
@@ -598,7 +598,7 @@
 }
 
 /* ── LOCATION ───────────────────────────────────────────────── */
-.landing-location { background: #fff; }
+.landing-location { background: var(--color-surface); }
 .landing-location__inner {
   display: flex; gap: 3rem; margin-top: 3rem; align-items: flex-start;
 }
@@ -648,7 +648,7 @@
 .landing-contact { background: var(--lnd-surface); }
 .landing-contact__card {
   max-width: 640px; margin: 0 auto;
-  background: #fff;
+  background: var(--color-surface);
   border: 1px solid var(--lnd-border);
   border-radius: var(--lnd-radius-lg);
   padding: 2.5rem;
@@ -662,7 +662,7 @@
 }
 .landing-contact__group input,
 .landing-contact__group textarea {
-  border: 1.5px solid #e5e7eb;
+  border: 1.5px solid var(--color-border);
   border-radius: 10px;
   padding: 0.75rem 1rem;
   font-size: 0.9375rem;
@@ -691,7 +691,7 @@
 
 /* ── FOOTER ─────────────────────────────────────────────────── */
 .landing-footer {
-  background: #111827; color: rgba(255,255,255,0.8);
+  background: var(--sidebar-bg); color: rgba(255,255,255,0.8);
   padding: 4rem 0 2rem;
 }
 .landing-footer__inner {
@@ -758,7 +758,7 @@
 @media (max-width: 768px) {
   .landing-nav__links {
     position: fixed; top: 68px; left: 0; right: 0;
-    background: #ffffff;
+    background: var(--color-surface);
     padding: 0 1rem;
     flex-direction: column; align-items: stretch;
     max-height: 0; overflow: hidden;

@@ -30,12 +30,12 @@
 }
 
 .ss__value--placeholder {
-  color: var(--color-text-muted, #888);
+  color: var(--color-text-muted, var(--color-text-light));
 }
 
 .ss__arrow {
   font-size: 0.7rem;
-  color: var(--color-text-muted, #888);
+  color: var(--color-text-muted, var(--color-text-light));
   flex-shrink: 0;
 }
 
@@ -45,7 +45,7 @@
   left: 0;
   right: 0;
   z-index: 1000;
-  background: var(--color-surface, #ffffff);
+  background: var(--color-surface, var(--color-surface));
   border: 1px solid var(--color-border, rgba(0,0,0,0.09));
   border-radius: 10px;
   box-shadow: 0 12px 28px rgba(0,0,0,0.12);
@@ -68,7 +68,7 @@
 }
 
 .ss__search-icon {
-  color: var(--color-text-muted, #888);
+  color: var(--color-text-muted, var(--color-text-light));
   flex-shrink: 0;
 }
 
@@ -82,7 +82,7 @@
 }
 
 .ss__search-input::placeholder {
-  color: var(--color-text-muted, #666);
+  color: var(--color-text-muted, var(--color-text-light));
 }
 
 .ss__list {
@@ -95,7 +95,7 @@
 
 .ss__empty {
   padding: 0.75rem 1rem;
-  color: var(--color-text-muted, #888);
+  color: var(--color-text-muted, var(--color-text-light));
   font-size: 0.8rem;
   text-align: center;
 }
@@ -114,12 +114,12 @@
 }
 
 .ss__option--selected {
-  color: var(--color-primary, #2563EB);
+  color: var(--color-primary, var(--color-primary));
   font-weight: 600;
 }
 
 .ss__option--create {
-  color: var(--color-primary, #2563EB);
+  color: var(--color-primary, var(--color-primary));
   font-weight: 600;
   border-top: 1px solid var(--color-border, rgba(0,0,0,0.09));
 }

@@ -11,7 +11,7 @@
   background: rgba(241, 78, 78, 0.10);
   border: 1px solid rgba(241, 78, 78, 0.25);
   border-radius: var(--radius);
-  color: #f87171;
+  color: var(--color-danger-on-dark);
   font-size: 0.875rem;
   margin: 1rem 2rem 0.5rem;
 }
@@ -108,7 +108,7 @@
 }
 
 /* Franja de acento a la izquierda de cada KPI, en su color semántico */
- /* El acento nombra el ROL de la métrica. `--purple` usaba un #a855f7 fuera de
+ /* El acento nombra el ROL de la métrica. `--purple` usaba un violeta fuera de
     paleta; "stock" pasa al ámbar del sistema, que además es el color con el que
     el resto de la app marca "requiere atención". */
 .stat-card { position: relative; border-left: 3px solid transparent; }
@@ -283,7 +283,7 @@
 .dashboard-rango__summary {
   font-size: 0.8125rem;
   font-weight: 600;
-  color: var(--color-primary-soft-on, #1D4ED8);
+  color: var(--color-primary-soft-on, var(--color-primary-soft-on));
   background: var(--color-primary-soft, rgba(37, 99, 235, 0.12));
   padding: 0.35rem 0.8rem;
   border-radius: 999px;

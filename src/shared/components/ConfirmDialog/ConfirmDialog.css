@@ -16,12 +16,12 @@
 }
 
 .confirm-dialog__icon--danger {
-  background: #fee2e2;
+  background: var(--color-danger-soft);
   color: var(--color-danger);
 }
 
 .confirm-dialog__icon--warning {
-  background: #fef3c7;
+  background: var(--color-warning-soft);
   color: var(--color-warning);
 }
 

@@ -26,7 +26,7 @@
 
 /* ON — forest green, toggle a la derecha */
 .toggle-switch--on {
-  background: #2d6a2d;
+  background: var(--color-success-strong);
   box-shadow: 0 2px 8px rgba(45, 106, 45, 0.30);
 }
 
@@ -36,7 +36,7 @@
 
 /* OFF — gris claro con sombra interior, toggle a la izquierda */
 .toggle-switch--off {
-  background: #cbd5e1;
+  background: var(--color-track);
   box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.12);
 }
 

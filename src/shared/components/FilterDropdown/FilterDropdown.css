@@ -23,8 +23,8 @@
 .fdd__trigger:hover,
 .fdd__trigger--open {
   background: rgba(45, 106, 45, 0.10);
-  color: #2d6a2d;
-  border-color: #2d6a2d;
+  color: var(--color-success-soft-on);
+  border-color: var(--color-success-strong);
   box-shadow: 0 2px 8px rgba(45, 106, 45, 0.12);
 }
 
@@ -43,7 +43,7 @@
   top: calc(100% + 6px);
   right: 0;
   min-width: 220px;
-  background: #ffffff;
+  background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: 12px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
@@ -98,17 +98,17 @@
 
 .fdd__item:hover {
   background: rgba(45, 106, 45, 0.08);
-  color: #2d6a2d;
+  color: var(--color-success-soft-on);
 }
 
 .fdd__item--active {
   background: rgba(45, 106, 45, 0.10);
-  color: #2d6a2d;
+  color: var(--color-success-soft-on);
   font-weight: 600;
 }
 
 .fdd__item-check {
-  color: #2d6a2d;
+  color: var(--color-success-soft-on);
   flex-shrink: 0;
 }
 
@@ -135,20 +135,20 @@
 
 .fdd__chip:hover {
   border-color: rgba(245, 158, 11, 0.4);
-  color: #F59E0B;
+  color: var(--color-accent);
   background: rgba(245, 158, 11, 0.06);
 }
 
 .fdd__chip--active {
-  background: #F59E0B;
+  background: var(--color-accent);
   border-color: transparent;
-  color: #000000;
+  color: var(--color-text);
   font-weight: 700;
 }
 
 .fdd__chip--active:hover {
-  background: #FBBF24;
-  color: #000000;
+  background: var(--color-accent-hover);
+  color: var(--color-text);
 }
 
 /* === Custom input === */

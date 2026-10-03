@@ -66,7 +66,7 @@
 /* === Danger === */
 .btn--danger {
   background: rgba(220, 38, 38, 0.08);
-  color: #dc2626;
+  color: var(--color-danger-soft-on);
   border-color: rgba(220, 38, 38, 0.25);
 }
 
@@ -90,11 +90,11 @@
 
 /* === Ghost en rojo (acción de borrado real en tablas, solo super admin) === */
 .btn--ghost.btn--danger-ghost {
-  color: #dc2626;
+  color: var(--color-danger-soft-on);
 }
 .btn--ghost.btn--danger-ghost:hover:not(:disabled) {
   background: rgba(220, 38, 38, 0.12);
-  color: #b91c1c;
+  color: var(--color-danger-soft-on);
   border-color: rgba(220, 38, 38, 0.30);
 }
 

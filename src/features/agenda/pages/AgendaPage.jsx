@@ -24,13 +24,22 @@ import './AgendaPage.css';
 const EMPTY_CITA  = { Id_Cliente: '', Id_Vehiculo: '', id_empleado: '', FechaAgendamiento: '', Hora: '', DuracionEstimadaMin: '60', TipoCita: 'Mantenimiento' };
 const DURACION_POR_TIPO = { Diagnostico: '45', Mantenimiento: '60' };
 
+// Estados de la cita, con los pares -soft/-soft-on del sistema (los colores van
+// a estilos inline, que sí aceptan var()). El color encoda el punto del flujo:
+// pendiente = sin empezar (gris) · confirmada = reconocida (cobalto) ·
+// atendida = hecha (esmeralda) · diagnosticada = hito técnico (teal) ·
+// cancelada (rosa) · no asistió = requiere atención (ámbar).
+//
+// OJO -- acá había un desajuste: "Atendida" tenía fondo esmeralda con texto
+// COBALTO, porque el mapeo de identidad cambió el texto y no el fondo. Cada par
+// de abajo tiene su contraste verificado (4.57:1 el más bajo, todos AA).
 const ESTADO_CITA_STYLE = {
-  Pendiente:  { bg: '#eff6ff', fg: '#1d4ed8', label: 'Pendiente' },
-  Confirmada: { bg: '#ecfeff', fg: '#0e7490', label: 'Confirmada' },
-  Atendida:   { bg: '#f0fdf4', fg: '#1D4ED8', label: 'Atendida' },
-  Diagnosticada: { bg: '#f5f3ff', fg: '#6d28d9', label: 'Diagnosticada' },
-  Cancelada:  { bg: '#fef2f2', fg: '#b91c1c', label: 'Cancelada' },
-  NoAsistio:  { bg: '#fefce8', fg: '#a16207', label: 'No asistió' },
+  Pendiente:     { bg: 'var(--color-neutral-soft)', fg: 'var(--color-neutral-soft-on)', label: 'Pendiente' },
+  Confirmada:    { bg: 'var(--color-primary-soft)', fg: 'var(--color-primary-soft-on)', label: 'Confirmada' },
+  Atendida:      { bg: 'var(--color-success-soft)', fg: 'var(--color-success-soft-on)', label: 'Atendida' },
+  Diagnosticada: { bg: 'var(--color-teal-soft)',    fg: 'var(--color-teal)',            label: 'Diagnosticada' },
+  Cancelada:     { bg: 'var(--color-danger-soft)',  fg: 'var(--color-danger-soft-on)',  label: 'Cancelada' },
+  NoAsistio:     { bg: 'var(--color-warning-soft)', fg: 'var(--color-warning-soft-on)', label: 'No asistió' },
 };
 function CitaEstadoBadge({ estado }) {
   const s = ESTADO_CITA_STYLE[estado] || ESTADO_CITA_STYLE.Pendiente;

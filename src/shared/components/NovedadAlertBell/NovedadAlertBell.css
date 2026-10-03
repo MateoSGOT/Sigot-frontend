@@ -15,8 +15,8 @@
   transition: background 0.15s, color 0.15s;
 }
 .novedad-bell__btn:hover { background: rgba(255,255,255,0.13); color: #fff; }
-.novedad-bell__btn--alert { color: #f87171; }
-.novedad-bell__btn--alert:hover { color: #ef4444; }
+.novedad-bell__btn--alert { color: var(--color-danger-on-dark); }
+.novedad-bell__btn--alert:hover { color: #E11D48; }
 
 .novedad-bell__badge {
   position: absolute;
@@ -26,7 +26,7 @@
   height: 16px;
   padding: 0 3px;
   border-radius: 8px;
-  background: #ef4444;
+  background: var(--color-danger);
   color: #fff;
   font-size: 9px;
   font-weight: 700;
@@ -41,8 +41,8 @@
 .novedad-bell__dropdown {
   position: fixed;
   width: min(300px, calc(100vw - 16px));
-  background: #fff;
-  border: 1px solid #e5e7eb;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
   border-radius: 10px;
   box-shadow: 0 8px 24px rgba(0,0,0,0.13);
   z-index: 1300;
@@ -54,18 +54,18 @@
   align-items: center;
   gap: 6px;
   padding: 0.625rem 0.875rem;
-  background: #f9fafb;
-  border-bottom: 1px solid #f3f4f6;
+  background: var(--color-surface-solid);
+  border-bottom: 1px solid var(--color-border-light);
   font-size: 0.8rem;
   font-weight: 600;
-  color: #374151;
+  color: var(--color-text-secondary);
 }
 
 .novedad-bell__empty {
   padding: 1rem;
   text-align: center;
   font-size: 0.8rem;
-  color: #9ca3af;
+  color: var(--color-text-disabled);
 }
 
 .novedad-bell__item {
@@ -73,22 +73,22 @@
   flex-direction: column;
   gap: 2px;
   padding: 0.5rem 0.875rem;
-  border-bottom: 1px solid #f3f4f6;
-  border-left: 3px solid #f87171;
+  border-bottom: 1px solid var(--color-border-light);
+  border-left: 3px solid var(--color-danger-on-dark);
   cursor: pointer;
   transition: background 0.1s;
 }
-.novedad-bell__item:hover { background: #f9fafb; }
+.novedad-bell__item:hover { background: #FBFCFD; }
 
 .novedad-bell__item-empleado {
   font-size: 0.8rem;
   font-weight: 600;
-  color: #111827;
+  color: var(--color-text);
 }
 
 .novedad-bell__item-desc {
   font-size: 0.75rem;
-  color: #6b7280;
+  color: var(--color-text-muted);
   overflow: hidden;
   text-overflow: ellipsis;
   display: -webkit-box;
@@ -102,15 +102,17 @@
   padding: 0.625rem;
   background: none;
   border: none;
-  border-top: 1px solid #f3f4f6;
-  color: #2563EB;
+  border-top: 1px solid var(--color-border-light);
+  color: var(--color-primary);
   font-size: 0.8rem;
   font-weight: 600;
   cursor: pointer;
   text-align: center;
   transition: background 0.1s;
 }
-.novedad-bell__ver-todos:hover { background: #f0fdf4; }
+/* El tinte de hover tiene que ser el del PROPIO color del enlace (cobalto):
+   acá había un tinte esmeralda, resto de la identidad anterior. */
+.novedad-bell__ver-todos:hover { background: var(--color-primary-soft); }
 
 .novedad-bell__loading { display: flex; flex-direction: column; gap: var(--space-sm); padding: var(--space-md) var(--space-lg); }
 .novedad-bell__skeleton-row { display: flex; flex-direction: column; gap: 4px; }

@@ -55,9 +55,9 @@ const RULES_NUEVO_REP = {
 };
 
 const ESTADO_CONFIG = {
-  0: { label: 'Inactivo',   variant: 'gray',    bg: 'rgba(255,255,255,0.08)', color: '#888888', border: 'rgba(255,255,255,0.12)' },
-  1: { label: 'Pendiente',  variant: 'warning', bg: 'rgba(245,166,35,0.12)',  color: '#f5a623', border: 'rgba(245,166,35,0.3)'   },
-  2: { label: 'En proceso', variant: 'info',    bg: 'rgba(78,154,241,0.12)',  color: '#4e9af1', border: 'rgba(78,154,241,0.3)'   },
+  0: { label: 'Inactivo',   variant: 'gray',    bg: 'rgba(255,255,255,0.08)', color: '#64748B', border: 'rgba(255,255,255,0.12)' },
+  1: { label: 'Pendiente',  variant: 'warning', bg: 'rgba(245,166,35,0.12)',  color: '#F59E0B', border: 'rgba(245,166,35,0.3)'   },
+  2: { label: 'En proceso', variant: 'info',    bg: 'rgba(78,154,241,0.12)',  color: '#3B82F6', border: 'rgba(78,154,241,0.3)'   },
   3: { label: 'Realizado',  variant: 'success', bg: 'rgba(245, 158, 11,0.12)', color: '#F59E0B', border: 'rgba(245, 158, 11,0.3)'   },
 };
 
