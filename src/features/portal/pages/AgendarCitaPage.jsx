@@ -13,6 +13,8 @@ import {
   correo as validarCorreo,
   passwordFuerte as validarPassword,
   confirmarPassword as validarConfirmacion,
+  placa as validarPlaca,
+  normalizarPlaca,
 } from '../../../shared/utils/validators.js';
 import { todayLocalYMD } from '../../../shared/utils/helpers.js';
 import {
@@ -47,11 +49,22 @@ const OTP_LARGO = 6;
 // rechaza al crear la cita (ahí sí con las reglas reales de horario y ocupación).
 const HORA_APERTURA = 8;
 const HORA_CIERRE = 18;
-const horasDisponibles = () => {
+
+// Franjas del dia. Si la fecha elegida es HOY, se descartan las que ya pasaron: si no,
+// el select las ofrecia igual y el usuario podia elegir una hora anterior a la actual
+// (el backend la rechazaba recien al confirmar, ya con la cuenta y el vehiculo creados).
+// Se deja un margen de 30 min: no tiene sentido ofrecer una franja que arranca en 5 min.
+const MARGEN_MIN = 30;
+const horasDisponibles = (fechaYMD) => {
   const out = [];
+  const esHoy = fechaYMD === todayLocalYMD();
+  const ahora = new Date();
+  const minutoCorte = esHoy ? ahora.getHours() * 60 + ahora.getMinutes() + MARGEN_MIN : -1;
   for (let h = HORA_APERTURA; h < HORA_CIERRE; h++) {
-    out.push(`${String(h).padStart(2, '0')}:00`);
-    out.push(`${String(h).padStart(2, '0')}:30`);
+    for (const m of [0, 30]) {
+      if (h * 60 + m <= minutoCorte) continue;
+      out.push(`${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`);
+    }
   }
   return out;
 };
@@ -162,11 +175,33 @@ export default function AgendarCitaPage() {
     && !!cuenta.Id_TipoDoc
     && cuenta.Documento.trim().length >= 5;
 
-  const vehiculoListo = vehiculo.Placa.trim().length >= 3 && /^\d{4}$/.test(String(vehiculo.Anio));
-  const citaLista = !!cita.Fecha && !!cita.Hora
+  // Placa con el validador compartido (formato ABC123 carro / ABC12D moto), el mismo que
+  // usa el formulario del taller. Antes solo se medía la longitud, así que "XX" o "123456"
+  // pasaban y la cita fallaba recién al confirmar.
+  const errPlaca = tocado.Placa && vehiculo.Placa ? validarPlaca(vehiculo.Placa) : '';
+  const anioValido = /^\d{4}$/.test(String(vehiculo.Anio))
+    && Number(vehiculo.Anio) >= 1900
+    && Number(vehiculo.Anio) <= new Date().getFullYear() + 1;
+  // Fecha+hora futuras. Duplicado a propósito con assertNoEnPasado del backend
+  // (agenda.service.js) -- acá es solo feedback inmediato; la autoridad real es la API.
+  // Si esa regla cambia allá, hay que tocar también esta copia y la de PortalPage.
+  const citaEnPasado = (() => {
+    if (!cita.Fecha || !cita.Hora) return false;
+    const dt = new Date(`${cita.Fecha}T${cita.Hora}:00`);
+    return Number.isNaN(dt.getTime()) || dt.getTime() <= Date.now();
+  })();
+  const citaLista = !!cita.Fecha && !!cita.Hora && !citaEnPasado
     && (usarNuevoVehiculo || !tieneVehiculos ? true : !!vehiculoElegido);
 
   const cambiar = (setter) => (e) => { setter((p) => ({ ...p, [e.target.name]: e.target.value })); setError(''); };
+
+  // Cambiar la fecha puede invalidar la hora ya elegida (ej. pasar de mañana a hoy y que
+  // esa franja ya haya pasado): se limpia para que no quede una selección imposible.
+  const cambiarFecha = (e) => {
+    const Fecha = e.target.value;
+    setCita((p) => ({ ...p, Fecha, Hora: horasDisponibles(Fecha).includes(p.Hora) ? p.Hora : '' }));
+    setError('');
+  };
   const marcarTocado = (e) => setTocado((p) => ({ ...p, [e.target.name]: true }));
 
   /* ── Paso Cuenta -> Código ── */
@@ -214,7 +249,11 @@ export default function AgendarCitaPage() {
   /* ── Paso Vehículo -> Cita (sin petición: el vehículo se crea al confirmar) ── */
   const continuarVehiculo = (e) => {
     e.preventDefault();
-    if (!vehiculoListo) { vibrar('Completa la placa y el año del vehículo.'); return; }
+    setTocado((p) => ({ ...p, Placa: true }));
+    // Se muestra el motivo real (formato de placa vs. año) en vez de un genérico.
+    const motivo = validarPlaca(vehiculo.Placa)
+      || (!anioValido ? 'El año no es válido (4 dígitos, hasta el año próximo).' : '');
+    if (motivo) { vibrar(motivo); return; }
     irAPaso(paso + 1);
   };
 
@@ -231,6 +270,7 @@ export default function AgendarCitaPage() {
 
   const confirmar = async (e) => {
     e.preventDefault();
+    if (citaEnPasado) { vibrar('La fecha y la hora de la cita deben ser futuras.'); return; }
     if (!citaLista) { vibrar('Elige fecha y hora para tu cita.'); return; }
     setEnviando(true);
     setEtapaEnvio(0);
@@ -443,16 +483,18 @@ export default function AgendarCitaPage() {
                   <CampoFlotante
                     id="ag-placa" name="Placa" label="Placa"
                     value={vehiculo.Placa}
-                    onChange={(e) => { setVehiculo((p) => ({ ...p, Placa: e.target.value.toUpperCase() })); setError(''); }}
+                    onChange={(e) => { setVehiculo((p) => ({ ...p, Placa: normalizarPlaca(e.target.value) })); setError(''); }}
+                    onBlur={marcarTocado}
                     icon={MdDirectionsCar} maxLength={10}
-                    valido={vehiculo.Placa.trim().length >= 3}
+                    error={errPlaca}
+                    valido={!!vehiculo.Placa && !validarPlaca(vehiculo.Placa)}
                   />
                   <div className="flujo-fila-2">
                     <CampoFlotante
                       id="ag-anio" name="Anio" label="Año"
                       value={vehiculo.Anio} onChange={cambiar(setVehiculo)}
                       icon={MdCalendarToday} inputMode="numeric" maxLength={4}
-                      valido={/^\d{4}$/.test(String(vehiculo.Anio))}
+                      valido={anioValido}
                     />
                     <CampoFlotante
                       id="ag-color" name="Color" label="Color (opcional)"
@@ -513,7 +555,7 @@ export default function AgendarCitaPage() {
                           id="ag-fecha" name="Fecha" type="date"
                           className="campo__input campo__input--select"
                           value={cita.Fecha} min={hoy}
-                          onChange={cambiar(setCita)}
+                          onChange={cambiarFecha}
                           aria-label="Fecha de la cita"
                         />
                       </div>
@@ -522,7 +564,7 @@ export default function AgendarCitaPage() {
                       id="ag-hora" name="Hora" icon={MdSchedule}
                       value={cita.Hora} onChange={cambiar(setCita)}
                       placeholder="Hora"
-                      options={horasDisponibles().map((h) => ({ value: h, label: h }))}
+                      options={horasDisponibles(cita.Fecha).map((h) => ({ value: h, label: h }))}
                     />
                   </div>
 
@@ -541,8 +583,9 @@ export default function AgendarCitaPage() {
 
                   <p className="flujo-aviso">
                     <MdSchedule size={15} aria-hidden="true" />
-                    Atendemos de {String(HORA_APERTURA).padStart(2, '0')}:00 a {HORA_CIERRE}:00.
-                    Si la hora que elegís ya está ocupada te lo avisamos al confirmar.
+                    {cita.Fecha && horasDisponibles(cita.Fecha).length === 0
+                      ? `Para hoy ya no quedan horas disponibles (atendemos hasta las ${HORA_CIERRE}:00). Elegí otra fecha.`
+                      : `Atendemos de ${String(HORA_APERTURA).padStart(2, '0')}:00 a ${HORA_CIERRE}:00. Si la hora que elegís ya está ocupada te lo avisamos al confirmar.`}
                   </p>
 
                   {error && <p className="flujo-error" role="alert">{error}</p>}
