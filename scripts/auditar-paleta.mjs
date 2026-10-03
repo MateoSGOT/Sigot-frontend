@@ -73,8 +73,22 @@ function recorrer(dir) {
     const rel = f.split(path.sep).join('/');
     const lineas = fs.readFileSync(f, 'utf8').split('\n');
 
+    /* Estado de comentario de bloque. Antes solo se saltaban las líneas que
+       EMPIEZAN con /* o * o //, así que una línea de prosa en medio de un
+       comentario multilínea se auditaba como si fuera código. Eso daba falsos
+       positivos justo en los comentarios que explican por qué un color viejo
+       era un problema -- citar el hex en la explicación disparaba el hallazgo. */
+    let enBloque = false;
+
     lineas.forEach((linea, i) => {
+      const abre  = linea.lastIndexOf('/*');
+      const cierra = linea.lastIndexOf('*/');
+      const estabaEnBloque = enBloque;
+      if (!enBloque && abre !== -1 && cierra < abre) enBloque = true;
+      else if (enBloque && cierra !== -1 && cierra > abre) enBloque = false;
+
       // Los comentarios no pintan nada.
+      if (estabaEnBloque) return;
       if (/^\s*(\/\*|\*|\/\/)/.test(linea)) return;
       for (const m of linea.matchAll(/#[0-9a-fA-F]{3,8}/g)) {
         const c = m[0].toLowerCase();
@@ -87,6 +101,17 @@ function recorrer(dir) {
         const t = `${m[1]},${m[2]},${m[3]}`;
         if (tripletasDelSistema.has(t)) continue;
         hallazgos.push({ rel, l: i + 1, c: `rgb(${t})`, txt: linea.trim().slice(0, 70) });
+      }
+      /* TERCER PUNTO CIEGO: colores dentro de un data URI. En un SVG embebido el
+         `#` va codificado como `%23`, así que ni la búsqueda de hex ni la de
+         tripletas los veía. Por esa rendija sobrevivió el verde #2d6a2d en la
+         flecha del .filter-select: el hover de TODOS los selectores de filtro se
+         ponía verde en una app cobalto, y las dos auditorías decían "cero". */
+      for (const m of linea.matchAll(/%23([0-9a-fA-F]{3,6})/g)) {
+        const c = `#${m[1].toLowerCase()}`;
+        if (ABSOLUTOS.has(c)) continue;
+        if (delSistema.has(c)) continue;
+        hallazgos.push({ rel, l: i + 1, c: `${c} (en data URI)`, txt: linea.trim().slice(0, 70) });
       }
     });
   }

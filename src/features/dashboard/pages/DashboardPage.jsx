@@ -289,9 +289,9 @@ export default function DashboardPage() {
 
       {/* ═══ Bento: un solo grid de 12 columnas. Cada módulo declara su ancho,
            de ahí la variedad (12 · 6+6 · 7+5) en vez de filas iguales. ═══ */}
-      <div className="dashboard-bento">
+      <div className="bento">
         {/* Ingresos — módulo principal, ancho completo */}
-        <div className="card dashboard-modulo dashboard-modulo--12">
+        <div className="card dashboard-modulo bento__module bento__module--12">
           <div className="card__header"><span className="card__title">Ingresos ({formatCurrency(rep.ingresos?.total ?? 0)} en el rango)</span></div>
           <div className="card__body">
             {/* El esqueleto mide EXACTAMENTE lo que la gráfica (240): estaba en 220
@@ -312,7 +312,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Top servicios / Top repuestos — mitad y mitad */}
-        <div className="card dashboard-modulo dashboard-modulo--6">
+        <div className="card dashboard-modulo bento__module bento__module--6">
           <div className="card__header"><span className="card__title">Servicios más realizados</span></div>
           <div className="card__body">
             {loading ? <Skeleton height={220} /> : rep.topServicios.length > 0 ? (
@@ -330,7 +330,7 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        <div className="card dashboard-modulo dashboard-modulo--6">
+        <div className="card dashboard-modulo bento__module bento__module--6">
           <div className="card__header"><span className="card__title">Repuestos más usados</span></div>
           <div className="card__body">
             {loading ? <Skeleton height={220} /> : rep.topRepuestos.length > 0 ? (
@@ -349,7 +349,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Productividad (más ancha: es una tabla) + inventario por categoría */}
-        <div className="card dashboard-modulo dashboard-modulo--7">
+        <div className="card dashboard-modulo bento__module bento__module--7">
           <div className="card__header"><span className="card__title"><MdBuild size={15} style={{ verticalAlign: '-2px', marginRight: 6 }} />Productividad por mecánico</span></div>
           <div className="card__body">
             {loading ? <Skeleton height={200} /> : rep.productividad.length > 0 ? (
@@ -386,7 +386,7 @@ export default function DashboardPage() {
         </div>
 
         {repuestosPie.length > 0 && (
-          <div className="card dashboard-modulo dashboard-modulo--5">
+          <div className="card dashboard-modulo bento__module bento__module--5">
             <div className="card__header"><span className="card__title">Repuestos por categoría (inventario)</span></div>
             <div className="card__body">
               <ResponsiveContainer width="100%" height={220}>

@@ -1,22 +1,44 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   CAPA DE MAQUETADO COMPARTIDA
+
+   Primitivas con las que se componen TODAS las vistas del panel: shell de
+   página, rejilla bento, módulo, barra de herramientas, rejilla de detalle.
+
+   La razón de que esto viva en un solo archivo: las ~17 páginas del panel son
+   la misma forma repetida (cabecera · barra de búsqueda y filtros · tabla o
+   rejilla · modal de formulario). Cuando cada página traía su propio CSS para
+   esa forma, el mismo patrón existía diecisiete veces con diferencias de dos
+   píxeles, y cambiar el aire de la cabecera era diecisiete ediciones. Acá las
+   páginas no declaran maquetado: lo componen.
+
+   Ningún valor literal de color ni de espaciado. Todo sale de los tokens.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ══════════════════ SHELL DE PÁGINA ══════════════════ */
 @keyframes pageFadeIn {
-  from { opacity: 0; transform: translateY(12px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from { opacity: 0; transform: translate3d(0, 10px, 0); }
+  to   { opacity: 1; transform: translate3d(0, 0, 0); }
 }
 
 .page {
   padding: 0;
   max-width: 100%;
-  animation: pageFadeIn 0.3s cubic-bezier(0.4, 0, 0.2, 1) both;
+  /* translate3d y opacity: las dos propiedades que el compositor resuelve sin
+     repintar. `both` deja fijado el estado final para que los hover funcionen. */
+  animation: pageFadeIn var(--duration-slow) var(--ease-entrance) both;
 }
 
-/* Sticky top bar */
+@media (prefers-reduced-motion: reduce) {
+  .page { animation: none; }
+}
+
+/* Cabecera fija: título a la izquierda, acciones a la derecha. */
 .page__header {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 1rem;
-  padding: 1.75rem 2rem 1.25rem;
-  /* Velo de marca + textura de puntos (ver --bg-header). */
+  gap: var(--space-lg);
+  padding: var(--space-2xl) var(--space-2xl) var(--space-xl);
   background: var(--bg-header);
   background-size: 22px 22px, cover;
   border-bottom: 1px solid var(--color-border-light);
@@ -24,17 +46,6 @@
   top: 0;
   z-index: 10;
   flex-wrap: wrap;
-}
-
-/* Content/table area */
-.page__body {
-  padding: 1.5rem 2rem 2rem;
-}
-
-/* Cards inside page: dark floating blocks on light background */
-.page > .card {
-  margin: var(--space-xl) var(--space-2xl);
-  border-radius: var(--radius-lg);
 }
 
 .page__title {
@@ -47,141 +58,236 @@
 }
 
 .page__subtitle {
-  font-size: 0.875rem;
+  font-size: var(--text-body);
   color: var(--color-text-muted);
-  margin-top: 0.25rem;
+  margin-top: var(--space-xs);
 }
 
 .page__actions {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: var(--space-md);
   flex-wrap: wrap;   /* en móvil los botones se acomodan en vez de cortarse */
 }
 
-/* === Card — superficie sólida, definición nítida (border hairline + shadow-sm) === */
- /* Módulo bento: blanco puro, canto de 16px, elevación de reposo que sube al
-    pasar el puntero. La separación entre módulos la da el canvas y el aire, no
-    una línea gris. */
+.page__body {
+  padding: var(--space-xl) var(--space-2xl) var(--space-2xl);
+}
+
+/* Barra de herramientas: búsqueda + filtros + acción. Fila propia debajo de la
+   cabecera, porque meterla EN la cabecera fija la volvía una barra de tres
+   alturas distintas según cuántos filtros tuviera cada página. */
+.page__toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  flex-wrap: wrap;
+  padding: var(--space-xl) var(--space-2xl) 0;
+}
+/* La búsqueda se come el espacio libre; los filtros conservan su ancho. */
+.page__toolbar > :first-child { flex: 1 1 240px; min-width: 0; }
+.page__toolbar--fin { margin-left: auto; }
+
+/* ══════════════════ REJILLA BENTO ══════════════════
+   Una sola rejilla de 12 columnas por pantalla. Cada módulo declara cuánto
+   ocupa, y el ritmo visual sale del reparto desigual (12 · 7+5 · 6+6 · 4+4+4),
+   no de filas iguales: filas iguales son una tabla de cajas, no un bento.
+
+   Cada módulo es además un CONTENEDOR de consulta, así que su contenido se
+   adapta al ancho de la celda y no al de la pantalla. Eso es lo que permite
+   reusar el mismo módulo en una celda de 12 y en una de 4 sin un breakpoint. */
+.bento {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: var(--space-xl);
+  padding: var(--space-xl) var(--space-2xl) var(--space-2xl);
+  align-items: start;
+  color: var(--color-text);
+}
+
+.bento__module {
+  grid-column: span 12;
+  container-type: inline-size;
+  container-name: modulo;
+  min-width: 0;   /* sin esto, una tabla ancha estira la celda y rompe la rejilla */
+}
+
+.bento__module--3  { grid-column: span 3; }
+.bento__module--4  { grid-column: span 4; }
+.bento__module--5  { grid-column: span 5; }
+.bento__module--6  { grid-column: span 6; }
+.bento__module--7  { grid-column: span 7; }
+.bento__module--8  { grid-column: span 8; }
+.bento__module--12 { grid-column: span 12; }
+
+/* Tablet: se colapsa a dos columnas y luego a una. Los spans impares (5/7)
+   caen a 6 para que no quede una celda huérfana de ancho raro. */
+@media (max-width: 1279px) {
+  .bento__module--3 { grid-column: span 6; }
+  .bento__module--4 { grid-column: span 6; }
+  .bento__module--5 { grid-column: span 6; }
+  .bento__module--7 { grid-column: span 6; }
+  .bento__module--8 { grid-column: span 12; }
+}
+@media (max-width: 1023px) {
+  .bento { gap: var(--space-lg); padding: var(--space-lg) var(--space-lg) var(--space-xl); }
+  .bento__module--3,
+  .bento__module--4,
+  .bento__module--5,
+  .bento__module--6,
+  .bento__module--7,
+  .bento__module--8 { grid-column: span 12; }
+}
+
+/* ══════════════════ MÓDULO / TARJETA ══════════════════
+   Blanco puro, canto de 24px, elevación de reposo que sube con el puntero. La
+   separación entre módulos la da el canvas y el aire, nunca una línea gris. */
 .card {
   background: var(--color-surface);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-sm);
   border: var(--card-border);
+  color: var(--color-text);
+  /* Solo las dos propiedades compositadas. */
   transition: box-shadow var(--duration-base) var(--ease),
               transform var(--duration-base) var(--ease);
-  color: var(--color-text);
 }
-/* El realce de elevación aplica a todo módulo; el DESPLAZAMIENTO sigue
-   reservado a los clicables (ver .card--interactive): levantar algo que no se
-   puede pulsar es ruido. */
+/* El realce de elevación aplica a todo módulo; el DESPLAZAMIENTO queda
+   reservado a los clicables: levantar algo que no se puede pulsar es ruido. */
 .card:hover { box-shadow: var(--shadow-md); }
 
-/* Solo las cards clicables se elevan en hover (microinteracción) */
-.card--interactive {
-  cursor: pointer;
-}
+.card--interactive { cursor: pointer; }
 .card--interactive:hover {
   box-shadow: var(--shadow-md);
-  transform: translateY(-2px);
+  transform: translate3d(0, -2px, 0);
 }
 
 @media (prefers-reduced-motion: reduce) {
   .card--interactive:hover { transform: none; }
 }
 
+/* Una tarjeta suelta dentro de .page (no en un bento) conserva su margen. */
+.page > .card {
+  margin: var(--space-xl) var(--space-2xl);
+  border-radius: var(--radius-lg);
+}
+
 .card__header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  /* Más padding y SIN borde inferior: el aire separa la cabecera del cuerpo. */
+  /* Sin borde inferior: el aire separa la cabecera del cuerpo. */
   padding: var(--space-xl) var(--space-xl) var(--space-lg);
-  gap: 1rem;
+  gap: var(--space-lg);
   flex-wrap: wrap;
 }
 
 .card__body {
-  padding: 1.5rem;
+  padding: var(--space-xl);
 }
+/* Cuando el cuerpo lleva una tabla, el padding lateral sobra: la tabla ya trae
+   su propio canto redondeado y quedaba un marco dentro de otro marco. */
+.card__body--tabla { padding: 0 var(--space-md) var(--space-md); }
 
 .card__title {
-  font-size: 1rem;
-  font-weight: 700;
+  font-size: var(--text-h3);
+  font-weight: var(--weight-bold);
   color: var(--color-text);
+  letter-spacing: var(--tracking-tight);
 }
 
-/* === Detail Grid === */
+/* Módulo en celda angosta: se recorta el aire interior antes que el contenido. */
+@container modulo (max-width: 420px) {
+  .card__header { padding: var(--space-lg) var(--space-lg) var(--space-md); }
+  .card__body   { padding: var(--space-lg); }
+}
+
+/* ══════════════════ REJILLA DE DETALLE ══════════════════
+   Pares etiqueta/valor. Se adapta al ancho del MÓDULO que la contiene: la misma
+   rejilla da dos columnas en una celda ancha y una en una angosta, sin que la
+   página tenga que saber dónde está. */
 .detail-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 0.75rem;
+  gap: var(--space-md);
 }
 
-/* Cada dato como una tarjeta: SIN borde, se distingue solo por el color de
-   fondo. Realce verde de marca (también solo color) al pasar el cursor. */
+@container modulo (max-width: 480px) {
+  .detail-grid { grid-template-columns: 1fr; }
+}
+
 .detail-item {
   display: flex;
   flex-direction: column;
-  gap: 0.3rem;
-  padding: 0.75rem 0.9rem;
+  gap: var(--space-xs);
+  padding: var(--space-md) var(--space-lg);
   background: var(--color-surface-raised);
-  border-radius: var(--radius);
-  transition: background 0.18s ease;
+  border-radius: var(--radius-md);
+  transition: background var(--duration-fast) var(--ease);
 }
 
-.detail-item:hover {
-  background: var(--color-primary-soft);
-}
+.detail-item:hover { background: var(--color-primary-soft); }
 
 .detail-label {
-  font-size: 0.6875rem;
-  font-weight: 700;
-  color: var(--color-text-muted);
+  font-size: var(--text-caption);
+  font-weight: var(--weight-bold);
+  color: var(--color-text-light);
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: var(--tracking-wide);
 }
 
 .detail-value {
-  font-size: 0.9375rem;
+  font-size: var(--text-body);
   color: var(--color-text);
-  font-weight: 600;
-  line-height: 1.4;
-  /* Correos/documentos largos no desbordan la tarjeta */
+  font-weight: var(--weight-semibold);
+  line-height: var(--leading-normal);
+  /* Correos y documentos largos no desbordan la tarjeta. */
   overflow-wrap: anywhere;
 }
 
-/* === Filter Select (inline in searchbar) === */
+/* ══════════════════ SELECTOR DE FILTRO ══════════════════
+   La flecha es un SVG embebido, así que su color va URL-codificado.
+
+   OJO -- por esa codificación los colores de un data URI son invisibles para
+   una búsqueda de hex. Acá vivía el verde de una identidad anterior, y el hover
+   de todos los filtros se ponía verde en una app cobalto sin que ninguna
+   auditoría lo reportara. auditar-paleta.mjs ya revisa también los data URI.
+
+   Si cambian los tokens de abajo hay que actualizar estos dos literales a mano:
+   un data URI no admite var(). Flecha en reposo = --color-text-light;
+   flecha en hover = --color-primary-strong. */
 .filter-select {
-  padding: 0.5rem 2rem 0.5rem 0.875rem;
-  border: 1.5px solid var(--color-border);
+  padding: var(--space-sm) var(--space-2xl) var(--space-sm) var(--space-lg);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
-  background: var(--color-input-bg);
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%23888888' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3E%3C/svg%3E");
+  background-color: var(--color-input-bg);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%2364748B' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
-  background-position: right 0.5rem center;
+  background-position: right var(--space-md) center;
   background-size: 1.1rem;
-  font-size: 0.875rem;
+  font-size: var(--text-body);
+  font-family: inherit;
+  font-weight: var(--weight-medium);
   color: var(--color-text-muted);
   cursor: pointer;
   outline: none;
-  transition: var(--transition);
   appearance: none;
-  font-family: inherit;
-  font-weight: 500;
+  transition: border-color var(--duration-fast) var(--ease),
+              background-color var(--duration-fast) var(--ease),
+              box-shadow var(--duration-fast) var(--ease);
 }
 
 .filter-select:hover {
-  background-color: rgba(43, 92, 255, 0.08);
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%232d6a2d' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3E%3C/svg%3E");
-  border-color: var(--color-success-strong);
-  color: var(--color-success-soft-on);
-  box-shadow: 0 2px 8px rgba(43, 92, 255, 0.12);
+  background-color: var(--color-primary-soft);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%231E40D8' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3E%3C/svg%3E");
+  border-color: var(--color-primary);
+  color: var(--color-primary-soft-on);
 }
 
-.filter-select:focus {
-  border-color: var(--color-success-strong);
+.filter-select:focus-visible {
+  border-color: var(--color-focus);
   background-color: var(--color-input-bg);
-  box-shadow: 0 0 0 3px rgba(43, 92, 255, 0.15);
+  box-shadow: 0 0 0 3px var(--color-focus-ring);
 }
 
 .filter-select option {
@@ -189,24 +295,29 @@
   color: var(--color-text);
 }
 
-/* En tablet/móvil (<1024) la hamburguesa flota arriba-izquierda:
-   dejamos espacio para que no tape el título de la página. */
+/* ══════════════════ MÓVIL ══════════════════ */
 @media (max-width: 1023px) {
-  /* La hamburguesa flota arriba-izquierda: dejamos espacio ARRIBA (no a la
-     izquierda) para que el header quede alineado y no todo indentado. */
-  .page__header { padding: 3.75rem 1.25rem 1rem; }
+  /* El inset baja a --space-lg para que título, barra y módulos compartan el
+     mismo borde izquierdo.
+
+     Antes acá había `padding-top: 3.75rem` para dejar sitio a la hamburguesa
+     flotante. Ya no hace falta: donde existe la barra inferior, la hamburguesa
+     está oculta (ver la regla con :has() en Layout.css), así que ese reservado
+     quedaba como 60px de vacío arriba de cada página. */
+  .page__header  { padding: var(--space-xl) var(--space-lg) var(--space-lg); }
+  .page__toolbar { padding: var(--space-lg) var(--space-lg) 0; }
+  .page__body    { padding: var(--space-lg); }
+  .page > .card  { margin: var(--space-lg) 0; }
 }
 
-@media (max-width: 768px) {
-  .page { padding: 1rem; }
-  .detail-grid { grid-template-columns: 1fr; }
-  /* Las cards (tablas, etc.) quitan su margen lateral extra para quedar
-     alineadas con el header de la página (el .page ya aporta el margen). */
-  .page > .card { margin-left: 0; margin-right: 0; }
-  /* Botones de acción del header a ancho completo (organizados) — cubre tanto
-     el wrapper .page__actions como un botón puesto directo en el header. */
+@media (max-width: 640px) {
+  /* Acciones de la cabecera a ancho completo -- cubre tanto el wrapper
+     .page__actions como un botón puesto directo en el header. */
   .page__actions,
   .page__header > .btn { width: 100%; }
   .page__actions > .btn { flex: 1 1 auto; justify-content: center; }
   .page__header > .btn { justify-content: center; }
+  /* Los filtros ocupan la fila entera: a media fila no se lee la opción. */
+  .page__toolbar > * { flex: 1 1 100%; }
+  .page__toolbar--fin { margin-left: 0; }
 }

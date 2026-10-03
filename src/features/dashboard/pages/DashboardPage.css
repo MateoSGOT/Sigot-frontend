@@ -218,25 +218,15 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
-   BENTO — un solo grid de 12 columnas para todos los módulos del dashboard.
+   BENTO — ahora lo aporta la capa compartida (.bento / .bento__module--N en
+   shared/styles/page.css). Acá vivía una copia propia de la misma rejilla de
+   12 columnas con sus mismos spans y sus mismos breakpoints; al existir la
+   rejilla compartida, mantener las dos era garantizar que se separaran.
 
-   Antes eran TRES grids independientes de 2 columnas apilados, así que todo
-   quedaba del mismo ancho: filas, no bento. Con un grid único cada módulo
-   declara cuánto ocupa y el ritmo visual sale del reparto desigual
-   (12 · 6+6 · 7+5): la tabla de productividad necesita más ancho que el pie
-   de categorías, y ese desbalance es lo que hace que se lea como bento.
+   .dashboard-modulo sobrevive, pero YA NO es una clase de maquetado: es solo
+   el gancho de alcance para los ajustes propios del dashboard que siguen más
+   abajo (tope de la tabla, leyenda de Recharts, aire del título).
    ═══════════════════════════════════════════════════════════════════════ */
-.dashboard-bento {
-  display: grid;
-  grid-template-columns: repeat(12, 1fr);
-  gap: var(--space-xl);
-  padding: 0 var(--space-2xl) var(--space-xl);
-  align-items: start;
-}
-.dashboard-modulo--12 { grid-column: span 12; }
-.dashboard-modulo--7  { grid-column: span 7; }
-.dashboard-modulo--6  { grid-column: span 6; }
-.dashboard-modulo--5  { grid-column: span 5; }
 
 /* La tabla de "Productividad por mecánico" crece con el número de filas y
    quedaba más alta o más baja que la tarjeta vecina (el pie de "Repuestos por
@@ -264,8 +254,7 @@
    aporta y deja el pie demasiado estrecho. */
 @media (max-width: 1200px) {
   .stats-grid { grid-template-columns: repeat(2, 1fr); }
-  .dashboard-modulo--7,
-  .dashboard-modulo--5 { grid-column: span 6; }
+  /* El colapso de los spans impares lo hace la capa compartida (@1279px). */
 }
 
 /* Mismo breakpoint que .page__header (1023px, ver shared/styles/page.css) --
@@ -275,13 +264,8 @@
 @media (max-width: 1023px) {
   /* Contenido alineado (parejo) con el inset del header (1.25rem en móvil):
      título, chips y tarjetas comparten el mismo borde izquierdo/derecho. */
-  .stats-grid { grid-template-columns: 1fr; padding: 1rem 1.25rem 0; }
-  /* Una sola columna: cada módulo ocupa las 12 pistas. */
-  .dashboard-bento { gap: var(--space-lg); padding: 0 1.25rem 1rem; }
-  .dashboard-modulo--12,
-  .dashboard-modulo--7,
-  .dashboard-modulo--6,
-  .dashboard-modulo--5 { grid-column: span 12; }
+  .stats-grid { grid-template-columns: 1fr; padding: var(--space-lg) var(--space-lg) 0; }
+  /* El colapso a una columna y el inset del bento los hace la capa compartida. */
   /* Mayor especificidad para ganarle a la regla base .dashboard-rango que
      aparece después en el archivo (si no, el padding de 2rem se impondría). */
   .dashboard-page .dashboard-rango { padding: 1rem 1.25rem 0.25rem; }
