@@ -343,19 +343,10 @@ function PortalPageInner() {
   // el select del modal ya los filtraba, así que con 0 activos quedaba vacío).
   const vehiculosAgendables = vehiculos.filter(v => v.Estado !== false && v.Estado !== 0);
 
-  const openCrearCita = () => {
-    // Regla de negocio: agendar exige un vehículo registrado. Sin ninguno, este modal era
-    // un callejón sin salida -- se abría con el select de vehículo VACÍO y la validación
-    // pedía uno que no se podía crear desde el portal. Se delega a /agendar, que detecta
-    // este caso e inyecta el paso "Vehículo" antes de la cita (ver AgendarCitaPage::pasos).
-    if (vehiculosAgendables.length === 0) {
-      navigate('/agendar');
-      return;
-    }
-    setEditingCitaId(null);
-    setCitaForm({ Id_Vehiculo: '', Fecha: '', Hora: '', Descripcion: '', Id_Empleado: '', TipoCita: 'Mantenimiento' });
-    setCitaError(''); setEmpleadosDisp([]); setHorasOcupadas([]); setShowCitaModal(true);
-  };
+  // AGENDAR ya no vive acá: hay un único flujo, /agendar (AgendarCitaPage), que detecta
+  // si el cliente tiene vehículos y, si no, inyecta el paso para registrar uno antes de la
+  // cita. Este modal quedó SOLO para EDITAR una cita existente (acción distinta, con su
+  // propia regla de negocio: solo hasta 2 h antes, ver la columna de acciones).
 
   const openEditarCita = (cita) => {
     setEditingCitaId(cita.Id_Agenda ?? cita.id);
@@ -391,11 +382,8 @@ function PortalPageInner() {
     }
     setCitaLoading(true);
     try {
-      if (editingCitaId) {
-        await api.put(`/api/portal/citas/${editingCitaId}`, citaForm, { headers: { Authorization: `Bearer ${token}` } });
-      } else {
-        await api.post('/api/portal/citas', citaForm, { headers: { Authorization: `Bearer ${token}` } });
-      }
+      // Solo actualización: la creación se hace en /agendar.
+      await api.put(`/api/portal/citas/${editingCitaId}`, citaForm, { headers: { Authorization: `Bearer ${token}` } });
       setShowCitaModal(false);
       setEditingCitaId(null);
       setCitaForm({ Id_Vehiculo: '', Fecha: '', Hora: '', Descripcion: '', Id_Empleado: '', TipoCita: 'Mantenimiento' });
@@ -718,7 +706,7 @@ function PortalPageInner() {
                 <h1 className="page__title">Mis Citas</h1>
                 <p className="page__subtitle">{citas.length} cita(s) registrada(s)</p>
               </div>
-              <button className="btn btn--primary" onClick={openCrearCita}>
+              <button className="btn btn--primary" onClick={() => navigate('/agendar')}>
                 <MdAdd size={18} /> Agendar cita
               </button>
             </div>
@@ -880,13 +868,13 @@ function PortalPageInner() {
       <Modal
         isOpen={showCitaModal}
         onClose={() => { setShowCitaModal(false); setEditingCitaId(null); setEmpleadosDisp([]); }}
-        title={editingCitaId ? 'Editar cita' : 'Agendar nueva cita'}
+        title="Editar cita"
         size="md"
         footer={
           <>
             <button className="btn btn--outline" onClick={() => { setShowCitaModal(false); setEditingCitaId(null); setEmpleadosDisp([]); }}>Cancelar</button>
             <button className="btn btn--primary" onClick={handleGuardarCita} disabled={citaLoading}>
-              {citaLoading ? 'Guardando...' : (editingCitaId ? 'Guardar cambios' : 'Agendar cita')}
+              {citaLoading ? 'Guardando...' : 'Guardar cambios'}
             </button>
           </>
         }

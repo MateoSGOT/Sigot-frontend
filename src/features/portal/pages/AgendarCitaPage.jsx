@@ -55,16 +55,34 @@ const HORA_CIERRE = 18;
 // (el backend la rechazaba recien al confirmar, ya con la cuenta y el vehiculo creados).
 // Se deja un margen de 30 min: no tiene sentido ofrecer una franja que arranca en 5 min.
 const MARGEN_MIN = 30;
-const horasDisponibles = (fechaYMD) => {
-  const out = [];
+const aMinutos = (hhmm) => {
+  const [h, m] = String(hhmm || '').split(':').map(Number);
+  return (Number.isFinite(h) ? h : 0) * 60 + (Number.isFinite(m) ? m : 0);
+};
+
+// Franjas realmente ofrecibles para una fecha. Descarta:
+//   - las que caen fuera del horario de atención (el real si hay sesión, el por defecto si no),
+//   - las que YA PASARON cuando la fecha es hoy (con 30 min de margen: no tiene sentido
+//     ofrecer una franja que arranca en 5 min),
+//   - las ocupadas por el técnico elegido, comparando SOLAPAMIENTO y no igualdad de hora:
+//     una cita de 60 min que empieza 14:00 también bloquea las 14:30.
+const horasDisponibles = (fechaYMD, { horario, ocupadas = [], duracionMin = 60 } = {}) => {
+  const apertura = horario?.apertura ? aMinutos(horario.apertura) : HORA_APERTURA * 60;
+  const cierre   = horario?.cierre   ? aMinutos(horario.cierre)   : HORA_CIERRE * 60;
   const esHoy = fechaYMD === todayLocalYMD();
   const ahora = new Date();
   const minutoCorte = esHoy ? ahora.getHours() * 60 + ahora.getMinutes() + MARGEN_MIN : -1;
-  for (let h = HORA_APERTURA; h < HORA_CIERRE; h++) {
-    for (const m of [0, 30]) {
-      if (h * 60 + m <= minutoCorte) continue;
-      out.push(`${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`);
-    }
+
+  const out = [];
+  for (let mins = apertura; mins < cierre; mins += 30) {
+    if (mins <= minutoCorte) continue;
+    const choca = ocupadas.some((o) => {
+      const ini = aMinutos(o.Hora);
+      const fin = ini + Number(o.DuracionEstimadaMin || 60);
+      return mins < fin && ini < mins + duracionMin;
+    });
+    if (choca) continue;
+    out.push(`${String(Math.floor(mins / 60)).padStart(2, '0')}:${String(mins % 60).padStart(2, '0')}`);
   }
   return out;
 };
@@ -102,7 +120,14 @@ export default function AgendarCitaPage() {
   const [vehiculoElegido, setVehiculoElegido] = useState('');
   const [usarNuevoVehiculo, setUsarNuevoVehiculo] = useState(false);
 
-  const [cita, setCita] = useState({ Fecha: '', Hora: '', TipoCita: 'Mantenimiento', Descripcion: '' });
+  const [cita, setCita] = useState({ Fecha: '', Hora: '', TipoCita: 'Mantenimiento', Descripcion: '', Id_Empleado: '' });
+
+  // Disponibilidad real. Solo se puede consultar CON sesion (los tres endpoints la exigen),
+  // asi que en el flujo anonimo quedan vacios y se usan los valores por defecto -- la API
+  // valida igual al confirmar. Esto reemplaza lo que aportaba el modal viejo del portal.
+  const [horario, setHorario] = useState(null);
+  const [empleadosDisp, setEmpleadosDisp] = useState([]);
+  const [horasOcupadas, setHorasOcupadas] = useState([]);
 
   const [cargando, setCargando] = useState(false);
   const [enviando, setEnviando] = useState(false);   // envío final (los POST secuenciales)
@@ -139,6 +164,35 @@ export default function AgendarCitaPage() {
       .finally(() => { if (vivo) setCargandoInicial(false); });
     return () => { vivo = false; };
   }, [esClienteConSesion]);
+
+  // Horario real del taller (solo con sesión; si falla quedan los valores por defecto).
+  useEffect(() => {
+    if (!esClienteConSesion) return;
+    let vivo = true;
+    portalService.getHorario()
+      .then((h) => { if (vivo && h?.apertura) setHorario(h); })
+      .catch(() => {});
+    return () => { vivo = false; };
+  }, [esClienteConSesion]);
+
+  // Técnicos que atienden la fecha elegida, y franjas ya tomadas del que se elija.
+  useEffect(() => {
+    if (!esClienteConSesion || !cita.Fecha) { setEmpleadosDisp([]); return; }
+    let vivo = true;
+    portalService.getEmpleadosDisponibles(cita.Fecha)
+      .then((l) => { if (vivo) setEmpleadosDisp(l); })
+      .catch(() => { if (vivo) setEmpleadosDisp([]); });
+    return () => { vivo = false; };
+  }, [esClienteConSesion, cita.Fecha]);
+
+  useEffect(() => {
+    if (!esClienteConSesion || !cita.Fecha || !cita.Id_Empleado) { setHorasOcupadas([]); return; }
+    let vivo = true;
+    portalService.getHorasOcupadas(cita.Fecha, cita.Id_Empleado)
+      .then((l) => { if (vivo) setHorasOcupadas(l); })
+      .catch(() => { if (vivo) setHorasOcupadas([]); });
+    return () => { vivo = false; };
+  }, [esClienteConSesion, cita.Fecha, cita.Id_Empleado]);
 
   // Catálogo público de tipos de documento (solo hace falta en el paso de cuenta).
   useEffect(() => {
@@ -195,13 +249,18 @@ export default function AgendarCitaPage() {
 
   const cambiar = (setter) => (e) => { setter((p) => ({ ...p, [e.target.name]: e.target.value })); setError(''); };
 
-  // Cambiar la fecha puede invalidar la hora ya elegida (ej. pasar de mañana a hoy y que
-  // esa franja ya haya pasado): se limpia para que no quede una selección imposible.
-  const cambiarFecha = (e) => {
-    const Fecha = e.target.value;
-    setCita((p) => ({ ...p, Fecha, Hora: horasDisponibles(Fecha).includes(p.Hora) ? p.Hora : '' }));
-    setError('');
-  };
+  const franjas = useMemo(
+    () => horasDisponibles(cita.Fecha, { horario, ocupadas: horasOcupadas }),
+    [cita.Fecha, horario, horasOcupadas],
+  );
+
+  // Cambiar la fecha (o el técnico) puede invalidar la hora ya elegida: si deja de estar
+  // entre las ofrecibles se limpia, para que no quede una selección imposible.
+  useEffect(() => {
+    if (cita.Hora && !franjas.includes(cita.Hora)) setCita((p) => ({ ...p, Hora: '' }));
+  }, [franjas]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const cambiarFecha = (e) => { setCita((p) => ({ ...p, Fecha: e.target.value })); setError(''); };
   const marcarTocado = (e) => setTocado((p) => ({ ...p, [e.target.name]: true }));
 
   /* ── Paso Cuenta -> Código ── */
@@ -310,6 +369,7 @@ export default function AgendarCitaPage() {
         Hora: cita.Hora,
         TipoCita: cita.TipoCita,
         Descripcion: cita.Descripcion,
+        Id_Empleado: cita.Id_Empleado,
       });
       setEtapaEnvio((n) => n + 1);
 
@@ -564,9 +624,23 @@ export default function AgendarCitaPage() {
                       id="ag-hora" name="Hora" icon={MdSchedule}
                       value={cita.Hora} onChange={cambiar(setCita)}
                       placeholder="Hora"
-                      options={horasDisponibles(cita.Fecha).map((h) => ({ value: h, label: h }))}
+                      options={franjas.map((h) => ({ value: h, label: h }))}
                     />
                   </div>
+
+                  {/* Elección de técnico: solo con sesión, porque empleados-disponibles
+                      exige auth. Sin sesión el backend asigna el primero activo (ver
+                      portal.controller.js::crearCita). Es opcional en los dos casos. */}
+                  {esClienteConSesion && cita.Fecha && empleadosDisp.length > 0 && (
+                    <CampoSelect
+                      id="ag-empleado" name="Id_Empleado" icon={MdPerson}
+                      value={cita.Id_Empleado} onChange={cambiar(setCita)}
+                      placeholder="Técnico (sin preferencia)"
+                      options={empleadosDisp
+                        .filter((e) => e.disponible)
+                        .map((e) => ({ value: e.id_empleado, label: e.Nombre }))}
+                    />
+                  )}
 
                   <CampoSelect
                     id="ag-tipo" name="TipoCita" icon={MdBuild}
@@ -583,7 +657,7 @@ export default function AgendarCitaPage() {
 
                   <p className="flujo-aviso">
                     <MdSchedule size={15} aria-hidden="true" />
-                    {cita.Fecha && horasDisponibles(cita.Fecha).length === 0
+                    {cita.Fecha && franjas.length === 0
                       ? `Para hoy ya no quedan horas disponibles (atendemos hasta las ${HORA_CIERRE}:00). Elegí otra fecha.`
                       : `Atendemos de ${String(HORA_APERTURA).padStart(2, '0')}:00 a ${HORA_CIERRE}:00. Si la hora que elegís ya está ocupada te lo avisamos al confirmar.`}
                   </p>

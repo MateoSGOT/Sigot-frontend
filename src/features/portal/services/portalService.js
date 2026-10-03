@@ -21,13 +21,33 @@ export const portalService = {
     return r.data?.data ?? r.data;
   },
 
-  async crearCita({ Id_Vehiculo, Fecha, Hora, Descripcion, TipoCita }) {
+  // Horario real de atencion del taller. Requiere sesion, asi que solo sirve para un
+  // cliente ya logueado; el flujo anonimo cae a los valores por defecto.
+  async getHorario() {
+    const r = await api.get('/api/agenda/horario');
+    return r.data?.data ?? r.data ?? null;
+  },
+
+  // Tecnicos que atienden esa fecha (con su bandera `disponible`).
+  async getEmpleadosDisponibles(fecha) {
+    const r = await api.get(`/api/portal/empleados-disponibles?fecha=${fecha}`);
+    return Array.isArray(r.data?.data) ? r.data.data : [];
+  },
+
+  // Franjas ya tomadas del tecnico elegido esa fecha (citas + novedades puntuales).
+  async getHorasOcupadas(fecha, idEmpleado) {
+    const r = await api.get(`/api/portal/horas-ocupadas?id_empleado=${idEmpleado}&fecha=${fecha}`);
+    return Array.isArray(r.data?.data) ? r.data.data : [];
+  },
+
+  async crearCita({ Id_Vehiculo, Fecha, Hora, Descripcion, TipoCita, Id_Empleado }) {
     const r = await api.post('/api/portal/citas', {
       Id_Vehiculo: Number(Id_Vehiculo),
       Fecha,
       Hora,
       ...(Descripcion ? { Descripcion } : {}),
       ...(TipoCita ? { TipoCita } : {}),
+      ...(Id_Empleado ? { Id_Empleado: Number(Id_Empleado) } : {}),
     });
     return r.data?.data ?? r.data;
   },
