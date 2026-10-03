@@ -25,7 +25,7 @@ import './DashboardPage.css';
 // se eligieron para que sean distinguibles ENTRE SÍ (no solo bonitos juntos) y
 // para que ninguno se confunda con los colores de estado del flujo, que significan
 // otra cosa. Antes eran colores desaturados y ajenos a la identidad.
-const PIE_COLORS = ['#1D4ED8', '#3B82F6', '#0E7490', '#14B8A6', '#6366F1', '#F59E0B', '#8B5CF6'];
+const PIE_COLORS = ['#1E40D8', '#2B5CFF', '#0E7490', '#14B8A6', '#6366F1', '#F59E0B', '#8B5CF6'];
 // Color fijo (gris neutro) para el balde "Otras" del pie de categorías -- deliberadamente
 // fuera de PIE_COLORS para que nunca coincida por casualidad con el color de una categoría
 // individual (ver TOP_N_CATEGORIAS_PIE más abajo).
@@ -45,17 +45,17 @@ const CHART_STYLE = {
   tooltip: {
     contentStyle: {
       background: '#FFFFFF',
-      border: '1px solid rgba(16, 24, 40, 0.08)',
+      border: '1px solid rgba(10, 10, 11, 0.08)',
       borderRadius: '12px',                 // --radius-md
-      color: '#0B1220',                     // --color-text
+      color: '#0A0A0B',                     // --color-text
       fontSize: '0.8125rem',
-      boxShadow: '0 4px 14px rgba(16, 24, 40, 0.08)',  // --shadow-md
+      boxShadow: '0 4px 14px rgba(10, 10, 11, 0.08)',  // --shadow-md
       padding: '10px 12px',
     },
     labelStyle: { color: '#475569', fontWeight: 600 },  // --color-text-muted
-    cursor: { fill: 'rgba(37, 99, 235, 0.06)' },        // tinte de acción
+    cursor: { fill: 'rgba(43, 92, 255, 0.06)' },        // tinte de acción
   },
-  grid: { strokeDasharray: '3 3', stroke: 'rgba(16, 24, 40, 0.07)' },
+  grid: { strokeDasharray: '3 3', stroke: 'rgba(10, 10, 11, 0.07)' },
   tick: { fontSize: 12, fill: '#64748B' },              // --color-text-light
 };
 
@@ -294,15 +294,17 @@ export default function DashboardPage() {
         <div className="card dashboard-modulo dashboard-modulo--12">
           <div className="card__header"><span className="card__title">Ingresos ({formatCurrency(rep.ingresos?.total ?? 0)} en el rango)</span></div>
           <div className="card__body">
-            {loading ? <Skeleton height={220} /> : ingresosSerie.length > 0 ? (
+            {/* El esqueleto mide EXACTAMENTE lo que la gráfica (240): estaba en 220
+                y al cargar los datos todo el bento salta 20px hacia abajo. */}
+            {loading ? <Skeleton height={240} /> : ingresosSerie.length > 0 ? (
               <ResponsiveContainer width="100%" height={240}>
                 <AreaChart data={ingresosSerie}>
-                  <defs><linearGradient id="colorIng" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#2563EB" stopOpacity={0.26} /><stop offset="60%" stopColor="#2563EB" stopOpacity={0.09} /><stop offset="100%" stopColor="#F59E0B" stopOpacity={0.02} /></linearGradient></defs>
+                  <defs><linearGradient id="colorIng" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#2B5CFF" stopOpacity={0.26} /><stop offset="60%" stopColor="#2B5CFF" stopOpacity={0.09} /><stop offset="100%" stopColor="#F59E0B" stopOpacity={0.02} /></linearGradient></defs>
                   <CartesianGrid {...CHART_STYLE.grid} />
                   <XAxis dataKey="name" tick={CHART_STYLE.tick} axisLine={false} tickLine={false} />
                   <YAxis tick={CHART_STYLE.tick} axisLine={false} tickLine={false} tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`} />
                   <Tooltip {...CHART_STYLE.tooltip} formatter={(v) => [formatCurrency(v), 'Ingreso']} />
-                  <Area type="monotone" dataKey="total" name="Ingreso" stroke="#2563EB" strokeWidth={2.5} fill="url(#colorIng)" isAnimationActive animationDuration={900} animationEasing="ease-out" />
+                  <Area type="monotone" dataKey="total" name="Ingreso" stroke="#2B5CFF" strokeWidth={2.5} fill="url(#colorIng)" isAnimationActive animationDuration={900} animationEasing="ease-out" />
                 </AreaChart>
               </ResponsiveContainer>
             ) : EMPTY_CHART}
@@ -316,7 +318,7 @@ export default function DashboardPage() {
             {loading ? <Skeleton height={220} /> : rep.topServicios.length > 0 ? (
               <ResponsiveContainer width="100%" height={220}>
                 <BarChart data={rep.topServicios.map(s => ({ name: s.nombre, value: s.veces }))} layout="vertical">
-                  <defs><linearGradient id="gradServ" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stopColor="#1D4ED8" /><stop offset="100%" stopColor="#3B82F6" /></linearGradient></defs>
+                  <defs><linearGradient id="gradServ" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stopColor="#1E40D8" /><stop offset="100%" stopColor="#2B5CFF" /></linearGradient></defs>
                   <CartesianGrid {...CHART_STYLE.grid} horizontal={false} />
                   <XAxis type="number" tick={CHART_STYLE.tick} axisLine={false} tickLine={false} allowDecimals={false} />
                   <YAxis type="category" dataKey="name" tick={CHART_STYLE.tick} axisLine={false} tickLine={false} width={130} />
@@ -334,7 +336,7 @@ export default function DashboardPage() {
             {loading ? <Skeleton height={220} /> : rep.topRepuestos.length > 0 ? (
               <ResponsiveContainer width="100%" height={220}>
                 <BarChart data={rep.topRepuestos.map(s => ({ name: s.nombre, value: s.cantidad }))} layout="vertical">
-                  <defs><linearGradient id="gradRep" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stopColor="#2563EB" /><stop offset="100%" stopColor="#3B82F6" /></linearGradient></defs>
+                  <defs><linearGradient id="gradRep" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stopColor="#2B5CFF" /><stop offset="100%" stopColor="#2B5CFF" /></linearGradient></defs>
                   <CartesianGrid {...CHART_STYLE.grid} horizontal={false} />
                   <XAxis type="number" tick={CHART_STYLE.tick} axisLine={false} tickLine={false} allowDecimals={false} />
                   <YAxis type="category" dataKey="name" tick={CHART_STYLE.tick} axisLine={false} tickLine={false} width={130} />
@@ -355,19 +357,28 @@ export default function DashboardPage() {
                 {rep.productividad.length > 5 && (
                   <SearchBar value={buscarMecanico} onChange={setBuscarMecanico} placeholder="Buscar mecánico..." />
                 )}
+                {/* .table-shell es obligatorio: es el contenedor que las consultas
+                    @container de Table.css necesitan para pasar la tabla a tarjetas.
+                    Esta tabla está escrita a mano (no usa el componente Table), así
+                    que el wrapper hay que ponerlo acá explícitamente. */}
+                <div className="table-shell">
                 <div className="table-wrapper">
                   <table className="table">
                     <thead className="table__head"><tr><th className="table__th">Mecánico</th><th className="table__th table__th--num">Órdenes</th><th className="table__th table__th--num">Ingreso</th></tr></thead>
                     <tbody>
                       {filterItems(rep.productividad, buscarMecanico, ['empleado']).map((p, i) => (
                         <tr key={i} className="table__row">
-                          <td className="table__td">{p.empleado}</td>
-                          <td className="table__td table__td--num"><span className="u-num">{p.ordenes}</span></td>
-                          <td className="table__td table__td--num"><span className="u-num">{formatCurrency(p.ingreso)}</span></td>
+                          {/* data-label alimenta el ::before de cada celda en modo
+                              tarjeta; sin él la tarjeta móvil muestra cifras sueltas
+                              sin decir de qué son. */}
+                          <td data-label="Mecánico" className="table__td">{p.empleado}</td>
+                          <td data-label="Órdenes" className="table__td table__td--num"><span className="u-num">{p.ordenes}</span></td>
+                          <td data-label="Ingreso" className="table__td table__td--num"><span className="u-num">{formatCurrency(p.ingreso)}</span></td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
+                </div>
                 </div>
               </>
             ) : EMPTY_CHART}

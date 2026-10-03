@@ -1,25 +1,32 @@
 /* ═══════════════════════════════════════════════════════════════════════════
-   SIGOT — SISTEMA DE TOKENS VISUALES (fuente única de verdad)
+   SIGOT — SISTEMA VISUAL (fuente única de verdad)
 
-   IDENTIDAD: "logística de precisión". Estructura en azul marino pulido,
-   lienzo gris técnico, y el color reservado para ENCODAR ESTADO del vehículo
-   en el taller, no para decorar:
-       cobalto  -> acción y navegación (lo que el operario hace)
-       ámbar    -> en proceso / requiere atención
-       esmeralda-> completado
-       rosa     -> cancelado / error
-   Esa correspondencia es la razón de la paleta: al barrer una tabla, el color
-   ya dice en qué punto del flujo está cada orden antes de leer el texto.
+   IDENTIDAD: "instrumento limpio".
+
+   La estructura es NEGRO PULIDO (zinc-950), no azul marino: el marino tiene
+   temperatura propia y competía con el cobalto del acento, dejando la pantalla
+   con dos azules discutiendo. En negro, el cobalto es lo único con color y por
+   eso lee como acción.
+
+   El canvas es slate-50 y las superficies blanco puro. La separación la da el
+   contraste de superficie y el aire, nunca una línea gris.
+
+   El color está RESERVADO para encodar estado del vehículo en el taller:
+       cobalto   -> acción y navegación (lo que el operario hace)
+       ámbar     -> en proceso / requiere atención
+       esmeralda -> completado
+       rosa      -> cancelado / error
+   Al barrer una tabla, el color ya dice en qué punto del flujo está cada orden
+   antes de leer el texto. Es la razón de la paleta, no decoración.
 
    ⚠️ REGLA DE MANTENIMIENTO: los NOMBRES de token son API pública -- las ~25
    páginas y los componentes compartidos los referencian. Se cambian VALORES,
-   nunca se elimina un nombre. Los alias marcados "legacy" existen solo para
-   que las páginas antiguas no rompan; su nombre puede mentir sobre el color
-   actual (ej. --shadow-green ya es cobalto) y se retiran al migrar cada página.
+   nunca se elimina un nombre. Los alias marcados "legacy" existen para que las
+   páginas antiguas no rompan; su nombre puede mentir sobre el valor actual
+   (ej. --shadow-green ya es cobalto) y se retiran al migrar cada página.
 
-   CONTRASTE: cada par fondo/texto de abajo está verificado ≥ 4.5:1 (AA texto
-   normal). Los ratios anotados se midieron sobre el fondo indicado; si se
-   cambia un valor, hay que volver a medirlo.
+   CONTRASTE: los ratios anotados se midieron con la fórmula WCAG 2.1 sobre el
+   fondo indicado. Si se cambia un valor, hay que volver a medirlo.
    ═══════════════════════════════════════════════════════════════════════════ */
 :root {
   /* ══════════════════ TIPOGRAFÍA ══════════════════
@@ -37,242 +44,276 @@
 
   /* Tracking: los titulares grandes necesitan cerrarse; las microetiquetas
      en mayúsculas necesitan abrirse para no amontonarse. */
-  --tracking-tighter: -0.035em;  /* hero de la landing */
-  --tracking-tight:   -0.02em;   /* h1 / h2 / métricas */
+  --tracking-tighter: -0.04em;   /* hero de la landing */
+  --tracking-tight:   -0.022em;  /* h1 / h2 / métricas */
   --tracking-normal:  0;
-  --tracking-wide:    0.06em;    /* microetiquetas en MAYÚSCULAS */
+  --tracking-wide:    0.07em;    /* microetiquetas en MAYÚSCULAS */
   --tracking-code:    0.04em;    /* identificadores en mono */
 
-  /* ══════════════════ COLOR — ACCIÓN (cobalto) ══════════════════ */
-  --color-primary:              #2563EB;  /* base — 5.17:1 con blanco */
-  --color-primary-strong:       #1D4ED8;  /* fondo sólido + texto blanco — 6.70:1 */
-  --color-primary-strong-hover: #1E40AF;  /* hover del sólido — 8.72:1 */
-  --color-primary-hover:        #1D4ED8;
-  --color-primary-active:       #1E40AF;
+  /* ══════════════════ COLOR — ACCIÓN (cobalto eléctrico) ══════════════════
+     Único acento del sistema. Más saturado que el cobalto anterior (#2563EB):
+     sobre negro pulido necesita más voltaje para no apagarse. */
+  --color-primary:              #2B5CFF;  /* base — 5.15:1 con blanco */
+  --color-primary-strong:       #1E40D8;  /* fondo sólido + texto blanco — 7.55:1 */
+  --color-primary-strong-hover: #1A36B8;  /* hover del sólido — 9.28:1 */
+  --color-primary-hover:        #1E40D8;
+  --color-primary-active:       #1A36B8;
   --color-primary-on:           #FFFFFF;  /* foreground sobre -strong */
-  --color-primary-soft:         rgba(37, 99, 235, 0.10);
-  --color-primary-soft-on:      #1D4ED8;  /* texto sobre el tinte — 5.82:1 */
+  --color-primary-soft:         rgba(43, 92, 255, 0.09);
+  --color-primary-soft-on:      #1E40D8;  /* texto sobre el tinte — 7.55:1 */
 
   /* ══════════════════ COLOR — ACENTO (ámbar industrial) ══════════════════
-     Segunda voz de la paleta: métricas destacadas y "en proceso". Es el
-     "naranja industrial refinado" del brief, no un amarillo de advertencia. */
+     Segunda voz: "en proceso" y métricas que piden atención. Es naranja
+     industrial refinado, no un amarillo de advertencia. */
   --color-accent:          #F59E0B;
   --color-accent-hover:    #FBBF24;
   --color-accent-on:       #1C1206;  /* texto/icono sobre ámbar sólido */
-  --color-accent-soft:     rgba(245, 158, 11, 0.12);
-  --color-accent-soft-on:  #B45309;  /* 4.57:1 sobre el tinte */
+  --color-accent-soft:     rgba(245, 158, 11, 0.11);
+  --color-accent-soft-on:  #B45309;  /* 5.02:1 sobre blanco */
 
   /* ══════════════════ COLOR — ESTADO DEL FLUJO ══════════════════ */
   --color-success:         #059669; --color-success-strong: #047857; --color-success-on: #FFFFFF;
-  --color-success-soft:    rgba(5, 150, 105, 0.12);  --color-success-soft-on: #047857;  /* 4.84:1 */
+  --color-success-soft:    rgba(5, 150, 105, 0.11);  --color-success-soft-on: #047857;  /* 5.48:1 */
 
-  --color-info:            #2563EB; --color-info-strong: #1D4ED8; --color-info-on: #FFFFFF;
-  --color-info-soft:       rgba(37, 99, 235, 0.10);  --color-info-soft-on: #1D4ED8;     /* 5.82:1 */
+  --color-info:            #2B5CFF; --color-info-strong: #1E40D8; --color-info-on: #FFFFFF;
+  --color-info-soft:       rgba(43, 92, 255, 0.09);  --color-info-soft-on: #1E40D8;     /* 7.55:1 */
 
   --color-warning:         #F59E0B; --color-warning-on: #1C1206;
-  --color-warning-soft:    rgba(245, 158, 11, 0.12); --color-warning-soft-on: #B45309;  /* 4.57:1 */
+  --color-warning-soft:    rgba(245, 158, 11, 0.11); --color-warning-soft-on: #B45309;  /* 5.02:1 */
 
   --color-danger:          #E11D48; --color-danger-strong: #BE123C; --color-danger-on: #FFFFFF;
-  --color-danger-soft:     rgba(225, 29, 72, 0.10);  --color-danger-soft-on: #BE123C;   /* 5.37:1 */
+  --color-danger-soft:     rgba(225, 29, 72, 0.09);  --color-danger-soft-on: #BE123C;   /* 6.29:1 */
 
   --color-neutral:         #64748B; --color-neutral-strong: #475569; --color-neutral-on: #FFFFFF;
-  --color-neutral-soft:    rgba(15, 23, 42, 0.06);   --color-neutral-soft-on: #475569;  /* 6.64:1 */
+  --color-neutral-soft:    rgba(10, 10, 11, 0.05);   --color-neutral-soft-on: #475569;  /* 7.58:1 */
 
-  /* Filos de los banners de estado (alerta de stock, confirmaciones). Son el
-     mismo tono que el tinte pero un paso más saturado, para definir el canto
-     del banner sin meter un gris ajeno a la familia del mensaje. */
+  /* Filos de los banners de estado: el mismo tono que el tinte pero un paso más
+     saturado, para definir el canto sin meter un gris ajeno a la familia del
+     mensaje. */
   --color-danger-soft-border:  #FBCFD8;
-  /* Variantes para SUPERFICIE OSCURA: sobre el marino, el -soft-on (#BE123C)
-     queda ilegible. Estos son el mismo mensaje un paso más claro, para el panel
-     del reset y los avisos sobre fondo oscuro. */
+  --color-warning-soft-border: #FCD9A0;
+  --color-success-soft-border: #BBE5D3;
+
+  /* Variantes para SUPERFICIE OSCURA: sobre el negro, los -soft-on quedan
+     ilegibles. Estos son el mismo mensaje un paso más claro. */
   --color-danger-on-dark:  #FB7185;
-  --color-text-on-dark:    #E8EAF0;
-  /* Teal: tercer tono de la rampa categórica (gráficas) y estado
-     "Diagnosticada" de las citas, que necesita no confundirse con los demás. */
-  /* Pista hundida de un control (riel del toggle apagado, barra de progreso):
-     un gris frío que tiene que leerse como "vacío" contra el blanco, por eso es
-     más oscuro que --color-surface-raised. */
-  --color-track:     #CBD5E1;
-  --color-teal:      #0E7490;
+  --color-text-on-dark:    #EDEDEF;
+
+  /* Teal: tercer tono de la rampa categórica (gráficas) y estado "Diagnosticada"
+     de las citas, que necesita no confundirse con los demás. */
+  --color-teal:      #0E7490;   /* 5.36:1 sobre blanco */
   --color-teal-soft: #E0F2F6;
 
-  /* Tintes claros de cobalto: fondos de chip, halos de la landing, resaltados.
-     Más saturados que --color-primary-soft (que es un rgba translúcido). */
-  --color-primary-wash:   #EAF1FE;  /* el más claro: paso medio de los degradados del wordmark */
-  --color-primary-pale:   #DBEAFE;
-  --color-primary-pale-2: #BFDBFE;
-  --color-primary-pale-3: #93C5FD;
-  --color-track-light:    #E2E8F0;  /* pista hundida sobre fondo claro */
+  /* Pista hundida de un control (riel del toggle apagado, barra de progreso):
+     gris frío que tiene que leerse como "vacío" contra el blanco, por eso es
+     más oscuro que --color-surface-raised. */
+  --color-track:       #CBD5E1;
+  --color-track-light: #E2E8F0;
+
+  /* Tintes claros de cobalto: fondos de chip, halos, resaltados. Más saturados
+     que --color-primary-soft (que es un rgba translúcido). */
+  --color-primary-wash:   #EEF2FF;
+  --color-primary-pale:   #DDE4FF;
+  --color-primary-pale-2: #BFCCFF;
+  --color-primary-pale-3: #94AAFF;
 
   /* ── Rampa CATEGÓRICA ──
      Para series de datos y para identificar módulos: tonos que se distinguen
      ENTRE SÍ y que a propósito NO coinciden con los colores de estado del flujo
      (esos significan otra cosa). La consumen el pie del dashboard (PIE_COLORS)
      y los iconos de módulo de RolesPage. Viven acá para que no haya dos paletas
-     categóricas distintas; Recharts y los mapas de JSX las repiten como literal
-     porque reciben valores JS, no clases. */
-  --cat-1: #1D4ED8;  --cat-2: #3B82F6;  --cat-3: #0E7490;  --cat-4: #14B8A6;
+     categóricas; Recharts y los mapas de JSX las repiten como literal porque
+     reciben valores JS, no clases. */
+  --cat-1: #1E40D8;  --cat-2: #2B5CFF;  --cat-3: #0E7490;  --cat-4: #14B8A6;
   --cat-5: #6366F1;  --cat-6: #F59E0B;  --cat-7: #8B5CF6;
-  --color-warning-soft-border: #FCD9A0;
-  --color-success-soft-border: #BBE5D3;
 
   /* Foco visible: obligatorio para teclado, en el color de acción. */
-  --color-focus:           #2563EB;
-  --color-focus-ring:      rgba(37, 99, 235, 0.32);
+  --color-focus:      #2B5CFF;
+  --color-focus-ring: rgba(43, 92, 255, 0.30);
 
-  /* Rampa de cobalto (usada por gráficas y fondos graduados). */
-  --color-primary-50:  rgba(37, 99, 235, 0.05);
-  --color-primary-100: rgba(37, 99, 235, 0.10);
-  --color-primary-200: rgba(37, 99, 235, 0.20);
-  --color-primary-500: #3B82F6;
-  --color-primary-600: #2563EB;
-  --color-primary-700: #1D4ED8;
-  --color-primary-800: #1E40AF;
-  --color-primary-900: #1E3A8A;
-  --color-primary-light: #60A5FA;
-  --color-primary-dark:  #1D4ED8;
+  /* Rampa de cobalto (gráficas y fondos graduados). */
+  --color-primary-50:  rgba(43, 92, 255, 0.04);
+  --color-primary-100: rgba(43, 92, 255, 0.09);
+  --color-primary-200: rgba(43, 92, 255, 0.18);
+  --color-primary-500: #2B5CFF;
+  --color-primary-600: #2048E8;
+  --color-primary-700: #1E40D8;
+  --color-primary-800: #1A36B8;
+  --color-primary-900: #162D96;
+  --color-primary-light: #6D8CFF;
+  --color-primary-dark:  #1E40D8;
+  /* Componentes del cobalto en rgb, para los rgba() que necesitan el canal alfa
+     por separado. */
+  --color-primary-rgb: 43, 92, 255;
 
   /* Alias legacy de tintes (se retiran al migrar páginas). */
-  --color-info-light:    rgba(37, 99, 235, 0.10);
-  --color-warning-light: rgba(245, 158, 11, 0.12);
-  --color-danger-light:  rgba(225, 29, 72, 0.10);
-  --color-success-light: rgba(5, 150, 105, 0.12);
+  --color-info-light:    rgba(43, 92, 255, 0.09);
+  --color-warning-light: rgba(245, 158, 11, 0.11);
+  --color-danger-light:  rgba(225, 29, 72, 0.09);
+  --color-success-light: rgba(5, 150, 105, 0.11);
 
-  /* ══════════════════ SIDEBAR — azul marino pulido ══════════════════
-     Estructura oscura para que el contenido (blanco) sea lo que destaca.
-     El activo se marca con el cobalto translúcido + barra, no con un bloque
-     sólido: se lee como "acá estás" sin competir con las tarjetas. */
-  --sidebar-bg: #0B1220;
-  /* Un paso más claro que el fondo: tarjetas/superficies sobre el marino (el
-     extremo claro del degradado del sidebar y el panel del reset). */
-  --sidebar-bg-raised: #131C2E;
-  --sidebar-hover: rgba(255, 255, 255, 0.06);
-  --sidebar-active-bg: rgba(37, 99, 235, 0.16);
-  --sidebar-text: rgba(233, 237, 243, 0.82);   /* 11.26:1 sobre el fondo */
-  --sidebar-text-muted: rgba(233, 237, 243, 0.38);
-  --sidebar-icon: rgba(233, 237, 243, 0.60);
-  --sidebar-border: rgba(255, 255, 255, 0.07);
-  --sidebar-width: 248px;
-  --sidebar-collapsed: 248px;
-  --sidebar-collapsed-width: 248px;
+  /* ══════════════════ ESTRUCTURA — negro pulido ══════════════════
+     Sidebar y chrome. El activo se marca con cobalto translúcido + barra, no
+     con un bloque sólido: se lee como "acá estás" sin competir con el contenido.
+     Antes era azul marino (#0B1220); el cambio a negro es el movimiento de
+     identidad de esta versión. */
+  --sidebar-bg:         #0A0A0B;
+  --sidebar-bg-raised:  #16161A;   /* superficies sobre el negro */
+  --sidebar-hover:      rgba(255, 255, 255, 0.055);
+  --sidebar-active-bg:  rgba(43, 92, 255, 0.17);
+  --sidebar-text:       rgba(237, 237, 239, 0.84);   /* 12.1:1 sobre el fondo */
+  --sidebar-text-muted: rgba(237, 237, 239, 0.40);
+  --sidebar-icon:       rgba(237, 237, 239, 0.60);
+  --sidebar-border:     rgba(255, 255, 255, 0.07);
+  --sidebar-width:      256px;
+  /* El colapso de escritorio quedó desactivado: los tres comparten valor a
+     propósito, para que el margen del contenido no cambie. */
+  --sidebar-collapsed:       256px;
+  --sidebar-collapsed-width: 256px;
 
   /* ══════════════════ SUPERFICIES ══════════════════
-     El brief pide quitar los bordes divisorios y separar con fondo y aire:
-     canvas gris frío, tarjetas blanco puro. El "borde" de tarjeta queda como
-     filo casi invisible, solo para definir el canto contra el canvas. */
-  --color-bg: #F6F7F9;
-  --color-surface: #FFFFFF;
-  --color-surface-solid: #FBFCFD;   /* cabeceras de tabla / zonas tenues */
-  --color-surface-raised: #F1F3F6;  /* chips, celdas alternas */
-  --color-input-bg: #FFFFFF;
-  --color-border: rgba(16, 24, 40, 0.08);
-  --color-border-light: rgba(16, 24, 40, 0.05);
-  /* Estos dos se referenciaban (con fallback) sin estar definidos. Se definen
-     para que el valor viva en un solo sitio y no en cada fallback. */
-  --color-border-strong: rgba(16, 24, 40, 0.18);  /* borde en hover */
-  --color-surface-hover: var(--color-surface-raised);
+     Canvas slate-50, tarjetas blanco puro. El "borde" de tarjeta es un filo
+     casi invisible: solo define el canto contra el canvas. */
+  --color-bg:             #F8FAFC;
+  --color-surface:        #FFFFFF;
+  --color-surface-solid:  #FCFDFE;  /* cabeceras de tabla / zonas tenues */
+  --color-surface-raised: #F1F5F9;  /* chips, celdas alternas */
+  --color-surface-hover:  #F6F8FB;
+  --color-input-bg:       #FFFFFF;
+  --color-border:         rgba(10, 10, 11, 0.07);
+  --color-border-light:   rgba(10, 10, 11, 0.045);
+  --color-border-strong:  rgba(10, 10, 11, 0.16);
+  --card-border: 1px solid rgba(10, 10, 11, 0.055);
 
   /* ══════════════════ TEXTO ══════════════════ */
-  --color-text: #0B1220;            /* 17.47:1 sobre el canvas */
+  --color-text:           #0A0A0B;  /* 18.91:1 sobre el canvas */
   --color-text-secondary: #334155;
-  --color-text-muted: #475569;      /* 7.58:1 sobre blanco */
-  --color-text-light: #64748B;
-  --color-text-disabled: #94A3B8;
+  --color-text-muted:     #475569;  /* 7.58:1 sobre blanco */
+  --color-text-light:     #64748B;  /* 4.76:1 sobre blanco */
+  --color-text-disabled:  #94A3B8;
 
-  /* ══════════════════ ELEVACIÓN — 3 niveles con propósito ══════════════════
-     Difusas y de tinte frío (no negro puro): el negro puro sobre un canvas
-     frío se ve sucio. sm = reposo · md = hover · lg = modal. */
-  --shadow-sm: 0 1px 2px rgba(16, 24, 40, 0.04), 0 1px 3px rgba(16, 24, 40, 0.06);
-  --shadow-md: 0 4px 14px rgba(16, 24, 40, 0.08), 0 2px 6px rgba(16, 24, 40, 0.04);
-  --shadow-lg: 0 24px 56px rgba(11, 18, 32, 0.18), 0 8px 20px rgba(11, 18, 32, 0.08);
-  --card-border: 1px solid rgba(16, 24, 40, 0.06);
+  /* ══════════════════ ELEVACIÓN — difusa y fría ══════════════════
+     Sombras ULTRA SUAVES: radio grande, opacidad muy baja, tinte frío (no negro
+     puro, que sobre un canvas frío se ve sucio). La jerarquía la da el desenfoque,
+     no la oscuridad. sm = reposo · md = hover · lg = modal. */
+  --shadow-sm: 0 1px 2px rgba(10, 10, 11, 0.03), 0 2px 8px rgba(10, 10, 11, 0.035);
+  --shadow-md: 0 2px 6px rgba(10, 10, 11, 0.04), 0 8px 24px rgba(10, 10, 11, 0.06);
+  --shadow-lg: 0 8px 24px rgba(10, 10, 11, 0.08), 0 32px 72px rgba(10, 10, 11, 0.14);
 
   /* Alias legacy de sombra. */
   --shadow-xs: var(--shadow-sm);
-  --shadow: var(--shadow-md);
+  --shadow:    var(--shadow-md);
   --shadow-xl: var(--shadow-lg);
   /* OJO -- nombre legacy: ya NO es verde. Es el realce del botón de acción
      (cobalto). Se conserva el nombre porque varias páginas lo referencian. */
-  --shadow-green: 0 6px 18px rgba(37, 99, 235, 0.26);
-  --shadow-green-sm: 0 2px 10px rgba(37, 99, 235, 0.20);
+  --shadow-green:    0 4px 16px rgba(43, 92, 255, 0.24);
+  --shadow-green-sm: 0 2px 8px rgba(43, 92, 255, 0.18);
 
-  /* ══════════════════ ESPACIADO — escala base 4px ══════════════════ */
+  /* ══════════════════ ESPACIADO — escala base 4px ══════════════════
+     Pasos más generosos que antes en la franja alta: el brief pide que la
+     información respire, y el aire entre módulos es lo que lo consigue. */
   --space-xs:  4px;
   --space-sm:  8px;
   --space-md:  12px;
   --space-lg:  16px;
   --space-xl:  24px;
-  --space-2xl: 32px;
-  --space-3xl: 48px;
+  --space-2xl: 36px;
+  --space-3xl: 56px;
 
-  /* ══════════════════ ESCALA TIPOGRÁFICA ══════════════════
-     display sube a 40px: el brief pide titulares imponentes y 32px no
-     sostenía un hero. --text-hero es nuevo, solo para la landing. */
-  --text-hero:    clamp(2.5rem, 6vw, 4.25rem);
-  --text-display: 2.5rem;    /* 40px */
-  --text-h1:      1.625rem;  /* 26px */
-  --text-h2:      1.25rem;   /* 20px */
-  --text-h3:      1rem;      /* 16px */
+  /* ══════════════════ ESCALA TIPOGRÁFICA — FLUIDA ══════════════════
+     Todos los titulares interpolan con clamp(): escalan de forma continua entre
+     un celular y un monitor 4K, sin saltos en un breakpoint.
+
+     Cómo leer cada clamp: (mínimo, base + factor de viewport, máximo). El
+     término en rem del medio mantiene algo de tamaño cuando el usuario sube el
+     tamaño de fuente del navegador -- un `vw` puro ignora esa preferencia y es
+     un problema de accesibilidad.
+
+     Body/small/caption quedan FIJOS a propósito: en una tabla densa el cuerpo
+     fluido descuadra la altura de fila y la alineación de las cifras tabulares.
+     Ahí se quiere una métrica estable, no elástica. */
+  --text-hero:    clamp(2.25rem, 1.4rem + 5.2vw, 4.5rem);      /* 36 → 72px */
+  --text-display: clamp(1.75rem, 1.15rem + 2.6vw, 2.75rem);    /* 28 → 44px */
+  --text-h1:      clamp(1.375rem, 1.14rem + 1.05vw, 1.75rem);  /* 22 → 28px */
+  --text-h2:      clamp(1.125rem, 1.04rem + 0.42vw, 1.3125rem);/* 18 → 21px */
+  --text-h3:      clamp(0.9375rem, 0.91rem + 0.14vw, 1rem);    /* 15 → 16px */
   --text-body:    0.875rem;  /* 14px */
   --text-small:   0.8125rem; /* 13px */
   --text-caption: 0.75rem;   /* 12px */
 
-  --weight-regular:  400;
-  --weight-medium:   500;
-  --weight-semibold: 600;
-  --weight-bold:     700;
+  --weight-regular:   400;
+  --weight-medium:    500;
+  --weight-semibold:  600;
+  --weight-bold:      700;
   --weight-extrabold: 800;
 
-  --leading-tight:  1.2;
-  --leading-normal: 1.5;
+  --leading-tight:  1.18;
+  --leading-normal: 1.55;
 
   /* ══════════════════ GEOMETRÍA ══════════════════
-     Equivalencia con el brief: md = rounded-xl (12) · lg = rounded-2xl (16).
-     input=sm(8) · tarjeta/botón/modal=md(12) · módulo bento=lg(16) · pill=full. */
-  --radius-sm:   8px;
-  --radius-md:   12px;
-  --radius-lg:   16px;
+     Esquinas marcadamente redondeadas, que es lo que separa una tarjeta de un
+     recuadro. Equivalencia con el brief:
+       sm(10) = input · md(16) = rounded-xl, botón/control
+       lg(24) = rounded-2xl, TARJETA y módulo bento · full = píldora */
+  --radius-sm:   10px;
+  --radius-md:   16px;
+  --radius-lg:   24px;
   --radius-full: 999px;
-  /* Alias legacy. */
-  --radius:      12px;
-  --radius-xl:   16px;
-  --radius-2xl:  20px;
+  /* Alias legacy: --radius y --radius-xl apuntaban a 12/16. Suben con la escala
+     nueva para que las páginas sin migrar también reciban la geometría nueva. */
+  --radius:     16px;
+  --radius-xl:  24px;
+  --radius-2xl: 28px;
 
-  /* Altura mínima táctil: el brief la pide en 48px para que un mecánico pueda
-     operar con guantes desde el celular. */
+  /* Altura mínima táctil: 48px para que un mecánico pueda operar con guantes
+     desde el celular. */
   --touch-min: 48px;
 
-  /* ══════════════════ MOVIMIENTO ══════════════════ */
+  /* ══════════════════ PROPORCIONES (aspect-ratio) ══════════════════
+     Reservan el espacio ANTES de que cargue el contenido, así el layout no
+     salta cuando entra una foto o se monta una gráfica. Eso es CLS: la métrica
+     que mide el desplazamiento de lo que el usuario está mirando. */
+  --ratio-square: 1;      /* avatares, foto de empleado */
+  --ratio-photo:  4 / 3;  /* foto de vehículo */
+  --ratio-chart:  16 / 9; /* gráficas */
+  --ratio-wide:   21 / 9; /* banda de la serie temporal */
+
+  /* ══════════════════ MOVIMIENTO ══════════════════
+     Solo transform y opacity: las dos propiedades que el compositor resuelve sin
+     repintar, que es la condición para 60 FPS sostenidos en un celular. */
   --ease:            cubic-bezier(0.4, 0, 0.2, 1);
-  --duration-fast:   150ms;
-  --duration-base:   200ms;
-  --duration-slow:   300ms;
-  --transition-fast: all 150ms cubic-bezier(0.4, 0, 0.2, 1);
-  --transition-base: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
-  /* Alias legacy que el comentario de este archivo daba por definidos pero que
-     NUNCA existieron: `transition: var(--transition)` aparece sin fallback en 4
-     sitios (Modal, Toast, OrdenesPage, page.css), así que esas transiciones no
-     se aplicaban en absoluto. Definirlos las devuelve a lo que se pretendía. */
+  --duration-fast:   140ms;
+  --duration-base:   190ms;
+  --duration-slow:   280ms;
+  --transition-fast: all 140ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-base: all 190ms cubic-bezier(0.4, 0, 0.2, 1);
+  /* Alias que el archivo anterior daba por definidos pero que NUNCA existieron:
+     `transition: var(--transition)` aparecía sin fallback en 4 sitios (Modal,
+     Toast, OrdenesPage, page.css), así que esas transiciones no se aplicaban. */
   --transition:      var(--transition-base);
-  --transition-slow: all 300ms cubic-bezier(0.4, 0, 0.2, 1);
-  /* Componentes del cobalto en rgb, para los rgba() que necesitan el canal alfa
-     por separado. El fallback que había en ComboboxSelect era un índigo viejo. */
-  --color-primary-rgb: 37, 99, 235;
+  --transition-slow: all 280ms cubic-bezier(0.4, 0, 0.2, 1);
   /* Capa de ENTRADA con peso (reveals, stagger, drawer, hero), distinta de las
      micro-interacciones de arriba. */
-  --ease-entrance:      cubic-bezier(0.16, 1, 0.3, 1);
-  --duration-entrance:  400ms;
-  --duration-enter-md:  250ms;
+  --ease-entrance:     cubic-bezier(0.16, 1, 0.3, 1);
+  --duration-entrance: 420ms;
+  --duration-enter-md: 240ms;
 
-  /* ══════════════════ BREAKPOINTS ══════════════════
-     móvil <640 · tablet 640–1023 · desktop ≥1024.
-     CSS no permite var() dentro de @media: estos son la ÚNICA fuente de verdad,
-     replicados textualmente en cada @media y expuestos a JS en breakpoints.js. */
+  /* ══════════════════ BREAKPOINTS Y CONTENEDORES ══════════════════
+     --bp-*  miden la PANTALLA · --cq-* miden el ancho DISPONIBLE de un
+     componente. No son lo mismo: un módulo en una celda angosta de una pantalla
+     grande cae en "estrecho", que es justamente el punto de las consultas de
+     contenedor.
+
+     CSS no admite var() dentro de la condición de @media ni de @container:
+     estos valores son la única fuente de verdad y se repiten textualmente en
+     cada consulta. Los --bp-* están además expuestos a JS en breakpoints.js. */
   --bp-mobile: 640px;
   --bp-tablet: 1024px;
+  --cq-narrow: 480px;
+  --cq-medium: 768px;
 
   --blur-sm: blur(8px);
-  --blur: blur(16px);
+  --blur:    blur(16px);
   --blur-lg: blur(24px);
   --blur-xl: blur(40px);
 
@@ -280,29 +321,75 @@
      Trama de puntos propia (SVG inline, sin imágenes externas). Dos variantes
      para no perder contraste según el fondo. */
   --pattern-dots-dark:  url("data:image/svg+xml,%3Csvg width='22' height='22' viewBox='0 0 22 22' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='2' cy='2' r='1' fill='%23ffffff' fill-opacity='0.05'/%3E%3C/svg%3E");
-  --pattern-dots-light: url("data:image/svg+xml,%3Csvg width='22' height='22' viewBox='0 0 22 22' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='2' cy='2' r='1' fill='%231D4ED8' fill-opacity='0.05'/%3E%3C/svg%3E");
+  --pattern-dots-light: url("data:image/svg+xml,%3Csvg width='22' height='22' viewBox='0 0 22 22' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='2' cy='2' r='1' fill='%231E40D8' fill-opacity='0.05'/%3E%3C/svg%3E");
 
-  /* Fondo de la app: dos halos fríos muy tenues en esquinas opuestas sobre el
-     canvas. Las tarjetas son superficies sólidas encima, así que no afecta
-     legibilidad; solo evita que el gris plano se sienta muerto. */
+  /* Fondo de la app: un solo halo frío muy tenue arriba a la derecha. Antes
+     había dos (cobalto + ámbar en esquinas opuestas) y el ámbar le daba al
+     canvas una temperatura sucia. Uno solo, y del color de acción. */
   --bg-app:
-    radial-gradient(1200px 620px at 100% -8%, rgba(37, 99, 235, 0.07), transparent 60%),
-    radial-gradient(1000px 520px at -8% 108%, rgba(245, 158, 11, 0.05), transparent 55%),
+    radial-gradient(1400px 700px at 100% -10%, rgba(43, 92, 255, 0.055), transparent 62%),
     var(--color-bg);
 
   /* Cabecera de sección: velo cobalto + puntos discretos. */
   --bg-header:
     var(--pattern-dots-light),
-    linear-gradient(135deg, rgba(37, 99, 235, 0.07) 0%, rgba(96, 165, 250, 0.04) 100%);
+    linear-gradient(135deg, rgba(43, 92, 255, 0.06) 0%, rgba(109, 140, 255, 0.03) 100%);
 
-  /* Degradado del sidebar: marino profundo que aclara apenas hacia abajo, para
-     que no se lea como un bloque plano en pantallas altas. */
+  /* Sidebar: negro que aclara apenas hacia abajo, para que no se lea como un
+     bloque plano en pantallas altas. */
   --sidebar-bg-gradient:
-    linear-gradient(180deg, #0B1220 0%, #0E1627 62%, #131C2E 100%);
+    linear-gradient(180deg, #0A0A0B 0%, #101013 64%, #16161A 100%);
 
-  /* Panel decorativo del login: mismo marino + brillo cobalto + puntos. */
+  /* Panel decorativo del login: negro + brillo cobalto + puntos. */
   --bg-login-panel:
     var(--pattern-dots-dark),
-    radial-gradient(900px 500px at 15% 10%, rgba(37, 99, 235, 0.30), transparent 60%),
-    linear-gradient(160deg, #0B1220 0%, #0E1627 55%, #16233A 100%);
+    radial-gradient(900px 520px at 12% 8%, rgba(43, 92, 255, 0.34), transparent 62%),
+    linear-gradient(160deg, #0A0A0B 0%, #101013 55%, #181A22 100%);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   TINTES ORGÁNICOS CON color-mix()
+
+   Los tintes de arriba son rgba() en sRGB. Interpolar en sRGB una transparencia
+   oscurece el resultado de forma desigual según el tono: el tinte rosa del
+   estado "Cancelado" sale más turbio que el esmeralda al mismo 9%, aunque la
+   cifra sea idéntica. En oklab el paso es perceptualmente uniforme, así que las
+   cuatro píldoras de estado tienen el MISMO peso visual y ninguna grita más que
+   las otras.
+
+   Va en @supports y no como segunda declaración porque las propiedades
+   personalizadas no se validan al declararse: el navegador acepta cualquier
+   secuencia de tokens y solo falla al USARLA. Una declaración doble haría que
+   la segunda gane siempre, y en un motor sin color-mix el fondo se perdería
+   entero. Con @supports, el motor que no lo entiende ni entra al bloque.
+
+   Los textos (-soft-on) NO se derivan: son hex medidos contra blanco y
+   derivarlos invalidaría los ratios anotados arriba.
+   ═══════════════════════════════════════════════════════════════════════════ */
+@supports (background: color-mix(in oklab, red 50%, transparent)) {
+  :root {
+    --color-primary-soft: color-mix(in oklab, var(--color-primary) 10%, transparent);
+    --color-info-soft:    color-mix(in oklab, var(--color-info) 10%, transparent);
+    --color-success-soft: color-mix(in oklab, var(--color-success) 13%, transparent);
+    --color-warning-soft: color-mix(in oklab, var(--color-accent) 13%, transparent);
+    --color-danger-soft:  color-mix(in oklab, var(--color-danger) 11%, transparent);
+    --color-accent-soft:  color-mix(in oklab, var(--color-accent) 13%, transparent);
+    --color-neutral-soft: color-mix(in oklab, var(--color-text) 6%, transparent);
+
+    /* Rampa de cobalto y alias legacy, por coherencia con los de arriba. */
+    --color-primary-50:  color-mix(in oklab, var(--color-primary) 5%, transparent);
+    --color-primary-100: color-mix(in oklab, var(--color-primary) 10%, transparent);
+    --color-primary-200: color-mix(in oklab, var(--color-primary) 19%, transparent);
+    --color-info-light:    color-mix(in oklab, var(--color-info) 10%, transparent);
+    --color-warning-light: color-mix(in oklab, var(--color-accent) 13%, transparent);
+    --color-danger-light:  color-mix(in oklab, var(--color-danger) 11%, transparent);
+    --color-success-light: color-mix(in oklab, var(--color-success) 13%, transparent);
+
+    /* Tintes claros SÓLIDOS (no translúcidos): se mezclan contra el blanco de la
+       superficie en vez de contra transparente, así siguen siendo opacos. */
+    --color-primary-wash:   color-mix(in oklab, var(--color-primary)  7%, #FFFFFF);
+    --color-primary-pale:   color-mix(in oklab, var(--color-primary) 14%, #FFFFFF);
+    --color-primary-pale-2: color-mix(in oklab, var(--color-primary) 28%, #FFFFFF);
+    --color-primary-pale-3: color-mix(in oklab, var(--color-primary) 46%, #FFFFFF);
+  }
 }

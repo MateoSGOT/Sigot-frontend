@@ -1,93 +1,18 @@
 import React, { useState } from 'react';
-import { NavLink, useNavigate, useLocation } from 'react-router-dom';
+import { NavLink, useLocation } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
-import {
-  MdDashboard, MdPeople, MdDirectionsCar, MdBuild, MdShoppingCart,
-  MdMiscellaneousServices, MdAssignment, MdEventNote,
-  MdNewReleases, MdSecurity, MdCategory, MdLocalShipping,
-  MdLogout, MdPerson,
-  MdSettings, MdStorage, MdChevronRight, MdAdminPanelSettings,
-  MdMenuOpen,
-} from 'react-icons/md';
+import { MdLogout, MdChevronRight, MdMenuOpen } from 'react-icons/md';
 import { logout } from '../../../features/auth/slices/authSlice';
 import StockAlertBell from '../StockAlertBell/StockAlertBell.jsx';
 import NovedadAlertBell from '../NovedadAlertBell/NovedadAlertBell.jsx';
 import { useSidebar } from '../../contexts/SidebarContext.jsx';
+// Estructura y filtrado por permisos: compartidos con BottomNav. Ver navStructure.js
+// -- están afuera para que exista un solo criterio de visibilidad por rol.
+import { navConCuentas, buildVisibleNav } from './navStructure.js';
 import './Sidebar.css';
-
-const NAV_STRUCTURE = [
-  { type: 'section', label: 'Menú principal' },
-  { type: 'link', to: '/dashboard', icon: MdDashboard, label: 'Dashboard', permiso: 'DASHBOARD' },
-  // Configuración: todo lo administrativo (usuarios del sistema y su acceso), justo
-  // después del Dashboard, separado del flujo operativo del taller de abajo. Es un
-  // desplegable como Vehículos/Inventario -- no una sección estática.
-  {
-    type: 'group', name: 'Configuración', icon: MdSettings,
-    children: [
-      { to: '/empleados', icon: MdPeople,   label: 'Empleados', permiso: 'EMPLEADOS' },
-      { to: '/clientes',  icon: MdPerson,   label: 'Clientes',  permiso: 'CLIENTES'  },
-      { to: '/roles',     icon: MdSecurity, label: 'Roles',     permiso: 'ROLES'     },
-    ],
-  },
-  { type: 'section', label: 'Operación' },
-  {
-    type: 'group', name: 'Vehículos', icon: MdDirectionsCar,
-    children: [
-      { to: '/vehiculos', icon: MdDirectionsCar,     label: 'Vehículos',        permiso: 'VEHICULOS' },
-    ],
-  },
-  { type: 'link', to: '/agenda',    icon: MdEventNote,             label: 'Agenda',    permiso: 'AGENDA'    },
-  { type: 'link', to: '/servicios', icon: MdMiscellaneousServices, label: 'Servicios', permiso: 'SERVICIOS' },
-  {
-    type: 'group', name: 'Inventario', icon: MdStorage,
-    children: [
-      { to: '/categorias', icon: MdCategory, label: 'Categorías', permiso: 'CATEGORIAS' },
-      { to: '/repuestos',  icon: MdBuild,    label: 'Repuestos',  permiso: 'REPUESTOS'  },
-    ],
-  },
-  { type: 'link', to: '/ordenes',    icon: MdAssignment,   label: 'Orden de Trabajo', permiso: 'ORDENES'     },
-  { type: 'link', to: '/proveedores', icon: MdLocalShipping, label: 'Proveedores',    permiso: 'PROVEEDORES' },
-  { type: 'link', to: '/compras',    icon: MdShoppingCart,  label: 'Compras',         permiso: 'COMPRAS'     },
-  { type: 'link', to: '/novedades',  icon: MdNewReleases,   label: 'Novedades',       permiso: 'NOVEDADES'   },
-];
-
-function buildVisibleNav(nav, permisos, esSuperAdmin) {
-  // permisos === null → todavía cargando → mostrar todo sin flash. El super admin ve todo
-  // sin importar lo que haya en Roles_x_Permisos: Dashboard en particular queda fuera de la
-  // matriz de Roles a propósito (no sigue el patrón Ver/Crear/Editar/Eliminar), así que no
-  // hay forma de asignárselo a un rol desde la UI -- sin este bypass, ni siquiera el super
-  // admin vería el enlace a Dashboard en el menú.
-  const canSee = (permiso) => {
-    if (esSuperAdmin) return true;
-    if (!permiso || permisos === null) return true;
-    if (permiso === 'DASHBOARD') return permisos.some(p => p.startsWith('DASHBOARD.'));
-    return permisos.includes(`${permiso}.LISTAR`);
-  };
-
-  const filtered = nav.reduce((acc, item) => {
-    if (item.type === 'section') { acc.push(item); return acc; }
-    if (item.type === 'link') {
-      if (canSee(item.permiso)) acc.push(item);
-      return acc;
-    }
-    if (item.type === 'group') {
-      const visible = item.children.filter(c => canSee(c.permiso));
-      if (visible.length > 0) acc.push({ ...item, children: visible });
-      return acc;
-    }
-    return acc;
-  }, []);
-
-  // Eliminar section labels que no tienen ítems después
-  return filtered.filter((item, i, arr) => {
-    if (item.type !== 'section') return true;
-    return arr.slice(i + 1).some(x => x.type !== 'section');
-  });
-}
 
 export default function Sidebar() {
   const dispatch  = useDispatch();
-  const navigate  = useNavigate();
   const location  = useLocation();
   const { empleado, cliente, permisos } = useSelector((state) => state.auth);
   const { mobileOpen, collapsed, toggleCollapsed, setCollapsed } = useSidebar();
@@ -107,20 +32,12 @@ export default function Sidebar() {
     return () => document.removeEventListener('mousedown', handler);
   }, []);
 
-  // "Cuentas y accesos" (Fase 3): exclusiva del Super Administrador, no depende del
-  // sistema genérico de permisos por módulo -- se inyecta dentro de "Configuración"
-  // (no como enlace suelto) solo cuando el usuario logueado es super admin, así un
-  // rol normal con acceso a Empleados/Clientes/Roles nunca la ve en el grupo.
-  const navConCuentas = NAV_STRUCTURE.map(item => (
-    item.type === 'group' && item.name === 'Configuración' && esSuperAdmin
-      ? { ...item, children: [...item.children, { to: '/cuentas', icon: MdAdminPanelSettings, label: 'Cuentas y accesos', permiso: null }] }
-      : item
-  ));
-  const visibleNav = buildVisibleNav(navConCuentas, permisos, esSuperAdmin);
+  const nav = navConCuentas(esSuperAdmin);
+  const visibleNav = buildVisibleNav(nav, permisos, esSuperAdmin);
 
   const gruposDeLaRuta = (pathname) => {
     const groups = {};
-    navConCuentas.forEach(item => {
+    nav.forEach(item => {
       if (item.type === 'group') {
         groups[item.name] = item.children.some(c => pathname.startsWith(c.to));
       }

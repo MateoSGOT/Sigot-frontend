@@ -3,7 +3,7 @@
 .text-success { color: var(--color-success); }
 .text-danger { color: var(--color-danger); }
 .agenda-order-btn { color: var(--color-primary-500); }
-.agenda-order-btn:hover { background: rgba(78,154,241,0.12) !important; }
+.agenda-order-btn:hover { background: rgba(43, 92, 255,0.12) !important; }
 
 .novedad-warning {
   margin-top: 0.375rem;

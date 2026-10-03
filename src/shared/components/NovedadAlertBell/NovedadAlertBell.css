@@ -78,7 +78,7 @@
   cursor: pointer;
   transition: background 0.1s;
 }
-.novedad-bell__item:hover { background: #FBFCFD; }
+.novedad-bell__item:hover { background: var(--color-surface-solid); }
 
 .novedad-bell__item-empleado {
   font-size: 0.8rem;

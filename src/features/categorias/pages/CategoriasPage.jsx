@@ -149,9 +149,9 @@ export default function CategoriasPage() {
           <div style={{
             margin: '1rem 2rem', padding: '0.75rem 1rem', borderRadius: '10px', fontSize: '0.875rem',
             display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap',
-            background: hayError ? 'rgba(220,38,38,0.08)' : 'rgba(37, 99, 235,0.10)',
-            border: `1px solid ${hayError ? 'rgba(220,38,38,0.3)' : 'rgba(37, 99, 235,0.3)'}`,
-            color: hayError ? '#BE123C' : '#1D4ED8',
+            background: hayError ? 'rgba(225, 29, 72,0.08)' : 'rgba(43, 92, 255,0.10)',
+            border: `1px solid ${hayError ? 'rgba(225, 29, 72,0.3)' : 'rgba(43, 92, 255,0.3)'}`,
+            color: hayError ? '#BE123C' : '#1E40D8',
           }}>
             <span>{importMsg.error
               ? importMsg.error

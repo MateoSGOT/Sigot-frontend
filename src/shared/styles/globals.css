@@ -87,8 +87,8 @@ img { max-width: 100%; }
 /* El thumb era blanco translúcido (servía sobre el sidebar oscuro) y quedaba
    invisible sobre el canvas claro. Ahora es tinta translúcida, que funciona en
    los dos; el sidebar lo sobreescribe con su propia variante clara. */
-::-webkit-scrollbar-thumb { background: rgba(16, 24, 40, 0.18); border-radius: var(--radius-full); }
-::-webkit-scrollbar-thumb:hover { background: rgba(16, 24, 40, 0.30); }
+::-webkit-scrollbar-thumb { background: rgba(10, 10, 11, 0.18); border-radius: var(--radius-full); }
+::-webkit-scrollbar-thumb:hover { background: rgba(10, 10, 11, 0.30); }
 
 /* === Utility Classes === */
 .text-muted    { color: var(--color-text-muted); }

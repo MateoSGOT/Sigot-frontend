@@ -14,7 +14,7 @@ const getPasswordStrength = (pass) => {
   if (hasSpecial && hasNumber && hasUpper && pass.length >= 10)
     return { level: 'strong', label: 'Fuerte', color: '#059669', width: '100%' };
   if ((hasNumber || hasSpecial) && pass.length >= 8)
-    return { level: 'medium', label: 'Media',  color: '#3b82f6', width: '75%' };
+    return { level: 'medium', label: 'Media',  color: '#2B5CFF', width: '75%' };
   return { level: 'fair', label: 'Débil', color: '#f59e0b', width: '50%' };
 };
 

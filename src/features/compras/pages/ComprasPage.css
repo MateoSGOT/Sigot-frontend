@@ -2,7 +2,7 @@
 .font-medium { font-weight: 600; }
 
 .compra-anular-btn { color: var(--color-danger) !important; }
-.compra-anular-btn:hover { background: rgba(220,38,38,0.08) !important; }
+.compra-anular-btn:hover { background: rgba(225, 29, 72,0.08) !important; }
 
 /* === Formulario multi-producto === */
 .compra-form { display: flex; flex-direction: column; gap: 1.25rem; }
@@ -73,7 +73,7 @@ select.form-control--sm {
 }
 
 .compra-remove-btn { color: var(--color-danger) !important; margin-top: 2px; }
-.compra-remove-btn:not(:disabled):hover { background: rgba(220,38,38,0.08) !important; }
+.compra-remove-btn:not(:disabled):hover { background: rgba(225, 29, 72,0.08) !important; }
 .compra-remove-btn:disabled { opacity: 0.25 !important; cursor: not-allowed; }
 
 /* Pie del formulario: botón agregar + total */
@@ -104,7 +104,7 @@ select.form-control--sm {
 }
 
 /* Price mismatch warning */
-.form-control--warn { border-color: rgba(245,166,35,0.6) !important; background: rgba(245,166,35,0.05) !important; }
+.form-control--warn { border-color: rgba(245, 158, 11,0.6) !important; background: rgba(245, 158, 11,0.05) !important; }
 .price-warning {
   display: flex; align-items: center; gap: 0.375rem;
   font-size: 0.75rem; color: var(--color-accent);

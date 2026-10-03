@@ -4,7 +4,7 @@
 .text-danger { color: var(--color-danger); }
 .text-muted { color: var(--color-text-muted); }
 .novedades-list { display: flex; flex-direction: column; gap: 0.625rem; }
-.novedad-item { display: flex; align-items: flex-start; gap: 0.625rem; padding: 0.75rem; background: rgba(245, 166, 35, 0.10); border: 1px solid rgba(245, 166, 35, 0.25); border-radius: 8px; }
+.novedad-item { display: flex; align-items: flex-start; gap: 0.625rem; padding: 0.75rem; background: rgba(245, 158, 11, 0.10); border: 1px solid rgba(245, 158, 11, 0.25); border-radius: 8px; }
 
 /* File upload */
 .file-upload-wrap { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }

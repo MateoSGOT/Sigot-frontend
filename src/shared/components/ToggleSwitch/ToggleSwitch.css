@@ -27,7 +27,7 @@
 /* ON — forest green, toggle a la derecha */
 .toggle-switch--on {
   background: var(--color-success-strong);
-  box-shadow: 0 2px 8px rgba(45, 106, 45, 0.30);
+  box-shadow: 0 2px 8px rgba(43, 92, 255, 0.30);
 }
 
 .toggle-switch--on::after {

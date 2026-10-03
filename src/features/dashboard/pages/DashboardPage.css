@@ -8,8 +8,8 @@
   justify-content: space-between;
   gap: 1rem;
   padding: 0.875rem 1.25rem;
-  background: rgba(241, 78, 78, 0.10);
-  border: 1px solid rgba(241, 78, 78, 0.25);
+  background: rgba(225, 29, 72, 0.10);
+  border: 1px solid rgba(225, 29, 72, 0.25);
   border-radius: var(--radius);
   color: var(--color-danger-on-dark);
   font-size: 0.875rem;
@@ -65,6 +65,18 @@
   display: flex;
   align-items: center;
   gap: 1.125rem;
+  /* La tarjeta es su propio contenedor de consulta: lo que decide si el icono y
+     la cifra van en fila o apilados es el ancho de ESTA tarjeta, no el de la
+     pantalla. Importa porque el mismo KPI aparece en rejillas distintas (cuatro
+     en fila en escritorio, una por fila en móvil) y antes el corte lo decidía un
+     breakpoint global que no sabía cuánto espacio tenía realmente.
+     `flex-wrap` es el mecanismo del apilado -- ver el bloque @container kpi de
+     más abajo, que solo toca propiedades de los HIJOS: un elemento no puede
+     consultar su propio tamaño, así que la tarjeta no puede cambiarse el
+     flex-direction a sí misma. */
+  container-type: inline-size;
+  container-name: kpi;
+  flex-wrap: wrap;
   /* Residuo del glassmorphism anterior: el borde era BLANCO sobre tarjeta
      blanca (invisible, el canto quedaba sin definir contra el canvas) y el
      `inset` blanco era el brillo del cristal, que sobre superficie sólida no
@@ -157,6 +169,52 @@
 .stat-card__sub {
   font-size: 0.8125rem;
   color: var(--color-text-muted);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   KPI estrecho (contenedor ≤240px): icono arriba, texto abajo.
+
+   Con los cuatro KPI en fila sobre un portátil de 1280px, cada tarjeta mide
+   ~265px; a 1180px baja de 240 y la cifra de ingresos (que puede ser
+   "$12.480.000") ya no cabe al lado de un badge de 52px. Antes eso lo decidía
+   un @media global, que no sabe en qué rejilla está la tarjeta: la misma
+   tarjeta en una columna de informe angosta seguía intentando la fila.
+
+   Solo propiedades de los HIJOS: el apilado lo produce `flex-basis: 100%` en
+   el cuerpo contra el `flex-wrap: wrap` del padre, porque la tarjeta no puede
+   consultar su propio ancho para cambiarse el flex-direction.
+   ═══════════════════════════════════════════════════════════════════════ */
+@container kpi (max-width: 240px) {
+  .stat-card__body {
+    /* Empuja el cuerpo a una segunda línea del flex: el icono queda arriba. */
+    flex-basis: 100%;
+  }
+  .stat-card__icon-wrap {
+    /* Más chico: ocupando 52px en una tarjeta angosta se come el ancho que
+       necesita la cifra. */
+    width: 40px;
+    height: 40px;
+  }
+  /* El segundo selector NO es redundante: la línea 29
+     (`.stats-grid .stat-card:first-child .stat-card__value`) tiene 4 clases de
+     especificidad y las consultas de contenedor NO aportan especificidad
+     propia. Sin repetirlo acá, el KPI de ingresos -- justo el de la cifra más
+     larga y la fuente más grande (2.25rem) -- sería el único que ignora este
+     bloque y seguiría desbordando. */
+  .stat-card__value,
+  .stats-grid .stat-card:first-child .stat-card__value {
+    font-size: 1.5rem;
+  }
+}
+
+/* Contenedor muy estrecho (≤170px, p. ej. un KPI en una columna lateral):
+   la microetiqueta en mayúsculas con tracking abierto es lo primero que
+   desborda, así que se cierra el tracking antes de recortar la cifra. */
+@container kpi (max-width: 170px) {
+  .stat-card__label { letter-spacing: var(--tracking-normal); }
+  /* Misma razón que arriba: hay que vencer la especificidad de la línea 29. */
+  .stat-card__value,
+  .stats-grid .stat-card:first-child .stat-card__value { font-size: 1.25rem; }
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
@@ -284,7 +342,7 @@
   font-size: 0.8125rem;
   font-weight: 600;
   color: var(--color-primary-soft-on, var(--color-primary-soft-on));
-  background: var(--color-primary-soft, rgba(37, 99, 235, 0.12));
+  background: var(--color-primary-soft, rgba(43, 92, 255, 0.12));
   padding: 0.35rem 0.8rem;
   border-radius: 999px;
   white-space: nowrap;

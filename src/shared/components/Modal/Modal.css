@@ -74,9 +74,9 @@
 }
 
 .modal__close:hover {
-  background: rgba(220, 38, 38, 0.08);
+  background: rgba(225, 29, 72, 0.08);
   color: var(--color-danger-soft-on);
-  border-color: rgba(220, 38, 38, 0.2);
+  border-color: rgba(225, 29, 72, 0.2);
 }
 
 .modal__body {

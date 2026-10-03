@@ -23,13 +23,43 @@ const PALETA = 'src/shared/styles/variables.css';
 // propósito (texto sobre sólidos, sombras).
 const ABSOLUTOS = new Set(['#fff', '#ffffff', '#000', '#000000']);
 
+const paleta = fs.readFileSync(PALETA, 'utf8');
+
 // Todo hex que aparezca en variables.css es, por definición, del sistema.
 // Se toman TODOS los del archivo (no uno por declaración): varios tokens
 // declaran degradados con varias paradas y esas paradas también son paleta.
 const delSistema = new Set(
-  [...fs.readFileSync(PALETA, 'utf8').matchAll(/#[0-9a-fA-F]{3,8}/g)]
-    .map((m) => m[0].toLowerCase()),
+  [...paleta.matchAll(/#[0-9a-fA-F]{3,8}/g)].map((m) => m[0].toLowerCase()),
 );
+
+/* ── Tripletas rgb/rgba ──
+   PUNTO CIEGO QUE ESTO CORRIGE: antes solo se inspeccionaban hex, así que un
+   color escrito como rgba(45,106,45,0.3) era invisible para la auditoría. Por
+   esa rendija sobrevivieron a la migración de identidad anterior el verde del
+   ToggleSwitch encendido, el del filtro activo y el anillo de foco de page.css,
+   más un lima de fondo con texto esmeralda. El informe decía "cero" y era
+   cierto: no había hex fuera del sistema. Había rgba.
+
+   Un rgba es legítimo cuando necesita canal alfa (un token hex no lo tiene),
+   así que no se puede prohibir: lo que se exige es que sus TRES componentes
+   pertenezcan a la paleta. */
+const aRgb = (hex) => {
+  let h = hex.slice(1);
+  if (h.length === 3) h = [...h].map((c) => c + c).join('');
+  if (h.length !== 6) return null;   // 4/8 dígitos (con alfa) se ignoran
+  return [0, 2, 4].map((i) => parseInt(h.slice(i, i + 2), 16)).join(',');
+};
+
+const tripletasDelSistema = new Set([
+  // Derivadas de cada hex de la paleta.
+  ...[...delSistema].map(aRgb).filter(Boolean),
+  // Las que la paleta ya declara como rgb/rgba.
+  ...[...paleta.matchAll(/rgba?\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})/g)]
+    .map((m) => `${m[1]},${m[2]},${m[3]}`),
+  // Absolutos: blanco y negro se usan tal cual a propósito (texto sobre
+  // sólidos, sombras, velos de overlay).
+  '255,255,255', '0,0,0',
+]);
 
 const hallazgos = [];
 
@@ -52,6 +82,11 @@ function recorrer(dir) {
         if (ABSOLUTOS.has(c)) continue;
         if (delSistema.has(c)) continue;
         hallazgos.push({ rel, l: i + 1, c, txt: linea.trim().slice(0, 70) });
+      }
+      for (const m of linea.matchAll(/rgba?\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})/g)) {
+        const t = `${m[1]},${m[2]},${m[3]}`;
+        if (tripletasDelSistema.has(t)) continue;
+        hallazgos.push({ rel, l: i + 1, c: `rgb(${t})`, txt: linea.trim().slice(0, 70) });
       }
     });
   }

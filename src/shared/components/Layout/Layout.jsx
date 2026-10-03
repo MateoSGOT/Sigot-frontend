@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import Sidebar from '../Sidebar/Sidebar.jsx';
 import MobileSidebarChrome from './MobileSidebarChrome.jsx';
+import BottomNav from './BottomNav.jsx';
 import { SidebarProvider, useSidebar } from '../../contexts/SidebarContext.jsx';
 import './Layout.css';
 
@@ -21,6 +22,10 @@ function LayoutInner() {
       <main className="layout__main">
         <Outlet />
       </main>
+      {/* Barra inferior: el CSS la oculta en ≥1024px, así que en escritorio no
+          existe visualmente. Va después del <main> para que el orden de
+          tabulación llegue al contenido antes que a la navegación secundaria. */}
+      <BottomNav />
     </div>
   );
 }

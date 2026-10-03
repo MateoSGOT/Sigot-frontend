@@ -1,21 +1,42 @@
+/* ═══════════════════════════════════════════════════════════
+   TABLAS
+
+   CONTENEDOR DE CONSULTA: todo el responsive de este archivo se resuelve con
+   @container, no con @media. La tabla se adapta al ancho que REALMENTE tiene,
+   no al de la pantalla: una tabla dentro de un modal angosto o de un panel
+   partido pasa a tarjetas aunque el monitor sea de 27".
+
+   Sin fallback con @media a propósito: duplicar las ~60 líneas del bloque de
+   tarjetas dejaría dos definiciones que se desincronizan al mantenerlas. Las
+   consultas de contenedor están en todos los motores desde 2023.
+
+   El nombre "tabla" tiene que coincidir entre el container-name de acá y las
+   consultas de abajo; scripts/auditar-tablas.mjs lo verifica, porque si se
+   desalinean la tabla NO falla: simplemente deja de volverse tarjetas.
+   ═══════════════════════════════════════════════════════════ */
+.table-shell {
+  container-type: inline-size;
+  container-name: tabla;
+}
+
 .table-wrapper {
   overflow-x: auto;
-  /* Módulo bento: blanco puro, canto definido, sin borde gris divisorio -- la
+  /* Módulo bento: blanco puro, esquina marcada, sin borde gris divisorio -- la
      separación la da el contraste con el canvas, no una línea. */
   border-radius: var(--radius-lg);
   border: var(--card-border);
   box-shadow: var(--shadow-sm);
   -webkit-overflow-scrolling: touch;
   transition: box-shadow var(--duration-base) var(--ease);
-  /* Indicador de scroll horizontal (técnica CSS pura): aparece una sombra
-     en el borde que tiene más contenido oculto y desaparece al llegar al
-     extremo. Las capas "cover" (attachment local) se mueven con el scroll;
-     las de sombra (attachment scroll) quedan fijas en los bordes. */
+  /* Indicador de scroll horizontal (técnica CSS pura): aparece una sombra en el
+     borde que tiene más contenido oculto y desaparece al llegar al extremo. Las
+     capas "cover" (attachment local) se mueven con el scroll; las de sombra
+     (attachment scroll) quedan fijas en los bordes. */
   background:
     linear-gradient(to right, var(--color-surface) 30%, rgba(255,255,255,0)) 0 0 / 36px 100% no-repeat,
     linear-gradient(to left,  var(--color-surface) 30%, rgba(255,255,255,0)) 100% 0 / 36px 100% no-repeat,
-    radial-gradient(farthest-side at 0 50%,   rgba(0,0,0,0.10), transparent) 0 0 / 14px 100% no-repeat,
-    radial-gradient(farthest-side at 100% 50%, rgba(0,0,0,0.10), transparent) 100% 0 / 14px 100% no-repeat;
+    radial-gradient(farthest-side at 0 50%,    rgba(10,10,11,0.08), transparent) 0 0 / 14px 100% no-repeat,
+    radial-gradient(farthest-side at 100% 50%, rgba(10,10,11,0.08), transparent) 100% 0 / 14px 100% no-repeat;
   background-attachment: local, local, scroll, scroll;
 }
 .table-wrapper:hover { box-shadow: var(--shadow-md); }
@@ -30,13 +51,14 @@
   background: var(--color-surface-solid);
 }
 
-/* Encabezados: 12px uppercase con tracking (densidad de datos) */
+/* Encabezados: 12px en mayúsculas con tracking abierto. Densidad de datos sin
+   que el encabezado compita con el contenido. */
 .table__th {
-  padding: var(--space-md) var(--space-lg);
+  padding: var(--space-lg) var(--space-xl);
   text-align: left;
   font-size: var(--text-caption);
   font-weight: var(--weight-semibold);
-  color: var(--color-text-muted);
+  color: var(--color-text-light);
   text-transform: uppercase;
   letter-spacing: var(--tracking-wide);
   white-space: nowrap;
@@ -45,15 +67,17 @@
 }
 
 .table__td {
-  /* Más aire vertical: densa pero legible. */
-  height: 56px;
-  padding: var(--space-md) var(--space-lg);
+  /* Filas espaciadas: 64px (antes 56). Una tabla operativa que se lee de un
+     barrido necesita que cada fila sea un bloque distinguible, no un renglón. */
+  height: 64px;
+  padding: var(--space-lg) var(--space-xl);
   color: var(--color-text);
   border-top: 1px solid var(--color-border-light);
   vertical-align: middle;
 }
 
-/* Columnas numéricas: alineadas a la derecha con cifras tabulares */
+/* Columnas numéricas: a la derecha con cifras tabulares, para que el ojo
+   compare verticalmente sin que los dígitos se desalineen. */
 .table__th--num,
 .table__td--num {
   text-align: right;
@@ -64,27 +88,33 @@
 .table__row--clickable { cursor: pointer; }
 
 @keyframes rowFadeIn {
-  from { opacity: 0; transform: translateY(4px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from { opacity: 0; transform: translate3d(0, 4px, 0); }
+  to   { opacity: 1; transform: translate3d(0, 0, 0); }
 }
 
 .table__row {
   position: relative;
   transition: background var(--duration-base) var(--ease),
               box-shadow var(--duration-base) var(--ease);
-  animation: rowFadeIn 0.18s ease both;
+  animation: rowFadeIn 0.18s var(--ease) both;
 }
 
 /* Hover: tinte de acción + elevación milimétrica + barra de acento a la
    izquierda, que marca la fila apuntada sin desplazar nada.
+
    NOTA -- deliberadamente NO se usa `transform: scale()` en la fila: sobre
-   `display: table-row` el escalado produce texto borroso por subpíxel y la
-   fila se recorta contra el `overflow-x` del wrapper. En una tabla de datos
-   densa la legibilidad gana; la elevación se consigue con la sombra. */
+   `display: table-row` el escalado produce texto borroso por subpíxel y la fila
+   se recorta contra el `overflow-x` del wrapper. En una tabla de datos densa la
+   legibilidad gana; la elevación se consigue con la sombra.
+
+   Tampoco se anima en bucle: es un cambio de estado puntual sobre UNA fila, un
+   repintado único y barato. Lo que hay que mantener fuera del hilo principal
+   son las animaciones continuas (ver la entrada de arriba y Skeleton.css, que
+   usan transform/opacity), no una transición de hover. */
 .table__row:hover {
   background: var(--color-primary-soft);
   box-shadow: inset 3px 0 0 0 var(--color-primary),
-              0 2px 10px rgba(16, 24, 40, 0.07);
+              0 2px 12px rgba(10, 10, 11, 0.06);
   z-index: 1;
 }
 
@@ -97,9 +127,9 @@
 }
 
 .table__td--separator {
-  padding: 0.5rem 1rem;
-  font-size: 0.7rem;
-  font-weight: 600;
+  padding: var(--space-sm) var(--space-lg);
+  font-size: var(--text-caption);
+  font-weight: var(--weight-semibold);
   color: var(--color-text-light);
   text-transform: uppercase;
   letter-spacing: var(--tracking-wide);
@@ -114,7 +144,7 @@
 
 .table__empty {
   text-align: center;
-  padding: 3rem 1rem;
+  padding: var(--space-3xl) var(--space-lg);
   color: var(--color-text-muted);
   font-size: var(--text-body);
 }
@@ -126,14 +156,14 @@
 }
 .table__empty-cell:hover { background: transparent; }
 
-/* === Loading === */
+/* === Carga === */
 .table-loading {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 1rem;
-  padding: 3rem;
+  gap: var(--space-lg);
+  padding: var(--space-3xl);
   color: var(--color-text-muted);
 }
 
@@ -142,7 +172,7 @@
   height: 32px;
   border: 3px solid var(--color-border);
   border-top-color: var(--color-primary);
-  border-radius: 50%;
+  border-radius: var(--radius-full);
   animation: spin 0.8s linear infinite;
 }
 
@@ -150,32 +180,33 @@
   to { transform: rotate(360deg); }
 }
 
-/* === Pagination === */
+/* === Paginación === */
 .table-pagination {
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 0.375rem;
-  padding: 0.625rem 1rem;
+  gap: var(--space-xs);
+  padding: var(--space-md) var(--space-lg);
 }
 
 .table-pagination__btn {
-  width: 28px;
-  height: 28px;
+  width: 32px;
+  height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
   border: none;
   background: transparent;
   color: var(--color-text-muted);
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   cursor: pointer;
-  transition: background 0.15s ease, color 0.15s ease;
+  transition: background var(--duration-fast) var(--ease),
+              color var(--duration-fast) var(--ease);
 }
 
 .table-pagination__btn:hover:not(:disabled) {
   background: var(--color-primary-soft);
-  color: var(--color-primary);
+  color: var(--color-primary-soft-on);
 }
 
 .table-pagination__btn:disabled {
@@ -184,36 +215,40 @@
 }
 
 .table-pagination__current {
-  font-size: 0.8125rem;
-  font-weight: 600;
-  color: var(--color-primary);
+  font-size: var(--text-small);
+  font-weight: var(--weight-semibold);
+  color: var(--color-primary-soft-on);
+  font-variant-numeric: tabular-nums;
 }
 
 .table-pagination__sep,
 .table-pagination__total {
-  font-size: 0.8125rem;
+  font-size: var(--text-small);
   color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
 }
 
-/* === Responsive: densidad más compacta en móvil (más columnas visibles
-   antes de necesitar scroll; el scroll horizontal contenido sigue activo) === */
-@media (max-width: 640px) {
+/* === Contenedor angosto (≤640px): densidad compacta, más columnas visibles
+   antes de necesitar scroll; el scroll horizontal sigue activo === */
+@container tabla (max-width: 640px) {
   .table { font-size: var(--text-small); }
   .table__th { padding: var(--space-sm) var(--space-md); }
-  .table__td { padding: var(--space-sm) var(--space-md); height: 44px; }
+  .table__td { padding: var(--space-sm) var(--space-md); height: 48px; }
   .table-pagination { padding: var(--space-sm) var(--space-md); }
 }
 
 /* ═══════════════════════════════════════════════════════════
-   Responsive (≤768px): cada fila se convierte en una TARJETA apilada,
-   y cada celda muestra la etiqueta de su columna. Mucho más legible que
-   el scroll horizontal en tablas con muchas columnas.
+   Contenedor ≤768px: cada fila se convierte en una TARJETA apilada y cada
+   celda muestra la etiqueta de su columna. Mucho más legible que el scroll
+   horizontal cuando hay muchas columnas -- y es el modo en que el mecánico ve
+   las órdenes desde el celular.
    ═══════════════════════════════════════════════════════════ */
-@media (max-width: 768px) {
+@container tabla (max-width: 768px) {
   .table-wrapper {
     overflow-x: visible;
     border: none;
     background: none;
+    box-shadow: none;
   }
   .table { font-size: var(--text-body); }
   .table__head { display: none; }
@@ -225,23 +260,26 @@
     border-radius: var(--radius-lg);
     background: var(--color-surface);
     box-shadow: var(--shadow-sm);
-    padding: var(--space-xs) var(--space-lg);
+    padding: var(--space-xs) var(--space-xl);
     margin-bottom: var(--space-md);
     animation: none;
   }
-  /* En móvil la tarjeta no se tinta ni se eleva: no hay puntero que seguir y
-     el inset de la barra de acento desalinearía el contenido. */
-  .table__row:hover { background: var(--color-surface); box-shadow: var(--shadow-sm); }
+  /* En móvil la tarjeta no se tinta ni se eleva: no hay puntero que seguir y el
+     inset de la barra de acento desalinearía el contenido. */
+  .table__row:hover {
+    background: var(--color-surface);
+    box-shadow: var(--shadow-sm);
+  }
 
   /* Celda = fila "etiqueta : valor" */
   .table__td {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 1rem;
+    gap: var(--space-lg);
     height: auto;
-    min-height: 42px;
-    padding: 0.55rem 0;
+    min-height: 44px;
+    padding: 0.625rem 0;
     border: none;
     border-top: 1px solid var(--color-border-light);
     text-align: right;
@@ -266,7 +304,7 @@
   /* Separadores y estado vacío: sin formato de tarjeta */
   .table__row--separator {
     border: none; background: none; box-shadow: none;
-    padding: 0; margin: 0.35rem 0;
+    padding: 0; margin: var(--space-xs) 0;
   }
   .table__td--separator { display: block; text-align: center; border: none; }
   .table__td--separator::before { content: none; }

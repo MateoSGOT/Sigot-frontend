@@ -4,6 +4,8 @@
    encima del cajón del sidebar móvil, o usar un valor ya establecido si es del mismo
    tipo de elemento, en vez de inventar un número a ciegas):
      1000       — .layout__hamburger (botón hamburguesa, solo móvil/tablet <1024px)
+                  y .bottomnav (barra inferior, mismo rango: las dos son chrome
+                  móvil y las dos deben quedar DEBAJO del velo del cajón)
      1100       — .layout__overlay (fondo oscuro detrás del cajón del sidebar móvil)
      1200       — .sidebar en modo cajón móvil (Sidebar.css) -- por encima de su propio
                   fondo (1100), para poder recibir clics/scroll
@@ -49,7 +51,28 @@
 .layout__overlay   { display: none; }
 
 @media (max-width: 1023px) {
-  .layout__main { margin-left: 0; }
+  /* El reservado de abajo evita que el último botón de cada página quede
+     tapado por la barra inferior fija (~64px + zona segura del iPhone).
+     Sin esto, el "Guardar" de un formulario largo es inalcanzable. */
+  .layout__main {
+    margin-left: 0;
+    padding-bottom: calc(64px + env(safe-area-inset-bottom, 0px));
+  }
+
+  /* Donde existe la barra inferior, la hamburguesa es una SEGUNDA puerta al
+     mismo cajón: el "Más" de la barra ya lo abre. Se oculta para que en móvil
+     el sidebar de escritorio desaparezca de verdad y la navegación sea una sola.
+
+     Acotado con :has() y no con una clase a propósito, por dos razones:
+       · MobileSidebarChrome lo comparten el panel (.layout) y el PORTAL DEL
+         CLIENTE (.portal-layout), y el portal NO tiene barra inferior -- ahí la
+         hamburguesa sigue siendo su única navegación. El selector no lo alcanza.
+       · Se auto-corrige: BottomNav devuelve null si el rol no ve ningún módulo,
+         y entonces :has() no encuentra la barra y la hamburguesa reaparece. Sin
+         esto, ese rol quedaría sin forma de abrir el menú ni de cerrar sesión.
+     Si un motor no soporta :has(), la regla simplemente no aplica: quedan las
+     dos puertas. Redundante, nunca inaccesible. */
+  .layout:has(.bottomnav) > .layout__hamburger { display: none; }
 
   .layout__hamburger {
     position: fixed; top: 12px; left: 12px; z-index: 1000;
@@ -57,10 +80,10 @@
     display: flex; align-items: center; justify-content: center;
     /* Discreto: vidrio translúcido, sin glow. Se nota poco y deja entrever
        el contenido que hay detrás (no lo "opaca"). */
-    /* Mismo marino que --sidebar-bg (#0B1220) con alfa: el botón tiene que leerse
-       como "el borde del sidebar", no como otro tono. Se escribe en rgba porque
-       necesita transparencia y el token es hex. */
-    background: rgba(11, 18, 32, 0.52);
+    /* Mismo negro que --sidebar-bg con alfa: el botón tiene que leerse como
+       "el borde del sidebar", no como otro tono. Se escribe en rgba y no con el
+       token porque necesita canal alfa, y el token es un hex sin alfa. */
+    background: rgba(10, 10, 11, 0.52);
     -webkit-backdrop-filter: blur(8px) saturate(1.2);
     backdrop-filter: blur(8px) saturate(1.2);
     color: rgba(255, 255, 255, 0.82);
@@ -70,11 +93,11 @@
     transition: transform var(--duration-fast) var(--ease), background var(--duration-base) var(--ease), box-shadow var(--duration-base) var(--ease);
   }
   .layout__hamburger:hover  {
-    background: rgba(11, 18, 32, 0.72);
+    background: rgba(10, 10, 11, 0.72);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
   }
   .layout__hamburger:active { transform: scale(0.94); }
-  .layout__hamburger:focus-visible { outline: 2px solid #60A5FA; outline-offset: 2px; }
+  .layout__hamburger:focus-visible { outline: 2px solid var(--color-primary-light); outline-offset: 2px; }
 
   .layout__overlay {
     position: fixed; inset: 0; z-index: 1100;

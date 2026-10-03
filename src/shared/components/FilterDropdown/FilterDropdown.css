@@ -22,10 +22,10 @@
 
 .fdd__trigger:hover,
 .fdd__trigger--open {
-  background: rgba(45, 106, 45, 0.10);
+  background: rgba(43, 92, 255, 0.10);
   color: var(--color-success-soft-on);
   border-color: var(--color-success-strong);
-  box-shadow: 0 2px 8px rgba(45, 106, 45, 0.12);
+  box-shadow: 0 2px 8px rgba(43, 92, 255, 0.12);
 }
 
 .fdd__arrow {
@@ -97,12 +97,12 @@
 }
 
 .fdd__item:hover {
-  background: rgba(45, 106, 45, 0.08);
+  background: rgba(43, 92, 255, 0.08);
   color: var(--color-success-soft-on);
 }
 
 .fdd__item--active {
-  background: rgba(45, 106, 45, 0.10);
+  background: rgba(43, 92, 255, 0.10);
   color: var(--color-success-soft-on);
   font-weight: 600;
 }

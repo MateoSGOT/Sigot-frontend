@@ -82,7 +82,12 @@ export default function Table({
   };
 
   return (
-    <div>
+    // .table-shell es el CONTENEDOR de consulta (container-type: inline-size).
+    // Tiene que ser un ancestro de .table-wrapper, no el wrapper mismo: un
+    // elemento no puede consultar su propio tamaño. Gracias a esto la tabla pasa
+    // a tarjetas según el ancho DISPONIBLE y no el de la pantalla — una tabla
+    // dentro de un modal angosto se vuelve tarjetas incluso en escritorio.
+    <div className="table-shell">
       <div className="table-wrapper">
         <table className="table">
           <thead className="table__head">

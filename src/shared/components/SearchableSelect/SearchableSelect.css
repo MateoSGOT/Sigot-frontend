@@ -110,7 +110,7 @@
 
 .ss__option:hover,
 .ss__option--active {
-  background: var(--color-primary-soft, rgba(37, 99, 235, 0.12));
+  background: var(--color-primary-soft, rgba(43, 92, 255, 0.12));
 }
 
 .ss__option--selected {

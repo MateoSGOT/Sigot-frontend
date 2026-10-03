@@ -82,7 +82,7 @@
   cursor: pointer;
   transition: background 0.1s;
 }
-.stock-bell__item:hover { background: #FBFCFD; }
+.stock-bell__item:hover { background: var(--color-surface-solid); }
 .stock-bell__item--critico { border-left: 3px solid var(--color-danger); }
 .stock-bell__item--bajo { border-left: 3px solid var(--color-accent); }
 

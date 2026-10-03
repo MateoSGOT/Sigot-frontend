@@ -1,0 +1,130 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   Barra de navegación inferior (solo <1024px).
+
+   Comparte el negro del sidebar a propósito: en móvil esta barra ES la
+   estructura de navegación, así que tiene que leerse como el mismo elemento
+   que el drawer que abre, no como un componente ajeno pegado abajo.
+   ═══════════════════════════════════════════════════════════════════════════ */
+.bottomnav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  /* Sobre el contenido, DEBAJO del drawer (1200) y su velo (1100): al abrir el
+     menú completo, el drawer tiene que tapar la barra, no competir con ella. */
+  z-index: 1000;
+  display: flex;
+  align-items: stretch;
+  background: var(--sidebar-bg);
+  border-top: 1px solid var(--sidebar-border);
+  /* El canto superior redondeado la separa del contenido sin una línea dura. */
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  /* Hacia arriba, para que la barra se lea por encima del canvas. */
+  box-shadow: 0 -4px 20px rgba(10, 10, 11, 0.16);
+  /* Zona segura del iPhone: sin esto, los últimos píxeles de los rótulos quedan
+     debajo de la barra de gestos del sistema. */
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.bottomnav__item {
+  flex: 1 1 0;
+  /* Mínimo táctil del sistema de tokens: operable con guantes. */
+  min-height: var(--touch-min);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  padding: 10px 4px 12px;
+  /* Reset del botón "Más" para que iguale a los NavLink. */
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-family: inherit;
+  text-decoration: none;
+  color: var(--sidebar-icon);
+  position: relative;
+  -webkit-tap-highlight-color: transparent;
+  /* SOLO propiedades compositadas: color no se anima (dispararía paint en cada
+     fotograma); lo que se mueve son transform y opacity del indicador y del
+     icono, que el compositor resuelve sin repintar. */
+  transition: color var(--duration-fast) var(--ease);
+}
+
+/* Indicador del activo: barra cobalto en el canto superior. Existe siempre y se
+   revela con scaleX, que es compositado -- animar `width` provocaría layout en
+   cada fotograma y es justo lo que hace caer los 60 FPS en un celular. */
+.bottomnav__item::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 18%;
+  right: 18%;
+  height: 2px;
+  border-radius: 0 0 var(--radius-full) var(--radius-full);
+  background: var(--color-primary);
+  transform: scaleX(0);
+  transform-origin: center;
+  transition: transform var(--duration-base) var(--ease);
+}
+
+.bottomnav__item--active {
+  color: var(--color-primary-pale-3);
+}
+.bottomnav__item--active::before {
+  transform: scaleX(1);
+}
+
+.bottomnav__icon {
+  flex-shrink: 0;
+  /* El icono del activo sube un pelo: el desplazamiento se nota aunque el
+     usuario no esté mirando el rótulo. translate3d fuerza capa propia. */
+  transform: translate3d(0, 0, 0);
+  transition: transform var(--duration-base) var(--ease);
+}
+.bottomnav__item--active .bottomnav__icon {
+  transform: translate3d(0, -1px, 0);
+}
+
+.bottomnav__label {
+  font-size: 0.6875rem;   /* 11px: cabe "Orden de Trabajo" truncado sin romper */
+  font-weight: var(--weight-semibold);
+  letter-spacing: var(--tracking-normal);
+  line-height: 1.1;
+  max-width: 100%;
+  /* Los rótulos largos se truncan en una línea: dos líneas descuadrarían la
+     altura de la barra entre un ítem y otro. */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Realimentación al toque: el ítem se hunde apenas. Es `:active`, no `:hover`
+   -- en una pantalla táctil el hover queda "pegado" después del toque. */
+.bottomnav__item:active {
+  transform: scale(0.96);
+}
+
+/* Foco visible para teclado y lectores de pantalla. */
+.bottomnav__item:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: -3px;
+  border-radius: var(--radius-sm);
+}
+
+/* ─── Escritorio: la barra no existe; manda el sidebar fijo ─── */
+@media (min-width: 1024px) {
+  .bottomnav { display: none; }
+}
+
+/* Quien pide menos movimiento conserva el cambio de color y el indicador, pero
+   sin desplazamientos ni rebotes. */
+@media (prefers-reduced-motion: reduce) {
+  .bottomnav__item,
+  .bottomnav__item::before,
+  .bottomnav__icon {
+    transition: none;
+  }
+  .bottomnav__item:active { transform: none; }
+  .bottomnav__item--active .bottomnav__icon { transform: none; }
+}

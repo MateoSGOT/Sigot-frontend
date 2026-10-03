@@ -117,8 +117,8 @@ textarea.form-control {
 .form-error-box {
   margin-bottom: 1rem;
   padding: 0.75rem 1rem;
-  background: rgba(220, 38, 38, 0.07);
-  border: 1px solid rgba(220, 38, 38, 0.22);
+  background: rgba(225, 29, 72, 0.07);
+  border: 1px solid rgba(225, 29, 72, 0.22);
   border-radius: var(--radius);
   color: var(--color-danger-soft-on);
   font-size: 0.875rem;

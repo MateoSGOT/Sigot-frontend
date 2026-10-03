@@ -49,7 +49,7 @@ const MODULE_META = {
   'Proveedores': { icon: MdLocalShipping,         label: 'Proveedores',        color: '#F59E0B' },
   'Compras':     { icon: MdShoppingCart,          label: 'Compras',            color: '#E11D48' },
   'Servicios':   { icon: MdMiscellaneousServices, label: 'Servicios',          color: '#8B5CF6' },
-  'Agenda':      { icon: MdEventNote,             label: 'Agenda',             color: '#3B82F6' },
+  'Agenda':      { icon: MdEventNote,             label: 'Agenda',             color: '#2B5CFF' },
   'Órdenes':{ icon: MdAssignment,            label: 'Órdenes de Trabajo', color: '#FBBF24' },
   'Novedades':   { icon: MdNewReleases,           label: 'Novedades',          color: '#8B5CF6' },
   'Roles':       { icon: MdSecurity,              label: 'Roles',              color: '#F59E0B' },

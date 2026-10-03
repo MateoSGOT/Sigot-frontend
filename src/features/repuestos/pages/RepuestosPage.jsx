@@ -648,7 +648,7 @@ export default function RepuestosPage() {
         <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
           <input ref={fileImportRef} type="file" accept=".xlsx,.xls" style={{ display: 'none' }} onChange={handleImportFile} />
           <button className="btn btn--outline" onClick={() => fileImportRef.current?.click()} disabled={!puedeCrear || importando} title="Importar repuestos desde Excel (columnas: Nombre, Categoría)"><MdUploadFile size={17} />{importando ? 'Importando...' : 'Importar Excel'}</button>
-          <button className="btn btn--outline" onClick={exportarExcel} style={{ color: '#2563EB', borderColor: '#2563EB' }}><MdTableChart size={17} />Exportar Excel</button>
+          <button className="btn btn--outline" onClick={exportarExcel} style={{ color: '#2B5CFF', borderColor: '#2B5CFF' }}><MdTableChart size={17} />Exportar Excel</button>
           <button className="btn btn--primary" onClick={openCreate} disabled={!puedeCrear}><MdAdd size={18} />Nuevo repuesto</button>
         </div>
       </div>

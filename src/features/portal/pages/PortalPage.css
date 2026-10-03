@@ -40,7 +40,7 @@
 /* ── Portal sidebar overrides ───────────────────────────────*/
 .portal-sidebar__subtitle {
   font-size: 0.6875rem;
-  color: rgba(96, 165, 250, 0.78);
+  color: rgba(109, 140, 255, 0.78);
   font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -79,9 +79,9 @@
 
 /* ── Feedback ───────────────────────────────────────────────*/
 .portal-success {
-  background: #DBEAFE;
+  background: var(--color-primary-pale);
   color: var(--color-primary);
-  border: 1px solid rgba(37, 99, 235,0.3);
+  border: 1px solid rgba(43, 92, 255,0.3);
   border-radius: 10px;
   padding: 0.75rem 1rem;
   font-size: 0.875rem;
@@ -91,8 +91,8 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  background: rgba(37, 99, 235,0.10);
-  border: 1px solid rgba(37, 99, 235,0.3);
+  background: rgba(43, 92, 255,0.10);
+  border: 1px solid rgba(43, 92, 255,0.3);
   border-radius: 10px;
   padding: 0.75rem 1rem;
   color: var(--color-primary);
@@ -236,7 +236,7 @@
 
 .portal-profile-field-input:focus {
   border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px rgba(37, 99, 235,0.12);
+  box-shadow: 0 0 0 3px rgba(43, 92, 255,0.12);
 }
 
 .portal-profile-field-input--readonly {
@@ -273,7 +273,7 @@
   transition: color 0.18s;
   font-family: inherit;
 }
-.orden-tab:hover { color: var(--color-text, #0B1220); }
+.orden-tab:hover { color: var(--color-text, var(--sidebar-bg)); }
 .orden-tab--active { color: var(--color-primary-soft-on); border-bottom-color: var(--color-primary-soft-on); }
 
 .orden-items-list {
