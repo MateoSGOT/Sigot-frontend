@@ -28,11 +28,15 @@ const SERVICES = [
   { Icon: MdInvertColors,   title: 'Cambio de aceite y filtros', desc: 'Cambio con aceites certificados y filtros originales para mayor durabilidad del motor.' },
 ];
 
+// El campo `eje` nombra la DIMENSIÓN de cada promesa (equipo, equipamiento,
+// precio, posventa). Antes era un numeral 01–04, pero estas razones son
+// paralelas, no una secuencia: numerarlas sugería un orden que no existe.
+// La etiqueta, en cambio, le dice al lector de qué le están hablando.
 const REASONS = [
-  { num: '01', title: 'Técnicos certificados', desc: 'Nuestro equipo cuenta con certificaciones internacionales y experiencia comprobada en todas las marcas.' },
-  { num: '02', title: 'Tecnología de punta', desc: 'Herramientas y escáneres de última generación para diagnósticos precisos y rápidos.' },
-  { num: '03', title: 'Transparencia total', desc: 'Te mostramos qué se hace y por qué. Sin cobros ocultos, sin sorpresas en la factura.' },
-  { num: '04', title: 'Garantía real', desc: 'Todos nuestros servicios incluyen garantía por escrito. Tu tranquilidad es nuestra prioridad.' },
+  { eje: 'Equipo',       title: 'Técnicos certificados', desc: 'Nuestro equipo cuenta con certificaciones internacionales y experiencia comprobada en todas las marcas.' },
+  { eje: 'Equipamiento', title: 'Tecnología de punta', desc: 'Herramientas y escáneres de última generación para diagnósticos precisos y rápidos.' },
+  { eje: 'Precio',       title: 'Transparencia total', desc: 'Te mostramos qué se hace y por qué. Sin cobros ocultos, sin sorpresas en el comprobante.' },
+  { eje: 'Posventa',     title: 'Garantía real', desc: 'Todos nuestros servicios incluyen garantía por escrito. Tu tranquilidad es nuestra prioridad.' },
 ];
 
 /* ─── Intersection Observer hook ───────────────────────────── */
@@ -163,12 +167,13 @@ export default function LandingPage() {
         <div className="landing-hero__content">
           <div className="landing-hero__badge">Taller especializado · Copacabana, Antioquia</div>
           <h1 className="landing-hero__title">
-            Tu vehículo merece<br />
-            <span className="landing-hero__accent">lo mejor</span>
+            Deja tu carro.<br />
+            <span className="landing-hero__accent">Sigue cada paso.</span>
           </h1>
           <p className="landing-hero__subtitle">
-            Experiencia en mantenimiento, diagnóstico y reparación
-            de vehículos en La Balladera. Tecnología de punta, técnicos certificados.
+            Agenda en línea y entra a tu portal para ver en qué va tu orden, qué se le
+            hizo al vehículo y cuánto cuesta. Mantenimiento, diagnóstico y reparación
+            en Copacabana, Antioquia.
           </p>
           <div className="landing-hero__actions">
             {/* Agendar es la accion de negocio principal: un cliente nuevo crea cuenta,
@@ -313,9 +318,9 @@ export default function LandingPage() {
           </AnimSection>
           <div className="landing-reasons__grid">
             {REASONS.map((r, i) => (
-              <AnimSection key={r.num} delay={i * 80}>
+              <AnimSection key={r.eje} delay={i * 80}>
                 <div className="landing-reason-card">
-                  <div className="landing-reason-card__num">{r.num}</div>
+                  <div className="landing-reason-card__eje">{r.eje}</div>
                   <h3 className="landing-reason-card__title">{r.title}</h3>
                   <p className="landing-reason-card__desc">{r.desc}</p>
                 </div>

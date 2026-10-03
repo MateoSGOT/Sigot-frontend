@@ -429,7 +429,7 @@ export default function AgendarCitaPage() {
                 <form onSubmit={enviarCuenta} noValidate>
                   <h1 className="flujo-titulo">Agenda tu cita</h1>
                   <p className="flujo-sub">
-                    Creá tu cuenta y agendá en un solo paso. Para atender tu vehículo necesitamos
+                    Crea tu cuenta y agenda en un solo paso. Para atender tu vehículo necesitamos
                     registrarlo, así que te lo pedimos enseguida.
                   </p>
 
@@ -581,8 +581,8 @@ export default function AgendarCitaPage() {
                 <form onSubmit={confirmar} noValidate>
                   <h1 className="flujo-titulo">Detalles de la cita</h1>
                   <p className="flujo-sub">
-                    {cliente?.Nombre ? `${cliente.Nombre}, elegí ` : 'Elegí '}
-                    cuándo querés traer el vehículo y qué necesitás.
+                    {cliente?.Nombre ? `${cliente.Nombre}, elige ` : 'Elige '}
+                    cuándo traer el vehículo y qué necesitas.
                   </p>
 
                   {/* Con sesión y vehículos ya registrados: elegir uno (el "un solo paso"). */}
@@ -650,7 +650,7 @@ export default function AgendarCitaPage() {
                   />
 
                   <CampoFlotante
-                    id="ag-desc" name="Descripcion" label="¿Qué necesitás? (opcional)"
+                    id="ag-desc" name="Descripcion" label="¿Qué necesitas? (opcional)"
                     value={cita.Descripcion} onChange={cambiar(setCita)}
                     icon={MdEventNote} maxLength={300}
                   />
@@ -658,8 +658,8 @@ export default function AgendarCitaPage() {
                   <p className="flujo-aviso">
                     <MdSchedule size={15} aria-hidden="true" />
                     {cita.Fecha && franjas.length === 0
-                      ? `Para hoy ya no quedan horas disponibles (atendemos hasta las ${HORA_CIERRE}:00). Elegí otra fecha.`
-                      : `Atendemos de ${String(HORA_APERTURA).padStart(2, '0')}:00 a ${HORA_CIERRE}:00. Si la hora que elegís ya está ocupada te lo avisamos al confirmar.`}
+                      ? `Para hoy ya no quedan horas disponibles (atendemos hasta las ${HORA_CIERRE}:00). Elige otra fecha.`
+                      : `Atendemos de ${String(HORA_APERTURA).padStart(2, '0')}:00 a ${HORA_CIERRE}:00. Si la hora que eliges ya está ocupada te lo avisamos al confirmar.`}
                   </p>
 
                   {error && <p className="flujo-error" role="alert">{error}</p>}
