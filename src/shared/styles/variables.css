@@ -192,6 +192,14 @@
   --sidebar-collapsed-width: 232px;
   /* Separación del sidebar flotante respecto a los bordes de la ventana. */
   --sidebar-inset:      12px;
+  /* Dónde empieza el contenido al lado del sidebar flotante: su inset
+     izquierdo + el ancho del panel + un inset más de separación. Existe como
+     token y no como calc() repetido porque lo necesitan DOS shells distintos
+     (Layout.css del panel y el <main> del portal), y porque un calc() dentro
+     de una utilidad arbitraria de Tailwind exige escapar los espacios como _
+     (`calc(a_+_b)`): sin ellos el CSS es inválido y la regla se descarta en
+     silencio. Con el token, la clase queda ml-[var(--layout-inset-left)]. */
+  --layout-inset-left: calc(var(--sidebar-width) + 2 * var(--sidebar-inset));
 
   /* ══════════════════ SUPERFICIES ══════════════════
      Canvas slate-50, tarjetas blanco puro. El "borde" de tarjeta es un filo

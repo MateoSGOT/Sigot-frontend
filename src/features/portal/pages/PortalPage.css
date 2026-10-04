@@ -1,259 +1,74 @@
-/* ═══════════════════════════════════════════════════════════
-   PORTAL DEL CLIENTE — layout, sidebar mobile, account, overrides
-   ═══════════════════════════════════════════════════════════ */
+/* ═══════════════════════════════════════════════════════════════════════════
+   PORTAL DEL CLIENTE — lo que queda de CSS propio
 
-/* ── Layout ─────────────────────────────────────────────────*/
-.portal-layout {
-  display: flex;
-  min-height: 100vh;
-  background: var(--color-bg);
-}
+   La pagina se reescribio con utilidades de Tailwind, asi que de este archivo
+   solo sobreviven las clases del componente PortalSidebar.jsx, que no es parte
+   de la pagina.
 
-.portal-layout__main {
-  flex: 1;
-  margin-left: var(--sidebar-width, 240px);
-  background: var(--color-bg);
-  min-height: 100vh;
-  overflow-x: hidden;
-  color: var(--color-text);
-}
+   Lo que se fue y a donde:
+     .portal-layout / __main        -> utilidades en el JSX de PortalPage
+     .portal-toast                  -> utilidades en el JSX
+     .portal-btn-ordenes            -> utilidades en el JSX
+     .cita-badge*                   -> utilidades en el mapa ESTADO_CITA
+     16 clases .portal-profile-*    -> borradas: el perfil se reconstruyo entero
+                                       con utilidades y ninguna tenia consumidor
+                                       (lo confirmo scripts/css-muerto.mjs)
 
-/* ── Portal sidebar overrides ───────────────────────────────*/
+   OJO con .portal-layout__main: su `margin-left` era var(--sidebar-width), y al
+   volverse FLOTANTE el sidebar (con su propio --sidebar-inset) el contenido
+   quedaba 24px por debajo del panel. Es el mismo bug que hubo que arreglar en
+   Layout.css del panel; aca se corrigio al pasar el shell a utilidades.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── PortalSidebar ──────────────────────────────────────────────────────────
+   El <aside> del portal reutiliza las clases compartidas .sidebar/.sidebar--open
+   (ver Sidebar.css), asi que aca solo van sus diferencias. */
+
+/* Subtitulo bajo el wordmark ("Portal del cliente"). Era
+   rgba(109,140,255,0.78) -- cobalto claro, pensado para destacar sobre el
+   sidebar negro. Sobre el vidrio claro ese tono no alcanza el contraste de una
+   etiqueta, asi que pasa al par del sistema. */
 .portal-sidebar__subtitle {
-  font-size: 0.6875rem;
-  color: rgba(109, 140, 255, 0.78);
-  font-weight: 700;
-  letter-spacing: 0.1em;
+  font-size: var(--text-caption);
+  color: var(--color-primary-soft-on);
+  font-weight: var(--weight-bold);
+  letter-spacing: var(--tracking-wide);
   text-transform: uppercase;
   margin-top: 3px;
 }
 
+/* El portal navega por PESTANAS, no por rutas, asi que sus items son <button>
+   y no <NavLink>: hay que neutralizar los estilos propios del boton para que
+   se vean igual que los enlaces del panel. */
 .portal-sidebar .portal-sidebar__item {
   width: 100%;
   background: transparent;
   border: none;
   cursor: pointer;
   text-align: left;
+  font-family: inherit;
 }
 
-/* Close button — hidden on desktop */
+/* Boton de cerrar el cajon: solo movil (en escritorio el panel es fijo). */
 .portal-sidebar-close {
   display: none;
   background: none;
   border: none;
-  color: rgba(255, 255, 255, 0.5);
+  color: var(--sidebar-icon);
   cursor: pointer;
   margin-left: auto;
-  padding: 0.25rem;
-  border-radius: 6px;
+  padding: var(--space-xs);
+  border-radius: var(--radius-sm);
   align-items: center;
   justify-content: center;
-  transition: background 0.15s;
+  transition: background var(--duration-fast) var(--ease),
+              color var(--duration-fast) var(--ease);
 }
-.portal-sidebar-close:hover { background: rgba(255,255,255,0.1); color: #fff; }
-
-/* El hamburger y el fondo oscuro del drawer móvil ya NO tienen su propia copia aquí --
-   son los mismos elementos compartidos que usa el panel principal (.layout__hamburger /
-   .layout__overlay, ver Layout.css y MobileSidebarChrome.jsx), renderizados por
-   PortalPage.jsx. Antes esta hoja tenía una copia casi idéntica con su propio z-index
-   (200/99), desalineado de la escala del resto de la app (documentada en Layout.css). */
-
-/* ── Feedback ───────────────────────────────────────────────*/
-.portal-toast {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  background: rgba(43, 92, 255,0.10);
-  border: 1px solid rgba(43, 92, 255,0.3);
-  border-radius: 10px;
-  padding: 0.75rem 1rem;
-  color: var(--color-primary);
-  font-size: 0.875rem;
-  margin-bottom: 1.25rem;
-}
-
-/* ── "Ver órdenes" inline button ────────────────────────────*/
-.portal-btn-ordenes {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3rem;
-  font-size: 0.8125rem;
-  white-space: nowrap;
-}
-
-/* ── Mi Cuenta — 3-card layout ──────────────────────────────*/
-/* El maquetado lo da .bento (el JSX monta "bento portal-profile-wrap"): la
-   cabecera ocupa las 12 pistas y las dos tarjetas de datos van a 6+6. */
-.portal-profile-wrap { max-width: 100%; }
-
-/* Superficie, canto, borde, elevacion y transicion las aporta .card del sistema
-   (el JSX monta "card ... portal-profile-card"). Aca solo lo propio del perfil:
-   el aire interior, que .card deja a cargo de card__body y estas tarjetas no
-   usan esa subestructura. */
-.portal-profile-card {
-  padding: var(--space-xl);
-  box-sizing: border-box;
-}
-
-/* Card 1: avatar row — franja de acento como los KPIs del dashboard */
-.portal-profile-header-card {
-  display: flex;
-  align-items: center;
-  gap: 1.25rem;
-  position: relative;
-  border-left: 3px solid var(--color-primary);
-}
-.portal-profile-header-card:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-md);
-}
-
-.portal-profile-avatar {
-  width: 80px; height: 80px; border-radius: 50%;
-  object-fit: cover;
-  border: 3px solid var(--color-primary);
-  flex-shrink: 0;
-}
-
-.portal-profile-avatar--init {
-  width: 64px;
-  height: 64px;
-  border-radius: 50%;
-  background: var(--color-primary);
-  color: #fff;
-  font-size: 1.5rem;
-  font-weight: 700;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.portal-profile-user-info {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 0.15rem;
-  min-width: 0;
-}
-
-.portal-profile-user-name {
-  font-size: 1.0625rem;
-  font-weight: 700;
+.portal-sidebar-close:hover {
+  background: var(--sidebar-hover);
   color: var(--color-text);
-  line-height: 1.3;
 }
 
-.portal-profile-user-subdoc {
-  font-size: 0.8125rem;
-  color: var(--color-text-muted);
-}
-
-.portal-profile-user-doc {
-  font-size: 0.9375rem;
-  font-weight: 600;
-  color: var(--color-text, var(--color-text-secondary));
-}
-
-/* Card title */
-.portal-profile-card-title {
-  font-size: 0.6875rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.07em;
-  color: var(--color-text-muted);
-  margin-bottom: 1rem;
-  padding-bottom: 0.625rem;
-  border-bottom: 1px solid var(--color-border);
-}
-
-/* Field rows: label | input in a row */
-.portal-profile-fields {
-  display: grid;
-  grid-template-columns: 180px 1fr;
-  gap: 0.5rem;
-  align-items: center;
-}
-
-.portal-profile-field {
-  display: contents;
-}
-
-.portal-profile-field-label {
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: var(--color-text, var(--color-text-secondary));
-  flex-shrink: 0;
-}
-
-.portal-profile-field-input {
-  width: 100%;
-  padding: 0.5rem 0.75rem;
-  border: 1.5px solid var(--color-border);
-  border-radius: 8px;
-  font-size: 0.9375rem;
-  color: var(--color-text);
-  background: var(--color-surface);
-  font-family: inherit;
-  outline: none;
-  transition: border-color 0.18s, box-shadow 0.18s;
-}
-
-.portal-profile-field-input:focus {
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px rgba(43, 92, 255,0.12);
-}
-
-.portal-profile-field-input--readonly {
-  background: var(--color-bg, var(--color-surface-solid));
-  color: var(--color-text-muted);
-  border-color: transparent;
-  cursor: default;
-}
-.portal-profile-field-input--readonly:disabled { opacity: 1; }
-
-/* Card footer with save button */
-.portal-profile-card-footer {
-  display: flex;
-  justify-content: flex-end;
-  margin-top: 1.25rem;
-  padding-top: 1rem;
-  border-top: 1px solid var(--color-border);
-}
-
-/* ── Order detail — tabs & items (copied from OrdenesPage.css) ── */
-/* ── Mobile ─────────────────────────────────────────────────*/
 @media (max-width: 1023px) {
-  .portal-layout__main {
-    margin-left: 0;
-    padding-top: 3.5rem;
-  }
-
-  /* El transform/sombra/z-index del drawer (abierto y cerrado) ya los aporta
-     Sidebar.css vía las clases compartidas ".sidebar"/".sidebar--open" -- el <aside>
-     del portal las lleva ambas (ver PortalSidebar.jsx), así que no hace falta
-     repetirlas aquí. El hamburger/overlay compartidos (.layout__hamburger/
-     .layout__overlay) ya traen su propia visibilidad responsive desde Layout.css. */
   .portal-sidebar-close { display: flex; }
 }
-
-@media (max-width: 640px) {
-  .portal-profile-header-card { flex-wrap: wrap; gap: 1rem; }
-  .portal-profile-fields { grid-template-columns: 1fr; }
-  .portal-profile-field-label { font-size: 0.75rem; }
-}
-
-/* Badge de estado de cita — tokens semánticos (pares accesibles) */
-.cita-badge {
-  display: inline-block;
-  padding: 2px var(--space-sm);
-  border-radius: var(--radius-full);
-  font-size: var(--text-caption);
-  font-weight: var(--weight-semibold);
-}
-.cita-badge--pendiente  { background: var(--color-info-soft);    color: var(--color-info-soft-on); }
-.cita-badge--atendida   { background: var(--color-success-soft); color: var(--color-success-soft-on); }
-.cita-badge--cancelada  { background: var(--color-danger-soft);  color: var(--color-danger-soft-on); }
-.cita-badge--noasistio  { background: var(--color-warning-soft); color: var(--color-warning-soft-on); }
-/* Confirmada: cian sin token equivalente; par accesible conservado (AA) */
-.cita-badge--confirmada { background: var(--color-teal-soft); color: var(--color-teal); }

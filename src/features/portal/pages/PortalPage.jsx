@@ -25,15 +25,15 @@ import '../../../shared/styles/orden-detalle.css';
 import './PortalPage.css';
 
 const ESTADO_CITA_META = {
-  Pendiente:  { cls: 'cita-badge--pendiente',  label: 'Pendiente' },
-  Confirmada: { cls: 'cita-badge--confirmada', label: 'Confirmada' },
-  Atendida:   { cls: 'cita-badge--atendida',   label: 'Atendida' },
-  Cancelada:  { cls: 'cita-badge--cancelada',  label: 'Cancelada' },
-  NoAsistio:  { cls: 'cita-badge--noasistio',  label: 'No asistió' },
+  Pendiente:  { cls: 'bg-info-soft text-info-soft-on',  label: 'Pendiente' },
+  Confirmada: { cls: 'bg-teal-soft text-teal', label: 'Confirmada' },
+  Atendida:   { cls: 'bg-success-soft text-success-soft-on',   label: 'Atendida' },
+  Cancelada:  { cls: 'bg-danger-soft text-danger-soft-on',  label: 'Cancelada' },
+  NoAsistio:  { cls: 'bg-warning-soft text-warning-soft-on',  label: 'No asistió' },
 };
 function CitaEstadoBadge({ estado }) {
   const s = ESTADO_CITA_META[estado] || ESTADO_CITA_META.Pendiente;
-  return <span className={`cita-badge ${s.cls}`}>{s.label}</span>;
+  return <span className={`inline-block rounded-full px-sm py-[2px] text-caption font-semibold ${s.cls}`}>{s.label}</span>;
 }
 
 const ORDEN_ESTADO = {
@@ -439,7 +439,7 @@ function PortalPageInner() {
           <button className="btn btn--ghost btn--icon btn--sm" title="Ver detalle" onClick={() => setVehDetail(row)}>
             <MdVisibility size={17} />
           </button>
-          <button className="btn btn--ghost btn--sm portal-btn-ordenes" title="Ver órdenes de este vehículo"
+          <button className="btn btn--ghost btn--sm inline-flex items-center gap-xs whitespace-nowrap text-small" title="Ver órdenes de este vehículo"
             onClick={() => { setOrdVehFilter(String(row.Id_Vehiculo)); setTab('ordenes'); }}>
             <MdDirectionsCar size={15} /> Ver órdenes
           </button>
@@ -492,13 +492,21 @@ function PortalPageInner() {
     },
   ];
 
-  /* ── Render ──────────────────────────────────────────────── */
+  /* ── Render ──────────────────────────────────────────────────────────────
+     Shell en utilidades. El margen del <main> cuenta el inset del sidebar
+     FLOTANTE (inset + ancho + inset), no solo su ancho: con var(--sidebar-width)
+     a secas el contenido quedaba 24px por debajo del panel -- el mismo bug que
+     hubo que arreglar en Layout.css del panel de administración. */
   return (
-    <div className="portal-layout">
+    <div className="flex min-h-dvh bg-bg">
       <MobileSidebarChrome />
       <PortalSidebar activeTab={tab} onTabChange={setTab} />
 
-      <main className="portal-layout__main">
+      <main
+        className="min-h-dvh flex-1 overflow-x-hidden bg-bg text-text
+                   ml-[var(--layout-inset-left)]
+                   max-lg:ml-0 max-lg:pt-[3.5rem]"
+      >
 
         {/* ════════════════════ MI CUENTA ════════════════════ */}
         {tab === 'cuenta' && (
@@ -510,96 +518,125 @@ function PortalPageInner() {
               </div>
             </div>
 
-            <div className="bento portal-profile-wrap">
+            {/* -- Perfil, reconstruido con utilidades de Tailwind --
+                Sin .bento ni .bento__module: la rejilla y las consultas de
+                contenedor salen de utilidades (@container + @max-[Npx]:), que es
+                la forma nativa en v4. Los valores son los MISMOS tokens que usa
+                el CSS a mano (gap-xl, rounded-lg, bg-surface), asi que esta
+                pestana y una sin migrar se ven identicas.
+
+                CORRECCION DE LAYOUT: antes el <form> era el hijo de la rejilla
+                pero la clase de columna estaba en el <div> de dentro, asi que la
+                tarjeta de contacto nunca tomaba sus 6 columnas y ocupaba el
+                ancho completo. Ahora la columna va en el propio <form>. */}
+            <div className="@container grid grid-cols-12 items-start gap-xl p-2xl max-lg:gap-lg max-lg:p-lg">
               {saveOk && (
-                <div className="portal-toast">
-                  <MdCheck size={16} /> Datos actualizados correctamente
-                </div>
+                <p
+                  role="status"
+                  className="col-span-12 flex items-center gap-sm rounded-md bg-primary-soft
+                             px-lg py-md text-small font-medium text-primary-soft-on"
+                >
+                  <MdCheck size={16} aria-hidden="true" /> Datos actualizados correctamente
+                </p>
               )}
 
-              {/* Card 1: avatar + nombre + doc + botón cambiar foto */}
-              <div className="card bento__module bento__module--12 portal-profile-card portal-profile-header-card">
+              {/* Cabecera: avatar + nombre + documento + cambiar foto */}
+              <section className="col-span-12 flex flex-wrap items-center gap-xl rounded-lg border
+                                  border-border border-l-[3px] border-l-primary bg-surface p-xl shadow-sm">
                 {(() => {
                   // La foto se guarda en el campo `Foto` del cliente (data URL o
-                  // URL). Mostramos la previsualización recién elegida si existe.
+                  // URL). Mostramos la previsualizacion recien elegida si existe.
                   const foto = fotoPreview || cliente?.Foto || cliente?.Foto_url;
+                  // aspect-square en vez de width+height duplicados: el hueco
+                  // queda reservado antes de que cargue la imagen, asi la
+                  // tarjeta no salta cuando entra la foto.
                   return foto
-                    ? <img src={foto} alt="avatar" className="portal-profile-avatar" />
-                    : <div className="portal-profile-avatar portal-profile-avatar--init">{cliente?.Nombre?.charAt(0)?.toUpperCase()}</div>;
+                    ? <img src={foto} alt="" className="size-20 aspect-square shrink-0 rounded-full border-[3px] border-primary object-cover" />
+                    : (
+                      <span className="flex size-16 shrink-0 items-center justify-center rounded-full
+                                       bg-primary text-h2 font-bold text-primary-on">
+                        {cliente?.Nombre?.charAt(0)?.toUpperCase()}
+                      </span>
+                    );
                 })()}
-                <div className="portal-profile-user-info">
-                  <span className="portal-profile-user-name">{cliente?.Nombre}</span>
-                  <span className="portal-profile-user-subdoc">{cliente?.TipoDocumento}</span>
-                  <span className="portal-profile-user-doc">{cliente?.Documento}</span>
+                <div className="flex min-w-0 flex-1 flex-col gap-[2px]">
+                  <span className="truncate font-display text-h3 font-bold leading-tight text-text">{cliente?.Nombre}</span>
+                  <span className="text-small text-text-muted">{cliente?.TipoDocumento}</span>
+                  {/* Un documento ES un identificador: mono con cifras de ancho
+                      fijo, igual que las placas y los numeros de orden. */}
+                  <span className="font-mono text-body font-semibold tracking-code text-text tabular-nums">{cliente?.Documento}</span>
                 </div>
-                <button className="btn btn--outline btn--sm" onClick={() => fileRef.current?.click()}>
+                <button type="button" className="btn btn--outline btn--sm" onClick={() => fileRef.current?.click()}>
                   <MdCameraAlt size={15} /> Cambiar foto
                 </button>
-                <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp" style={{ display: 'none' }} onChange={handleFotoChange} />
-              </div>
+                <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={handleFotoChange} />
+              </section>
 
-              {/* Card 2: información personal (solo lectura) */}
-              <div className="card bento__module bento__module--6 portal-profile-card">
-                <div className="portal-profile-card-title">Información personal</div>
-                <div className="portal-profile-fields">
+              {/* Informacion personal (solo lectura) */}
+              <section className="col-span-6 @max-[56rem]:col-span-12 rounded-lg border border-border bg-surface p-xl shadow-sm">
+                <h2 className="mb-lg border-b border-border pb-md text-caption font-bold uppercase tracking-wide text-text-light">
+                  Informacion personal
+                </h2>
+                <dl className="grid grid-cols-[minmax(0,10rem)_1fr] items-center gap-sm @max-[30rem]:grid-cols-1">
                   {[
                     ['Nombre completo',     cliente?.Nombre],
                     ['Tipo de documento',   cliente?.TipoDocumento],
                   ].map(([label, value]) => (
-                    <div key={label} className="portal-profile-field">
-                      <span className="portal-profile-field-label">{label}</span>
-                      <input
-                        className="portal-profile-field-input portal-profile-field-input--readonly"
-                        value={value || '—'}
-                        disabled
-                        readOnly
-                      />
-                    </div>
+                    <React.Fragment key={label}>
+                      <dt className="text-body font-semibold text-text">{label}</dt>
+                      <dd className="rounded-sm bg-surface-raised px-md py-sm text-body text-text-muted">
+                        {value || '—'}
+                      </dd>
+                    </React.Fragment>
+                  ))}
+                </dl>
+              </section>
+
+              {/* Datos de contacto (editables) */}
+              <form
+                onSubmit={handleSave}
+                className="col-span-6 @max-[56rem]:col-span-12 rounded-lg border border-border bg-surface p-xl shadow-sm"
+              >
+                <h2 className="mb-lg border-b border-border pb-md text-caption font-bold uppercase tracking-wide text-text-light">
+                  Datos de contacto
+                </h2>
+                {/* En celular pasa a UNA columna: etiqueta arriba, campo abajo.
+                    Con dos columnas a 375px la etiqueta se partia en tres
+                    lineas y el input quedaba de 80px. */}
+                <div className="grid grid-cols-[minmax(0,10rem)_1fr] items-center gap-sm @max-[30rem]:grid-cols-1">
+                  {[
+                    { id: 'perfil-doc', label: 'Numero de documento', campo: 'Documento',
+                      placeholder: 'Numero de documento', type: 'text', error: null },
+                    { id: 'perfil-correo', label: 'Correo electronico', campo: 'Correo',
+                      placeholder: 'correo@ejemplo.com', type: 'email', error: perfilCorreoError },
+                    { id: 'perfil-tel', label: 'Telefono', campo: 'Telefono',
+                      placeholder: 'Numero de telefono', type: 'text', error: perfilTelefonoError },
+                  ].map(({ id, label, campo, placeholder, type, error }) => (
+                    <React.Fragment key={id}>
+                      <label htmlFor={id} className="text-body font-semibold text-text">{label}</label>
+                      <div className="flex min-w-0 flex-col gap-xs">
+                        <input
+                          id={id}
+                          type={type}
+                          className={`w-full rounded-sm border bg-input-bg px-md py-sm text-body text-text
+                                      placeholder:text-text-disabled outline-none
+                                      transition-[border-color,box-shadow] duration-150
+                                      focus-visible:border-focus focus-visible:shadow-[0_0_0_3px_var(--color-focus-ring)]
+                                      ${error ? 'border-danger' : 'border-border'}`}
+                          value={editData[campo] || ''}
+                          onChange={e => setEditData(p => ({ ...p, [campo]: e.target.value }))}
+                          placeholder={placeholder}
+                          aria-invalid={!!error}
+                        />
+                        {error && <p className="text-caption font-medium text-danger-soft-on">{error}</p>}
+                      </div>
+                    </React.Fragment>
                   ))}
                 </div>
-              </div>
-
-              {/* Card 3: datos de contacto (editables) */}
-              <form onSubmit={handleSave}>
-                <div className="card bento__module bento__module--6 portal-profile-card">
-                  <div className="portal-profile-card-title">Datos de contacto</div>
-                  <div className="portal-profile-fields">
-                    <div className="portal-profile-field">
-                      <span className="portal-profile-field-label">Número de documento</span>
-                      <input
-                        className="portal-profile-field-input"
-                        value={editData.Documento || ''}
-                        onChange={e => setEditData(p => ({ ...p, Documento: e.target.value }))}
-                        placeholder="Número de documento"
-                      />
-                    </div>
-                    <div className="portal-profile-field">
-                      <span className="portal-profile-field-label">Correo electrónico</span>
-                      <input
-                        type="email"
-                        className={`portal-profile-field-input ${perfilCorreoError ? 'is-error' : ''}`}
-                        value={editData.Correo}
-                        onChange={e => setEditData(p => ({ ...p, Correo: e.target.value }))}
-                        placeholder="correo@ejemplo.com"
-                      />
-                      {perfilCorreoError && <p className="form-error">{perfilCorreoError}</p>}
-                    </div>
-                    <div className="portal-profile-field">
-                      <span className="portal-profile-field-label">Teléfono</span>
-                      <input
-                        className={`portal-profile-field-input ${perfilTelefonoError ? 'is-error' : ''}`}
-                        value={editData.Telefono}
-                        onChange={e => setEditData(p => ({ ...p, Telefono: e.target.value }))}
-                        placeholder="Número de teléfono"
-                      />
-                      {perfilTelefonoError && <p className="form-error">{perfilTelefonoError}</p>}
-                    </div>
-                  </div>
-                  <div className="portal-profile-card-footer">
-                    <button type="submit" className="btn btn--primary" disabled={saving || perfilInvalido}>
-                      {saving ? 'Guardando...' : 'Guardar cambios'}
-                    </button>
-                  </div>
+                <div className="mt-xl flex justify-end border-t border-border pt-lg">
+                  <button type="submit" className="btn btn--primary" disabled={saving || perfilInvalido}>
+                    {saving ? 'Guardando...' : 'Guardar cambios'}
+                  </button>
                 </div>
               </form>
             </div>
@@ -732,9 +769,13 @@ function PortalPageInner() {
             </div>
 
             {citaToast && (
-              <div className="portal-toast">
-                <MdCheck size={16} /> Cita agendada exitosamente
-              </div>
+              <p
+                role="status"
+                className="mx-2xl flex items-center gap-sm rounded-md bg-primary-soft px-lg py-md
+                           text-small font-medium text-primary-soft-on max-lg:mx-lg"
+              >
+                <MdCheck size={16} aria-hidden="true" /> Cita agendada exitosamente
+              </p>
             )}
 
             {/* Barra de herramientas en fila propia de la capa compartida. */}

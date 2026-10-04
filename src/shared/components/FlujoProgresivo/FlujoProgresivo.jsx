@@ -35,7 +35,23 @@ const OTP_LARGO = 6;
    prefers-reduced-motion lo cubre <MotionConfig reducedMotion="user"> en
    main.jsx, que desactiva el transform y deja pasar la opacidad.
    ═══════════════════════════════════════════════════════════════════════════ */
-const RESORTE_PASO = { type: 'spring', stiffness: 380, damping: 34, mass: 0.85 };
+/* Muelle calibrado. El rebote NO lo gobierna `damping` por sí solo, sino la
+   razón de amortiguamiento  ζ = damping / (2·√(stiffness · mass)):
+     ζ < 1  subamortiguado → rebota
+     ζ ≈ 1  crítico → se detiene en seco, lo más rápido posible sin pasarse
+     ζ > 1  sobreamortiguado → sin rebote, pero se arrastra
+
+   Por eso bajar la rigidez y subir la amortiguación a la vez no es redundante:
+   las dos empujan ζ hacia arriba.
+
+     k=380 c=34 (valores anteriores)  ζ = 0.946  rebotaba un poco
+     k=200 c=25                       ζ = 0.959  seguiría rebotando
+     k=250 c=30  ← elegido            ζ = 1.029  crítico, sin rebote
+
+   De los dos pares planteados, k250/c30 es el que efectivamente cancela el
+   rebote. Asentamiento ~0.23 s contra ~0.20 s de antes: treinta milisegundos
+   más, que es el precio de que no oscile, y sigue leyéndose instantáneo. */
+const RESORTE_PASO = { type: 'spring', stiffness: 250, damping: 30, mass: 0.85 };
 
 const VARIANTES_PASO = {
   entra:  (dir) => ({ x: dir >= 0 ? 32 : -32, opacity: 0 }),

@@ -30,7 +30,7 @@
      así que el contenido no empieza en --sidebar-width sino después del inset
      de la izquierda, el ancho del panel y un inset más de separación. Con solo
      --sidebar-width el contenido quedaba 24px por debajo del panel. */
-  margin-left: calc(var(--sidebar-width) + 2 * var(--sidebar-inset));
+  margin-left: var(--layout-inset-left);
   /* El fondo lo pinta la capa fija de body::before (ver globals.css): acá iba
      `background: var(--bg-app)` con `background-attachment: fixed`, y como este
      ES el contenedor que scrollea, obligaba a repintar el fondo en cada frame
