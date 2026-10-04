@@ -1,0 +1,136 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   GENERADO POR scripts/generar-theme.mjs — NO EDITAR A MANO.
+
+   Expone los tokens de variables.css como tema de Tailwind v4, de modo que las
+   utilidades emitan EXACTAMENTE los mismos valores que el CSS escrito a mano.
+   Eso es lo que permite migrar de a una página: una vista en Tailwind y una sin
+   migrar se ven idénticas porque resuelven al mismo token.
+
+   Para cambiar un valor: editar variables.css y volver a correr
+     node scripts/generar-theme.mjs
+   Para comprobar que no hay deriva:
+     npm run auditar:theme
+   ═══════════════════════════════════════════════════════════════════════════ */
+@theme {
+  --font-display: 'Archivo', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-body: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --tracking-tighter: -0.04em;
+  --tracking-tight: -0.022em;
+  --tracking-normal: 0;
+  --tracking-wide: 0.07em;
+  --tracking-code: 0.04em;
+  --color-primary: #2B5CFF;
+  --color-primary-strong: #1E40D8;
+  --color-primary-strong-hover: #1A36B8;
+  --color-primary-hover: #1E40D8;
+  --color-primary-active: #1A36B8;
+  --color-primary-on: #FFFFFF;
+  --color-primary-soft: rgba(43, 92, 255, 0.09);
+  --color-primary-soft-on: #1E40D8;
+  --color-accent: #F59E0B;
+  --color-accent-hover: #FBBF24;
+  --color-accent-on: #1C1206;
+  --color-accent-soft: rgba(245, 158, 11, 0.11);
+  --color-accent-soft-on: #B45309;
+  --color-success: #059669;
+  --color-success-strong: #047857;
+  --color-success-on: #FFFFFF;
+  --color-success-soft: rgba(5, 150, 105, 0.11);
+  --color-success-soft-on: #047857;
+  --color-info: #2B5CFF;
+  --color-info-strong: #1E40D8;
+  --color-info-on: #FFFFFF;
+  --color-info-soft: rgba(43, 92, 255, 0.09);
+  --color-info-soft-on: #1E40D8;
+  --color-warning: #F59E0B;
+  --color-warning-on: #1C1206;
+  --color-warning-soft: rgba(245, 158, 11, 0.11);
+  --color-warning-soft-on: #B45309;
+  --color-danger: #E11D48;
+  --color-danger-strong: #BE123C;
+  --color-danger-on: #FFFFFF;
+  --color-danger-soft: rgba(225, 29, 72, 0.09);
+  --color-danger-soft-on: #BE123C;
+  --color-neutral: #64748B;
+  --color-neutral-strong: #475569;
+  --color-neutral-on: #FFFFFF;
+  --color-neutral-soft: rgba(10, 10, 11, 0.05);
+  --color-neutral-soft-on: #475569;
+  --color-danger-soft-border: #FBCFD8;
+  --color-warning-soft-border: #FCD9A0;
+  --color-success-soft-border: #BBE5D3;
+  --color-danger-on-dark: #FB7185;
+  --color-text-on-dark: #EDEDEF;
+  --color-teal: #0E7490;
+  --color-teal-soft: #E0F2F6;
+  --color-track: #CBD5E1;
+  --color-track-light: #E2E8F0;
+  --color-primary-wash: #EEF2FF;
+  --color-primary-pale: #DDE4FF;
+  --color-primary-pale-2: #BFCCFF;
+  --color-primary-pale-3: #94AAFF;
+  --color-focus: #2B5CFF;
+  --color-primary-50: rgba(43, 92, 255, 0.04);
+  --color-primary-100: rgba(43, 92, 255, 0.09);
+  --color-primary-200: rgba(43, 92, 255, 0.18);
+  --color-primary-500: #2B5CFF;
+  --color-primary-600: #2048E8;
+  --color-primary-700: #1E40D8;
+  --color-primary-800: #1A36B8;
+  --color-primary-900: #162D96;
+  --color-primary-light: #6D8CFF;
+  --color-primary-dark: #1E40D8;
+  --color-info-light: rgba(43, 92, 255, 0.09);
+  --color-warning-light: rgba(245, 158, 11, 0.11);
+  --color-danger-light: rgba(225, 29, 72, 0.09);
+  --color-success-light: rgba(5, 150, 105, 0.11);
+  --color-bg: #F8FAFC;
+  --color-surface: #FFFFFF;
+  --color-surface-solid: #FCFDFE;
+  --color-surface-raised: #F1F5F9;
+  --color-surface-hover: #F6F8FB;
+  --color-input-bg: #FFFFFF;
+  --color-border: rgba(10, 10, 11, 0.07);
+  --color-border-light: rgba(10, 10, 11, 0.045);
+  --color-border-strong: rgba(10, 10, 11, 0.16);
+  --color-text: #0A0A0B;
+  --color-text-secondary: #334155;
+  --color-text-muted: #475569;
+  --color-text-light: #64748B;
+  --color-text-disabled: #94A3B8;
+  --shadow-sm: 0 1px 2px rgba(10, 10, 11, 0.03), 0 2px 8px rgba(10, 10, 11, 0.035);
+  --shadow-md: 0 2px 6px rgba(10, 10, 11, 0.04), 0 8px 24px rgba(10, 10, 11, 0.06);
+  --shadow-lg: 0 8px 24px rgba(10, 10, 11, 0.08), 0 32px 72px rgba(10, 10, 11, 0.14);
+  --shadow-xs: var(--shadow-sm);
+  --shadow-xl: var(--shadow-lg);
+  --shadow-green: 0 4px 16px rgba(43, 92, 255, 0.24);
+  --shadow-green-sm: 0 2px 8px rgba(43, 92, 255, 0.18);
+  --text-hero: clamp(2.25rem, 1.4rem + 5.2vw, 4.5rem);
+  --text-display: clamp(1.75rem, 1.15rem + 2.6vw, 2.75rem);
+  --text-h1: clamp(1.375rem, 1.14rem + 1.05vw, 1.75rem);
+  --text-h2: clamp(1.125rem, 1.04rem + 0.42vw, 1.3125rem);
+  --text-h3: clamp(0.9375rem, 0.91rem + 0.14vw, 1rem);
+  --text-body: 0.875rem;
+  --text-small: 0.8125rem;
+  --text-caption: 0.75rem;
+  --leading-tight: 1.18;
+  --leading-normal: 1.55;
+  --radius-sm: 10px;
+  --radius-md: 16px;
+  --radius-lg: 24px;
+  --radius-full: 999px;
+  --radius-xl: 24px;
+  --radius-2xl: 28px;
+  --ease-entrance: cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* Espaciado: el proyecto usa --space-*, Tailwind necesita --spacing-* para
+     generar p-/m-/gap-. Alias, para que el valor siga en un solo sitio. */
+  --spacing-xs: var(--space-xs);
+  --spacing-sm: var(--space-sm);
+  --spacing-md: var(--space-md);
+  --spacing-lg: var(--space-lg);
+  --spacing-xl: var(--space-xl);
+  --spacing-2xl: var(--space-2xl);
+  --spacing-3xl: var(--space-3xl);
+}

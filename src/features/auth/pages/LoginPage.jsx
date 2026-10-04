@@ -1,25 +1,82 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate, Link } from 'react-router-dom';
+// Se importa como `Motion` (mayuscula) y no como `motion`: la config de eslint
+// del proyecto exime de no-unused-vars solo lo que empieza en mayuscula
+// (varsIgnorePattern '^[A-Z_]'), porque no tiene eslint-plugin-react y la regla
+// no reconoce el JSX con miembro (<Motion.div>) como un uso de la variable.
+import { motion as Motion, AnimatePresence } from 'motion/react';
 import { loginThunk, clearError } from '../slices/authSlice.js';
 import { authService } from '../services/authService.js';
-import { MdLock, MdEmail, MdVisibility, MdVisibilityOff, MdClose, MdBuild, MdAssignment, MdEventNote, MdSend, MdInsights, MdLocationOn, MdArrowBack } from 'react-icons/md';
+import {
+  MdLock, MdEmail, MdVisibility, MdVisibilityOff, MdClose,
+  MdSend, MdLocationOn, MdArrowBack,
+} from 'react-icons/md';
 import { correo as validarCorreo } from '../../../shared/utils/validators.js';
-import './LoginPage.css';
 
-const FEATURES = [
-  { icon: MdBuild,      title: 'Gestión de taller',  desc: 'Ordenes de trabajo, servicios y repuestos en un solo lugar.' },
-  { icon: MdEventNote,  title: 'Agenda inteligente', desc: 'Programa citas y genera órdenes automáticamente.' },
-  { icon: MdAssignment, title: 'Control total',       desc: 'Empleados, clientes, vehículos e inventario centralizado.' },
-  { icon: MdInsights,   title: 'Reportes en vivo',    desc: 'Ingresos, órdenes y alertas de stock actualizados al instante.' },
-];
+/* ═══════════════════════════════════════════════════════════════════════════
+   LOGIN — reescrito con Tailwind v4 + Motion.
+
+   SIN CSS PROPIO. LoginPage.css (17.6 kB) queda eliminado: todo sale de
+   utilidades, y las utilidades resuelven a los MISMOS tokens que el resto de la
+   app (ver shared/styles/tailwind-theme.css, generado desde variables.css). Por
+   eso `bg-bg` es el mismo slate-50 del canvas y `rounded-lg` el mismo canto de
+   24 px que usan las tarjetas escritas a mano.
+
+   Era obligatorio soltar las clases viejas, no mezclarlas: el CSS del proyecto
+   es no estratificado y le gana a la capa `utilities` de Tailwind. Una vista a
+   medio migrar no habría aplicado ni una utilidad.
+
+   CAMBIO DE CONTENIDO: el brief pide "tarjeta central minimalista", así que el
+   panel decorativo izquierdo (wordmark grande + 4 tarjetas de features) ya no
+   está. Se conserva el wordmark sobre la tarjeta para no perder la marca; las
+   features son contenido de marketing y viven en la landing.
+
+   LÓGICA INTACTA: mismo estado, mismos handlers, mismo thunk, mismas
+   validaciones y el mismo contrato de navegación posterior al login.
+   ═══════════════════════════════════════════════════════════════════════════ */
 
 const RESEND_COOLDOWN = 60;
+
+/* Transición física compartida. Un spring (no una curva de duración fija) es lo
+   que hace que el movimiento se sienta nativo: la tarjeta desacelera por masa,
+   no por reloj. `stiffness` alto y `damping` alto = rápido y sin rebote visible,
+   que es lo que corresponde a una pantalla de acceso -- un login que rebota se
+   lee como poco serio. */
+const RESORTE = { type: 'spring', stiffness: 420, damping: 32, mass: 0.9 };
+
+/* Clases repetidas, extraídas a constantes y no a @apply: con @apply volverían a
+   ser CSS propio, que es justo lo que se está quitando. */
+const CAMPO = 'w-full rounded-md border border-border bg-input-bg py-md pl-[2.75rem] pr-md '
+  + 'text-body text-text placeholder:text-text-disabled outline-none '
+  + 'transition-[border-color,box-shadow] duration-150 '
+  + 'focus-visible:border-focus focus-visible:shadow-[0_0_0_3px_var(--color-focus-ring)]';
+
+const ICONO_CAMPO = 'pointer-events-none absolute left-lg top-1/2 -translate-y-1/2 text-text-light';
+
+const ETIQUETA = 'block text-caption font-semibold uppercase tracking-wide text-text-light';
+
+const BOTON_PRIMARIO = 'inline-flex w-full items-center justify-center gap-sm rounded-md '
+  + 'bg-primary px-xl text-body font-semibold text-primary-on '
+  + 'min-h-[var(--touch-min)] cursor-pointer border-0 '
+  + 'transition-[background-color,box-shadow,transform] duration-150 '
+  + 'hover:bg-primary-strong hover:shadow-[var(--shadow-green)] active:scale-[0.99] '
+  + 'disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:bg-primary disabled:hover:shadow-none '
+  + 'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus';
+
+function Spinner() {
+  return (
+    <span
+      aria-hidden="true"
+      className="size-4 shrink-0 rounded-full border-2 border-current/30 border-t-current animate-spin"
+    />
+  );
+}
 
 export default function LoginPage() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const { loading, error, tipo } = useSelector((state) => state.auth);
+  const { loading, error } = useSelector((state) => state.auth);
   const [form, setForm] = useState({ Correo: '', Password: '' });
   const [showPassword, setShowPassword] = useState(false);
 
@@ -122,206 +179,274 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="login-page">
-      {/* ── Left: Decorative ── */}
-      <div className="login-left">
-        <div className="login-left__blobs">
-          <div className="login-left__blob login-left__blob--1" />
-          <div className="login-left__blob login-left__blob--2" />
-          <div className="login-left__blob login-left__blob--3" />
-        </div>
+    <div className="min-h-dvh bg-bg font-body text-text">
+      {/* Un solo halo frío arriba a la derecha, el mismo de --bg-app. Pintado en
+          una capa fija aparte para que no se repinte con el scroll. */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none fixed inset-0 -z-10
+                   bg-[radial-gradient(1200px_600px_at_100%_-10%,var(--color-primary-50),transparent_62%)]"
+      />
 
-        <div className="login-left__content">
-          <div className="login-left__top">
-            <span className="login-left__wordmark">SIGOT</span>
-            <h1 className="login-left__title">Bienvenido<br /><span className="login-left__title-accent">de nuevo</span></h1>
-            <p className="login-left__subtitle">Sistema de Gestión de Órdenes y Taller</p>
-          </div>
+      <div className="mx-auto flex min-h-dvh w-full max-w-[26rem] flex-col justify-center gap-xl px-lg py-3xl">
+        <button
+          type="button"
+          onClick={() => navigate('/')}
+          className="inline-flex items-center gap-sm self-start rounded-sm border-0 bg-transparent
+                     text-small font-medium text-text-muted cursor-pointer
+                     transition-colors duration-150 hover:text-text
+                     focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+        >
+          <MdArrowBack size={16} aria-hidden="true" />
+          Volver a la página principal
+        </button>
 
-          <div className="login-left__cards">
-            {FEATURES.map(({ icon: Icon, title, desc }) => (
-              <div key={title} className="login-feature-card">
-                <div className="login-feature-card__icon"><Icon size={18} /></div>
-                <div>
-                  <p className="login-feature-card__title">{title}</p>
-                  <p className="login-feature-card__desc">{desc}</p>
-                </div>
-              </div>
-            ))}
-          </div>
+        <Motion.main
+          initial={{ opacity: 0, y: 14, scale: 0.985 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          transition={RESORTE}
+          className="rounded-lg border border-border bg-surface p-2xl shadow-md"
+        >
+          <header className="mb-xl flex flex-col gap-xs">
+            <span className="font-display text-h2 font-extrabold tracking-tighter text-primary">
+              SIGOT
+            </span>
+            <h1 className="font-display text-h1 font-extrabold tracking-tight text-text">
+              Iniciar sesión
+            </h1>
+            <p className="text-body text-text-muted">
+              Ingresa tus credenciales para continuar
+            </p>
+          </header>
 
-          <div className="login-left__footer">
-            <MdLocationOn size={16} />
-            <span>Copacabana, Antioquia · Sistema de gestión de taller</span>
-          </div>
-        </div>
-      </div>
-
-      {/* ── Right: Form ── */}
-      <div className="login-right">
-        <div className="login-form-wrap">
-          <button type="button" className="login-back-top" onClick={() => navigate('/')}>
-            <MdArrowBack size={16} />
-            Volver a la página principal
-          </button>
-
-          <div className="login-form-header">
-            <h2 className="login-form-header__title">Iniciar Sesión</h2>
-            <p className="login-form-header__subtitle">Ingresa tus credenciales para continuar</p>
-          </div>
-
-          <form className="login-form" onSubmit={handleSubmit} noValidate>
+          <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-lg">
             {error && (
-              <div className="login-form__error">
-                <MdLock size={16} />{error}
-              </div>
+              <Motion.p
+                role="alert"
+                initial={{ opacity: 0, y: -6 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={RESORTE}
+                className="flex items-center gap-sm rounded-md bg-danger-soft px-lg py-md
+                           text-small font-medium text-danger-soft-on"
+              >
+                <MdLock size={16} aria-hidden="true" />{error}
+              </Motion.p>
             )}
 
-            <div className="login-form__group">
-              <label className="login-form__label">Correo electrónico</label>
-              <div className="login-form__field">
-                <MdEmail className="login-form__field-icon" size={18} />
+            <div className="flex flex-col gap-sm">
+              <label htmlFor="login-correo" className={ETIQUETA}>Correo electrónico</label>
+              <div className="relative">
+                <MdEmail className={ICONO_CAMPO} size={18} aria-hidden="true" />
                 <input
-                  type="email" name="Correo" className="login-form__input"
+                  id="login-correo"
+                  type="email" name="Correo" className={CAMPO}
                   placeholder="correo@empresa.com" value={form.Correo}
                   onChange={handleChange} autoComplete="email" required
+                  aria-invalid={!!correoFormatoError}
                 />
               </div>
-              {correoFormatoError && <p className="login-recovery__field-error">{correoFormatoError}</p>}
+              {correoFormatoError && (
+                <p className="text-caption font-medium text-danger-soft-on">{correoFormatoError}</p>
+              )}
             </div>
 
-            <div className="login-form__group">
-              <label className="login-form__label">Contraseña</label>
-              <div className="login-form__field">
-                <MdLock className="login-form__field-icon" size={18} />
+            <div className="flex flex-col gap-sm">
+              <label htmlFor="login-password" className={ETIQUETA}>Contraseña</label>
+              <div className="relative">
+                <MdLock className={ICONO_CAMPO} size={18} aria-hidden="true" />
                 <input
+                  id="login-password"
                   type={showPassword ? 'text' : 'password'} name="Password"
-                  className="login-form__input login-form__input--has-toggle"
+                  className={`${CAMPO} pr-[2.75rem]`}
                   placeholder="••••••••" value={form.Password}
                   onChange={handleChange} autoComplete="current-password" required
                 />
-                <button type="button" className="login-form__toggle"
-                  onClick={() => setShowPassword(!showPassword)} tabIndex={-1}>
+                <button
+                  type="button" tabIndex={-1}
+                  onClick={() => setShowPassword(!showPassword)}
+                  aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                  className="absolute right-sm top-1/2 flex size-9 -translate-y-1/2 items-center
+                             justify-center rounded-sm border-0 bg-transparent text-text-light
+                             cursor-pointer transition-colors duration-150 hover:text-text"
+                >
                   {showPassword ? <MdVisibilityOff size={18} /> : <MdVisibility size={18} />}
                 </button>
               </div>
             </div>
 
-            <button type="submit" className="login-form__submit" disabled={loading || loginInvalido}>
-              {loading ? <><span className="login-form__spinner" />Iniciando sesión...</> : 'Ingresar'}
+            <button type="submit" className={BOTON_PRIMARIO} disabled={loading || loginInvalido}>
+              {loading ? <><Spinner />Iniciando sesión...</> : 'Ingresar'}
             </button>
           </form>
 
-          <div className="login-form-links">
-            <button className="login-recovery-link" onClick={openRecovery}>
-              ¿Olvidaste tu contraseña?
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={openRecovery}
+            className="mt-lg w-full rounded-sm border-0 bg-transparent text-small font-semibold
+                       text-primary-soft-on cursor-pointer transition-colors duration-150
+                       hover:text-primary-strong-hover
+                       focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+          >
+            ¿Olvidaste tu contraseña?
+          </button>
+        </Motion.main>
 
-          {/* El modelo pasó de "el taller crea todas las cuentas" a autoregistro para
-              CLIENTES. Los empleados siguen recibiendo sus credenciales del admin
-              (POST /api/empleados), así que el pie menciona los dos casos. */}
-          <div className="login-form-footer">
-            ¿Eres cliente y no tienes cuenta? <Link to="/registro" className="login-registro-link">Regístrate aquí</Link>
-            <span className="login-form-footer__sep">·</span>
-            Si eres del equipo del taller, solicita tus credenciales al <strong>administrador</strong>.
-          </div>
-        </div>
+        {/* El modelo pasó de "el taller crea todas las cuentas" a autoregistro para
+            CLIENTES. Los empleados siguen recibiendo sus credenciales del admin
+            (POST /api/empleados), así que el pie menciona los dos casos. */}
+        <p className="text-balance text-center text-small leading-normal text-text-muted">
+          ¿Eres cliente y no tienes cuenta?{' '}
+          <Link
+            to="/registro"
+            className="font-semibold text-primary-soft-on underline decoration-primary-pale-2
+                       decoration-2 underline-offset-2 hover:text-primary-strong-hover"
+          >
+            Regístrate aquí
+          </Link>
+          <br />
+          Si eres del equipo del taller, solicita tus credenciales al{' '}
+          <strong className="font-semibold text-text">administrador</strong>.
+        </p>
+
+        <p className="flex items-center justify-center gap-xs text-caption text-text-light">
+          <MdLocationOn size={14} aria-hidden="true" />
+          Copacabana, Antioquia · Sistema de gestión de taller
+        </p>
       </div>
 
-      {/* ── Recovery Modal ── */}
-      {showRecovery && (
-        <div className="login-modal-overlay" onClick={closeRecovery}>
-          <div className="login-modal" onClick={e => e.stopPropagation()}>
-            <div className="login-modal__header">
-              <h3 className="login-modal__title">
-                {recoveryStep === 1 ? '¿Olvidaste tu contraseña?' : 'Revisa tu correo'}
-              </h3>
-              <button className="login-modal__close" onClick={closeRecovery}>
-                <MdClose size={18} />
-              </button>
-            </div>
+      {/* ── Recuperación de contraseña ── */}
+      <AnimatePresence>
+        {showRecovery && (
+          <Motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.18 }}
+            onClick={closeRecovery}
+            /* z-index 1300+: la franja documentada en Layout.css para overlays de
+               página, por encima del cajón móvil del sidebar. */
+            className="fixed inset-0 z-[1300] flex items-center justify-center
+                       bg-[rgb(10_10_11_/_0.55)] p-lg backdrop-blur-[2px]"
+          >
+            <Motion.div
+              role="dialog"
+              aria-modal="true"
+              aria-label={recoveryStep === 1 ? '¿Olvidaste tu contraseña?' : 'Revisa tu correo'}
+              initial={{ opacity: 0, y: 18, scale: 0.97 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 10, scale: 0.98 }}
+              transition={RESORTE}
+              onClick={e => e.stopPropagation()}
+              className="w-full max-w-[25rem] rounded-lg border border-border bg-surface shadow-lg"
+            >
+              <div className="flex items-start justify-between gap-md p-xl pb-lg">
+                <h2 className="font-display text-h2 font-bold tracking-tight text-text">
+                  {recoveryStep === 1 ? '¿Olvidaste tu contraseña?' : 'Revisa tu correo'}
+                </h2>
+                <button
+                  type="button"
+                  onClick={closeRecovery}
+                  aria-label="Cerrar"
+                  className="flex size-9 shrink-0 items-center justify-center rounded-sm border-0
+                             bg-transparent text-text-light cursor-pointer
+                             transition-colors duration-150 hover:bg-surface-raised hover:text-text
+                             focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+                >
+                  <MdClose size={18} />
+                </button>
+              </div>
 
-            <div className="login-modal__body">
-              {recoveryStep === 1 ? (
-                <>
-                  <p className="login-modal__desc">
-                    Ingresa tu correo y te enviaremos un enlace para crear una nueva contraseña.
-                  </p>
+              <div className="px-xl pb-xl">
+                {recoveryStep === 1 ? (
+                  <>
+                    <p className="mb-lg text-body leading-normal text-text-muted">
+                      Ingresa tu correo y te enviaremos un enlace para crear una nueva contraseña.
+                    </p>
 
-                  <form className="login-recovery-form" onSubmit={handleRecoverySubmit}>
-                    <div className="login-form__group">
-                      <label className="login-form__label">
-                        Correo electrónico
-                      </label>
-                      <div className={`login-form__field login-form__field--light${recoveryTouched && recoveryFormatError ? ' login-form__field--error' : ''}`}>
-                        <MdEmail className="login-form__field-icon login-form__field-icon--light" size={18} />
-                        <input
-                          type="email"
-                          className="login-form__input login-form__input--light"
-                          placeholder="correo@empresa.com"
-                          value={recoveryEmail}
-                          onChange={e => { setRecoveryEmail(e.target.value); setRecoveryTouched(true); setRecoveryError(''); }}
-                          onBlur={() => setRecoveryTouched(true)}
-                          aria-invalid={recoveryTouched && !!recoveryFormatError}
-                          autoFocus
-                          required
-                        />
+                    <form onSubmit={handleRecoverySubmit} className="flex flex-col gap-lg">
+                      <div className="flex flex-col gap-sm">
+                        <label htmlFor="recovery-correo" className={ETIQUETA}>
+                          Correo electrónico
+                        </label>
+                        <div className="relative">
+                          <MdEmail className={ICONO_CAMPO} size={18} aria-hidden="true" />
+                          <input
+                            id="recovery-correo"
+                            type="email"
+                            className={recoveryTouched && recoveryFormatError
+                              ? `${CAMPO} border-danger` : CAMPO}
+                            placeholder="correo@empresa.com"
+                            value={recoveryEmail}
+                            onChange={e => { setRecoveryEmail(e.target.value); setRecoveryTouched(true); setRecoveryError(''); }}
+                            onBlur={() => setRecoveryTouched(true)}
+                            aria-invalid={recoveryTouched && !!recoveryFormatError}
+                            autoFocus
+                            required
+                          />
+                        </div>
+                        {recoveryTouched && recoveryFormatError && (
+                          <p className="text-caption font-medium text-danger-soft-on">{recoveryFormatError}</p>
+                        )}
                       </div>
-                      {recoveryTouched && recoveryFormatError && (
-                        <p className="login-recovery__field-error">{recoveryFormatError}</p>
+
+                      {recoveryError && (
+                        <p role="alert" className="rounded-md bg-danger-soft px-lg py-md text-small font-medium text-danger-soft-on">
+                          {recoveryError}
+                        </p>
                       )}
+
+                      <button type="submit" className={BOTON_PRIMARIO} disabled={recoveryLoading || !!recoveryFormatError}>
+                        {recoveryLoading
+                          ? <><Spinner />Enviando...</>
+                          : <><MdSend size={16} aria-hidden="true" />Enviar enlace de recuperación</>
+                        }
+                      </button>
+                    </form>
+                  </>
+                ) : (
+                  <div className="flex flex-col items-center gap-md text-center">
+                    <span className="flex size-16 items-center justify-center rounded-full bg-primary-soft text-primary-soft-on">
+                      <MdEmail size={30} aria-hidden="true" />
+                    </span>
+                    <p className="font-display text-h3 font-bold text-text">Enlace enviado</p>
+                    <p className="text-body leading-normal text-text-muted">
+                      Si el correo <strong className="font-semibold text-text">{recoveryEmail}</strong> está
+                      registrado en SIGOT, recibirás un enlace en los próximos minutos.
+                      <br />El enlace expirará en <strong className="font-semibold text-text">15 minutos</strong>.
+                    </p>
+                    <p className="text-caption text-text-light">
+                      ¿No lo ves? Revisa tu carpeta de spam.
+                    </p>
+
+                    <div className="mt-sm flex w-full flex-col gap-sm">
+                      <button
+                        type="button"
+                        onClick={handleResend}
+                        disabled={resendCountdown > 0 || recoveryLoading}
+                        className="inline-flex w-full items-center justify-center gap-sm rounded-md
+                                   border border-border bg-surface px-xl text-body font-semibold text-text
+                                   min-h-[var(--touch-min)] cursor-pointer transition-colors duration-150
+                                   hover:bg-surface-raised disabled:cursor-not-allowed disabled:opacity-45
+                                   focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+                      >
+                        {recoveryLoading
+                          ? <><Spinner />Reenviando...</>
+                          : resendCountdown > 0
+                            ? `Reenviar en ${resendCountdown}s`
+                            : 'Reenviar'
+                        }
+                      </button>
+                      <button type="button" className={BOTON_PRIMARIO} onClick={closeRecovery}>
+                        Entendido
+                      </button>
                     </div>
-
-                    {recoveryError && (
-                      <div className="login-recovery__error">{recoveryError}</div>
-                    )}
-
-                    <button type="submit" className="login-recovery-form__btn" disabled={recoveryLoading || !!recoveryFormatError}>
-                      {recoveryLoading
-                        ? <><span className="login-form__spinner login-form__spinner--green" />Enviando...</>
-                        : <><MdSend size={16} />Enviar enlace de recuperación</>
-                      }
-                    </button>
-                  </form>
-                </>
-              ) : (
-                <div className="login-recovery__confirm">
-                  <div className="login-recovery__confirm-icon"><MdEmail size={52} /></div>
-                  <p className="login-recovery__confirm-title">Enlace enviado</p>
-                  <p className="login-recovery__confirm-msg">
-                    Si el correo <strong>{recoveryEmail}</strong> está registrado en SIGOT,
-                    recibirás un enlace en los próximos minutos.
-                    <br />El enlace expirará en <strong>15 minutos</strong>.
-                  </p>
-                  <p className="login-recovery__confirm-hint">
-                    ¿No lo ves? Revisa tu carpeta de spam.
-                  </p>
-
-                  <div className="login-recovery__confirm-actions">
-                    <button
-                      type="button"
-                      className="login-recovery__resend-btn"
-                      onClick={handleResend}
-                      disabled={resendCountdown > 0 || recoveryLoading}
-                    >
-                      {recoveryLoading
-                        ? <><span className="login-form__spinner login-form__spinner--green" />Reenviando...</>
-                        : resendCountdown > 0
-                          ? `Reenviar en ${resendCountdown}s`
-                          : 'Reenviar'
-                      }
-                    </button>
-                    <button type="button" className="login-recovery-form__btn" onClick={closeRecovery}>
-                      Entendido
-                    </button>
                   </div>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
+                )}
+              </div>
+            </Motion.div>
+          </Motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

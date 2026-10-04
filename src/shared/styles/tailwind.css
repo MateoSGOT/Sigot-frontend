@@ -1,0 +1,34 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   ENTRADA DE TAILWIND v4
+
+   SIN PREFLIGHT, a propósito. `@import "tailwindcss"` incluye preflight (el
+   reset de Tailwind), y globals.css ya trae el suyo: `box-sizing`, `margin: 0`,
+   `padding: 0` en todo, más `html { font-size }` con su override a 18px en
+   móvil. Dos resets encima resetean cosas distintas y la pantalla cambia sin
+   que nadie haya tocado una vista. Se importan solo tema y utilidades.
+
+   Cuando la migración a Tailwind esté completa y globals.css ya no tenga reset
+   propio, se cambia todo esto por la línea única `@import "tailwindcss";`.
+
+   theme(static) fuerza a emitir TODOS los tokens del @theme como propiedades
+   de :root, no solo los que alguna utilidad use. Hace falta porque las 45 hojas
+   escritas a mano siguen leyendo var(--color-primary) y compañía: sin static,
+   Tailwind haría tree-shaking de los que ninguna utilidad referencia y esas
+   hojas se quedarían sin valor.
+
+   ⚠️ PRECEDENCIA DE CAPAS. Las utilidades viven en la capa `utilities`, y en el
+   modelo de cascada de CSS lo NO ESTRATIFICADO le gana a cualquier capa. Todo
+   el CSS actual del proyecto es no estratificado, así que en un elemento que
+   conserve sus clases a mano las utilidades de Tailwind NO se van a aplicar.
+   Es justo lo que hace viable la migración incremental: una vista se reescribe
+   dejando caer sus clases viejas, y entonces las utilidades mandan solas. Pero
+   explica por qué agregar `text-2xl` a un `.page__title` existente no hace nada.
+   ═══════════════════════════════════════════════════════════════════════════ */
+@layer theme, base, components, utilities;
+
+@import 'tailwindcss/theme.css' layer(theme) theme(static);
+@import 'tailwindcss/utilities.css' layer(utilities);
+
+/* Tokens del proyecto expuestos como tema. Generado desde variables.css por
+   scripts/generar-theme.mjs -- no se edita a mano. */
+@import './tailwind-theme.css';

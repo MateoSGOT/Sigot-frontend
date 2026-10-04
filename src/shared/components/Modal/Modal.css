@@ -9,12 +9,10 @@
   justify-content: center;
   z-index: 1000;
   padding: 1rem;
-  animation: overlayFadeIn 0.2s ease;
-}
-
-@keyframes overlayFadeIn {
-  from { opacity: 0; }
-  to   { opacity: 1; }
+  /* La entrada y la SALIDA las anima Motion desde Modal.jsx (ver AnimatePresence).
+     Acá habia `animation: overlayFadeIn` y en .modal `animation: modalSlideIn`:
+     con Motion montado, las dos corrian a la vez sobre las mismas propiedades
+     (opacity y transform) y se peleaban en cada apertura. */
 }
 
 .modal {
@@ -25,20 +23,14 @@
   display: flex;
   flex-direction: column;
   max-height: 90vh;
-  animation: modalSlideIn var(--duration-slow) var(--ease);
   width: 100%;
   color: var(--color-text);
 }
 
-@keyframes modalSlideIn {
-  from { opacity: 0; transform: scale(0.96) translateY(-8px); }
-  to   { opacity: 1; transform: scale(1) translateY(0); }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .modal { animation: none; }
-  .modal-overlay { animation: none; }
-}
+/* El override de prefers-reduced-motion que habia aca tampoco hace falta ya:
+   no quedan animaciones CSS que apagar. Motion NO lee esa media query por su
+   cuenta -- lo resuelve <MotionConfig reducedMotion="user"> en main.jsx, que
+   aplica a todos los componentes de Motion de la app a la vez. */
 
 .modal--sm { max-width: 420px; }
 .modal--md { max-width: 580px; }

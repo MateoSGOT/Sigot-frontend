@@ -6,7 +6,6 @@ import { authService } from '../services/authService.js';
 import { passwordChanged, logout } from '../slices/authSlice.js';
 import * as V from '../../../shared/utils/validators.js';
 import { useFormValidation } from '../../../shared/hooks/useFormValidation.js';
-import './LoginPage.css';
 import './CambiarPasswordInicialPage.css';
 
 const RULES = {
