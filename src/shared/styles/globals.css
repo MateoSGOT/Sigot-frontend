@@ -97,17 +97,6 @@ img { max-width: 100%; }
 .text-warning  { color: var(--color-warning); }
 .text-info     { color: var(--color-info); }
 
-.flex           { display: flex; }
-.flex-col       { flex-direction: column; }
-.items-center   { align-items: center; }
-.justify-between{ justify-content: space-between; }
-.gap-2          { gap: 0.5rem; }
-.gap-3          { gap: 0.75rem; }
-.gap-4          { gap: 1rem; }
-
-.w-full   { width: 100%; }
-.truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-
 /* === Utilidades de espaciado/tipografía basadas en tokens ===
    Reemplazan inline styles sueltos. Valores snappeados a la escala 4px. */
 .u-mt-xs { margin-top: var(--space-xs); }
@@ -206,3 +195,19 @@ img { max-width: 100%; }
     min-height: var(--touch-min);
   }
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   UTILIDADES ESCRITAS A MANO: ELIMINADAS
+
+   Aca habia .flex, .flex-col, .items-center, .justify-between, .gap-2/3/4,
+   .w-full y .truncate -- los MISMOS nombres que genera Tailwind. Ninguna tenia
+   un solo consumidor en el JSX (lo confirmo scripts/css-muerto.mjs), pero como
+   el CSS del proyecto no esta estratificado, SOMBREABAN a las utilidades reales
+   de Tailwind: escribir `flex` en una vista migrada tomaba esta definicion y no
+   la de la capa utilities.
+
+   Con los mismos valores no se notaba. Con .font-medium si: el proyecto la
+   definia como font-weight 600 en DOCE archivos y la de Tailwind es 500, asi
+   que el codigo nuevo que pedia `font-medium` esperando 500 recibia 600. Los
+   usos que de verdad querian 600 pasaron a `font-semibold`.
+   ═══════════════════════════════════════════════════════════════════════════ */

@@ -605,7 +605,7 @@ export default function RepuestosPage() {
 
   const columns = [
     { key: '#', label: '#', width: '50px', render: (_, __, i) => (page - 1) * pageSizeNum + i + 1 },
-    { key: 'Nombre', label: 'Nombre', render: v => <span className="font-medium">{v}</span> },
+    { key: 'Nombre', label: 'Nombre', render: v => <span className="font-semibold">{v}</span> },
     { key: 'Categoria', label: 'Categoría' },
     {
       key: 'Stock', label: 'Stock', render: (v, row) => {

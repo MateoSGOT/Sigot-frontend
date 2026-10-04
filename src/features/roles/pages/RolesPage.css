@@ -1,6 +1,4 @@
 /* ── Utilities ── */
-.font-medium   { font-weight: 600; }
-
 /* ── Sección de resumen (separa el header de las tarjetas) ── */
 .roles-summary {
   padding: 1.5rem 2rem 0;

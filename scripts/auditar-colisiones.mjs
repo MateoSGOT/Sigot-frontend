@@ -51,6 +51,23 @@ for (const f of archivos) {
   }
 }
 
+/* ── SOMBREADO DE UTILIDADES DE TAILWIND ──
+   Riesgo que apareció al entrar Tailwind: una clase escrita a mano con el mismo
+   NOMBRE que una utilidad. Como el CSS del proyecto no está estratificado y las
+   utilidades viven en la capa `utilities`, la de a mano gana siempre.
+
+   Con el mismo valor no se nota. Pasó con .font-medium: el proyecto la definía
+   como font-weight 600 en DOCE archivos y la de Tailwind es 500, así que el
+   código nuevo que pedía `font-medium` esperando 500 recibía 600 -- y el build
+   pasaba limpio. */
+const NOMBRES_TAILWIND = /^\.(font-(thin|extralight|light|normal|medium|semibold|bold|extrabold|black)|truncate|hidden|block|inline|flex|grid|contents|flex-(row|col|wrap|nowrap)|items-(start|center|end|baseline|stretch)|justify-(start|center|end|between|around|evenly)|gap-\d+|[wh]-(full|screen|auto)|text-(left|right|center|justify)|rounded(-(none|sm|md|lg|xl|full))?|border|shadow(-(sm|md|lg|xl|none))?|relative|absolute|fixed|sticky|static|uppercase|lowercase|capitalize|underline|italic)$/;
+
+const sombreados = [];
+for (const [sel, lista] of mapa) {
+  if (!NOMBRES_TAILWIND.test(sel)) continue;
+  sombreados.push({ sel, lista });
+}
+
 const distintos = [];
 const iguales = [];
 for (const [sel, lista] of mapa) {
@@ -61,6 +78,15 @@ for (const [sel, lista] of mapa) {
 
 console.log(`${archivos.length} hojas · ${mapa.size} selectores`);
 
+if (sombreados.length) {
+  console.log(`\n✗ ${sombreados.length} clase(s) a mano con el NOMBRE de una utilidad de Tailwind`);
+  console.log('    (el CSS sin estratificar le gana a la capa utilities: la utilidad real nunca se aplica)\n');
+  for (const { sel, lista } of sombreados) {
+    console.log(`  ${sel}`);
+    for (const x of lista) console.log(`      ${x.archivo}\n          ${x.cuerpo.slice(0, 100)}`);
+  }
+}
+
 if (iguales.length) {
   console.log(`\n· ${iguales.length} selector(es) duplicados con valores IDÉNTICOS (sin efecto visual, pero duplicados):`);
   for (const { sel, lista } of iguales) {
@@ -70,8 +96,12 @@ if (iguales.length) {
 }
 
 if (!distintos.length) {
-  console.log('\n✓ ningún selector con valores distintos en dos hojas');
-  process.exit(0);
+  if (!sombreados.length) {
+    console.log('\n✓ ningún selector con valores distintos ni sombreando utilidades de Tailwind');
+  }
+  // El sombreado también hace fallar el audit: una clase a mano con el nombre
+  // de una utilidad es un bug latente aunque hoy tenga el mismo valor.
+  process.exit(sombreados.length ? 1 : 0);
 }
 
 console.log(`\n✗ ${distintos.length} selector(es) con valores DISTINTOS en dos hojas -- gana el orden de carga:\n`);

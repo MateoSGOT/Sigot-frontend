@@ -211,7 +211,7 @@ export default function EmpleadosPage() {
             ? <img src={row.Foto_url || row.Foto} alt="" className="emp-avatar" />
             : <div className="emp-avatar emp-avatar--fallback">{v?.charAt(0)}</div>
           }
-          <span className="font-medium">{v}</span>
+          <span className="font-semibold">{v}</span>
         </div>
       )
     },

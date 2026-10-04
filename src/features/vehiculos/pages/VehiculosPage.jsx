@@ -145,7 +145,7 @@ export default function VehiculosPage() {
 
   const columns = [
     { key: '#', label: '#', width: '50px', render: (_, __, i) => i + 1 },
-    { key: 'Placa', label: 'Placa', render: v => <span className="font-medium">{v}</span> },
+    { key: 'Placa', label: 'Placa', render: v => <span className="font-semibold">{v}</span> },
     { key: 'Anio', label: 'Año' },
     { key: 'Kilometraje', label: 'Kilometraje', render: v => (v != null && v !== '' ? `${Number(v).toLocaleString('es-CO')} km` : '—') },
     { key: 'Color', label: 'Color' },

@@ -287,7 +287,7 @@ export default function RolesPage() {
           <div className={`role-icon role-icon--${ROLE_COLORS[i % ROLE_COLORS.length]}`}>
             <MdSecurity size={15} />
           </div>
-          <span className="font-medium">{v}</span>
+          <span className="font-semibold">{v}</span>
           {isSistema(row) && (
             <Badge variant="gray" style={{ marginLeft: '0.5rem', fontSize: '0.7rem' }}>Sistema</Badge>
           )}

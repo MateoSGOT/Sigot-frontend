@@ -152,7 +152,7 @@ export default function CuentasPage() {
       key: 'Nombre', label: 'Nombre', render: (v, row) => (
         <div className="cell-user">
           <div className="cell-user__avatar cell-user__avatar--initial">{v?.charAt(0)}</div>
-          <span className="font-medium">{v}</span>
+          <span className="font-semibold">{v}</span>
           {esUnoMismo(row) && <Badge variant="gray" style={{ marginLeft: '0.5rem', fontSize: '0.7rem' }}>Tú</Badge>}
         </div>
       )

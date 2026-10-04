@@ -111,7 +111,7 @@ export default function ServiciosPage() {
 
   const columns = [
     { key: '#', label: '#', width: '50px', render: (_, __, i) => i + 1 },
-    { key: 'Nombre', label: 'Nombre', render: v => <span className="font-medium">{v}</span> },
+    { key: 'Nombre', label: 'Nombre', render: v => <span className="font-semibold">{v}</span> },
     { key: 'Descripcion', label: 'Descripción', render: v => <span className="descripcion-cell">{v || '—'}</span> },
     { key: 'Precio', label: 'Precio', render: v => formatCurrency(v) },
     { key: 'DuracionMinutos', label: 'Duración', render: v => (v ? `${v} min` : '—') },

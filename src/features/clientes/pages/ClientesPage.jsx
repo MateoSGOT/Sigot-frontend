@@ -177,7 +177,7 @@ export default function ClientesPage() {
           {row.Foto
             ? <img src={row.Foto} alt="" className="cell-user__avatar" />
             : <div className="cell-user__avatar cell-user__avatar--initial">{v?.charAt(0)}</div>}
-          <span className="font-medium">{v}</span>
+          <span className="font-semibold">{v}</span>
         </div>
       )
     },

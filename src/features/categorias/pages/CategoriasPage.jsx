@@ -119,7 +119,7 @@ export default function CategoriasPage() {
 
   const columns = [
     { key: '#', label: '#', width: '50px', render: (_, __, i) => i + 1 },
-    { key: 'Nombre', label: 'Nombre', render: v => <span className="font-medium">{v}</span> },
+    { key: 'Nombre', label: 'Nombre', render: v => <span className="font-semibold">{v}</span> },
     {
       key: 'acciones', label: 'Acciones', render: (_, row) => (
         <div className="table-actions">

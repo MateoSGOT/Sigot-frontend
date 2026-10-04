@@ -134,7 +134,7 @@ export default function ProveedoresPage() {
 
   const columns = [
     { key: '#', label: '#', width: '50px', render: (_, __, i) => i + 1 },
-    { key: 'Nombre', label: 'Nombre', render: (v, row) => <span className="font-medium">{v || row.nombre}</span> },
+    { key: 'Nombre', label: 'Nombre', render: (v, row) => <span className="font-semibold">{v || row.nombre}</span> },
     { key: 'Documento', label: 'Documento' },
     { key: 'TipoProveedor', label: 'Tipo' },
     { key: 'contacto', label: 'Contacto', render: (v, row) => v || row.Contacto || '—' },

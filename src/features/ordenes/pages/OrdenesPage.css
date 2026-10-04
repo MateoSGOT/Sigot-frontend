@@ -142,7 +142,6 @@
 
 /* ======================= */
 
-.font-medium { font-weight: 600; }
 .diag-cell {
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -447,3 +446,4 @@
 .orden-obs-edit { display: flex; flex-direction: column; gap: 0.5rem; margin-top: 0.25rem; }
 
 .orden-obs-edit__actions { display: flex; gap: 0.5rem; }
+

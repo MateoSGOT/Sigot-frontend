@@ -430,7 +430,7 @@ function PortalPageInner() {
   /* ── Column definitions ──────────────────────────────────── */
   const vehiculosColumns = [
     { key: '#',      label: '#',      width: '50px', render: (_, __, i) => i + 1 },
-    { key: 'Placa',  label: 'Placa',  render: v => <span className="font-medium">{v}</span> },
+    { key: 'Placa',  label: 'Placa',  render: v => <span className="font-semibold">{v}</span> },
     { key: 'Anio',   label: 'Año'    },
     { key: 'Color',  label: 'Color',  render: v => v || '—' },
     {
@@ -450,7 +450,7 @@ function PortalPageInner() {
 
   const ordenesColumns = [
     { key: '#',          label: '#',          width: '50px', render: (_, __, i) => i + 1 },
-    { key: 'Vehiculo',   label: 'Vehículo',   render: (v, row) => <span className="font-medium">{v || row.vehiculo || `#${row.Id_Vehiculo}`}</span> },
+    { key: 'Vehiculo',   label: 'Vehículo',   render: (v, row) => <span className="font-semibold">{v || row.vehiculo || `#${row.Id_Vehiculo}`}</span> },
     { key: 'Empleado',   label: 'Técnico',    render: v => v || 'Sin asignar' },
     { key: 'Diagnostico',label: 'Diagnóstico', render: v => <span className="diag-cell">{v || '—'}</span> },
     { key: 'FechaIngreso',label: 'Ingreso',   render: v => formatDate(v) },
