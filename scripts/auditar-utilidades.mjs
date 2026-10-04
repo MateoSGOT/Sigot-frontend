@@ -45,7 +45,11 @@ for (const f of fs.readdirSync(DIST).filter((n) => n.endsWith('.css'))) {
    Solo de cadenas que están en un className o en una constante de clases (las
    de este proyecto son const en MAYÚSCULAS con utilidades dentro). Mirar todas
    las cadenas del archivo daría falsos positivos con texto normal. */
-const PREFIJOS = /^(bg|text|border|shadow|ring|outline|fill|stroke|from|via|to|p|px|py|pt|pb|pl|pr|m|mx|my|mt|mb|ml|mr|gap|size|w|h|min-w|min-h|max-w|max-h|rounded|font|tracking|leading|aspect|duration|ease|col-span|grid-cols|flex|items|justify|opacity|z)-/;
+/* Lista de prefijos reconocidos. ES UN FILTRO, no una verdad: un prefijo que
+   falte aquí significa que esa familia de utilidades NO se audita. Pasó con
+   `accent-`: estaba fuera de la lista, así que un `accent-[...]` muerto habría
+   salido limpio. Al agregar una familia nueva, agregarla también acá. */
+const PREFIJOS = /^(bg|text|border|shadow|ring|outline|fill|stroke|from|via|to|accent|caret|decoration|divide|p|px|py|pt|pb|pl|pr|m|mx|my|mt|mb|ml|mr|space-x|space-y|gap|size|w|h|min-w|min-h|max-w|max-h|rounded|font|tracking|leading|aspect|duration|ease|delay|animate|col-span|row-span|grid-cols|grid-rows|flex|basis|items|justify|place|opacity|z|inset|top|bottom|left|right|translate|rotate|scale|origin|overflow|whitespace|break|line-clamp|object|cursor|select|pointer-events|backdrop-blur|blur)-/;
 
 const candidatos = new Map();   // clase -> [archivos]
 const esUtilidad = (t) => PREFIJOS.test(t) && !t.includes('${') && !t.includes('(');

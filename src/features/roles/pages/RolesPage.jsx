@@ -20,7 +20,6 @@ import Badge from '../../../shared/components/Badge/Badge.jsx';
 import { filterItems, sortNewestFirst } from '../../../shared/utils/helpers.js';
 import * as V from '../../../shared/utils/validators.js';
 import api from '../../../shared/services/api.js';
-import './RolesPage.css';
 
 /* ── Constants ─────────────────────────────────────────────────── */
 
@@ -70,6 +69,36 @@ const emptyMatrix = () =>
   MODULES_ORDER.map(mod => ({ Modulo: mod, Ver: 0, Crear: 0, Editar: 0, Eliminar: 0 }));
 
 /* ── Component ─────────────────────────────────────────────────── */
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Clases del modulo de Roles, en utilidades.
+
+   LOS DOS MAPAS SON OBLIGATORIOS, no una preferencia de estilo: las clases se
+   construian como `role-icon--${color}` y `rol-toast--${type}`. Tailwind
+   escanea TEXTO y no puede ver una clase armada en runtime: no generaria la
+   utilidad y el color no se aplicaria, sin error ni warning.
+
+   TRES CORRECCIONES DE ROL DE COLOR, que la auditoria de paleta no puede
+   detectar porque los colores SI pertenecen al sistema -- lo que estaba mal
+   era para que se usaban:
+     · el hover de las filas de la matriz era ambar, y el ambar en este sistema
+       significa "en proceso / requiere atencion". Un hover es ACCION: cobalto.
+     · los checkboxes tenian accent-color ambar, por lo mismo.
+     · el toast de exito tenia borde COBALTO sobre fondo esmeralda: familias
+       cruzadas, el mismo defecto que ya se corrigio en los badges.
+   ═══════════════════════════════════════════════════════════════════════════ */
+const ROLE_ICON_COLOR = {
+  success: 'bg-success-soft text-success-soft-on',
+  info:    'bg-info-soft text-info-soft-on',
+  warning: 'bg-warning-soft text-warning-soft-on',
+  danger:  'bg-danger-soft text-danger-soft-on',
+  default: 'bg-neutral-soft text-text-muted',
+};
+
+const TOAST_TIPO = {
+  success: 'bg-success-soft text-success-soft-on border-success-soft-border',
+  error:   'bg-danger-soft text-danger-soft-on border-danger-soft-border',
+};
 
 export default function RolesPage() {
   const dispatch = useDispatch();
@@ -283,8 +312,8 @@ export default function RolesPage() {
       key: 'Nombre',
       label: 'Rol',
       render: (v, row, i) => (
-        <div className="role-name-cell">
-          <div className={`role-icon role-icon--${ROLE_COLORS[i % ROLE_COLORS.length]}`}>
+        <div className="flex items-center gap-md">
+          <div className={`flex size-[30px] shrink-0 items-center justify-center rounded-md ${ROLE_ICON_COLOR[ROLE_COLORS[i % ROLE_COLORS.length]] || ROLE_ICON_COLOR.default}`}>
             <MdSecurity size={15} />
           </div>
           <span className="font-semibold">{v}</span>
@@ -348,17 +377,17 @@ export default function RolesPage() {
       </div>
 
       {/* ── Primary role summary cards ── */}
-      <div className="roles-summary">
-        <span className="roles-summary__label">Resumen por rol</span>
-        <div className="roles-primary-cards">
+      <div className="px-2xl pt-xl max-lg:px-lg">
+        <span className="mb-lg block text-caption font-bold uppercase tracking-wide text-text-muted">Resumen por rol</span>
+        <div className="mb-xl grid grid-cols-[repeat(auto-fit,minmax(210px,1fr))] gap-lg">
         {primaryCards.map(card => (
-          <div key={card.nombre} className={`roles-primary-card roles-primary-card--${card.color}`}>
-            <div className={`roles-primary-icon role-icon--${card.color}`}>
+          <div key={card.nombre} className={`flex min-w-0 items-center gap-md rounded-lg border border-border bg-surface px-xl py-lg text-text transition-[box-shadow,transform] duration-200 hover:-translate-y-[2px] hover:shadow-md roles-primary-card--${card.color}`}>
+            <div className={`flex size-11 shrink-0 items-center justify-center rounded-md ${ROLE_ICON_COLOR[card.color] || ROLE_ICON_COLOR.default}`}>
               <MdSecurity size={22} />
             </div>
-            <div className="roles-primary-info">
-              <span className="roles-primary-name">{card.nombre}</span>
-              <span className="roles-primary-count">
+            <div className="flex min-w-0 flex-1 flex-col gap-[2px]">
+              <span className="text-body font-bold leading-tight text-text [overflow-wrap:anywhere]">{card.nombre}</span>
+              <span className="flex items-center text-small text-text-muted">
                 <MdPeople size={13} style={{ marginRight: '3px' }} />
                 {card.count} persona(s)
               </span>
@@ -366,13 +395,13 @@ export default function RolesPage() {
           </div>
         ))}
         {otrosRoles.length > 0 && (
-          <div className="roles-primary-card roles-primary-card--default">
-            <div className="roles-primary-icon role-icon--default">
+          <div className="flex min-w-0 items-center gap-md rounded-lg border border-border bg-surface px-xl py-lg text-text transition-[box-shadow,transform] duration-200 hover:-translate-y-[2px] hover:shadow-md roles-primary-card--default">
+            <div className={`flex size-11 shrink-0 items-center justify-center rounded-md ${ROLE_ICON_COLOR.default}`}>
               <MdSecurity size={22} />
             </div>
-            <div className="roles-primary-info">
-              <span className="roles-primary-name">Otros</span>
-              <span className="roles-primary-count">
+            <div className="flex min-w-0 flex-1 flex-col gap-[2px]">
+              <span className="text-body font-bold leading-tight text-text [overflow-wrap:anywhere]">Otros</span>
+              <span className="flex items-center text-small text-text-muted">
                 <MdPeople size={13} style={{ marginRight: '3px' }} />
                 {otrosCount} persona(s)
               </span>
@@ -383,8 +412,8 @@ export default function RolesPage() {
       </div>
 
       {/* ── Roles table ── */}
-      <div className="roles-split">
-        <div className="card roles-split__table">
+      <div className="grid grid-cols-1 gap-xl px-2xl pb-2xl max-lg:px-lg">
+        <div className="card min-w-0">
           <div className="card__header">
             <SearchBar
               value={search}
@@ -457,7 +486,7 @@ export default function RolesPage() {
               disabled={saving || matLoading || !!editNombreError || !formNombre.trim()}
             >
               {saving
-                ? <><span className="rol-spinner" /> Guardando...</>
+                ? <><span className="size-4 shrink-0 animate-spin rounded-full border-2 border-current/30 border-t-current" /> Guardando...</>
                 : <><MdSave size={16} /> Guardar cambios</>
               }
             </button>
@@ -479,36 +508,36 @@ export default function RolesPage() {
           {editNombreError && <p className="form-error">{editNombreError}</p>}
         </div>
 
-        <div className="rol-section-divider" />
-        <p className="rol-section-title">Permisos por módulo</p>
-        <p className="rol-section-hint">
+        <div className="mb-lg mt-xs border-0 border-t border-border" />
+        <p className="mb-xs text-caption font-bold uppercase tracking-wide text-text-muted">Permisos por módulo</p>
+        <p className="mb-lg text-small text-text-muted">
           Activa o desactiva permisos individuales. La columna "Todo" marca/desmarca toda la fila.
         </p>
 
         {matLoading ? (
-          <div className="rol-mat-skeleton">
+          <div className="flex flex-col gap-[4px]">
             {Array.from({ length: 8 }).map((_, i) => (
-              <div key={i} className="rol-skel-row" style={{ animationDelay: `${i * 50}ms` }}>
-                <div className="rol-skel-cell rol-skel-cell--mod" />
+              <div key={i} className="flex h-[42px] items-center gap-md rounded-sm px-sm" style={{ animationDelay: `${i * 50}ms` }}>
+                <div className="animate-pulse rounded-sm bg-neutral-soft h-[13px] flex-1" />
                 {[0, 1, 2, 3, 4].map(j => (
-                  <div key={j} className="rol-skel-cell rol-skel-cell--chk" />
+                  <div key={j} className="animate-pulse rounded-sm bg-neutral-soft h-[13px] w-16 shrink-0" />
                 ))}
               </div>
             ))}
           </div>
         ) : (
-          <div className="rol-mat-wrap">
-            <table className="rol-mat-table">
+          <div className="overflow-x-auto rounded-md border border-border">
+            <table className="w-full min-w-[540px] border-collapse text-small">
               <thead>
                 <tr>
-                  <th className="rol-mat-th rol-mat-th--mod">Módulo</th>
+                  <th className="whitespace-nowrap border-b-2 border-border bg-surface-solid px-lg py-sm text-left text-caption font-bold uppercase tracking-wide text-text-muted w-[200px] min-w-[160px]">Módulo</th>
                   {ACTIONS.map(action => (
-                    <th key={action} className="rol-mat-th rol-mat-th--act">
-                      <div className="rol-mat-th-inner">
+                    <th key={action} className="whitespace-nowrap border-b-2 border-border bg-surface-solid px-lg py-sm text-left text-caption font-bold uppercase tracking-wide text-text-muted w-20 text-center">
+                      <div className="flex flex-col items-center gap-xs">
                         <span>{action}</span>
                         <input
                           type="checkbox"
-                          className="rol-mat-chk"
+                          className="size-[15px] cursor-pointer rounded-sm align-middle accent-[var(--color-primary)]"
                           title={`Seleccionar columna "${action}"`}
                           checked={matrix.length > 0 && matrix.every(r => r[action] === 1)}
                           onChange={() => toggleCol(action)}
@@ -516,8 +545,8 @@ export default function RolesPage() {
                       </div>
                     </th>
                   ))}
-                  <th className="rol-mat-th rol-mat-th--act">
-                    <span className="rol-mat-th-todo">Todo</span>
+                  <th className="whitespace-nowrap border-b-2 border-border bg-surface-solid px-lg py-sm text-left text-caption font-bold uppercase tracking-wide text-text-muted w-20 text-center">
+                    <span className="block text-center">Todo</span>
                   </th>
                 </tr>
               </thead>
@@ -530,12 +559,12 @@ export default function RolesPage() {
                   return (
                     <tr
                       key={row.Modulo}
-                      className={`rol-mat-row${idx % 2 !== 0 ? ' rol-mat-row--alt' : ''}${someOn ? ' rol-mat-row--on' : ''}`}
+                      className={`h-11 transition-colors duration-100 hover:bg-primary-soft${idx % 2 !== 0 ? ' bg-neutral-soft' : ''}${someOn ? ' [&_td]:font-semibold' : ''}`}
                     >
-                      <td className="rol-mat-td rol-mat-td--mod">
-                        <div className="rol-mat-mod-cell">
+                      <td className="h-11 border-b border-border px-lg align-middle rol-mat-td--mod">
+                        <div className="flex items-center gap-sm font-medium text-text">
                           {Icon && (
-                            <span className="rol-mat-mod-icon" style={{ color: meta?.color || '#F59E0B' }}>
+                            <span className="flex shrink-0 items-center" style={{ color: meta?.color || '#F59E0B' }}>
                               <Icon size={15} />
                             </span>
                           )}
@@ -545,10 +574,10 @@ export default function RolesPage() {
                       {ACTIONS.map(action => {
                         const inaplicable = row.Modulo === 'Dashboard' && action !== 'Ver';
                         return (
-                          <td key={action} className="rol-mat-td rol-mat-td--chk">
+                          <td key={action} className="h-11 border-b border-border px-lg align-middle text-center">
                             <input
                               type="checkbox"
-                              className="rol-mat-chk"
+                              className="size-[15px] cursor-pointer rounded-sm align-middle accent-[var(--color-primary)]"
                               checked={row[action] === 1}
                               disabled={inaplicable}
                               title={inaplicable ? 'No aplica: Dashboard es de solo lectura' : undefined}
@@ -557,10 +586,10 @@ export default function RolesPage() {
                           </td>
                         );
                       })}
-                      <td className="rol-mat-td rol-mat-td--chk">
+                      <td className="h-11 border-b border-border px-lg align-middle text-center">
                         <input
                           type="checkbox"
-                          className="rol-mat-chk"
+                          className="size-[15px] cursor-pointer rounded-sm align-middle accent-[var(--color-primary)]"
                           title="Marcar / desmarcar toda la fila"
                           checked={allOn}
                           onChange={() => toggleRow(row.Modulo)}
@@ -588,7 +617,7 @@ export default function RolesPage() {
 
       {/* ── Toast ── */}
       {toast && (
-        <div className={`rol-toast rol-toast--${toast.type}`}>
+        <div className={`fixed bottom-xl right-xl z-[1400] flex items-center gap-sm rounded-md border px-lg py-md text-body font-medium shadow-lg ${TOAST_TIPO[toast.type] || TOAST_TIPO.success}`}>
           {toast.type === 'success' ? <MdCheck size={17} /> : <MdClose size={17} />}
           <span>{toast.msg}</span>
         </div>
