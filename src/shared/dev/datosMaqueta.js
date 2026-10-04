@@ -60,3 +60,41 @@ export const MAQUETA_FILAS_ORDENES = [
     Diagnostico: 'Sincronización de inyección.',
     Kilometraje: 142900, FechaIngreso: '2026-10-02', FechaEntrega: null, Estado: 1 },
 ];
+
+/* Detalle de UNA orden, para poder revisar el modal (stepper, lineas, totales,
+   mano de obra) sin sesion. Se expone aparte del listado porque el detalle lo
+   trae un thunk distinto (fetchOrdenById) y, con CORS bloqueado en local, nunca
+   llega.
+
+   Estado 2 ("En proceso") a proposito: es el unico valor que deja ver las TRES
+   fases del stepper a la vez -- un paso completado (check esmeralda), el actual
+   (cobalto) y uno pendiente (gris). Con estado 1 o 3 siempre queda una fase sin
+   representar y no se puede juzgar el codigo de color. */
+export const MAQUETA_ORDEN_DETALLE = {
+  Id_Orden: 9001,
+  Vehiculo: 'MTX-412',
+  Cliente: 'Daniela Restrepo',
+  Diagnostico: 'Ruido metálico en suspensión delantera al pasar reductores; se revisan bujes y amortiguadores.',
+  Observacion: 'El cliente autoriza cambio de bujes si el desgaste lo exige.',
+  Kilometraje: 184320,
+  FechaIngreso: '2026-09-28',
+  FechaEntrega: null,
+  Estado: 2,
+  // El componente lee `mano_de_obra` (snake_case), no ManoDeObra: lo verifique
+  // en el navegador porque el campo salia como "—" con la clave equivocada.
+  mano_de_obra: 85000,
+  DuracionTotalMin: 150,
+  Empleado: 'Pedro Muñoz',
+  servicios: [
+    { Id_Servicio: 11, Nombre: 'Revisión de suspensión', precio_unitario: 60000, DuracionMinutos: 90, Id_Empleado: 3, Empleado: 'Pedro Muñoz' },
+    { Id_Servicio: 12, Nombre: 'Alineación', precio_unitario: 45000, DuracionMinutos: 60, Id_Empleado: 3, Empleado: 'Pedro Muñoz' },
+  ],
+  repuestos: [
+    { Id_Repuesto: 21, Nombre: 'Buje de suspensión delantero', cantidad: 2, precio_unitario: 38000 },
+    { Id_Repuesto: 22, Nombre: 'Amortiguador delantero', cantidad: 2, precio_unitario: 145000 },
+  ],
+  mecanicos: [
+    { id_empleado: 3, Nombre: 'Pedro Muñoz', esResponsable: true },
+    { id_empleado: 7, Nombre: 'Luis Herrera', esResponsable: false },
+  ],
+};

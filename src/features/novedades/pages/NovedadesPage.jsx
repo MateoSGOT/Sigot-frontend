@@ -176,7 +176,7 @@ export default function NovedadesPage() {
   const columns = [
     { key: '#', label: '#', width: '50px', render: (_, __, i) => i + 1 },
     { key: 'id_empleado', label: 'Empleado', render: (v, row) => getEmpleadoNombre(v || row.Id_Empleado) },
-    { key: 'Descripcion', label: 'Descripción', render: v => <span className="descripcion-cell">{v}</span> },
+    { key: 'Descripcion', label: 'Descripción', render: v => <span className="line-clamp-2 max-w-[300px]">{v}</span> },
     { key: 'Fecha_Novedad', label: 'Fecha novedad', render: v => formatDate(v) },
     {
       key: 'FechaRealizacion', label: 'Fecha realización', render: (v, row) => (

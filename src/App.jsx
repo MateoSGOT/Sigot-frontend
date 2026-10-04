@@ -68,7 +68,15 @@ function AvisoAuthOmitida() {
     <div
       role="status"
       style={{
-        position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 2147483647,
+        /* Pastilla a la derecha y POR ENCIMA de la barra inferior (64px + zona
+           segura), no una franja a bottom:0 a lo ancho: con z-index maximo
+           tapaba la navegacion movil entera. Verificado en el navegador: la
+           barra quedaba oculta detras del aviso. En escritorio no hay barra,
+           asi que simplemente flota a 72px del borde. */
+        position: 'fixed',
+        bottom: 'calc(72px + env(safe-area-inset-bottom, 0px))',
+        right: '8px', maxWidth: 'calc(100vw - 16px)', zIndex: 2147483647,
+        borderRadius: 'var(--radius-full)',
         background: 'var(--color-danger)', color: 'var(--color-danger-on)',
         // Propiedades separadas y no el shorthand `font`: el shorthand con un
         // var() para la familia es frágil y además resetea lo que no se nombre.

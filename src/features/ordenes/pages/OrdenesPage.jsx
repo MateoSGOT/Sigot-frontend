@@ -13,7 +13,7 @@ import {
 import { ordenesService } from '../services/ordenesService.js';
 // Datos de maqueta: SOLO desarrollo y solo con VITE_DEV_SKIP_AUTH activo.
 // Se consumen unicamente en los catch de abajo -- la ruta de exito no los toca.
-import { MAQUETA_ACTIVA, MAQUETA_RESUMEN_ORDENES, MAQUETA_FILAS_ORDENES } from '../../../shared/dev/datosMaqueta.js';
+import { MAQUETA_ACTIVA, MAQUETA_RESUMEN_ORDENES, MAQUETA_FILAS_ORDENES, MAQUETA_ORDEN_DETALLE } from '../../../shared/dev/datosMaqueta.js';
 import Modal from '../../../shared/components/Modal/Modal.jsx';
 import ConfirmDialog from '../../../shared/components/ConfirmDialog/ConfirmDialog.jsx';
 import Table from '../../../shared/components/Table/Table.jsx';
@@ -31,7 +31,6 @@ import api from '../../../shared/services/api.js';
 // cliente, que muestra el mismo modal. Antes cada pagina tenia su copia y las
 // dos se pisaban segun el orden de carga. Ver shared/styles/orden-detalle.css
 import '../../../shared/styles/orden-detalle.css';
-import './OrdenesPage.css';
 
 // Reglas de validación en tiempo real para crear un servicio/repuesto NUEVO
 // desde la orden (mismo patrón que ServiciosPage/RepuestosPage).
@@ -90,6 +89,27 @@ function EstadoBadge({ estado }) {
   return <Badge variant={cfg.variant}>{cfg.label}</Badge>;
 }
 
+/* Clases del stepper, en utilidades. Se calculan por estado en vez de
+   depender de combinaciones de clases BEM (.progreso-step--done .progreso-dot):
+   con utilidades el estado se decide en JS, que es mas directo de leer que
+   tres reglas CSS encadenadas.
+
+   Codigo de color, igual que antes: COMPLETADO = esmeralda (el paso quedo
+   atras), ACTUAL = cobalto (el color de accion, el mismo con el que el sidebar
+   marca "aca estas"). Asi se distinguen de un vistazo. */
+const PUNTO_BASE = 'flex size-8 items-center justify-center rounded-full border-2 '
+  + 'text-caption font-bold transition-colors duration-200';
+const PUNTO_POR_ESTADO = {
+  completado: 'border-success-strong bg-success-soft text-success-soft-on',
+  actual:     'border-primary-strong bg-primary-strong text-primary-on',
+  pendiente:  'border-border bg-surface-solid text-text-muted',
+};
+const ROTULO_POR_ESTADO = {
+  completado: 'text-text-muted',
+  actual:     'text-primary-soft-on',
+  pendiente:  'text-text-muted',
+};
+
 function ProgresoEstado({ estadoActual, onAvanzar, onInactivar, loading, disabled, sinTrabajo }) {
   const estadoNum = estadoActual ?? 0;
   const siguienteEstado = estadoNum < 3 ? estadoNum + 1 : null;
@@ -97,39 +117,50 @@ function ProgresoEstado({ estadoActual, onAvanzar, onInactivar, loading, disable
   const bloqueaRealizado = siguienteEstado === 3 && sinTrabajo;
 
   return (
-    <div className="progreso-container">
-      <div className="progreso-steps">
+    <div className="flex flex-col gap-lg">
+      <ol className="flex items-center">
         {PASOS.map((paso, idx) => {
           const completado = estadoNum > paso.estado;   // el paso ya quedó atrás (check)
           const alcanzado  = estadoNum >= paso.estado;  // el flujo ya llegó a este paso
           const actual     = estadoNum === paso.estado;
+          const fase = completado ? 'completado' : actual ? 'actual' : 'pendiente';
           return (
             <React.Fragment key={paso.estado}>
               {idx > 0 && (
-                // La franja se pinta verde cuando el flujo ALCANZA el paso (>=),
-                // así la última (proceso → finalizado) también se completa.
-                <div className={`progreso-line${alcanzado ? ' progreso-line--done' : ''}`} />
+                // La franja se pinta cuando el flujo ALCANZA el paso (>=), así la
+                // última (proceso → finalizado) también se completa.
+                // mb-6 la alinea con el punto y no con el rótulo de abajo.
+                <li
+                  aria-hidden="true"
+                  className={`mx-xs mb-6 h-[2px] flex-1 transition-colors duration-200
+                              ${alcanzado ? 'bg-success-strong' : 'bg-border'}`}
+                />
               )}
-              <div className={`progreso-step${actual ? ' progreso-step--active' : ''}${completado ? ' progreso-step--done' : ''}`}>
-                <div className="progreso-dot">
-                  {completado ? <MdCheck size={13} /> : <span>{idx + 1}</span>}
-                </div>
-                <span className="progreso-label">{paso.label}</span>
-              </div>
+              <li
+                className="relative flex flex-col items-center gap-xs"
+                aria-current={actual ? 'step' : undefined}
+              >
+                <span className={`${PUNTO_BASE} ${PUNTO_POR_ESTADO[fase]}`}>
+                  {completado ? <MdCheck size={13} aria-hidden="true" /> : <span>{idx + 1}</span>}
+                </span>
+                <span className={`whitespace-nowrap text-caption font-semibold ${ROTULO_POR_ESTADO[fase]}`}>
+                  {paso.label}
+                </span>
+              </li>
             </React.Fragment>
           );
         })}
-      </div>
+      </ol>
 
-      <div className="progreso-actions">
+      <div className="flex flex-wrap items-center gap-md">
         {estadoNum === 0 && (
-          <button className="btn btn--primary btn--sm progreso-btn" onClick={() => onAvanzar(1)} disabled={loading || disabled}>
+          <button className="btn btn--primary btn--sm self-start" onClick={() => onAvanzar(1)} disabled={loading || disabled}>
             <MdArrowForward size={15} /> Activar orden
           </button>
         )}
         {siguienteEstado && estadoNum >= 1 && (
           <button
-            className="btn btn--primary btn--sm progreso-btn"
+            className="btn btn--primary btn--sm self-start"
             onClick={() => onAvanzar(siguienteEstado)}
             disabled={loading || disabled || bloqueaRealizado}
             title={bloqueaRealizado ? 'Agrega al menos un servicio o repuesto para marcarla como Realizada' : undefined}
@@ -138,12 +169,17 @@ function ProgresoEstado({ estadoActual, onAvanzar, onInactivar, loading, disable
           </button>
         )}
         {estadoNum === 3 && (
-          <p className="progreso-done">✓ Orden completada</p>
+          <p className="text-small font-semibold text-success-soft-on">✓ Orden completada</p>
         )}
         {/* Inactivar solo desde Pendiente: una orden En proceso ya está en
             trabajo y no debe poder inactivarse (item 5a). */}
         {estadoNum === 1 && (
-          <button className="btn btn--sm progreso-btn--inactivo" onClick={onInactivar} disabled={loading || disabled} title="Marcar como inactiva">
+          <button
+            className="cursor-pointer self-start rounded-md border border-danger-strong bg-danger-soft px-lg py-xs font-[inherit] text-small font-semibold text-danger-soft-on transition-colors duration-150 hover:not-disabled:bg-danger-soft disabled:cursor-not-allowed disabled:opacity-45"
+            onClick={onInactivar}
+            disabled={loading || disabled}
+            title="Marcar como inactiva"
+          >
             Poner como Inactivo
           </button>
         )}
@@ -174,7 +210,12 @@ export default function OrdenesPage() {
   const dispatch = useDispatch();
   const location = useLocation();
   const { addToast } = useToast();
-  const { selected, actionLoading } = useSelector(s => s.ordenes);
+  const { selected: selectedStore, actionLoading } = useSelector(s => s.ordenes);
+  /* Con la sesion omitida el thunk fetchOrdenById recibe 401/CORS y `selected`
+     queda en null, asi que el modal se abre vacio y no se puede revisar. Solo
+     en desarrollo se cae a la maqueta. El store NO se toca: la sustitucion es
+     local a esta vista y en produccion MAQUETA_ACTIVA es el literal `false`. */
+  const selected = selectedStore ?? (MAQUETA_ACTIVA ? MAQUETA_ORDEN_DETALLE : null);
   const puedeEditar  = usePermiso('ORDENES.EDITAR');
   const puedeToggle  = usePermiso('ORDENES.CAMBIAR_ESTADO');
   const [serviciosOpts, setServiciosOpts] = useState([]);
@@ -657,7 +698,7 @@ export default function OrdenesPage() {
     { key: '#', label: '#', width: '50px', render: (_, __, i) => i + 1 },
     { key: 'Vehiculo', label: 'Vehículo', render: (v, row) => <span className="font-semibold">{v || row.vehiculo || row.Placa || '—'}</span> },
     { key: 'Cliente', label: 'Cliente', render: (v, row) => v || row.cliente || '—' },
-    { key: 'Diagnostico', label: 'Diagnóstico', render: v => <span className="diag-cell">{v || '—'}</span> },
+    { key: 'Diagnostico', label: 'Diagnóstico', render: v => <span className="line-clamp-2 max-w-[200px] text-body text-text-muted">{v || '—'}</span> },
     { key: 'FechaIngreso', label: 'Ingreso', render: v => formatDate(v) },
     { key: 'FechaEntrega', label: 'Entrega', render: v => formatDate(v) },
     { key: 'Kilometraje', label: 'Km', render: v => v ? `${Number(v).toLocaleString('es-CO')} km` : '—' },
@@ -817,7 +858,7 @@ export default function OrdenesPage() {
                   <div className="detail-item u-span-2">
                     <span className="detail-label">Empleado(s) asignado(s)</span>
                     {editingEmpleado ? (
-                      <div className="empleado-edit-row">
+                      <div className="mt-xs flex flex-col gap-sm">
                         <p className="u-hint">Cambiar el responsable de la orden (reserva su horario en Agenda):</p>
                         {loadingLibres ? (
                           <p className="u-hint">Buscando empleados libres…</p>
@@ -830,7 +871,7 @@ export default function OrdenesPage() {
                           />
                         )}
                         {empleadoError && <p className="form-error">{empleadoError}</p>}
-                        <div className="empleado-edit-actions">
+                        <div className="flex justify-end gap-sm">
                           <button className="btn btn--outline btn--sm" onClick={() => { setEditingEmpleado(false); setEmpleadoError(''); }} disabled={actionLoading}>Cancelar</button>
                           <button className="btn btn--primary btn--sm" onClick={handleReasignarEmpleado} disabled={actionLoading || loadingLibres || !empleadoSel}>
                             {actionLoading ? 'Guardando...' : 'Guardar'}
@@ -838,24 +879,24 @@ export default function OrdenesPage() {
                         </div>
                       </div>
                     ) : (
-                      <div className="mecanicos-asignados">
-                        <div className="mecanicos-chips">
+                      <div className="mt-xs flex flex-col gap-sm">
+                        <div className="flex flex-wrap gap-xs">
                           {(mecanicosAsignados.length > 0
                             ? mecanicosAsignados
                             : (selected.Empleado ? [{ Id_Empleado: selected.Id_Empleado, Nombre: selected.Empleado }] : [])
                           ).map(m => {
                             const esResponsable = selected.Id_Empleado != null && String(m.Id_Empleado) === String(selected.Id_Empleado);
                             return (
-                              <span key={m.Id_Empleado ?? m.Nombre} className={`mecanico-chip${esResponsable ? ' mecanico-chip--responsable' : ''}`}>
+                              <span key={m.Id_Empleado ?? m.Nombre} className={`inline-flex items-center gap-xs rounded-full bg-border-light px-sm py-xs text-small font-semibold text-text${esResponsable ? ' border border-primary-pale-2 bg-primary-soft' : ''}`}>
                                 {m.Nombre}
-                                {esResponsable && <span className="mecanico-chip__tag">Responsable</span>}
+                                {esResponsable && <span className="text-[0.625rem] font-bold uppercase tracking-wide text-primary-soft-on">Responsable</span>}
                                 {!contenidoBloqueado && puedeEditar && (
                                   esResponsable ? (
-                                    <button className="mecanico-chip__action" title="Cambiar responsable" onClick={openEditarEmpleado}>
+                                    <button className="inline-flex size-[18px] cursor-pointer items-center justify-center rounded-full border-0 bg-transparent p-0 text-text-muted hover:bg-neutral-soft hover:text-text" title="Cambiar responsable" onClick={openEditarEmpleado}>
                                       <MdEdit size={12} />
                                     </button>
                                   ) : (
-                                    <button className="mecanico-chip__action" title="Quitar mecánico" onClick={() => handleQuitarMecanico(m.Id_Empleado)} disabled={actionLoading}>
+                                    <button className="inline-flex size-[18px] cursor-pointer items-center justify-center rounded-full border-0 bg-transparent p-0 text-text-muted hover:bg-neutral-soft hover:text-text" title="Quitar mecánico" onClick={() => handleQuitarMecanico(m.Id_Empleado)} disabled={actionLoading}>
                                       <MdClose size={12} />
                                     </button>
                                   )
@@ -868,7 +909,7 @@ export default function OrdenesPage() {
                           )}
                         </div>
                         {!contenidoBloqueado && puedeEditar && (
-                          <div className="mecanico-add">
+                          <div className="max-w-[260px]">
                             <SearchableSelect
                               options={tecnicosOpts
                                 .filter(t => !mecanicosAsignados.some(m => String(m.Id_Empleado) === String(t.Id_Empleado ?? t.id_empleado)))
@@ -889,16 +930,16 @@ export default function OrdenesPage() {
                   <div className="detail-item u-span-2">
                     <span className="detail-label">Observación</span>
                     {obsEdit === null ? (
-                      <span className="detail-value empleado-value-row">
+                      <span className="detail-value flex items-center gap-xs">
                         {selected.Observacion || '—'}
                         {puedeEditar && (
                           <button className="btn btn--ghost btn--icon btn--sm" title="Editar observación" onClick={() => setObsEdit(selected.Observacion || '')}><MdEdit size={15} /></button>
                         )}
                       </span>
                     ) : (
-                      <div className="orden-obs-edit">
+                      <div className="mt-xs flex flex-col gap-sm">
                         <textarea className="form-control" rows={2} maxLength={500} value={obsEdit} onChange={e => setObsEdit(e.target.value)} placeholder="Observaciones de la orden..." />
-                        <div className="orden-obs-edit__actions">
+                        <div className="flex gap-sm">
                           <button className="btn btn--outline btn--sm" onClick={() => setObsEdit(null)} disabled={actionLoading}>Cancelar</button>
                           <button className="btn btn--primary btn--sm" onClick={handleSaveObservacion} disabled={actionLoading}>{actionLoading ? 'Guardando...' : 'Guardar'}</button>
                         </div>
@@ -938,7 +979,7 @@ export default function OrdenesPage() {
                         <MdArrowForward size={15} /> Necesito más tiempo
                       </button>
                     ) : (
-                      <div className="orden-obs-edit">
+                      <div className="mt-xs flex flex-col gap-sm">
                         <p className="detail-label u-mb-sm">¿Cuántos minutos adicionales necesitas?</p>
                         <input
                           type="number" min="1" max="240" step="1"
@@ -947,7 +988,7 @@ export default function OrdenesPage() {
                           onChange={e => setMinutosExtension(e.target.value)}
                         />
                         {extendError && <p className="form-error">{extendError}</p>}
-                        <div className="orden-obs-edit__actions">
+                        <div className="flex gap-sm">
                           <button className="btn btn--outline btn--sm" onClick={() => { setExtendiendoTiempo(false); setExtendError(''); }} disabled={actionLoading}>Cancelar</button>
                           <button className="btn btn--primary btn--sm" onClick={handleExtenderDuracion} disabled={actionLoading}>{actionLoading ? 'Guardando...' : 'Confirmar'}</button>
                         </div>
@@ -970,18 +1011,18 @@ export default function OrdenesPage() {
                   const info = repuestoById[String(r.Id_Repuesto)];
                   return (r.TiempoGarantia ?? info?.TiempoGarantia);
                 }) && (
-                  <div className="orden-garantias-section">
+                  <div className="mt-xl">
                     <p className="detail-label">Garantías de repuestos</p>
-                    <div className="orden-garantias-list">
+                    <div className="mt-sm flex flex-col gap-xs">
                       {selected.repuestos.map((r, i) => {
                         const info = repuestoById[String(r.Id_Repuesto)];
                         const garantia = r.TiempoGarantia ?? info?.TiempoGarantia;
                         const unidad = r.UnidadGarantia ?? info?.UnidadGarantia ?? 'meses';
                         if (!garantia) return null;
                         return (
-                          <div key={i} className="orden-garantia-item">
-                            <span className="orden-garantia-nombre">{r.repuesto || r.Nombre || `Repuesto #${r.Id_Repuesto}`}</span>
-                            <span className="orden-garantia-badge">✓ {garantia} {unidad}</span>
+                          <div key={i} className="flex items-center justify-between rounded-md border border-primary-pale-2 bg-primary-50 px-lg py-sm text-body">
+                            <span className="font-medium text-text">{r.repuesto || r.Nombre || `Repuesto #${r.Id_Repuesto}`}</span>
+                            <span className="shrink-0 whitespace-nowrap rounded-full border border-primary-pale-2 bg-primary-soft px-md py-[0.2rem] text-caption font-bold text-primary-soft-on">✓ {garantia} {unidad}</span>
                           </div>
                         );
                       })}
@@ -1018,13 +1059,13 @@ export default function OrdenesPage() {
                             return (
                             <div key={i} className="orden-item-row">
                               <span className="orden-item-name">
-                                {prefijo && <span className="orden-item-tecnico-prefijo">{prefijo}</span>}
+                                {prefijo && <span className="font-bold text-text-muted">{prefijo}</span>}
                                 {s.servicio || s.Nombre || s.nombre || `Servicio #${s.Id_Servicio}`}
                               </span>
-                              <span className="orden-item-duracion u-muted-nowrap" title="Duración estimada">{fmtDuracion(s.DuracionMinutos)}</span>
+                              <span className="u-muted-nowrap" title="Duración estimada">{fmtDuracion(s.DuracionMinutos)}</span>
                               <span className="orden-item-price">{formatCurrency(s.precio_unitario || s.Precio)}</span>
                               {!contenidoBloqueado && (
-                                <button className="btn btn--ghost btn--icon btn--sm orden-item-delete" title="Eliminar servicio" onClick={() => handleDeleteServicio(s.Id_Servicio)} disabled={actionLoading}>
+                                <button className="btn btn--ghost btn--icon btn--sm ml-auto shrink-0 text-text-muted opacity-60 transition-[opacity,color] duration-150 hover:not-disabled:opacity-100 hover:not-disabled:text-danger" title="Eliminar servicio" onClick={() => handleDeleteServicio(s.Id_Servicio)} disabled={actionLoading}>
                                   <MdDeleteOutline size={16} />
                                 </button>
                               )}
@@ -1036,14 +1077,14 @@ export default function OrdenesPage() {
                       {servItems.length > 0 && (
                         <div className="orden-item-row u-semibold">
                           <span className="orden-item-name">Tiempo total estimado</span>
-                          <span className="orden-item-duracion u-nowrap">{fmtDuracion(selected?.DuracionTotalMin)}</span>
+                          <span className="u-nowrap">{fmtDuracion(selected?.DuracionTotalMin)}</span>
                           <span className="orden-item-price" />
                         </div>
                       )}
                       {servItems.length > ITEMS_PER_PAGE && (
-                        <div className="pagination-controls">
+                        <div className="mt-sm flex items-center justify-center gap-md py-md">
                           <button className="btn btn--outline btn--sm" onClick={() => setServPage(p => p - 1)} disabled={servPage === 0}>Anterior</button>
-                          <span className="pagination-info">Mostrando {servStart + 1}–{Math.min(servStart + ITEMS_PER_PAGE, servItems.length)} de {servItems.length}</span>
+                          <span className="min-w-[160px] text-center text-small text-text-muted">Mostrando {servStart + 1}–{Math.min(servStart + ITEMS_PER_PAGE, servItems.length)} de {servItems.length}</span>
                           <button className="btn btn--outline btn--sm" onClick={() => setServPage(p => p + 1)} disabled={servStart + ITEMS_PER_PAGE >= servItems.length}>Siguiente</button>
                         </div>
                       )}
@@ -1051,14 +1092,14 @@ export default function OrdenesPage() {
                   );
                 })()}
 
-                <div className="mano-de-obra-section">
-                  <div className="mano-de-obra-header">
-                    <MdBuild size={16} className="mano-de-obra-icon" />
-                    <span className="mano-de-obra-title">Mano de obra</span>
+                <div className="mb-xl rounded-lg border-[1.5px] border-dashed border-border bg-surface px-lg py-md">
+                  <div className="mb-md flex items-center gap-sm">
+                    <MdBuild size={16} className="text-primary-soft-on" />
+                    <span className="text-body font-bold text-text">Mano de obra</span>
                   </div>
                   {manoDeObra != null && !editingMano ? (
-                    <div className="mano-de-obra-row">
-                      <span className="mano-de-obra-value">{formatCurrency(manoDeObra)}</span>
+                    <div className="flex items-center gap-lg">
+                      <span className="flex-1 text-h3 font-bold text-text">{formatCurrency(manoDeObra)}</span>
                       {!contenidoBloqueado && (
                         <button className="btn btn--outline btn--sm" onClick={() => { setManoInput(String(manoDeObra)); setEditingMano(true); }}>
                           <MdEdit size={15} /> Editar
@@ -1066,7 +1107,7 @@ export default function OrdenesPage() {
                       )}
                     </div>
                   ) : !contenidoBloqueado ? (
-                    <div className="mano-de-obra-form">
+                    <div className="flex items-center gap-sm [&_.form-control]:flex-1 [&_.form-control]:max-w-[200px]">
                       <input type="number" min="0" className="form-control" placeholder="Valor mano de obra..." value={manoInput} onChange={e => setManoInput(e.target.value)} />
                       <button className="btn btn--primary btn--sm" onClick={handleSetMano} disabled={actionLoading || !manoInput}>
                         {actionLoading ? 'Guardando...' : 'Guardar'}
@@ -1082,18 +1123,18 @@ export default function OrdenesPage() {
                 </div>
 
                 {!contenidoBloqueado && (
-                  <div className="orden-add-form">
-                    <div className="orden-add-form__head">
+                  <div className="border-t border-border pt-lg [&_h4]:mb-md [&_h4]:text-body [&_h4]:font-bold [&_h4]:text-text">
+                    <div className="mb-md flex flex-wrap items-center justify-between gap-sm [&_h4]:mb-0">
                       <h4>Agregar servicio</h4>
-                      <div className="orden-add-toggle">
-                        <button type="button" className={`orden-seg-btn${modoServ === 'existente' ? ' orden-seg-btn--active' : ''}`} onClick={() => { setModoServ('existente'); setAddServError(''); }}>Existente</button>
-                        <button type="button" className={`orden-seg-btn${modoServ === 'nuevo' ? ' orden-seg-btn--active' : ''}`} onClick={() => { setModoServ('nuevo'); setAddServError(''); }}>Crear nuevo</button>
+                      <div className="inline-flex shrink-0 gap-[2px] rounded-full border border-border bg-surface-raised p-[3px]">
+                        <button type="button" className={`cursor-pointer whitespace-nowrap rounded-full border-0 bg-transparent px-lg py-xs font-[inherit] text-small font-semibold text-text-muted transition-colors duration-150 hover:bg-neutral-soft hover:text-text${modoServ === 'existente' ? ' bg-primary-strong text-primary-on hover:bg-primary-strong hover:text-primary-on' : ''}`} onClick={() => { setModoServ('existente'); setAddServError(''); }}>Existente</button>
+                        <button type="button" className={`cursor-pointer whitespace-nowrap rounded-full border-0 bg-transparent px-lg py-xs font-[inherit] text-small font-semibold text-text-muted transition-colors duration-150 hover:bg-neutral-soft hover:text-text${modoServ === 'nuevo' ? ' bg-primary-strong text-primary-on hover:bg-primary-strong hover:text-primary-on' : ''}`} onClick={() => { setModoServ('nuevo'); setAddServError(''); }}>Crear nuevo</button>
                       </div>
                     </div>
                     {addServError && <div className="form-error-box u-mb-sm">{addServError}</div>}
                     {modoServ === 'existente' ? (
                       <>
-                        <div className="orden-add-row">
+                        <div className="flex flex-wrap items-center gap-md [&_.form-control]:flex-1 [&_.form-control]:min-w-[120px] [&_.btn]:shrink-0 [&_.btn]:self-start">
                           <SearchableSelect
                             options={serviciosOpts.map(s => ({ value: String(s.Id_Servicio), label: s.Nombre }))}
                             value={addServForm.Id_Servicio}
@@ -1121,16 +1162,16 @@ export default function OrdenesPage() {
                       </>
                     ) : (
                       <>
-                        <div className="orden-add-row">
-                          <div className="orden-add-field">
+                        <div className="flex flex-wrap items-center gap-md [&_.form-control]:flex-1 [&_.form-control]:min-w-[120px] [&_.btn]:shrink-0 [&_.btn]:self-start">
+                          <div className="flex min-w-[120px] flex-1 flex-col gap-[2px] [&_.form-error]:m-0">
                             <input name="Nombre" className={`form-control ${servVal.fieldError('Nombre') ? 'is-error' : ''}`} placeholder="Nombre del servicio" value={nuevoServ.Nombre} onChange={handleServChange} onBlur={handleServBlur} maxLength={80} />
                             {servVal.fieldError('Nombre') && <p className="form-error">{servVal.fieldError('Nombre')}</p>}
                           </div>
-                          <div className="orden-add-field">
+                          <div className="flex min-w-[120px] flex-1 flex-col gap-[2px] [&_.form-error]:m-0">
                             <input name="Precio" type="number" min="0" className={`form-control ${servVal.fieldError('Precio') ? 'is-error' : ''}`} placeholder="Precio" value={nuevoServ.Precio} onChange={handleServChange} onBlur={handleServBlur} />
                             {servVal.fieldError('Precio') && <p className="form-error">{servVal.fieldError('Precio')}</p>}
                           </div>
-                          <div className="orden-add-field">
+                          <div className="flex min-w-[120px] flex-1 flex-col gap-[2px] [&_.form-error]:m-0">
                             <input name="DuracionMinutos" type="number" min="1" className="form-control" placeholder="Duración (min, opcional)" value={nuevoServ.DuracionMinutos} onChange={handleServChange} />
                           </div>
                           <button className="btn btn--primary btn--sm" onClick={handleCrearServicioInline} disabled={actionLoading || servVal.isInvalid(nuevoServ) || (hayMultiplesMecanicos && !nuevoServ.Id_Empleado)}><MdAdd size={16} />Crear y agregar</button>
@@ -1171,18 +1212,18 @@ export default function OrdenesPage() {
                             // Servicios (ver mostrarPrefijoTecnico).
                             return (
                               <div key={i} className="orden-item-row">
-                                <div className="orden-item-name-group">
+                                <div className="flex flex-1 flex-wrap items-center gap-sm">
                                   <span className="orden-item-name">
                                     {r.repuesto || r.Nombre || r.nombre || `Repuesto #${r.Id_Repuesto}`}
                                   </span>
                                   {garantia && (
-                                    <span className="orden-item-garantia">· Garantía: {garantia} {unidad}</span>
+                                    <span className="whitespace-nowrap rounded-full border border-primary-pale-2 bg-primary-soft px-sm py-[0.1rem] text-[0.7rem] font-semibold text-primary-soft-on">· Garantía: {garantia} {unidad}</span>
                                   )}
                                 </div>
                                 <span className="orden-item-qty">x{r.cantidad || r.Cantidad}</span>
                                 <span className="orden-item-price">{formatCurrency((r.precio_unitario || r.PrecioVenta || 0) * (r.cantidad || r.Cantidad || 1))}</span>
                                 {!contenidoBloqueado && (
-                                  <button className="btn btn--ghost btn--icon btn--sm orden-item-delete" title="Eliminar repuesto" onClick={() => handleDeleteRepuesto(r.Id_Repuesto)} disabled={actionLoading}>
+                                  <button className="btn btn--ghost btn--icon btn--sm ml-auto shrink-0 text-text-muted opacity-60 transition-[opacity,color] duration-150 hover:not-disabled:opacity-100 hover:not-disabled:text-danger" title="Eliminar repuesto" onClick={() => handleDeleteRepuesto(r.Id_Repuesto)} disabled={actionLoading}>
                                     <MdDeleteOutline size={16} />
                                   </button>
                                 )}
@@ -1192,9 +1233,9 @@ export default function OrdenesPage() {
                         ) : <p className="empty-list">No hay repuestos agregados.</p>}
                       </div>
                       {repItems.length > ITEMS_PER_PAGE && (
-                        <div className="pagination-controls">
+                        <div className="mt-sm flex items-center justify-center gap-md py-md">
                           <button className="btn btn--outline btn--sm" onClick={() => setRepPage(p => p - 1)} disabled={repPage === 0}>Anterior</button>
-                          <span className="pagination-info">Mostrando {repStart + 1}–{Math.min(repStart + ITEMS_PER_PAGE, repItems.length)} de {repItems.length}</span>
+                          <span className="min-w-[160px] text-center text-small text-text-muted">Mostrando {repStart + 1}–{Math.min(repStart + ITEMS_PER_PAGE, repItems.length)} de {repItems.length}</span>
                           <button className="btn btn--outline btn--sm" onClick={() => setRepPage(p => p + 1)} disabled={repStart + ITEMS_PER_PAGE >= repItems.length}>Siguiente</button>
                         </div>
                       )}
@@ -1208,18 +1249,18 @@ export default function OrdenesPage() {
                 </div>
 
                 {!contenidoBloqueado && (
-                  <div className="orden-add-form">
-                    <div className="orden-add-form__head">
+                  <div className="border-t border-border pt-lg [&_h4]:mb-md [&_h4]:text-body [&_h4]:font-bold [&_h4]:text-text">
+                    <div className="mb-md flex flex-wrap items-center justify-between gap-sm [&_h4]:mb-0">
                       <h4>Agregar repuesto</h4>
-                      <div className="orden-add-toggle">
-                        <button type="button" className={`orden-seg-btn${modoRep === 'existente' ? ' orden-seg-btn--active' : ''}`} onClick={() => { setModoRep('existente'); setAddRepError(''); }}>Existente</button>
-                        <button type="button" className={`orden-seg-btn${modoRep === 'nuevo' ? ' orden-seg-btn--active' : ''}`} onClick={() => { setModoRep('nuevo'); setAddRepError(''); }}>Crear nuevo</button>
+                      <div className="inline-flex shrink-0 gap-[2px] rounded-full border border-border bg-surface-raised p-[3px]">
+                        <button type="button" className={`cursor-pointer whitespace-nowrap rounded-full border-0 bg-transparent px-lg py-xs font-[inherit] text-small font-semibold text-text-muted transition-colors duration-150 hover:bg-neutral-soft hover:text-text${modoRep === 'existente' ? ' bg-primary-strong text-primary-on hover:bg-primary-strong hover:text-primary-on' : ''}`} onClick={() => { setModoRep('existente'); setAddRepError(''); }}>Existente</button>
+                        <button type="button" className={`cursor-pointer whitespace-nowrap rounded-full border-0 bg-transparent px-lg py-xs font-[inherit] text-small font-semibold text-text-muted transition-colors duration-150 hover:bg-neutral-soft hover:text-text${modoRep === 'nuevo' ? ' bg-primary-strong text-primary-on hover:bg-primary-strong hover:text-primary-on' : ''}`} onClick={() => { setModoRep('nuevo'); setAddRepError(''); }}>Crear nuevo</button>
                       </div>
                     </div>
                     {addRepError && <div className="form-error-box u-mb-sm">{addRepError}</div>}
                     {modoRep === 'existente' ? (
                       <>
-                        <div className="orden-add-row">
+                        <div className="flex flex-wrap items-center gap-md [&_.form-control]:flex-1 [&_.form-control]:min-w-[120px] [&_.btn]:shrink-0 [&_.btn]:self-start">
                           <SearchableSelect
                             options={repuestosOpts.map(r => ({ ...r, _label: r.NombreRepuesto ?? r.Nombre ?? '' }))}
                             value={addRepForm.Id_Repuesto}
@@ -1252,12 +1293,12 @@ export default function OrdenesPage() {
                       </>
                     ) : (
                       <>
-                        <div className="orden-add-row">
-                          <div className="orden-add-field">
+                        <div className="flex flex-wrap items-center gap-md [&_.form-control]:flex-1 [&_.form-control]:min-w-[120px] [&_.btn]:shrink-0 [&_.btn]:self-start">
+                          <div className="flex min-w-[120px] flex-1 flex-col gap-[2px] [&_.form-error]:m-0">
                             <input name="NombreRepuesto" className={`form-control ${repVal.fieldError('NombreRepuesto') ? 'is-error' : ''}`} placeholder="Nombre del repuesto" value={nuevoRep.NombreRepuesto} onChange={handleRepChange} onBlur={handleRepBlur} maxLength={120} />
                             {repVal.fieldError('NombreRepuesto') && <p className="form-error">{repVal.fieldError('NombreRepuesto')}</p>}
                           </div>
-                          <div className="orden-add-field">
+                          <div className="flex min-w-[120px] flex-1 flex-col gap-[2px] [&_.form-error]:m-0">
                             <SearchableSelect
                               options={categoriasOpts.map(c => ({ value: String(c.Id_categoria ?? c.Id_Categoria), label: c.Nombre ?? c.nombre }))}
                               value={nuevoRep.Id_categoria}
@@ -1266,11 +1307,11 @@ export default function OrdenesPage() {
                             />
                             {repVal.fieldError('Id_categoria') && <p className="form-error">{repVal.fieldError('Id_categoria')}</p>}
                           </div>
-                          <div className="orden-add-field">
+                          <div className="flex min-w-[120px] flex-1 flex-col gap-[2px] [&_.form-error]:m-0">
                             <input name="cantidad" type="number" min="1" className={`form-control ${repVal.fieldError('cantidad') ? 'is-error' : ''}`} placeholder="Cantidad" value={nuevoRep.cantidad} onChange={handleRepChange} onBlur={handleRepBlur} />
                             {repVal.fieldError('cantidad') && <p className="form-error">{repVal.fieldError('cantidad')}</p>}
                           </div>
-                          <div className="orden-add-field">
+                          <div className="flex min-w-[120px] flex-1 flex-col gap-[2px] [&_.form-error]:m-0">
                             <input name="precio_unitario" type="number" min="0" className={`form-control ${repVal.fieldError('precio_unitario') ? 'is-error' : ''}`} placeholder="Precio unitario" value={nuevoRep.precio_unitario} onChange={handleRepChange} onBlur={handleRepBlur} />
                             {repVal.fieldError('precio_unitario') && <p className="form-error">{repVal.fieldError('precio_unitario')}</p>}
                           </div>

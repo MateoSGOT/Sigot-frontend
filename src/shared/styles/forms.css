@@ -185,3 +185,75 @@ textarea.form-control {
   font-size: var(--text-caption, 0.75rem);
   margin-left: 4px;
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   WIDGETS DE FORMULARIO COMPARTIDOS
+
+   Estaban duplicados, con valores IDENTICOS, en dos o tres CSS de pagina:
+     .file-upload-*   en Clientes y Empleados
+     .convertir-box*  en Clientes y Empleados (los usan los modales
+                      ConvertirAEmpleadoModal / ConvertirAClienteModal, que ya
+                      son componentes compartidos)
+     .client-*        en Clientes y Vehiculos (buscador de cliente)
+
+   Con el mismo valor no se notaba nada, pero el CSS es global: eran dos
+   definiciones del mismo selector esperando a divergir en la primera edicion
+   -- exactamente como paso con .cell-user__avatar--initial, que acabo
+   divergiendo entre Clientes y Cuentas, y con .descripcion-cell entre
+   Novedades y Servicios.
+
+   Peor todavia: CuentasPage usaba .cell-user__avatar sin definirla, confiando
+   en la copia de ClientesPage.css -- que solo carga si el usuario paso antes
+   por Clientes. Ese tipo de dependencia entre hojas de paginas distintas es lo
+   que esta consolidacion elimina.
+
+   scripts/auditar-colisiones.mjs reporta esta clase de duplicacion.
+   ═══════════════════════════════════════════════════════════════════════════ */
+/* File upload */
+.file-upload-wrap { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
+
+.file-upload-preview { width: 64px; height: 64px; border-radius: 50%; object-fit: cover; border: 2px solid rgba(245, 158, 11,0.35); flex-shrink: 0; }
+
+.file-upload-area { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.25rem; padding: 0.625rem 1.25rem; border: 1.5px dashed rgba(245, 158, 11,0.25); border-radius: 10px; cursor: pointer; transition: border-color 0.18s ease, background 0.18s ease; min-width: 160px; }
+
+.file-upload-area:hover { border-color: rgba(245, 158, 11,0.5); background: rgba(245, 158, 11,0.04); }
+
+.file-upload-label { font-size: 0.875rem; font-weight: 500; color: var(--color-text-muted); }
+
+/* Era rgba(255,255,255,0.28) -- blanco al 28%, resto del tema oscuro. Sobre
+   el formulario claro es texto INVISIBLE. La auditoria de paleta no lo
+   detecta porque el blanco cuenta como absoluto; salio a la luz al
+   consolidar la copia duplicada. */
+.file-upload-hint { font-size: var(--text-caption); color: var(--color-text-light); }
+
+/* Convertir a empleado (dentro del form de edición, solo superadmin) */
+.convertir-box {
+  margin-top: var(--space-sm);
+  padding-top: var(--space-md);
+  border-top: 1px dashed var(--color-border, var(--color-border));
+}
+
+.convertir-box__head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  font-weight: var(--weight-semibold, 600);
+  color: var(--color-text);
+  margin-bottom: var(--space-xs);
+}
+
+.convertir-box__intro {
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+  margin: 0 0 var(--space-sm);
+}
+/* Client search dropdown */
+.client-search-wrap { position: relative; }
+
+.client-dropdown { position: absolute; top: calc(100% + 4px); left: 0; right: 0; background: var(--color-surface, var(--sidebar-bg-raised)); border: 1px solid rgba(245, 158, 11,0.18); border-radius: 10px; box-shadow: 0 8px 24px rgba(0,0,0,0.3); z-index: 50; max-height: 220px; overflow-y: auto; }
+
+.client-dropdown-item { display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0.875rem; cursor: pointer; transition: background 0.14s; font-size: 0.875rem; }
+
+.client-dropdown-item:hover { background: rgba(245, 158, 11,0.08); }
+
+.client-dropdown-item span:last-child { font-size: 0.75rem; color: var(--color-text-muted); }

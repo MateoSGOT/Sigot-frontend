@@ -150,8 +150,8 @@ export default function CuentasPage() {
     { key: '#', label: '#', width: '50px', render: (_, __, i) => i + 1 },
     {
       key: 'Nombre', label: 'Nombre', render: (v, row) => (
-        <div className="cell-user">
-          <div className="cell-user__avatar cell-user__avatar--initial">{v?.charAt(0)}</div>
+        <div className="flex items-center gap-sm">
+          <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-accent-soft text-small font-bold uppercase text-accent-soft-on">{v?.charAt(0)}</div>
           <span className="font-semibold">{v}</span>
           {esUnoMismo(row) && <Badge variant="gray" style={{ marginLeft: '0.5rem', fontSize: '0.7rem' }}>Tú</Badge>}
         </div>

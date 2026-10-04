@@ -1,17 +1,7 @@
-.text-success { color: var(--color-success); }
-.text-danger { color: var(--color-danger); }
-.text-muted { color: var(--color-text-muted); }
 .novedades-list { display: flex; flex-direction: column; gap: 0.625rem; }
 .novedad-item { display: flex; align-items: flex-start; gap: 0.625rem; padding: 0.75rem; background: rgba(245, 158, 11, 0.10); border: 1px solid rgba(245, 158, 11, 0.25); border-radius: 8px; }
 
 /* File upload */
-.file-upload-wrap { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
-.file-upload-preview { width: 64px; height: 64px; border-radius: 50%; object-fit: cover; border: 2px solid rgba(245, 158, 11,0.35); flex-shrink: 0; }
-.file-upload-area { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.25rem; padding: 0.625rem 1.25rem; border: 1.5px dashed rgba(245, 158, 11,0.25); border-radius: 10px; cursor: pointer; transition: border-color 0.18s ease, background 0.18s ease; min-width: 160px; }
-.file-upload-area:hover { border-color: rgba(245, 158, 11,0.5); background: rgba(245, 158, 11,0.04); }
-.file-upload-label { font-size: 0.875rem; font-weight: 500; color: var(--color-text-muted); }
-.file-upload-hint { font-size: 0.7rem; color: rgba(255,255,255,0.28); }
-
 /* Celda de nombre con avatar (reemplaza inline styles, tokens) */
 .emp-cell { display: flex; align-items: center; gap: var(--space-sm); }
 .emp-avatar { width: 28px; height: 28px; border-radius: var(--radius-full); object-fit: cover; flex-shrink: 0; }
@@ -22,25 +12,6 @@
   font-size: var(--text-caption); font-weight: var(--weight-bold);
 }
 /* Convertir a cliente (dentro del form de edición, solo superadmin) */
-.convertir-box {
-  margin-top: var(--space-sm);
-  padding-top: var(--space-md);
-  border-top: 1px dashed var(--color-border, var(--color-border));
-}
-.convertir-box__head {
-  display: flex;
-  align-items: center;
-  gap: var(--space-xs);
-  font-weight: var(--weight-semibold, 600);
-  color: var(--color-text);
-  margin-bottom: var(--space-xs);
-}
-.convertir-box__intro {
-  font-size: 0.8125rem;
-  color: var(--color-text-muted);
-  margin: 0 0 var(--space-sm);
-}
-
 /* Banner de novedades activas */
 .emp-novedad-banner {
   margin: var(--space-md) var(--space-2xl) 0;

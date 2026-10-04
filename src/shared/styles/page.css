@@ -131,7 +131,12 @@
 }
 @media (max-width: 1023px) {
   .bento { gap: var(--space-lg); padding: var(--space-lg) var(--space-lg) var(--space-xl); }
-  .bento__module--3,
+  /* Los modulos de 3 columnas son celdas de METRICA: una cifra corta con su
+     rotulo. A ancho completo, cuatro de ellas ocupan ~360px antes de que
+     aparezca la primera fila de datos -- media pantalla de celular gastada en
+     el resumen. A 2x2 siguen siendo legibles y el contenido real sube.
+     Verificado en el navegador a 390px. */
+  .bento__module--3 { grid-column: span 6; }
   .bento__module--4,
   .bento__module--5,
   .bento__module--6,

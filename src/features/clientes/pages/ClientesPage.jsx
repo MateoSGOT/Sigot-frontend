@@ -173,10 +173,10 @@ export default function ClientesPage() {
     { key: '#', label: '#', width: '50px', render: (_, __, i) => i + 1 },
     {
       key: 'Nombre', label: 'Nombre', render: (v, row) => (
-        <div className="cell-user">
+        <div className="flex items-center gap-sm">
           {row.Foto
-            ? <img src={row.Foto} alt="" className="cell-user__avatar" />
-            : <div className="cell-user__avatar cell-user__avatar--initial">{v?.charAt(0)}</div>}
+            ? <img src={row.Foto} alt="" className="size-8 shrink-0 rounded-full object-cover" />
+            : <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-accent-soft text-small font-bold uppercase text-accent-soft-on">{v?.charAt(0)}</div>}
           <span className="font-semibold">{v}</span>
         </div>
       )
