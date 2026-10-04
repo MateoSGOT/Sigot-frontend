@@ -1,9 +1,16 @@
 /* ═══════════════════════════════════════════════════════════════════════════
    Barra de navegación inferior (solo <1024px).
 
-   Comparte el negro del sidebar a propósito: en móvil esta barra ES la
-   estructura de navegación, así que tiene que leerse como el mismo elemento
-   que el drawer que abre, no como un componente ajeno pegado abajo.
+   Comparte el VIDRIO CLARO del sidebar a propósito: en móvil esta barra ES la
+   estructura de navegación, así que tiene que leerse como el mismo material que
+   el drawer que abre, no como un componente ajeno pegado abajo.
+
+   Era negra, coherente cuando el sidebar lo era. Al pasar el sidebar a vidrio
+   claro, esta barra heredó --sidebar-bg (ahora blanco al 80%) pero conservaba
+   --sidebar-icon y --color-primary-pale-3 como colores de icono y de activo:
+   los dos claros, es decir blanco sobre blanco. Los tokens --sidebar-* ya están
+   reafinados para superficie clara, y el activo pasa a --color-primary-soft-on,
+   que es el par medido (7.49:1).
    ═══════════════════════════════════════════════════════════════════════════ */
 .bottomnav {
   position: fixed;
@@ -16,11 +23,16 @@
   display: flex;
   align-items: stretch;
   background: var(--sidebar-bg);
+  /* El desenfoque es lo que la vuelve vidrio y no un bloque blanco opaco: deja
+     entrever el contenido que pasa por debajo al hacer scroll. */
+  -webkit-backdrop-filter: blur(16px) saturate(1.1);
+  backdrop-filter: blur(16px) saturate(1.1);
   border-top: 1px solid var(--sidebar-border);
   /* El canto superior redondeado la separa del contenido sin una línea dura. */
   border-radius: var(--radius-lg) var(--radius-lg) 0 0;
-  /* Hacia arriba, para que la barra se lea por encima del canvas. */
-  box-shadow: 0 -4px 20px rgba(10, 10, 11, 0.16);
+  /* Hacia arriba, para que la barra se lea por encima del canvas. Suave: con la
+     sombra fuerte de antes, sobre superficie clara se veía como una mancha. */
+  box-shadow: 0 -2px 16px rgba(10, 10, 11, 0.06);
   /* Zona segura del iPhone: sin esto, los últimos píxeles de los rótulos quedan
      debajo de la barra de gestos del sistema. */
   padding-bottom: env(safe-area-inset-bottom, 0px);
@@ -69,7 +81,10 @@
 }
 
 .bottomnav__item--active {
-  color: var(--color-primary-pale-3);
+  /* Par medido sobre la superficie efectiva del vidrio claro: 7.49:1.
+     Antes era --color-primary-pale-3, un azul claro pensado para destacar
+     sobre negro; sobre blanco es prácticamente invisible. */
+  color: var(--color-primary-soft-on);
 }
 .bottomnav__item--active::before {
   transform: scaleX(1);

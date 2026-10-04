@@ -1,4 +1,8 @@
 import React, { useRef } from 'react';
+// Se importa como `Motion` (mayuscula): la config de eslint del proyecto exime de
+// no-unused-vars solo lo que empieza en mayuscula, y sin eslint-plugin-react la
+// regla no reconoce el JSX con miembro (<Motion.div>) como un uso.
+import { motion as Motion, AnimatePresence } from 'motion/react';
 import { MdCheck } from 'react-icons/md';
 import './flujo-progresivo.css';
 
@@ -7,6 +11,56 @@ import './flujo-progresivo.css';
    comporten igual en los dos; la lógica de pasos está en useFlujoProgresivo.js. */
 
 const OTP_LARGO = 6;
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   PASO ANIMADO — deslizamiento físico entre pasos
+
+   Reemplaza los keyframes CSS que coreografiaba el hook con setTimeout. Lo que
+   cambia de verdad, más allá del tipo de curva:
+
+   · mode="wait" hace que la SALIDA termine antes de montar la entrada. Antes
+     eso lo garantizaba un setTimeout(220ms) que tenía que coincidir a mano con
+     la duración del CSS; si no coincidía, el contenido se cambiaba a mitad del
+     desvanecido.
+   · Dos avances rápidos ya no se pisan. Con temporizadores, los de la primera
+     transición seguían vivos y sobreescribían el estado de la segunda.
+   · Un spring no tiene duración fija: si el usuario interrumpe, el movimiento
+     continúa desde la posición y la velocidad actuales en vez de saltar. Eso es
+     lo que hace que se sienta nativo.
+
+   `custom` pasa la dirección a las variantes, así que al retroceder el paso
+   entra por la izquierda en vez de repetir el gesto de avance.
+
+   Solo se animan x y opacity: las dos las resuelve el compositor sin repintar.
+   prefers-reduced-motion lo cubre <MotionConfig reducedMotion="user"> en
+   main.jsx, que desactiva el transform y deja pasar la opacidad.
+   ═══════════════════════════════════════════════════════════════════════════ */
+const RESORTE_PASO = { type: 'spring', stiffness: 380, damping: 34, mass: 0.85 };
+
+const VARIANTES_PASO = {
+  entra:  (dir) => ({ x: dir >= 0 ? 32 : -32, opacity: 0 }),
+  centro: { x: 0, opacity: 1 },
+  sale:   (dir) => ({ x: dir >= 0 ? -32 : 32, opacity: 0 }),
+};
+
+export function PasoAnimado({ paso, direccion = 1, className, children }) {
+  return (
+    <AnimatePresence mode="wait" custom={direccion} initial={false}>
+      <Motion.div
+        key={paso}
+        className={className}
+        custom={direccion}
+        variants={VARIANTES_PASO}
+        initial="entra"
+        animate="centro"
+        exit="sale"
+        transition={RESORTE_PASO}
+      >
+        {children}
+      </Motion.div>
+    </AnimatePresence>
+  );
+}
 
 /* ─── Barra de progreso líquida + bolitas de cada paso ─── */
 export function BarraProgreso({ pasos, paso }) {

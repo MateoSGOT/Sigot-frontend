@@ -26,7 +26,11 @@
 
 .layout__main {
   flex: 1;
-  margin-left: var(--sidebar-width);
+  /* El sidebar FLOTA: está en `left: var(--sidebar-inset)` con su propio ancho,
+     así que el contenido no empieza en --sidebar-width sino después del inset
+     de la izquierda, el ancho del panel y un inset más de separación. Con solo
+     --sidebar-width el contenido quedaba 24px por debajo del panel. */
+  margin-left: calc(var(--sidebar-width) + 2 * var(--sidebar-inset));
   /* El fondo lo pinta la capa fija de body::before (ver globals.css): acá iba
      `background: var(--bg-app)` con `background-attachment: fixed`, y como este
      ES el contenedor que scrollea, obligaba a repintar el fondo en cada frame
@@ -43,7 +47,9 @@
 
 /* Sidebar colapsado (solo escritorio): el contenido usa el ancho reducido */
 @media (min-width: 1024px) {
-  .layout--collapsed .layout__main { margin-left: var(--sidebar-collapsed-width, 76px); }
+  .layout--collapsed .layout__main {
+    margin-left: calc(var(--sidebar-collapsed-width) + 2 * var(--sidebar-inset));
+  }
 }
 
 /* Hamburguesa + overlay: solo en tablet/móvil (<1024) */
@@ -78,23 +84,23 @@
     position: fixed; top: 12px; left: 12px; z-index: 1000;
     width: 40px; height: 40px; border-radius: 11px;
     display: flex; align-items: center; justify-content: center;
-    /* Discreto: vidrio translúcido, sin glow. Se nota poco y deja entrever
-       el contenido que hay detrás (no lo "opaca"). */
-    /* Mismo negro que --sidebar-bg con alfa: el botón tiene que leerse como
-       "el borde del sidebar", no como otro tono. Se escribe en rgba y no con el
-       token porque necesita canal alfa, y el token es un hex sin alfa. */
-    background: rgba(10, 10, 11, 0.52);
-    -webkit-backdrop-filter: blur(8px) saturate(1.2);
-    backdrop-filter: blur(8px) saturate(1.2);
-    color: rgba(255, 255, 255, 0.82);
-    border: 1px solid rgba(255, 255, 255, 0.14);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.14);
+    /* Mismo vidrio CLARO que el sidebar: el botón tiene que leerse como "el
+       borde del panel que abre", no como otro material. Era vidrio oscuro
+       (rgba(10,10,11,0.52) con icono blanco), coherente cuando el sidebar era
+       negro; al volverlo claro quedaba como una pastilla negra suelta sobre el
+       canvas. Lo sigue usando el PORTAL, que no tiene barra inferior. */
+    background: var(--sidebar-bg);
+    -webkit-backdrop-filter: blur(16px) saturate(1.1);
+    backdrop-filter: blur(16px) saturate(1.1);
+    color: var(--sidebar-text);
+    border: 1px solid var(--sidebar-border);
+    box-shadow: var(--shadow-sm);
     cursor: pointer;
     transition: transform var(--duration-fast) var(--ease), background var(--duration-base) var(--ease), box-shadow var(--duration-base) var(--ease);
   }
   .layout__hamburger:hover  {
-    background: rgba(10, 10, 11, 0.72);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    background: var(--sidebar-bg-raised);
+    box-shadow: var(--shadow-md);
   }
   .layout__hamburger:active { transform: scale(0.94); }
   .layout__hamburger:focus-visible { outline: 2px solid var(--color-primary-light); outline-offset: 2px; }

@@ -157,7 +157,7 @@
 .landing-nav__name {
   font-size: 1.375rem; font-weight: 800;
   letter-spacing: 0.16em;
-  background: linear-gradient(95deg, var(--sidebar-bg) 0%, var(--color-primary) 100%);
+  background: linear-gradient(95deg, var(--surface-dark) 0%, var(--color-primary) 100%);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -353,7 +353,7 @@
 
 /* ── STATS ──────────────────────────────────────────────────── */
 .landing-stats {
-  background: linear-gradient(135deg, var(--sidebar-bg) 0%, var(--color-primary-900) 100%);
+  background: linear-gradient(135deg, var(--surface-dark) 0%, var(--color-primary-900) 100%);
   padding: 4rem 0;
 }
 .landing-stats__grid {
@@ -698,7 +698,7 @@
 
 /* ── FOOTER ─────────────────────────────────────────────────── */
 .landing-footer {
-  background: var(--sidebar-bg); color: rgba(255,255,255,0.8);
+  background: var(--surface-dark); color: rgba(237, 237, 239, 0.82);
   padding: 4rem 0 2rem;
 }
 .landing-footer__inner {

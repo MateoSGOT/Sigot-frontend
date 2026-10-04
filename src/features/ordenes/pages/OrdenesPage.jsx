@@ -11,6 +11,9 @@ import {
   agregarMecanicoOrden, quitarMecanicoOrden,
 } from '../slices/ordenesSlice.js';
 import { ordenesService } from '../services/ordenesService.js';
+// Datos de maqueta: SOLO desarrollo y solo con VITE_DEV_SKIP_AUTH activo.
+// Se consumen unicamente en los catch de abajo -- la ruta de exito no los toca.
+import { MAQUETA_ACTIVA, MAQUETA_RESUMEN_ORDENES, MAQUETA_FILAS_ORDENES } from '../../../shared/dev/datosMaqueta.js';
 import Modal from '../../../shared/components/Modal/Modal.jsx';
 import ConfirmDialog from '../../../shared/components/ConfirmDialog/ConfirmDialog.jsx';
 import Table from '../../../shared/components/Table/Table.jsx';
@@ -251,7 +254,15 @@ export default function OrdenesPage() {
       const r = await api.get(`/api/ordenes?${params.toString()}`);
       setRows(r.data?.data || []);
       setTotal(r.data?.total ?? 0);
-    } catch { setRows([]); setTotal(0); }
+    } catch {
+      /* Con la sesion omitida (VITE_DEV_SKIP_AUTH) la API responde 401 y cae
+         aca. Solo en ese caso, y solo en desarrollo, se pintan filas de maqueta
+         para poder juzgar la tabla y el peso de las cifras del bento. En
+         produccion MAQUETA_ACTIVA es el literal `false` y Vite elimina la rama:
+         el comportamiento ante un error real sigue siendo lista vacia. */
+      if (MAQUETA_ACTIVA) { setRows(MAQUETA_FILAS_ORDENES); setTotal(MAQUETA_FILAS_ORDENES.length); }
+      else { setRows([]); setTotal(0); }
+    }
     finally { setListLoading(false); }
   }, [page, pageSize, search, estadoFilter]);
 
@@ -260,7 +271,11 @@ export default function OrdenesPage() {
       const r = await api.get('/api/ordenes/resumen-estados');
       const d = r.data?.data || {};
       setResumenOrd({ pendientes: d.pendientes || 0, enProceso: d.enProceso || 0, realizadas: d.realizadas || 0, total: d.total || 0 });
-    } catch { /* el mini-resumen no es crítico -- se queda en su último valor conocido */ }
+    } catch {
+      /* El resumen no es critico: en produccion se queda en su ultimo valor
+         conocido. En desarrollo con la sesion omitida, cifras de maqueta. */
+      if (MAQUETA_ACTIVA) setResumenOrd(MAQUETA_RESUMEN_ORDENES);
+    }
   }, []);
 
   useEffect(() => { fetchPage(); }, [fetchPage]);

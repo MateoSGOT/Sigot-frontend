@@ -14,6 +14,7 @@ import {
 } from '../../../shared/utils/validators.js';
 import {
   BarraProgreso, CampoFlotante, CampoSelect, CodigoOtp, BotonFlujo,
+  PasoAnimado,
 } from '../../../shared/components/FlujoProgresivo/FlujoProgresivo.jsx';
 import { useFlujoProgresivo } from '../../../shared/components/FlujoProgresivo/useFlujoProgresivo.js';
 
@@ -30,7 +31,7 @@ export default function RegistroPage() {
   const navigate = useNavigate();
   const { loading: loadingSesion } = useSelector((s) => s.auth);
 
-  const { paso, irAPaso, vibrar, error, setError, claseCuerpo } = useFlujoProgresivo(1);
+  const { paso, direccion, irAPaso, vibrar, error, setError, claseCuerpo } = useFlujoProgresivo(1);
   const [cargando, setCargando] = useState(false);
 
   // Paso 1
@@ -163,7 +164,10 @@ export default function RegistroPage() {
 
         <BarraProgreso pasos={PASOS} paso={paso} />
 
-        <div className={claseCuerpo}>
+        {/* El deslizamiento entre pasos lo resuelve PasoAnimado con un spring de
+            Motion y AnimatePresence mode="wait". Antes eran keyframes CSS
+            coreografiados con setTimeout en el hook. */}
+        <PasoAnimado paso={paso} direccion={direccion} className={claseCuerpo}>
           {/* ════════ PASO 1 — Cuenta ════════ */}
           {paso === 1 && (
             <form onSubmit={enviarPaso1} noValidate>
@@ -280,7 +284,7 @@ export default function RegistroPage() {
               <BotonFlujo cargando={ocupado}>Finalizar registro</BotonFlujo>
             </form>
           )}
-        </div>
+        </PasoAnimado>
       </div>
     </div>
   );

@@ -152,24 +152,46 @@
   --color-danger-light:  rgba(225, 29, 72, 0.09);
   --color-success-light: rgba(5, 150, 105, 0.11);
 
-  /* ══════════════════ ESTRUCTURA — negro pulido ══════════════════
-     Sidebar y chrome. El activo se marca con cobalto translúcido + barra, no
-     con un bloque sólido: se lee como "acá estás" sin competir con el contenido.
-     Antes era azul marino (#0B1220); el cambio a negro es el movimiento de
-     identidad de esta versión. */
-  --sidebar-bg:         #0A0A0B;
-  --sidebar-bg-raised:  #16161A;   /* superficies sobre el negro */
-  --sidebar-hover:      rgba(255, 255, 255, 0.055);
-  --sidebar-active-bg:  rgba(43, 92, 255, 0.17);
-  --sidebar-text:       rgba(237, 237, 239, 0.84);   /* 12.1:1 sobre el fondo */
-  --sidebar-text-muted: rgba(237, 237, 239, 0.40);
-  --sidebar-icon:       rgba(237, 237, 239, 0.60);
-  --sidebar-border:     rgba(255, 255, 255, 0.07);
-  --sidebar-width:      256px;
+  /* ══════════════════ SUPERFICIE OSCURA ESTRUCTURAL ══════════════════
+     El negro pulido, para lo que de verdad quiere ser oscuro: el panel del
+     reset de contraseña y los degradados y el pie de la landing.
+
+     Existe porque --sidebar-bg estaba SOBRECARGADO: significaba a la vez "la
+     superficie del sidebar" y "lo oscuro de la app". Al volver el sidebar
+     claro y translúcido, esos cuatro consumidores se habrían quedado con texto
+     blanco sobre blanco. Son dos conceptos distintos y ahora son dos tokens. */
+  --surface-dark:        #0A0A0B;
+  --surface-dark-raised: #16161A;
+  --surface-dark-on:     #EDEDEF;  /* 15.8:1 sobre --surface-dark */
+
+  /* ══════════════════ SIDEBAR — vidrio claro flotante ══════════════════
+     Blanco translúcido con desenfoque, flotando sobre el canvas en vez de ser
+     un bloque pegado al borde. El activo se marca con el tinte de cobalto +
+     barra, no con un bloque sólido: se lee como "acá estás" sin competir con el
+     contenido.
+
+     Contraste medido sobre la superficie EFECTIVA (blanco al 80% compuesto
+     sobre slate-50 = #FEFEFE), no sobre blanco puro:
+       texto en reposo 10.27:1 · apagado e icono 4.72:1 · activo 7.49:1.
+     Si se baja la opacidad del fondo hay que volver a medir: cuanto más
+     translúcido, más se acerca al canvas y menos contraste queda. */
+  --sidebar-bg:         rgba(255, 255, 255, 0.80);
+  --sidebar-bg-raised:  rgba(255, 255, 255, 0.94);
+  --sidebar-hover:      rgba(10, 10, 11, 0.045);
+  --sidebar-active-bg:  rgba(43, 92, 255, 0.10);
+  --sidebar-text:       #334155;
+  --sidebar-text-muted: #64748B;
+  --sidebar-icon:       #64748B;
+  --sidebar-border:     rgba(10, 10, 11, 0.07);
+  /* Más delgado que antes (eran 256): el brief pide un riel fino, y al flotar
+     con margen propio ya no necesita ancho para separarse del contenido. */
+  --sidebar-width:      232px;
   /* El colapso de escritorio quedó desactivado: los tres comparten valor a
      propósito, para que el margen del contenido no cambie. */
-  --sidebar-collapsed:       256px;
-  --sidebar-collapsed-width: 256px;
+  --sidebar-collapsed:       232px;
+  --sidebar-collapsed-width: 232px;
+  /* Separación del sidebar flotante respecto a los bordes de la ventana. */
+  --sidebar-inset:      12px;
 
   /* ══════════════════ SUPERFICIES ══════════════════
      Canvas slate-50, tarjetas blanco puro. El "borde" de tarjeta es un filo
@@ -335,10 +357,19 @@
     var(--pattern-dots-light),
     linear-gradient(135deg, rgba(43, 92, 255, 0.06) 0%, rgba(109, 140, 255, 0.03) 100%);
 
-  /* Sidebar: negro que aclara apenas hacia abajo, para que no se lea como un
-     bloque plano en pantallas altas. */
-  --sidebar-bg-gradient:
+  /* Rampa oscura estructural: negro que aclara apenas hacia abajo, para que no
+     se lea como un bloque plano en pantallas altas. La consumen el panel del
+     reset de contraseña y las zonas oscuras de la landing. */
+  --surface-dark-gradient:
     linear-gradient(180deg, #0A0A0B 0%, #101013 64%, #16161A 100%);
+
+  /* OJO -- nombre legacy: --sidebar-bg-gradient ya NO es la rampa negra. El
+     sidebar pasó a vidrio claro, así que esto es un velo blanco muy tenue que
+     le da algo de profundidad al cristal sin oscurecerlo. Se conserva el nombre
+     porque Sidebar.css lo referencia; quien quiera la rampa negra debe usar
+     --surface-dark-gradient. */
+  --sidebar-bg-gradient:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.86) 0%, rgba(255, 255, 255, 0.74) 100%);
 
   /* Panel decorativo del login: negro + brillo cobalto + puntos. */
   --bg-login-panel:

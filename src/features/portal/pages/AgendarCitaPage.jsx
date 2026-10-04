@@ -19,6 +19,7 @@ import {
 import { todayLocalYMD } from '../../../shared/utils/helpers.js';
 import {
   BarraProgreso, CampoFlotante, CampoSelect, CodigoOtp, BotonFlujo, CargaUnificada,
+  PasoAnimado,
 } from '../../../shared/components/FlujoProgresivo/FlujoProgresivo.jsx';
 import { useFlujoProgresivo } from '../../../shared/components/FlujoProgresivo/useFlujoProgresivo.js';
 
@@ -133,7 +134,7 @@ export default function AgendarCitaPage() {
   const [enviando, setEnviando] = useState(false);   // envío final (los POST secuenciales)
   const [etapaEnvio, setEtapaEnvio] = useState(0);
 
-  const { paso, irAPaso, vibrar, error, setError, claseCuerpo } = useFlujoProgresivo(1);
+  const { paso, direccion, irAPaso, vibrar, error, setError, claseCuerpo } = useFlujoProgresivo(1);
 
   /* ── Pasos del flujo, segun el estado de quien entra ── */
   const tieneVehiculos = Array.isArray(vehiculos) && vehiculos.length > 0;
@@ -414,7 +415,10 @@ export default function AgendarCitaPage() {
 
         {!enviando && pasos.length > 1 && <BarraProgreso pasos={pasos} paso={paso} />}
 
-        <div className={claseCuerpo}>
+        {/* El deslizamiento entre pasos lo resuelve PasoAnimado con un spring de
+            Motion y AnimatePresence mode="wait". Antes eran keyframes CSS
+            coreografiados con setTimeout en el hook. */}
+        <PasoAnimado paso={paso} direccion={direccion} className={claseCuerpo}>
           {/* ════════ Envío final: una sola carga para las 3 peticiones ════════ */}
           {enviando ? (
             <CargaUnificada
@@ -668,7 +672,7 @@ export default function AgendarCitaPage() {
               )}
             </>
           )}
-        </div>
+        </PasoAnimado>
       </div>
     </div>
   );

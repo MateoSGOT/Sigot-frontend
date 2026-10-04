@@ -140,21 +140,13 @@
 /* ══ Cuerpo + slide horizontal entre pasos ══ */
 .flujo-card__cuerpo { padding: var(--space-xl); }
 
-/* Sale hacia la izquierda desvaneciéndose; el nuevo entra desde la derecha. */
-.flujo-card__cuerpo--saliendo {
-  animation: flujo-salida var(--flujo-dur-salida) var(--flujo-ease) forwards;
-}
-.flujo-card__cuerpo--entrando {
-  animation: flujo-entrada var(--flujo-dur-entrada) var(--flujo-ease);
-}
-@keyframes flujo-salida {
-  from { opacity: 1; transform: translateX(0); }
-  to   { opacity: 0; transform: translateX(-28px); }
-}
-@keyframes flujo-entrada {
-  from { opacity: 0; transform: translateX(28px); }
-  to   { opacity: 1; transform: translateX(0); }
-}
+/* La entrada y la salida del paso las anima <PasoAnimado> con Motion (ver
+   FlujoProgresivo.jsx). Acá había dos keyframes --saliendo/--entrando cuyas
+   duraciones tenían que coincidir a mano con las constantes del hook, porque el
+   swap de contenido lo coordinaba un setTimeout. Con AnimatePresence
+   mode="wait" la salida se completa antes de montar la entrada y no hay dos
+   duraciones que mantener sincronizadas. El shake de error SÍ se queda en CSS:
+   es un gesto de duración fija y no compite con el deslizamiento. */
 
 /* Vibración lateral para errores de validación/API. */
 .flujo-card__cuerpo--shake { animation: flujo-shake 400ms var(--flujo-ease); }
