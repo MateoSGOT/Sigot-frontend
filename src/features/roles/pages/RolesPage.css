@@ -1,5 +1,4 @@
 /* ── Utilities ── */
-.table-actions { display: flex; align-items: center; gap: 0.375rem; }
 .font-medium   { font-weight: 600; }
 
 /* ── Sección de resumen (separa el header de las tarjetas) ── */

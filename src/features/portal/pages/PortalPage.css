@@ -6,35 +6,16 @@
 .portal-layout {
   display: flex;
   min-height: 100vh;
-  background: var(--color-bg, var(--color-bg));
+  background: var(--color-bg);
 }
 
 .portal-layout__main {
   flex: 1;
   margin-left: var(--sidebar-width, 240px);
-  background: var(--color-bg, var(--color-bg));
+  background: var(--color-bg);
   min-height: 100vh;
   overflow-x: hidden;
-  color: var(--color-text, var(--color-text));
-}
-
-/* FIX 2 — proper padding for page sections */
-.portal-layout__main .page {
-  padding: 1.5rem 2rem;
-}
-
-/* Header del portal: separado del contenido con espacio, y el padding
-   alineado a las tarjetas (antes el título quedaba más indentado y pegado). */
-.portal-layout__main .page__header {
-  padding: 1.25rem 1.5rem;
-  margin-bottom: 1.25rem;
-}
-
-/* Las tarjetas del portal quitan su margen lateral (el .page ya aporta 2rem),
-   para quedar alineadas con el header — antes quedaban 2rem más adentro. */
-.portal-layout__main .page > .card {
-  margin-left: 0;
-  margin-right: 0;
+  color: var(--color-text);
 }
 
 /* ── Portal sidebar overrides ───────────────────────────────*/
@@ -78,15 +59,6 @@
    (200/99), desalineado de la escala del resto de la app (documentada en Layout.css). */
 
 /* ── Feedback ───────────────────────────────────────────────*/
-.portal-success {
-  background: var(--color-primary-pale);
-  color: var(--color-primary);
-  border: 1px solid rgba(43, 92, 255,0.3);
-  border-radius: 10px;
-  padding: 0.75rem 1rem;
-  font-size: 0.875rem;
-  margin-bottom: 1rem;
-}
 .portal-toast {
   display: flex;
   align-items: center;
@@ -110,24 +82,17 @@
 }
 
 /* ── Mi Cuenta — 3-card layout ──────────────────────────────*/
-.portal-profile-wrap {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  max-width: 100%;
-  width: 100%;
-}
+/* El maquetado lo da .bento (el JSX monta "bento portal-profile-wrap"): la
+   cabecera ocupa las 12 pistas y las dos tarjetas de datos van a 6+6. */
+.portal-profile-wrap { max-width: 100%; }
 
+/* Superficie, canto, borde, elevacion y transicion las aporta .card del sistema
+   (el JSX monta "card ... portal-profile-card"). Aca solo lo propio del perfil:
+   el aire interior, que .card deja a cargo de card__body y estas tarjetas no
+   usan esa subestructura. */
 .portal-profile-card {
-  background: var(--color-surface, var(--color-surface));
-  border: 1px solid var(--color-border, rgba(0,0,0,0.08));
-  border-radius: var(--radius-lg, 14px);
-  padding: 1.25rem 1.5rem;
-  box-shadow: var(--shadow-sm);
-  width: 100%;
-  max-width: 100%;
+  padding: var(--space-xl);
   box-sizing: border-box;
-  transition: box-shadow var(--duration-base) var(--ease), transform var(--duration-base) var(--ease);
 }
 
 /* Card 1: avatar row — franja de acento como los KPIs del dashboard */
@@ -175,13 +140,13 @@
 .portal-profile-user-name {
   font-size: 1.0625rem;
   font-weight: 700;
-  color: var(--color-text, var(--color-text));
+  color: var(--color-text);
   line-height: 1.3;
 }
 
 .portal-profile-user-subdoc {
   font-size: 0.8125rem;
-  color: var(--color-text-muted, var(--color-text-muted));
+  color: var(--color-text-muted);
 }
 
 .portal-profile-user-doc {
@@ -196,10 +161,10 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.07em;
-  color: var(--color-text-muted, var(--color-text-muted));
+  color: var(--color-text-muted);
   margin-bottom: 1rem;
   padding-bottom: 0.625rem;
-  border-bottom: 1px solid var(--color-border, var(--color-border));
+  border-bottom: 1px solid var(--color-border);
 }
 
 /* Field rows: label | input in a row */
@@ -224,10 +189,10 @@
 .portal-profile-field-input {
   width: 100%;
   padding: 0.5rem 0.75rem;
-  border: 1.5px solid var(--color-border, var(--color-border));
+  border: 1.5px solid var(--color-border);
   border-radius: 8px;
   font-size: 0.9375rem;
-  color: var(--color-text, var(--color-text));
+  color: var(--color-text);
   background: var(--color-surface);
   font-family: inherit;
   outline: none;
@@ -241,7 +206,7 @@
 
 .portal-profile-field-input--readonly {
   background: var(--color-bg, var(--color-surface-solid));
-  color: var(--color-text-muted, var(--color-text-muted));
+  color: var(--color-text-muted);
   border-color: transparent;
   cursor: default;
 }
@@ -253,87 +218,10 @@
   justify-content: flex-end;
   margin-top: 1.25rem;
   padding-top: 1rem;
-  border-top: 1px solid var(--color-border, var(--color-border));
+  border-top: 1px solid var(--color-border);
 }
 
 /* ── Order detail — tabs & items (copied from OrdenesPage.css) ── */
-.orden-tabs {
-  display: flex;
-  border-bottom: 2px solid var(--color-border, var(--color-border));
-  gap: 0;
-}
-.orden-tab {
-  padding: 0.625rem 1.25rem;
-  background: none; border: none;
-  border-bottom: 2px solid transparent;
-  margin-bottom: -2px;
-  font-size: 0.875rem; font-weight: 600;
-  color: var(--color-text-muted, var(--color-text-muted));
-  cursor: pointer;
-  transition: color 0.18s;
-  font-family: inherit;
-}
-.orden-tab:hover { color: var(--color-text, var(--sidebar-bg)); }
-.orden-tab--active { color: var(--color-primary-soft-on); border-bottom-color: var(--color-primary-soft-on); }
-
-.orden-items-list {
-  display: flex; flex-direction: column; gap: 0.5rem;
-  margin-bottom: 1.25rem;
-  max-height: 220px; overflow-y: auto;
-}
-.orden-item-row {
-  display: flex; align-items: center; gap: 1rem;
-  padding: 0.625rem 0.875rem;
-  background: var(--color-border-light, var(--color-surface-solid));
-  border-radius: var(--radius, 8px);
-  font-size: 0.875rem;
-}
-.orden-item-name  { font-weight: 600; color: var(--color-text, var(--color-text)); }
-.orden-item-qty   { color: var(--color-text-muted, var(--color-text-muted)); font-size: 0.8125rem; }
-.orden-item-price { font-weight: 700; color: var(--color-primary-soft-on); flex-shrink: 0; }
-
-.empty-list {
-  text-align: center; color: var(--color-text-muted, var(--color-text-muted));
-  font-size: 0.875rem; padding: 1.5rem;
-}
-
-.orden-subtotal {
-  display: flex; justify-content: space-between; align-items: center;
-  padding: 0.625rem 0.875rem;
-  background: var(--color-border-light, var(--color-surface-solid));
-  border-radius: var(--radius, 8px);
-  margin-bottom: 0.5rem;
-  font-size: 0.875rem; font-weight: 700;
-  color: var(--color-text, var(--color-text));
-}
-
-.orden-total-card {
-  border: 1px solid var(--color-border, var(--color-border));
-  border-left: 3px solid var(--color-primary);
-  border-radius: var(--radius-lg, 12px);
-  overflow: hidden;
-  margin-top: 1.25rem;
-  box-shadow: var(--shadow-sm);
-}
-.orden-total-breakdown {
-  padding: 0.75rem 1.25rem;
-  display: flex; flex-direction: column; gap: 0.375rem;
-  background: var(--color-border-light, var(--color-surface-solid));
-}
-.orden-total-row {
-  display: flex; justify-content: space-between;
-  font-size: 0.875rem; color: var(--color-text-muted, var(--color-text-muted));
-}
-.orden-total-final {
-  display: flex; justify-content: space-between; align-items: center;
-  padding: 0.875rem 1.25rem;
-  background: var(--color-surface, var(--color-surface));
-  font-size: 1rem; font-weight: 800;
-  color: var(--color-text, var(--color-text));
-  border-top: 1px solid var(--color-border, var(--color-border));
-}
-.orden-total-final span:last-child { color: var(--color-primary-soft-on); font-size: 1.125rem; }
-
 /* ── Mobile ─────────────────────────────────────────────────*/
 @media (max-width: 1023px) {
   .portal-layout__main {

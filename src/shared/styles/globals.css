@@ -187,18 +187,16 @@ img { max-width: 100%; }
    Contenedor base de los paneles: blanco puro, canto definido, elevación de
    reposo que sube en hover. Separa por FONDO y aire, no por líneas grises
    (de ahí que el "borde" sea un filo casi invisible). */
-.bento {
-  background: var(--color-surface);
-  border: var(--card-border);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-sm);
-  transition: box-shadow var(--duration-base) var(--ease),
-              transform var(--duration-base) var(--ease);
-}
-.bento:hover { box-shadow: var(--shadow-md); }
-/* Solo los módulos declarados interactivos se levantan: subir una tarjeta que
-   no se puede clickear es ruido. */
-.bento--interactivo:hover { transform: translateY(-2px); }
+/* .bento se definia aca como SUPERFICIE de tarjeta (fondo, borde, canto,
+   sombra) y en page.css como REJILLA de 12 columnas. El CSS es global, asi que
+   las dos definiciones se fusionaban: cada `className="bento"` renderizaba una
+   rejilla DENTRO de una tarjeta blanca con sombra -- un marco dentro de otro.
+
+   Se queda solo el significado de rejilla (page.css). La superficie ya la da
+   .card, que hacia exactamente lo mismo, y ningun JSX usaba .bento como
+   superficie: las 6 apariciones eran de la rejilla. .bento--interactivo
+   tampoco tenia consumidor.
+   Detectado por scripts/auditar-colisiones.mjs. */
 
 /* Área táctil mínima en móvil para botones e inputs (el brief pide 48px: un
    mecánico opera esto con guantes). Se aplica por media query y no en el

@@ -142,7 +142,6 @@
 
 /* ======================= */
 
-.table-actions { display: flex; align-items: center; gap: 0.25rem; }
 .font-medium { font-weight: 600; }
 .diag-cell {
   display: -webkit-box;
@@ -155,51 +154,7 @@
 }
 
 /* Tabs */
-.orden-tabs {
-  display: flex;
-  border-bottom: 2px solid var(--color-border);
-  gap: 0;
-}
-
-.orden-tab {
-  padding: 0.625rem 1.25rem;
-  background: none;
-  border: none;
-  border-bottom: 2px solid transparent;
-  margin-bottom: -2px;
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: var(--color-text-muted);
-  cursor: pointer;
-  transition: var(--transition);
-}
-
-.orden-tab:hover { color: var(--color-text); }
-.orden-tab--active {
-  color: var(--color-primary-soft-on);
-  border-bottom-color: var(--color-primary);
-}
-
 /* Items list */
-.orden-items-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  margin-bottom: 1.25rem;
-  max-height: 200px;
-  overflow-y: auto;
-}
-
-.orden-item-row {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  padding: 0.625rem 0.875rem;
-  background: var(--color-border-light);
-  border-radius: var(--radius);
-  font-size: 0.875rem;
-}
-
 .orden-item-name-group {
   flex: 1;
   display: flex;
@@ -207,7 +162,6 @@
   gap: 0.5rem;
   flex-wrap: wrap;
 }
-.orden-item-name { font-weight: 600; color: var(--color-text); }
 /* Badge de garantía: pequeña pastilla verde visible */
 .orden-item-garantia {
   font-size: 0.7rem;
@@ -220,8 +174,6 @@
   white-space: nowrap;
   letter-spacing: 0.01em;
 }
-.orden-item-qty { color: var(--color-text-muted); font-size: 0.8125rem; }
-.orden-item-price { font-weight: var(--weight-bold); color: var(--color-text); }
 /* Prefijo de iniciales del técnico ("PM. ") antes del nombre de la línea -- solo
    aparece cuando la orden tiene 2+ mecánicos asignados (ver OrdenesPage.jsx::
    hayMultiplesMecanicos/prefijoTecnico). Va DENTRO de .orden-item-name, así que
@@ -317,13 +269,6 @@
   flex-shrink: 0;
 }
 
-.empty-list {
-  text-align: center;
-  color: var(--color-text-muted);
-  font-size: 0.875rem;
-  padding: 1.5rem;
-}
-
 /* Add form */
 .orden-add-form {
   border-top: 1px solid var(--color-border);
@@ -387,60 +332,6 @@
 }
 
 /* Totals */
-.orden-total-card {
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  overflow: hidden;
-  margin-top: 1.25rem;
-}
-
-.orden-total-breakdown {
-  padding: 0.75rem 1.25rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.375rem;
-  background: var(--color-border-light);
-}
-
-.orden-total-row {
-  display: flex;
-  justify-content: space-between;
-  font-size: 0.875rem;
-  color: var(--color-text-muted);
-}
-
-.orden-total-final {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0.875rem 1.25rem;
-  background: var(--color-surface);
-  font-size: 1rem;
-  font-weight: 800;
-  color: var(--color-text);
-  border-top: 1px solid var(--color-border);
-}
-
-.orden-total-final span:last-child {
-  color: var(--color-text);
-  font-size: var(--text-h2);
-}
-
-.orden-subtotal {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0.625rem 0.875rem;
-  background: var(--color-border-light);
-  border-radius: var(--radius);
-  margin-bottom: 1.25rem;
-  font-size: 0.875rem;
-  font-weight: 700;
-  color: var(--color-text);
-}
-
-.orden-subtotal span:last-child { color: var(--color-text); }
-
 /* Mano de obra */
 .mano-de-obra-section {
   border: 1.5px dashed var(--color-border);
@@ -493,8 +384,6 @@
   flex: 1;
   max-width: 200px;
 }
-
-.orden-item-name { flex: 1; }
 
 .orden-item-delete {
   margin-left: auto;

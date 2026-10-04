@@ -18,6 +18,10 @@ import { filterItems, formatDate, formatCurrency, todayLocalYMD, formatHora12 } 
 import * as V from '../../../shared/utils/validators.js';
 import { useAutoRefresh } from '../../../shared/hooks/useAutoRefresh.js';
 import api from '../../../shared/services/api.js';
+// Detalle de orden (pestanas, lineas, totales): compartido con OrdenesPage del
+// panel. Este archivo tenia una copia marcada "copied from OrdenesPage.css"
+// cuyos valores ya habian divergido. Ver shared/styles/orden-detalle.css
+import '../../../shared/styles/orden-detalle.css';
 import './PortalPage.css';
 
 const ESTADO_CITA_META = {
@@ -506,7 +510,7 @@ function PortalPageInner() {
               </div>
             </div>
 
-            <div className="portal-profile-wrap">
+            <div className="bento portal-profile-wrap">
               {saveOk && (
                 <div className="portal-toast">
                   <MdCheck size={16} /> Datos actualizados correctamente
@@ -514,7 +518,7 @@ function PortalPageInner() {
               )}
 
               {/* Card 1: avatar + nombre + doc + botón cambiar foto */}
-              <div className="portal-profile-card portal-profile-header-card">
+              <div className="card bento__module bento__module--12 portal-profile-card portal-profile-header-card">
                 {(() => {
                   // La foto se guarda en el campo `Foto` del cliente (data URL o
                   // URL). Mostramos la previsualización recién elegida si existe.
@@ -535,7 +539,7 @@ function PortalPageInner() {
               </div>
 
               {/* Card 2: información personal (solo lectura) */}
-              <div className="portal-profile-card">
+              <div className="card bento__module bento__module--6 portal-profile-card">
                 <div className="portal-profile-card-title">Información personal</div>
                 <div className="portal-profile-fields">
                   {[
@@ -557,7 +561,7 @@ function PortalPageInner() {
 
               {/* Card 3: datos de contacto (editables) */}
               <form onSubmit={handleSave}>
-                <div className="portal-profile-card">
+                <div className="card bento__module bento__module--6 portal-profile-card">
                   <div className="portal-profile-card-title">Datos de contacto</div>
                   <div className="portal-profile-fields">
                     <div className="portal-profile-field">
@@ -619,30 +623,38 @@ function PortalPageInner() {
                 </button>
               )}
             </div>
-            <div className="card">
-              <div className="card__header">
-                <SearchBar
-                  value={vehSearch}
-                  onChange={setVehSearch}
-                  placeholder="Buscar por placa, color..."
-                  filterSlot={
-                    <FilterDropdown
-                      statusFilter="todos"
-                      onStatusChange={() => {}}
-                      pageSize={vehPageSize}
-                      onPageSizeChange={setVehPageSize}
-                    />
-                  }
-                />
-              </div>
-              <Table
-                columns={vehiculosColumns}
-                rowKey="Id_Vehiculo"
-                data={filteredVehiculos}
-                loading={loading}
-                pageSize={vehPageSize}
-                emptyMessage="No tienes vehículos registrados"
+            {/* Barra de herramientas en fila propia de la capa compartida. */}
+            <div className="page__toolbar">
+              <SearchBar
+                value={vehSearch}
+                onChange={setVehSearch}
+                placeholder="Buscar por placa, color..."
+                filterSlot={
+                  <FilterDropdown
+                    statusFilter="todos"
+                    onStatusChange={() => {}}
+                    pageSize={vehPageSize}
+                    onPageSizeChange={setVehPageSize}
+                  />
+                }
               />
+            </div>
+
+            <div className="bento">
+              <div className="bento__module bento__module--12">
+                <div className="card">
+                  <div className="card__body card__body--tabla">
+                  <Table
+                    columns={vehiculosColumns}
+                    rowKey="Id_Vehiculo"
+                    data={filteredVehiculos}
+                    loading={loading}
+                    pageSize={vehPageSize}
+                    emptyMessage="No tienes vehículos registrados"
+                  />
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         )}
@@ -661,39 +673,47 @@ function PortalPageInner() {
                 </button>
               )}
             </div>
-            <div className="card">
-              <div className="card__header">
-                <SearchBar
-                  value={ordSearch}
-                  onChange={setOrdSearch}
-                  placeholder="Buscar por vehículo, diagnóstico..."
-                  filterSlot={
-                    <>
-                      <select className="filter-select" value={ordEstado} onChange={e => setOrdEstado(e.target.value)}>
-                        <option value="todos">Todos los estados</option>
-                        <option value="1">Pendiente</option>
-                        <option value="2">En proceso</option>
-                        <option value="3">Realizado</option>
-                        <option value="0">Inactivo</option>
-                      </select>
-                      <FilterDropdown
-                        statusFilter="todos"
-                        onStatusChange={() => {}}
-                        pageSize={ordPageSize}
-                        onPageSizeChange={setOrdPageSize}
-                      />
-                    </>
-                  }
-                />
-              </div>
-              <Table
-                columns={ordenesColumns}
-                rowKey="Id_Orden"
-                data={filteredOrdenes}
-                loading={loading}
-                pageSize={ordPageSize}
-                emptyMessage="No tienes órdenes registradas"
+            {/* Barra de herramientas en fila propia de la capa compartida. */}
+            <div className="page__toolbar">
+              <SearchBar
+                value={ordSearch}
+                onChange={setOrdSearch}
+                placeholder="Buscar por vehículo, diagnóstico..."
+                filterSlot={
+                  <>
+                    <select className="filter-select" value={ordEstado} onChange={e => setOrdEstado(e.target.value)}>
+                      <option value="todos">Todos los estados</option>
+                      <option value="1">Pendiente</option>
+                      <option value="2">En proceso</option>
+                      <option value="3">Realizado</option>
+                      <option value="0">Inactivo</option>
+                    </select>
+                    <FilterDropdown
+                      statusFilter="todos"
+                      onStatusChange={() => {}}
+                      pageSize={ordPageSize}
+                      onPageSizeChange={setOrdPageSize}
+                    />
+                  </>
+                }
               />
+            </div>
+
+            <div className="bento">
+              <div className="bento__module bento__module--12">
+                <div className="card">
+                  <div className="card__body card__body--tabla">
+                  <Table
+                    columns={ordenesColumns}
+                    rowKey="Id_Orden"
+                    data={filteredOrdenes}
+                    loading={loading}
+                    pageSize={ordPageSize}
+                    emptyMessage="No tienes órdenes registradas"
+                  />
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         )}
@@ -717,30 +737,38 @@ function PortalPageInner() {
               </div>
             )}
 
-            <div className="card">
-              <div className="card__header">
-                <SearchBar
-                  value={citaSearch}
-                  onChange={setCitaSearch}
-                  placeholder="Buscar por vehículo, técnico, descripción..."
-                  filterSlot={
-                    <FilterDropdown
-                      statusFilter={citaEstado}
-                      onStatusChange={setCitaEstado}
-                      pageSize={citaPageSize}
-                      onPageSizeChange={setCitaPageSize}
-                    />
-                  }
-                />
-              </div>
-              <Table
-                columns={citasColumns}
-                rowKey="Id_Agenda"
-                data={filteredCitas}
-                loading={loading}
-                pageSize={citaPageSize}
-                emptyMessage="No tienes citas registradas"
+            {/* Barra de herramientas en fila propia de la capa compartida. */}
+            <div className="page__toolbar">
+              <SearchBar
+                value={citaSearch}
+                onChange={setCitaSearch}
+                placeholder="Buscar por vehículo, técnico, descripción..."
+                filterSlot={
+                  <FilterDropdown
+                    statusFilter={citaEstado}
+                    onStatusChange={setCitaEstado}
+                    pageSize={citaPageSize}
+                    onPageSizeChange={setCitaPageSize}
+                  />
+                }
               />
+            </div>
+
+            <div className="bento">
+              <div className="bento__module bento__module--12">
+                <div className="card">
+                  <div className="card__body card__body--tabla">
+                  <Table
+                    columns={citasColumns}
+                    rowKey="Id_Agenda"
+                    data={filteredCitas}
+                    loading={loading}
+                    pageSize={citaPageSize}
+                    emptyMessage="No tienes citas registradas"
+                  />
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         )}

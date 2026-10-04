@@ -87,6 +87,20 @@
 /* Filas clicables */
 .table__row--clickable { cursor: pointer; }
 
+/* Celda de acciones de la fila (editar / ver / eliminar).
+
+   Estaba declarada en 13 CSS de pagina a la vez, y con TRES gaps distintos
+   (0.25rem en diez, 0.5rem en Cuentas, 0.375rem en Roles). Como el CSS es
+   global y las paginas se cargan por code-splitting, el gap que se aplicaba
+   dependia de por donde hubiera entrado el usuario: la misma fila con botones
+   mas o menos juntos segun la ruta de navegacion. Una sola definicion, acá,
+   que es donde vive la tabla. */
+.table-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
 @keyframes rowFadeIn {
   from { opacity: 0; transform: translate3d(0, 4px, 0); }
   to   { opacity: 1; transform: translate3d(0, 0, 0); }

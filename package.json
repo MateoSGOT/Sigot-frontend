@@ -10,7 +10,8 @@
     "preview": "vite preview",
     "auditar:paleta": "node scripts/auditar-paleta.mjs",
     "auditar:tablas": "node scripts/auditar-tablas.mjs",
-    "auditar": "npm run auditar:paleta && npm run auditar:tablas"
+    "auditar": "npm run auditar:paleta && npm run auditar:tablas && npm run auditar:colisiones",
+    "auditar:colisiones": "node scripts/auditar-colisiones.mjs"
   },
   "dependencies": {
     "@reduxjs/toolkit": "^2.11.2",

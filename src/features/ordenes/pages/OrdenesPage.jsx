@@ -24,6 +24,10 @@ import * as V from '../../../shared/utils/validators.js';
 import { useFormValidation } from '../../../shared/hooks/useFormValidation.js';
 import { useToast } from '../../../shared/components/Toast/ToastContext.jsx';
 import api from '../../../shared/services/api.js';
+// Detalle de orden (pestanas, lineas, totales): compartido con el portal del
+// cliente, que muestra el mismo modal. Antes cada pagina tenia su copia y las
+// dos se pisaban segun el orden de carga. Ver shared/styles/orden-detalle.css
+import '../../../shared/styles/orden-detalle.css';
 import './OrdenesPage.css';
 
 // Reglas de validación en tiempo real para crear un servicio/repuesto NUEVO

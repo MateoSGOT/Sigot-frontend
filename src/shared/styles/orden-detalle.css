@@ -1,0 +1,163 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   DETALLE DE ORDEN DE TRABAJO — pestañas, líneas y totales.
+
+   POR QUÉ ESTO ES UN ARCHIVO COMPARTIDO
+
+   El mismo detalle de orden se muestra en dos sitios: el modal del panel
+   (OrdenesPage) y el modal del portal del cliente (PortalPage). Cada uno tenía
+   su propia copia de estas clases -- el CSS del portal lo decía literalmente:
+   "copied from OrdenesPage.css".
+
+   Eran 16 selectores declarados dos veces, LOS 16 con valores distintos, y
+   ninguno con scope: `.orden-tab--active`, `.orden-item-price`,
+   `.orden-total-final span:last-child`, etc. Como las dos páginas se cargan por
+   code-splitting, el que ganaba era el de la página que el usuario visitara
+   PRIMERO. Es decir: el detalle de una orden se veía distinto según si habías
+   pasado antes por el panel o por el portal, y eso no se reproduce mirando una
+   sola pantalla.
+
+   Acá hay UNA definición. Si el panel y el portal tienen que diferir en algo,
+   se hace con un modificador explícito, no con dos copias que se pisan.
+
+   Valores canonizados con la semántica corregida: ACTIVO = cobalto (color de
+   acción) y DINERO = tinta (un importe no es un "éxito"; necesita peso, no
+   color). El esmeralda queda reservado al estado "Realizado".
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Pestañas del detalle ─────────────────────────────────────────────────── */
+.orden-tabs {
+  display: flex;
+  border-bottom: 2px solid var(--color-border);
+  gap: 0;
+}
+
+.orden-tab {
+  padding: var(--space-md) var(--space-xl);
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  font-family: inherit;
+  font-size: var(--text-body);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: color var(--duration-fast) var(--ease),
+              border-color var(--duration-fast) var(--ease);
+}
+
+.orden-tab:hover { color: var(--color-text); }
+
+.orden-tab--active {
+  color: var(--color-primary-soft-on);
+  border-bottom-color: var(--color-primary);
+}
+
+/* ── Líneas de servicios y repuestos ─────────────────────────────────────── */
+.orden-items-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-xl);
+  /* Se queda el tope más alto de las dos copias (220 contra 200): entra una
+     línea más sin que el modal crezca. */
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.orden-item-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-lg);
+  padding: var(--space-md) var(--space-lg);
+  background: var(--color-surface-raised);
+  border-radius: var(--radius-md);
+  font-size: var(--text-body);
+}
+
+.orden-item-name {
+  flex: 1;
+  font-weight: var(--weight-semibold);
+  color: var(--color-text);
+}
+
+.orden-item-qty {
+  color: var(--color-text-muted);
+  font-size: var(--text-small);
+}
+
+/* Tinta y peso, no color: es el dato principal de la línea. */
+.orden-item-price {
+  flex-shrink: 0;
+  font-weight: var(--weight-bold);
+  color: var(--color-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.empty-list {
+  text-align: center;
+  color: var(--color-text-muted);
+  font-size: var(--text-body);
+  padding: var(--space-xl);
+}
+
+/* ── Totales ──────────────────────────────────────────────────────────────── */
+.orden-subtotal {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-md) var(--space-lg);
+  background: var(--color-surface-raised);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--space-md);
+  font-size: var(--text-body);
+  font-weight: var(--weight-bold);
+  color: var(--color-text);
+}
+
+.orden-subtotal span:last-child { color: var(--color-text); }
+
+/* La franja de acento a la izquierda viene de la versión del portal: marca el
+   bloque del total sin teñir la cifra, que es lo que se quiere leer. */
+.orden-total-card {
+  border: var(--card-border);
+  border-left: 3px solid var(--color-primary);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  margin-top: var(--space-xl);
+  box-shadow: var(--shadow-sm);
+}
+
+.orden-total-breakdown {
+  padding: var(--space-md) var(--space-xl);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  background: var(--color-surface-raised);
+}
+
+.orden-total-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: var(--text-body);
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.orden-total-final {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-lg) var(--space-xl);
+  background: var(--color-surface);
+  font-size: var(--text-h3);
+  font-weight: var(--weight-extrabold);
+  color: var(--color-text);
+  border-top: 1px solid var(--color-border);
+}
+
+.orden-total-final span:last-child {
+  color: var(--color-text);
+  font-size: var(--text-h2);
+  font-variant-numeric: tabular-nums;
+}
