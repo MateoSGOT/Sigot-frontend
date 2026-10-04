@@ -19,7 +19,6 @@ import Skeleton from '../../../shared/components/Skeleton/Skeleton.jsx';
 import CountUp from '../../../shared/components/CountUp/CountUp.jsx';
 import SearchBar from '../../../shared/components/SearchBar/SearchBar.jsx';
 import { filterItems } from '../../../shared/utils/helpers.js';
-import './DashboardPage.css';
 
 // Paleta categórica del inventario: recorrido cobalto -> teal -> ámbar. Los tonos
 // se eligieron para que sean distinguibles ENTRE SÍ (no solo bonitos juntos) y
@@ -95,16 +94,53 @@ const etiquetaPeriodo = (ymd, agrupacion) => {
 
 // `color` nombra el ROL de la métrica, no un color: así el nombre no queda
 // mintiendo si la paleta cambia (antes era 'green'/'blue'/'purple').
+/* La variante se arma como literal, NO como `stat-card--${color}`: Tailwind
+   escanea texto y no puede ver una clase construida en runtime -- la utilidad
+   no se generaria y el acento no se aplicaria, sin aviso ninguno.
+   El acento nombra el ROL de la metrica, no un color, asi que el nombre no
+   queda mintiendo si la paleta cambia. */
+const KPI_ACENTO = {
+  ingreso: 'border-l-primary',
+  ordenes: 'border-l-primary-light',
+  ticket:  'border-l-accent',
+  stock:   'border-l-warning',
+};
+const KPI_ICONO = {
+  ingreso: 'bg-primary-soft text-primary-soft-on',
+  ordenes: 'bg-info-soft text-info-soft-on',
+  ticket:  'bg-accent-soft text-accent-soft-on',
+  stock:   'bg-warning-soft text-warning-soft-on',
+};
+
+/* La tarjeta es su propio contenedor de consulta (@container/kpi): lo que decide
+   si el icono y la cifra van en fila o apilados es el ancho de ESTA tarjeta, no
+   el de la pantalla. El apilado lo produce `basis-full` en el cuerpo contra el
+   `flex-wrap` del padre, porque un elemento no puede consultar su propio tamano
+   para cambiarse el flex-direction a si mismo. */
 function StatCard({ icon: Icon, label, value, format = (n) => Math.round(n).toLocaleString('es-CO'), sub, color = 'ingreso', loading }) {
   return (
-    <div className={`stat-card stat-card--${color}`}>
-      <div className="stat-card__icon-wrap"><Icon size={24} /></div>
-      <div className="stat-card__body">
-        <span className="stat-card__label">{label}</span>
-        <span className="stat-card__value">
+    <div
+      className={`@container/kpi relative flex flex-wrap items-center gap-lg rounded-lg border
+                  border-l-[3px] border-border bg-surface p-xl shadow-sm
+                  transition-[box-shadow,transform] duration-200
+                  hover:-translate-y-[2px] hover:shadow-md ${KPI_ACENTO[color] || KPI_ACENTO.ingreso}`}
+    >
+      <span
+        className={`flex size-13 shrink-0 items-center justify-center rounded-full
+                    @max-[240px]/kpi:size-10 ${KPI_ICONO[color] || KPI_ICONO.ingreso}`}
+      >
+        <Icon size={24} aria-hidden="true" />
+      </span>
+      <div className="flex min-w-0 flex-col gap-[2px] @max-[240px]/kpi:basis-full">
+        <span className="text-caption font-semibold uppercase tracking-wide text-text-light @max-[170px]/kpi:tracking-normal">
+          {label}
+        </span>
+        {/* Cifras de ancho fijo: al refrescar el rango el numero cambia sin que
+            la tarjeta salte por el ancho distinto de los digitos. */}
+        <span className="font-display text-[1.875rem] font-extrabold leading-[1.05] tracking-tight tabular-nums text-text @max-[240px]/kpi:text-[1.5rem] @max-[170px]/kpi:text-[1.25rem]">
           <CountUp value={value} loading={loading} format={format} skeleton={<Skeleton width={90} height={22} />} />
         </span>
-        {sub && <span className="stat-card__sub">{sub}</span>}
+        {sub && <span className="text-small text-text-muted">{sub}</span>}
       </div>
     </div>
   );
@@ -203,7 +239,7 @@ export default function DashboardPage() {
 
   if (!puedeVerFinanzas) {
     return (
-      <div className="page dashboard-page">
+      <div className="page pb-2xl">
         <div className="page__header">
           <div>
             <h1 className="page__title">Dashboard</h1>
@@ -220,7 +256,7 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="page dashboard-page">
+    <div className="page pb-2xl">
       <div className="page__header">
         <div>
           <h1 className="page__title">Dashboard</h1>
@@ -237,14 +273,14 @@ export default function DashboardPage() {
       </div>
 
       {/* Selector de rango — control segmentado */}
-      <div className="dashboard-rango">
-        <div className="dashboard-rango__seg" role="tablist" aria-label="Rango de fechas">
+      <div className="flex flex-wrap items-center gap-md px-2xl pt-xl pb-xs max-lg:px-lg">
+        <div className="inline-flex flex-wrap gap-[2px] rounded-md bg-surface-raised p-[3px]" role="tablist" aria-label="Rango de fechas">
           {RANGOS.map(r => (
             <button
               key={r.key}
               role="tab"
               aria-selected={preset === r.key}
-              className={`dashboard-seg-btn${preset === r.key ? ' dashboard-seg-btn--active' : ''}`}
+              className={`cursor-pointer whitespace-nowrap rounded-[calc(var(--radius-md)-3px)] border-0 bg-transparent px-lg py-sm font-[inherit] text-small font-semibold tracking-tight text-text-muted transition-[background-color,color,box-shadow] duration-200 hover:bg-neutral-soft hover:text-text${preset === r.key ? ' bg-surface text-text shadow-sm hover:bg-surface hover:text-text' : ''}`}
               onClick={() => {
                 // Al pasar a "Personalizado" precargamos el mes actual para que
                 // el rango sea usable de una vez (y no quede en blanco).
@@ -261,18 +297,18 @@ export default function DashboardPage() {
           ))}
         </div>
         {preset === 'custom' ? (
-          <div className="dashboard-rango__custom">
+          <div className="flex items-center gap-sm [&_.form-control]:w-auto">
             <input type="date" className="form-control" value={cDesde} max={cHasta || undefined} onChange={e => setCDesde(e.target.value)} />
-            <span className="dashboard-rango__arrow">→</span>
+            <span className="font-bold text-text-muted">→</span>
             <input type="date" className="form-control" value={cHasta} min={cDesde || undefined} onChange={e => setCHasta(e.target.value)} />
           </div>
         ) : (
-          <span className="dashboard-rango__summary">{rango.desde} → {rango.hasta}</span>
+          <span className="whitespace-nowrap rounded-full bg-primary-soft px-lg py-xs text-small font-semibold text-primary-soft-on">{rango.desde} → {rango.hasta}</span>
         )}
       </div>
 
       {/* KPIs */}
-      <div className="stats-grid">
+      <div className="grid grid-cols-4 gap-xl px-2xl pt-xl pb-lg max-lg:grid-cols-2 max-lg:px-lg">
         <StatCard icon={MdPayments}   label="Ingreso del rango"  value={resumen.ingresoTotal ?? 0} format={formatCurrency} sub="Órdenes entregadas" color="ingreso"  loading={loading} />
         <StatCard icon={MdReceiptLong} label="Órdenes realizadas" value={resumen.ordenesRealizadas ?? 0}          sub="En el rango"         color="ordenes"  loading={loading} />
         <StatCard icon={MdMiscellaneousServices} label="Ticket promedio" value={resumen.ticketPromedio ?? 0} format={formatCurrency} sub="Por orden"    color="ticket"   loading={loading} />
@@ -280,7 +316,7 @@ export default function DashboardPage() {
       </div>
 
       {(resumen.stockBajo > 0) && (
-        <div className={`dashboard-stock-alerta ${resumen.stockCritico > 0 ? 'dashboard-stock-alerta--critico' : 'dashboard-stock-alerta--bajo'}`} style={{ cursor: 'pointer' }} onClick={() => navigate('/repuestos')} title="Ir a Repuestos">
+        <div className={`mx-2xl mb-xl flex cursor-pointer items-center gap-md rounded-md px-xl py-md text-body font-medium transition-opacity duration-150 hover:opacity-85 max-lg:mx-lg ${resumen.stockCritico > 0 ? 'bg-danger-soft text-danger-soft-on shadow-[inset_0_0_0_1px_var(--color-danger-soft-border)]' : 'bg-warning-soft text-warning-soft-on shadow-[inset_0_0_0_1px_var(--color-warning-soft-border)]'}`} style={{ cursor: 'pointer' }} onClick={() => navigate('/repuestos')} title="Ir a Repuestos">
           <MdWarning size={22} />
           <div><strong>{resumen.stockBajo} repuesto(s) con stock bajo</strong>{resumen.stockCritico > 0 && <span style={{ marginLeft: 8 }}>· {resumen.stockCritico} agotado(s)</span>}</div>
           <span style={{ marginLeft: 'auto', fontSize: '0.8rem', opacity: 0.7 }}>Ver repuestos →</span>
@@ -291,7 +327,7 @@ export default function DashboardPage() {
            de ahí la variedad (12 · 6+6 · 7+5) en vez de filas iguales. ═══ */}
       <div className="bento">
         {/* Ingresos — módulo principal, ancho completo */}
-        <div className="card dashboard-modulo bento__module bento__module--12">
+        <div className="card bento__module [&_.table-wrapper]:max-h-[260px] [&_.table-wrapper]:overflow-y-auto [&_.table-wrapper]:border-none [&_.table-wrapper]:shadow-none [&_.card__title]:inline-flex [&_.card__title]:items-center [&_.card__title]:gap-sm [&_.card__title]:tabular-nums [&_.card__body]:pt-0 [&_.recharts-legend-item-text]:!text-caption [&_.recharts-legend-item-text]:!text-text-muted bento__module--12">
           <div className="card__header"><span className="card__title">Ingresos ({formatCurrency(rep.ingresos?.total ?? 0)} en el rango)</span></div>
           <div className="card__body">
             {/* El esqueleto mide EXACTAMENTE lo que la gráfica (240): estaba en 220
@@ -312,7 +348,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Top servicios / Top repuestos — mitad y mitad */}
-        <div className="card dashboard-modulo bento__module bento__module--6">
+        <div className="card bento__module [&_.table-wrapper]:max-h-[260px] [&_.table-wrapper]:overflow-y-auto [&_.table-wrapper]:border-none [&_.table-wrapper]:shadow-none [&_.card__title]:inline-flex [&_.card__title]:items-center [&_.card__title]:gap-sm [&_.card__title]:tabular-nums [&_.card__body]:pt-0 [&_.recharts-legend-item-text]:!text-caption [&_.recharts-legend-item-text]:!text-text-muted bento__module--6">
           <div className="card__header"><span className="card__title">Servicios más realizados</span></div>
           <div className="card__body">
             {loading ? <Skeleton height={220} /> : rep.topServicios.length > 0 ? (
@@ -330,7 +366,7 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        <div className="card dashboard-modulo bento__module bento__module--6">
+        <div className="card bento__module [&_.table-wrapper]:max-h-[260px] [&_.table-wrapper]:overflow-y-auto [&_.table-wrapper]:border-none [&_.table-wrapper]:shadow-none [&_.card__title]:inline-flex [&_.card__title]:items-center [&_.card__title]:gap-sm [&_.card__title]:tabular-nums [&_.card__body]:pt-0 [&_.recharts-legend-item-text]:!text-caption [&_.recharts-legend-item-text]:!text-text-muted bento__module--6">
           <div className="card__header"><span className="card__title">Repuestos más usados</span></div>
           <div className="card__body">
             {loading ? <Skeleton height={220} /> : rep.topRepuestos.length > 0 ? (
@@ -349,7 +385,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Productividad (más ancha: es una tabla) + inventario por categoría */}
-        <div className="card dashboard-modulo bento__module bento__module--7">
+        <div className="card bento__module [&_.table-wrapper]:max-h-[260px] [&_.table-wrapper]:overflow-y-auto [&_.table-wrapper]:border-none [&_.table-wrapper]:shadow-none [&_.card__title]:inline-flex [&_.card__title]:items-center [&_.card__title]:gap-sm [&_.card__title]:tabular-nums [&_.card__body]:pt-0 [&_.recharts-legend-item-text]:!text-caption [&_.recharts-legend-item-text]:!text-text-muted bento__module--7">
           <div className="card__header"><span className="card__title"><MdBuild size={15} style={{ verticalAlign: '-2px', marginRight: 6 }} />Productividad por mecánico</span></div>
           <div className="card__body">
             {loading ? <Skeleton height={200} /> : rep.productividad.length > 0 ? (
@@ -386,7 +422,7 @@ export default function DashboardPage() {
         </div>
 
         {repuestosPie.length > 0 && (
-          <div className="card dashboard-modulo bento__module bento__module--5">
+          <div className="card bento__module [&_.table-wrapper]:max-h-[260px] [&_.table-wrapper]:overflow-y-auto [&_.table-wrapper]:border-none [&_.table-wrapper]:shadow-none [&_.card__title]:inline-flex [&_.card__title]:items-center [&_.card__title]:gap-sm [&_.card__title]:tabular-nums [&_.card__body]:pt-0 [&_.recharts-legend-item-text]:!text-caption [&_.recharts-legend-item-text]:!text-text-muted bento__module--5">
             <div className="card__header"><span className="card__title">Repuestos por categoría (inventario)</span></div>
             <div className="card__body">
               <ResponsiveContainer width="100%" height={220}>
