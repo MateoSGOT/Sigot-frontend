@@ -68,6 +68,72 @@ for (const [sel, lista] of mapa) {
   sombreados.push({ sel, lista });
 }
 
+/* ── SELECTORES DE ELEMENTO SIN ESTRATIFICAR ──
+   La tercera cara del mismo problema, y la más silenciosa de las tres.
+
+   El orden de capas se evalúa ANTES que la especificidad, y el CSS sin capa
+   gana sobre CUALQUIER capa. O sea: un `a { color: inherit }` suelto vence a
+   `.text-white\/45` de la capa `utilities`, aunque la clase tenga más
+   especificidad y aunque se escriba después.
+
+   No lo detectan los otros dos chequeos: el selector aparece en UN solo archivo
+   (no es colisión) y no se llama como una utilidad (no es sombreado). Sólo se
+   ve mirando el color computado en el navegador.
+
+   Ya mordió dos veces:
+     *, *::before, *::after { margin: 0; padding: 0 }  anulaba TODO el espaciado
+       de Tailwind -- cuatro commits con m-/p-/gap- sin efecto en login, portal,
+       modal de órdenes y landing.
+     a { color: inherit }  dejaba el enlace "Volver al login" de /reset-password
+       en tinta casi negra sobre tarjeta casi negra, pidiendo text-white/45.
+
+   La corrección siempre es la misma: envolver en @layer base. Ahí siguen
+   normalizando el elemento, pero ceden ante lo que una vista pide explícitamente.
+
+   Se ignoran los selectores que son sólo pseudo-elementos (::-webkit-scrollbar y
+   compañía): Tailwind no genera utilidades que compitan con ellos. */
+const PROPS_TAILWIND = /^(color|background|background-color|margin|padding|border|border-[a-z-]+|font|font-[a-z-]+|line-height|letter-spacing|text-[a-z-]+|display|opacity|width|height|max-width|max-height|min-width|min-height|gap|box-shadow|border-radius|cursor|overflow|position|inset|top|right|bottom|left|z-index)$/;
+
+const sinCapa = [];
+for (const f of archivos) {
+  const css = fs.readFileSync(f, 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
+  // Recorre llevando la pila de at-rules abiertas, para saber si una regla está
+  // dentro de un @layer o no. Un parser de llaves basta: no hay strings con
+  // llaves sueltas en estas hojas.
+  const pila = [];
+  let i = 0, prelucio = 0;
+  while (i < css.length) {
+    const c = css[i];
+    if (c === '{') {
+      const prelude = css.slice(prelucio, i).trim().replace(/\s+/g, ' ');
+      if (prelude.startsWith('@')) { pila.push(prelude); i++; prelucio = i; continue; }
+      // Es una regla normal: buscar su cierre.
+      let d = 1, j = i + 1;
+      while (j < css.length && d > 0) { if (css[j] === '{') d++; else if (css[j] === '}') d--; j++; }
+      const cuerpo = css.slice(i + 1, j - 1);
+      const enCapa = pila.some((a) => a.startsWith('@layer'));
+      // `from`/`to`/`50%` dentro de @keyframes parecen selectores de elemento
+      // pero son pasos de la animacion; no compiten con ninguna utilidad.
+      const enKeyframes = /^@(-[a-z]+-)?keyframes/.test(pila[pila.length - 1] || '');
+      // Selector de ELEMENTO puro: sin . # [ ni :pseudo-clase, y con al menos un
+      // nombre de etiqueta (o el universal).
+      const partes = prelude.split(',').map((x) => x.trim());
+      const esElemento = partes.length > 0 && partes.every(
+        (x) => x && !/[.#[]/.test(x) && !/:(?!:)/.test(x) && /^[a-z*]/i.test(x));
+      const soloPseudoElem = partes.every((x) => x.includes('::'));
+      if (!enCapa && !enKeyframes && esElemento && !soloPseudoElem && !/^:root/.test(prelude)) {
+        const props = [...cuerpo.matchAll(/([a-z-]+)\s*:/gi)]
+          .map((m) => m[1].toLowerCase()).filter((n) => PROPS_TAILWIND.test(n));
+        if (props.length) sinCapa.push({ f, sel: prelude, props: [...new Set(props)] });
+      }
+      i = j; prelucio = i; continue;
+    }
+    if (c === '}') { pila.pop(); i++; prelucio = i; continue; }
+    if (c === ';' && pila.length === 0) { i++; prelucio = i; continue; }
+    i++;
+  }
+}
+
 const distintos = [];
 const iguales = [];
 for (const [sel, lista] of mapa) {
@@ -87,6 +153,19 @@ if (sombreados.length) {
   }
 }
 
+if (sinCapa.length) {
+  console.log('');
+  console.log(`✗ ${sinCapa.length} regla(s) de elemento FUERA de @layer`);
+  console.log('    (el CSS sin capa le gana a toda la capa utilities: las clases de');
+  console.log('     Tailwind sobre ese elemento no se aplican nunca.');
+  console.log('     Solucion: envolver la regla en @layer base)');
+  console.log('');
+  for (const x of sinCapa) {
+    console.log(`  ${x.sel}   →   ${x.props.join(', ')}`);
+    console.log(`      ${x.f}`);
+  }
+}
+
 if (iguales.length) {
   console.log(`\n· ${iguales.length} selector(es) duplicados con valores IDÉNTICOS (sin efecto visual, pero duplicados):`);
   for (const { sel, lista } of iguales) {
@@ -96,12 +175,13 @@ if (iguales.length) {
 }
 
 if (!distintos.length) {
-  if (!sombreados.length) {
-    console.log('\n✓ ningún selector con valores distintos ni sombreando utilidades de Tailwind');
+  if (!sombreados.length && !sinCapa.length) {
+    console.log('');
+    console.log('✓ sin colisiones entre hojas, sin sombreado de utilidades y sin reglas de elemento fuera de capa');
   }
   // El sombreado también hace fallar el audit: una clase a mano con el nombre
   // de una utilidad es un bug latente aunque hoy tenga el mismo valor.
-  process.exit(sombreados.length ? 1 : 0);
+  process.exit(sombreados.length || sinCapa.length ? 1 : 0);
 }
 
 console.log(`\n✗ ${distintos.length} selector(es) con valores DISTINTOS en dos hojas -- gana el orden de carga:\n`);

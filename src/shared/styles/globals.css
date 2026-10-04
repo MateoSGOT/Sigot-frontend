@@ -51,8 +51,10 @@
    la base de rem acá agranda las letras en todas partes sin mover el layout (paddings,
    tarjetas, botones quedan del mismo tamaño). En pantallas chicas, donde la distancia de
    lectura suele ser menor, el texto por defecto quedaba chico. */
-@media (max-width: 768px) {
-  html { font-size: 18px; }
+@layer base {
+  @media (max-width: 768px) {
+    html { font-size: 18px; }
+  }
 }
 
 /* Accesibilidad: respeta a quien pide menos movimiento. Base para todas las
@@ -66,6 +68,7 @@
   }
 }
 
+@layer base {
 body {
   font-family: var(--font-body);
   /* Color de respaldo si ::before no pintara. */
@@ -79,13 +82,26 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
+}
 
 /* Titulares con la display y tracking cerrado: a tamaños grandes Inter con
-   tracking normal se ve suelta y "de plantilla". */
-h1, h2, h3, h4 {
-  font-family: var(--font-display);
-  letter-spacing: var(--tracking-tight);
-  line-height: var(--leading-tight);
+   tracking normal se ve suelta y "de plantilla".
+
+   EN @layer base, y no suelto: sin capa esta regla le ganaba a font-*, tracking-*
+   y leading-* en TODOS los encabezados de la app. Comprobado con una sonda en el
+   navegador -- un <h3 class="tracking-widest leading-loose font-mono"> computaba
+   letter-spacing -0.41px, line-height 22.09px y familia Archivo, es decir los
+   valores de acá; un <div> con las mismas clases sí recibía normal / 24.8px /
+   JetBrains Mono. Las utilidades no fallaban: nunca llegaban a aplicarse.
+
+   Dentro de base sigue siendo el default de un encabezado, pero una vista que
+   pida otro tracking ahora lo obtiene. */
+@layer base {
+  h1, h2, h3, h4 {
+    font-family: var(--font-display);
+    letter-spacing: var(--tracking-tight);
+    line-height: var(--leading-tight);
+  }
 }
 
 /* ── Capa de fondo de la app ──
@@ -107,10 +123,27 @@ body::before {
   pointer-events: none;
 }
 
-a { color: inherit; text-decoration: none; }
-button { cursor: pointer; font-family: inherit; }
-input, select, textarea { font-family: inherit; font-size: inherit; }
-img { max-width: 100%; }
+/* ═══════════════════════════════════════════════════════════════════════════
+   DEFAULTS DE ELEMENTO — DENTRO DE @layer base, por la misma razon que el reset.
+
+   `a { color: inherit }` sin estratificar le gana a CUALQUIER utilidad de color
+   de Tailwind sobre un <a>: el orden de capas se evalua antes que la
+   especificidad, y un selector de elemento sin capa vence a una clase en la
+   capa `utilities`.
+
+   Lo encontre midiendo en el navegador: el enlace "Volver al login" de
+   /reset-password computaba rgb(10,10,11) -- tinta casi negra sobre la tarjeta
+   casi negra, practicamente invisible -- aunque su clase pedia text-white/45.
+   El mismo defecto dejaba sin su cobalto al "Registrate aqui" del login.
+
+   Dentro de `base` siguen haciendo su trabajo (normalizar el elemento) sin
+   pisar lo que una vista pide explicitamente. */
+@layer base {
+  a { color: inherit; text-decoration: none; }
+  button { cursor: pointer; font-family: inherit; }
+  input, select, textarea { font-family: inherit; font-size: inherit; }
+  img { max-width: 100%; }
+}
 
 /* === Scrollbar === */
 ::-webkit-scrollbar { width: 6px; height: 6px; }

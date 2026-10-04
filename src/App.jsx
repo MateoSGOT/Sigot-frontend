@@ -125,6 +125,11 @@ function PortalRoute({ children }) {
 // Ruta del cambio obligatorio: solo accesible autenticado y con la bandera activa.
 function RequirePasswordChange({ children }) {
   const { token, restoring, debeCambiarPassword } = useSelector((state) => state.auth);
+  // Mismo bypass de desarrollo que los otros tres guardianes: sin el, esta vista
+  // solo es alcanzable con un usuario real que tenga debeCambiarPassword en true,
+  // asi que no habia forma de revisarla en pantalla. Se elimina en el build de
+  // produccion (import.meta.env.DEV queda en false y el bloque se poda).
+  if (OMITIR_AUTH_DEV) return children;
   if (restoring) return null;
   if (!token) return <Navigate to="/login" replace />;
   if (!debeCambiarPassword) return <Navigate to="/" replace />;

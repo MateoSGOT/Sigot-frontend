@@ -2,21 +2,105 @@ import React, { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate, Link } from 'react-router-dom';
 import { MdLock, MdVisibility, MdVisibilityOff, MdCheckCircle, MdArrowBack, MdWarning } from 'react-icons/md';
 import api from '../../../shared/services/api.js';
-import './ResetPasswordPage.css';
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   NUEVA CONTRASEÑA — única vista del panel sobre SUPERFICIE OSCURA.
+
+   SIN CSS PROPIO. ResetPasswordPage.css (245 líneas) eliminado.
+
+   CONTRASTE MEDIDO SOBRE LA TARJETA (--color-surface-dark-raised = #16161A),
+   no supuesto. El blanco al 45 % es el PISO para texto normal (4.52:1); por
+   debajo de ahí no llega a AA:
+       95 %  16.27:1      65 %   8.05:1      45 %   4.52:1
+       85 %  13.17:1      50 %   5.31:1      40 %   3.82:1  ← ya no alcanza
+       30 %   2.71:1  ← lo que usaba el CSS anterior para los iconos
+
+   Lo que había fallaba en varios sitios: iconos al 30 % (2.71:1), placeholders
+   al 20 %, y el enlace de volver al 40 % (3.82:1, solo AA para texto grande).
+   Todo subido a 45 % como mínimo, y el texto en reposo a 85-90 %.
+
+   EL BOTÓN DE ACCIÓN PASA DE ÁMBAR A COBALTO. El ámbar en este sistema
+   significa "en proceso / requiere atención"; crear la contraseña es la ACCIÓN
+   principal. Como relleno con texto blanco el cobalto da 5.15:1 (AA).
+   OJO: el cobalto base como TEXTO sobre esta tarjeta da solo 3.50:1, así que
+   para texto sobre oscuro se usa --color-primary-light (5.88:1).
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* El color del indicador cumple DOS funciones con requisitos distintos: rellena
+   la barra (no es texto, cualquier tono saturado sirve) y tiñe la etiqueta (sí
+   es texto, tiene que llegar a AA sobre la tarjeta oscura). Por eso van
+   separados: en el CSS anterior era un solo valor, y dos de los cuatro niveles
+   quedaban por debajo de AA en la etiqueta -- "Muy débil" 3.84:1 y "Media"
+   3.50:1. */
+const NIVELES = {
+  weak:   { label: 'Muy débil', ancho: '25%',  barra: 'bg-danger',  texto: 'text-danger-on-dark' },
+  fair:   { label: 'Débil',     ancho: '50%',  barra: 'bg-accent',  texto: 'text-accent' },
+  medium: { label: 'Media',     ancho: '75%',  barra: 'bg-primary', texto: 'text-primary-light' },
+  strong: { label: 'Fuerte',    ancho: '100%', barra: 'bg-success', texto: 'text-success-on-dark' },
+};
 
 const getPasswordStrength = (pass) => {
   if (pass.length === 0) return null;
-  if (pass.length < 6) return { level: 'weak',   label: 'Muy débil', color: '#E11D48', width: '25%' };
-  if (pass.length < 8) return { level: 'fair',   label: 'Débil',     color: '#f59e0b', width: '50%' };
+  if (pass.length < 6) return 'weak';
+  if (pass.length < 8) return 'fair';
   const hasSpecial = /[!@#$%^&*(),.?":{}|<>]/.test(pass);
   const hasNumber  = /\d/.test(pass);
   const hasUpper   = /[A-Z]/.test(pass);
-  if (hasSpecial && hasNumber && hasUpper && pass.length >= 10)
-    return { level: 'strong', label: 'Fuerte', color: '#059669', width: '100%' };
-  if ((hasNumber || hasSpecial) && pass.length >= 8)
-    return { level: 'medium', label: 'Media',  color: '#2B5CFF', width: '75%' };
-  return { level: 'fair', label: 'Débil', color: '#f59e0b', width: '50%' };
+  if (hasSpecial && hasNumber && hasUpper && pass.length >= 10) return 'strong';
+  if ((hasNumber || hasSpecial) && pass.length >= 8) return 'medium';
+  return 'fair';
 };
+
+/* ── Clases compartidas por los tres estados de la pantalla ── */
+const PAGINA = 'flex min-h-dvh items-center justify-center bg-surface-dark px-lg py-2xl '
+  + 'bg-[radial-gradient(900px_520px_at_85%_10%,rgb(43_92_255_/_0.22),transparent_62%)]';
+
+const TARJETA = 'w-full max-w-[26rem] rounded-lg border border-white/8 '
+  + 'bg-surface-dark-raised p-2xl shadow-lg';
+
+/* 90 % = 14.73:1. Texto principal. */
+const TITULO = 'font-display text-h1 font-bold tracking-tight text-white/90';
+/* 65 % = 8.05:1. Texto secundario, con margen de sobra. */
+const APOYO = 'text-body leading-normal text-white/65';
+/* 45 % = 4.52:1. El PISO: iconos y pistas. No bajar de aquí. */
+/* Dos niveles de texto atenuado, separados a proposito.
+
+   TENUE (45% -> 4.52:1) es el piso exacto de AA. Vale para adornos que
+   acompanan a un elemento ya etiquetado -- el candado al lado de un campo que
+   dice "Nueva contrasena" no carga informacion propia.
+
+   TENUE_ACCION (60% -> 7.08:1) es para lo que se puede pulsar: el toggle de
+   visibilidad y el enlace de vuelta. Un control en el piso justo de AA se lee
+   como texto apagado en vez de como algo accionable, y no deja margen si el
+   fondo de la tarjeta cambia un tono. Medido en el navegador, no estimado. */
+const TENUE = 'text-white/45';
+const TENUE_ACCION = 'text-white/60';
+
+const CAMPO = 'w-full rounded-md border border-white/12 bg-white/6 py-md pl-[2.75rem] pr-[2.75rem] '
+  + 'text-body text-white/90 placeholder:text-white/45 outline-none '
+  + 'transition-[border-color,background-color,box-shadow] duration-150 '
+  + 'focus-visible:border-primary-light focus-visible:bg-white/10 '
+  + 'focus-visible:shadow-[0_0_0_3px_var(--color-focus-ring)]';
+
+/* Cobalto sólido + blanco = 5.15:1 (AA). Era ámbar. */
+const BOTON = 'inline-flex w-full items-center justify-center gap-sm rounded-md border-0 '
+  + 'bg-primary px-xl text-body font-semibold text-primary-on min-h-[var(--touch-min)] '
+  + 'cursor-pointer no-underline transition-[background-color,box-shadow,transform] duration-150 '
+  + 'hover:bg-primary-strong hover:shadow-[var(--shadow-green)] active:scale-[0.99] '
+  + 'disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:bg-primary disabled:hover:shadow-none '
+  + 'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-light';
+
+function Marca() {
+  return (
+    <div className="mb-2xl flex items-center justify-center gap-md">
+      <span className="flex size-9 shrink-0 items-center justify-center rounded-md
+                       bg-primary text-h3 font-black text-primary-on">
+        S
+      </span>
+      <span className="font-display text-h2 font-extrabold tracking-tight text-white/90">SIGOT</span>
+    </div>
+  );
+}
 
 export default function ResetPasswordPage() {
   const [searchParams] = useSearchParams();
@@ -43,7 +127,8 @@ export default function ResetPasswordPage() {
     return () => clearInterval(t);
   }, [success, navigate]);
 
-  const strength = getPasswordStrength(nuevaPassword);
+  const nivel = getPasswordStrength(nuevaPassword);
+  const fuerza = nivel ? NIVELES[nivel] : null;
   // Validación en tiempo real (mientras escribe, no solo al enviar).
   const noCoincide   = confirmar.length > 0 && nuevaPassword !== confirmar;
   const formInvalido = nuevaPassword.length < 6 || nuevaPassword !== confirmar;
@@ -66,145 +151,147 @@ export default function ResetPasswordPage() {
     }
   };
 
+  const campos = [
+    {
+      id: 'rsp-nueva', label: 'Nueva contraseña', valor: nuevaPassword, set: setNuevaPassword,
+      ver: showPass1, setVer: setShowPass1, placeholder: 'Mínimo 6 caracteres', autoFocus: true,
+    },
+    {
+      id: 'rsp-confirmar', label: 'Confirmar contraseña', valor: confirmar, set: setConfirmar,
+      ver: showPass2, setVer: setShowPass2, placeholder: 'Repite la contraseña', autoFocus: false,
+    },
+  ];
+
   /* ── Token ausente ── */
   if (!token) {
     return (
-      <div className="rsp-page">
-        <div className="rsp-card">
-          <div className="rsp-card__logo">
-            <div className="rsp-logo-icon">S</div>
-            <span className="rsp-logo-text">SIGOT</span>
-          </div>
-          <div className="rsp-error-state">
-            <div className="rsp-error-icon"><MdWarning size={48} /></div>
-            <h2 className="rsp-error-title">Enlace inválido</h2>
-            <p className="rsp-error-desc">
-              Este enlace de recuperación no es válido o ya expiró.
-              Solicita uno nuevo desde el login.
-            </p>
-            <Link to="/login" className="rsp-btn rsp-btn--primary">
-              <MdArrowBack size={16} />Volver al login
-            </Link>
-          </div>
-        </div>
+      <div className={PAGINA}>
+        <main className={`${TARJETA} text-center`}>
+          <Marca />
+          <span className="mb-lg inline-flex text-accent"><MdWarning size={48} aria-hidden="true" /></span>
+          <h1 className={TITULO}>Enlace inválido</h1>
+          <p className={`${APOYO} mt-sm mb-xl`}>
+            Este enlace de recuperación no es válido o ya expiró.
+            Solicita uno nuevo desde el login.
+          </p>
+          <Link to="/login" className={BOTON}>
+            <MdArrowBack size={16} aria-hidden="true" />Volver al login
+          </Link>
+        </main>
       </div>
     );
   }
 
-  /* ── Success state ── */
+  /* ── Éxito ── */
   if (success) {
     return (
-      <div className="rsp-page">
-        <div className="rsp-card">
-          <div className="rsp-card__logo">
-            <div className="rsp-logo-icon">S</div>
-            <span className="rsp-logo-text">SIGOT</span>
-          </div>
-          <div className="rsp-success-state">
-            <div className="rsp-success-icon">
-              <MdCheckCircle size={48} color="#059669" />
-            </div>
-            <h2 className="rsp-success-title">¡Contraseña actualizada!</h2>
-            <p className="rsp-success-desc">
-              Ya puedes iniciar sesión con tu nueva contraseña.
-            </p>
-            <p className="rsp-success-countdown">
-              Redirigiendo en {countdown}...
-            </p>
-            <Link to="/login" className="rsp-btn rsp-btn--primary">
-              Ir al login ahora
-            </Link>
-          </div>
-        </div>
+      <div className={PAGINA}>
+        <main className={`${TARJETA} text-center`}>
+          <Marca />
+          <span className="mb-lg inline-flex text-success-on-dark">
+            <MdCheckCircle size={48} aria-hidden="true" />
+          </span>
+          <h1 className={TITULO}>¡Contraseña actualizada!</h1>
+          <p className={`${APOYO} mt-sm`}>Ya puedes iniciar sesión con tu nueva contraseña.</p>
+          <p className="mb-xl mt-md text-body font-semibold text-primary-light" aria-live="polite">
+            Redirigiendo en {countdown}...
+          </p>
+          <Link to="/login" className={BOTON}>Ir al login ahora</Link>
+        </main>
       </div>
     );
   }
 
-  /* ── Form ── */
+  /* ── Formulario ── */
   return (
-    <div className="rsp-page">
-      <div className="rsp-card">
-        <div className="rsp-card__logo">
-          <div className="rsp-logo-icon">S</div>
-          <span className="rsp-logo-text">SIGOT</span>
-        </div>
+    <div className={PAGINA}>
+      <main className={TARJETA}>
+        <Marca />
 
-        <div className="rsp-card__header">
-          <h2 className="rsp-card__title">Nueva contraseña</h2>
-          <p className="rsp-card__subtitle">Crea una contraseña segura para tu cuenta</p>
-        </div>
+        <header className="mb-xl text-center">
+          <h1 className={TITULO}>Nueva contraseña</h1>
+          <p className={`${APOYO} mt-xs`}>Crea una contraseña segura para tu cuenta</p>
+        </header>
 
-        <form className="rsp-form" onSubmit={handleSubmit} noValidate>
-          {error && <div className="rsp-error-box">{error}</div>}
+        <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-lg">
+          {error && (
+            <p role="alert" className="rounded-md border border-danger/30 bg-danger/12 px-lg py-md
+                                       text-small font-medium text-danger-on-dark">
+              {error}
+            </p>
+          )}
 
-          {/* Nueva contraseña */}
-          <div className="rsp-form__group">
-            <label className="rsp-form__label">Nueva contraseña</label>
-            <div className="rsp-form__field">
-              <MdLock className="rsp-form__icon" size={18} />
-              <input
-                type={showPass1 ? 'text' : 'password'}
-                className="rsp-form__input rsp-form__input--has-toggle"
-                value={nuevaPassword}
-                onChange={e => setNuevaPassword(e.target.value)}
-                placeholder="Mínimo 6 caracteres"
-                autoFocus
-                required
-              />
-              <button type="button" className="rsp-form__toggle"
-                onClick={() => setShowPass1(p => !p)} tabIndex={-1}>
-                {showPass1 ? <MdVisibilityOff size={18} /> : <MdVisibility size={18} />}
-              </button>
-            </div>
-
-            {/* Strength indicator */}
-            {strength && (
-              <div className="rsp-strength">
-                <div className="rsp-strength__bar">
-                  <div
-                    className="rsp-strength__fill"
-                    style={{ width: strength.width, background: strength.color }}
-                  />
-                </div>
-                <span className="rsp-strength__label" style={{ color: strength.color }}>
-                  {strength.label}
-                </span>
+          {campos.map((c) => (
+            <div key={c.id} className="flex flex-col gap-sm">
+              <label htmlFor={c.id} className="text-small font-semibold text-white/65">{c.label}</label>
+              <div className="relative">
+                <MdLock className={`pointer-events-none absolute left-lg top-1/2 -translate-y-1/2 ${TENUE}`}
+                        size={18} aria-hidden="true" />
+                <input
+                  id={c.id}
+                  type={c.ver ? 'text' : 'password'}
+                  className={CAMPO}
+                  value={c.valor}
+                  onChange={e => c.set(e.target.value)}
+                  placeholder={c.placeholder}
+                  autoFocus={c.autoFocus}
+                  autoComplete="new-password"
+                  required
+                />
+                <button
+                  type="button" tabIndex={-1}
+                  onClick={() => c.setVer(p => !p)}
+                  aria-label={c.ver ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                  className={`absolute right-sm top-1/2 flex size-9 -translate-y-1/2 items-center
+                              justify-center rounded-sm border-0 bg-transparent cursor-pointer
+                              transition-colors duration-150 hover:text-white/90 ${TENUE_ACCION}`}
+                >
+                  {c.ver ? <MdVisibilityOff size={18} /> : <MdVisibility size={18} />}
+                </button>
               </div>
-            )}
-          </div>
 
-          {/* Confirmar contraseña */}
-          <div className="rsp-form__group">
-            <label className="rsp-form__label">Confirmar contraseña</label>
-            <div className="rsp-form__field">
-              <MdLock className="rsp-form__icon" size={18} />
-              <input
-                type={showPass2 ? 'text' : 'password'}
-                className="rsp-form__input rsp-form__input--has-toggle"
-                value={confirmar}
-                onChange={e => setConfirmar(e.target.value)}
-                placeholder="Repite la contraseña"
-                required
-              />
-              <button type="button" className="rsp-form__toggle"
-                onClick={() => setShowPass2(p => !p)} tabIndex={-1}>
-                {showPass2 ? <MdVisibilityOff size={18} /> : <MdVisibility size={18} />}
-              </button>
+              {/* Indicador de fuerza, solo bajo el primer campo */}
+              {c.id === 'rsp-nueva' && fuerza && (
+                <div className="mt-xs flex items-center gap-md">
+                  <div className="h-1 flex-1 overflow-hidden rounded-full bg-white/10">
+                    <div
+                      className={`h-full rounded-full transition-[width,background-color] duration-300 ${fuerza.barra}`}
+                      style={{ width: fuerza.ancho }}
+                    />
+                  </div>
+                  <span className={`min-w-[60px] text-right text-caption font-semibold ${fuerza.texto}`}>
+                    {fuerza.label}
+                  </span>
+                </div>
+              )}
+
+              {c.id === 'rsp-confirmar' && noCoincide && (
+                <p className="text-caption font-medium text-danger-on-dark">Las contraseñas no coinciden.</p>
+              )}
             </div>
-            {noCoincide && <p style={{ color: '#E11D48', fontSize: '0.8rem', marginTop: '0.4rem' }}>Las contraseñas no coinciden.</p>}
-          </div>
+          ))}
 
-          <button type="submit" className="rsp-btn rsp-btn--primary rsp-btn--full" disabled={loading || formInvalido}>
-            {loading ? <><span className="rsp-spinner" />Actualizando...</> : 'Actualizar contraseña'}
+          <button type="submit" className={BOTON} disabled={loading || formInvalido}>
+            {loading ? (
+              <>
+                <span aria-hidden="true"
+                      className="size-4 shrink-0 animate-spin rounded-full border-2 border-current/30 border-t-current" />
+                Actualizando...
+              </>
+            ) : 'Actualizar contraseña'}
           </button>
         </form>
 
-        <div className="rsp-back">
-          <Link to="/login" className="rsp-back-link">
-            <MdArrowBack size={14} />Volver al login
+        <div className="mt-xl text-center">
+          <Link
+            to="/login"
+            className={`inline-flex items-center gap-xs text-small font-medium no-underline
+                        transition-colors duration-150 hover:text-white/90 ${TENUE_ACCION}`}
+          >
+            <MdArrowBack size={14} aria-hidden="true" />Volver al login
           </Link>
         </div>
-      </div>
+      </main>
     </div>
   );
 }
