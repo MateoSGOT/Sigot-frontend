@@ -229,7 +229,8 @@
 }
 
 /* === Contenedor angosto (≤640px): densidad compacta, más columnas visibles
-   antes de necesitar scroll; el scroll horizontal sigue activo === */
+   antes de necesitar scroll; el scroll horizontal sigue activo.
+   Escalera completa:  >640 tabla normal · 480-640 tabla compacta · ≤480 tarjetas === */
 @container tabla (max-width: 640px) {
   .table { font-size: var(--text-small); }
   .table__th { padding: var(--space-sm) var(--space-md); }
@@ -238,12 +239,26 @@
 }
 
 /* ═══════════════════════════════════════════════════════════
-   Contenedor ≤768px: cada fila se convierte en una TARJETA apilada y cada
+   Contenedor ≤480px: cada fila se convierte en una TARJETA apilada y cada
    celda muestra la etiqueta de su columna. Mucho más legible que el scroll
    horizontal cuando hay muchas columnas -- y es el modo en que el mecánico ve
    las órdenes desde el celular.
+
+   ⚠️ POR QUÉ 480 Y NO 768. Este bloque empezó como `@media (max-width: 768px)`,
+   donde 768 significaba "celular o tablet chica". Al pasarlo a @container el
+   umbral dejó de medir la PANTALLA y pasó a medir el ANCHO DEL PANEL, y 768
+   quedó mal calibrado: una celda bento de 7 columnas en un monitor de 1440px
+   mide 591px, así que la tabla de productividad del dashboard se renderizaba
+   como tarjetas apiladas EN ESCRITORIO. A 1366px medía 548px, igual de mal.
+
+   480 es el ancho por debajo del cual una tabla de varias columnas deja de ser
+   legible de verdad; por encima, el scroll horizontal del wrapper alcanza.
+   Coincide con el token --cq-narrow.
+
+   Al cambiar un umbral de @container hay que recalcular con el ancho de la
+   CELDA, no con el del viewport. No son el mismo número.
    ═══════════════════════════════════════════════════════════ */
-@container tabla (max-width: 768px) {
+@container tabla (max-width: 480px) {
   .table-wrapper {
     overflow-x: visible;
     border: none;
