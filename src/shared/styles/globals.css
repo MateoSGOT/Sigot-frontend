@@ -1,3 +1,9 @@
+/* Orden de capas de la cascada, declarado ANTES que nada: una vez creada una
+   capa, un @layer posterior ya no puede reordenarla. tailwind.css repite esta
+   misma linea; declararla aca garantiza el orden aunque cambie el orden de los
+   imports en main.jsx. */
+@layer theme, base, components, utilities;
+
 /* Tres familias, tres roles (ver --font-* en variables.css): Archivo para
    titulares, Inter para UI densa, JetBrains Mono para identificadores. Se piden
    en una sola petición y solo los pesos que realmente se usan. */
@@ -7,13 +13,38 @@
 @import './forms.css';
 @import './page.css';
 
-*, *::before, *::after {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
+/* ═══════════════════════════════════════════════════════════════════════════
+   RESET — DENTRO DE @layer base, Y ESO ES OBLIGATORIO
 
-html { font-size: 16px; scroll-behavior: smooth; }
+   Este bloque estaba SIN ESTRATIFICAR, y en la cascada de CSS el orden de capas
+   se evalua ANTES que la especificidad: lo no estratificado gana a cualquier
+   capa, sin importar selectores. Como `*` toca TODOS los elementos, este reset
+   le ganaba a TODAS las utilidades de margen y padding de Tailwind, que viven
+   en la capa `utilities`.
+
+   El efecto era silencioso y total: en las vistas migradas, `px-lg`, `py-md`,
+   `mt-xl`, `mx-auto` y companhia no hacian absolutamente nada. El build pasaba,
+   el bundle contenia las utilidades, y en pantalla el contenido quedaba pegado
+   al borde. Se detecto mirando la landing en el navegador, no en el codigo:
+   `max-w-[1200px]` si aplicaba (el reset no toca max-width) mientras `mx-auto`
+   y `px-lg` no, y ese contraste delato la causa.
+
+   Dentro de `base` el reset sigue ganandole a los estilos por defecto del
+   navegador, que es su proposito, pero ya no pisa las utilidades.
+
+   El resto del CSS del proyecto sigue sin estratificar a proposito: ahi SI se
+   quiere que una pagina no migrada mande sobre las utilidades. Lo que no puede
+   quedar fuera de una capa es una regla universal.
+   ═══════════════════════════════════════════════════════════════════════════ */
+@layer base {
+  *, *::before, *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  html { font-size: 16px; scroll-behavior: smooth; }
+}
 
 /* Responsive: todo el texto de la app está en rem (los --text-* de variables.css, más
    encabezados/labels/inputs), mientras que el espaciado y los radios están en px -- subir
