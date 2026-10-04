@@ -31,8 +31,60 @@ const NovedadesPage = lazy(() => import('./features/novedades/pages/NovedadesPag
 const RolesPage = lazy(() => import('./features/roles/pages/RolesPage.jsx'));
 const CuentasPage = lazy(() => import('./features/cuentas/pages/CuentasPage.jsx'));
 
+/* ═══════════════════════════════════════════════════════════════════════════
+   OMITIR LA VALIDACIÓN DE SESIÓN — SOLO DESARROLLO LOCAL
+
+   Sirve para revisar el maquetado de una vista sin tener credenciales del tipo
+   de cuenta que esa vista exige (p. ej. /portal, que rechaza a los empleados).
+
+   Doble condición, y las dos hacen falta:
+
+   · `import.meta.env.DEV` lo sustituye Vite por el literal `false` al compilar,
+     así que la rama se elimina del bundle de producción por dead-code
+     elimination. No es que "no se active" en producción: no llega a existir en
+     el archivo servido.
+   · `VITE_DEV_SKIP_AUTH` tiene que valer exactamente 'true', y vive en
+     .env.local, que está en .gitignore. Un dev que clone el repo no lo tiene.
+
+   NO inyecta token ni usuario falso, a propósito. Con la sesión vacía los
+   fetches de cada página reciben 401 y las vistas quedan en su estado vacío,
+   que es justo lo que se quiere mirar. Y no hay bucle de redirección: el
+   interceptor de shared/services/api.js solo manda a /login si HABÍA un token
+   en localStorage (ver `hadToken`), y acá no hay ninguno.
+
+   Esto NO relaja nada en el servidor: cada endpoint sigue exigiendo su JWT y su
+   permiso (authenticate / checkPermiso). Sin sesión real no se pueden leer ni
+   escribir datos; solo se ve la cáscara.
+   ═══════════════════════════════════════════════════════════════════════════ */
+const OMITIR_AUTH_DEV = import.meta.env.DEV
+  && import.meta.env.VITE_DEV_SKIP_AUTH === 'true';
+
+/* Aviso imposible de no ver. Un bypass de autenticación silencioso es peligroso
+   incluso en local: se olvida encendido y se confunde "se ve vacío" con un bug
+   de la vista. */
+function AvisoAuthOmitida() {
+  if (!OMITIR_AUTH_DEV) return null;
+  return (
+    <div
+      role="status"
+      style={{
+        position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 2147483647,
+        background: 'var(--color-danger)', color: 'var(--color-danger-on)',
+        // Propiedades separadas y no el shorthand `font`: el shorthand con un
+        // var() para la familia es frágil y además resetea lo que no se nombre.
+        fontFamily: 'var(--font-mono)', fontSize: '12px', fontWeight: 600,
+        lineHeight: 1.4, letterSpacing: '0.04em',
+        textAlign: 'center', padding: '6px 12px', pointerEvents: 'none',
+      }}
+    >
+      VITE_DEV_SKIP_AUTH=true · sesión omitida · solo revisión de maquetado · sin datos reales
+    </div>
+  );
+}
+
 function ProtectedRoute({ children }) {
   const { token, restoring, debeCambiarPassword } = useSelector((state) => state.auth);
+  if (OMITIR_AUTH_DEV) return children;
   if (restoring) return null;
   if (!token) return <Navigate to="/login" replace />;
   // Bloqueo real: mientras deba cambiar la contraseña, no accede a ninguna ruta del panel.
@@ -44,6 +96,7 @@ function ProtectedRoute({ children }) {
 // exige (requireSuperAdmin); esto solo evita que alguien más ni siquiera vea la página.
 function RequireSuperAdmin({ children }) {
   const { token, restoring, debeCambiarPassword, empleado, cliente } = useSelector((state) => state.auth);
+  if (OMITIR_AUTH_DEV) return children;
   if (restoring) return null;
   if (!token) return <Navigate to="/login" replace />;
   if (debeCambiarPassword) return <Navigate to="/cambiar-password" replace />;
@@ -53,6 +106,7 @@ function RequireSuperAdmin({ children }) {
 
 function PortalRoute({ children }) {
   const { token, tipo, restoring, debeCambiarPassword } = useSelector((state) => state.auth);
+  if (OMITIR_AUTH_DEV) return children;
   if (restoring) return null;
   if (!token) return <Navigate to="/login" replace />;
   if (debeCambiarPassword) return <Navigate to="/cambiar-password" replace />;
@@ -94,6 +148,10 @@ function App() {
   const loginRedirect = debeCambiarPassword ? '/cambiar-password' : (tipo === 'cliente' ? '/portal' : '/dashboard');
 
   return (
+    <>
+    {/* Franja fija cuando VITE_DEV_SKIP_AUTH esta activo. Sin aviso, un bypass
+        encendido se olvida y "la vista sale vacia" parece un bug de la vista. */}
+    <AvisoAuthOmitida />
     <Suspense fallback={null}>
     <Routes>
       {/* Public routes */}
@@ -157,6 +215,7 @@ function App() {
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
     </Suspense>
+    </>
   );
 }
 
