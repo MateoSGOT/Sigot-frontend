@@ -54,11 +54,22 @@ const RULES_NUEVO_REP = {
   },
 };
 
+/* Estado de la orden -> rótulo + variante de <Badge>.
+   La variante es lo único que decide el color: el Badge toma el par
+   --color-X-soft / --color-X-soft-on, cuyo contraste está verificado (ver los
+   ratios anotados en variables.css).
+
+   Antes cada entrada traía además `bg`, `color` y `border` en literales. Eran
+   DATOS MUERTOS -- nadie los leía, solo se usan `label` y `variant` -- y
+   estaban mal: "Realizado" tenía exactamente los mismos valores ámbar que
+   "Pendiente", y los `color` eran el tono pleno (#F59E0B sobre un tinte al 12%
+   no llega ni a 2.5:1). No tenía efecto visual porque el Badge nunca los
+   miraba, pero era una trampa esperando a quien decidiera usarlos. */
 const ESTADO_CONFIG = {
-  0: { label: 'Inactivo',   variant: 'gray',    bg: 'rgba(255,255,255,0.08)', color: '#64748B', border: 'rgba(255,255,255,0.12)' },
-  1: { label: 'Pendiente',  variant: 'warning', bg: 'rgba(245, 158, 11,0.12)',  color: '#F59E0B', border: 'rgba(245, 158, 11,0.3)'   },
-  2: { label: 'En proceso', variant: 'info',    bg: 'rgba(43, 92, 255,0.12)',  color: '#2B5CFF', border: 'rgba(43, 92, 255,0.3)'   },
-  3: { label: 'Realizado',  variant: 'success', bg: 'rgba(245, 158, 11,0.12)', color: '#F59E0B', border: 'rgba(245, 158, 11,0.3)'   },
+  0: { label: 'Inactivo',   variant: 'gray'    },
+  1: { label: 'Pendiente',  variant: 'warning' },
+  2: { label: 'En proceso', variant: 'info'    },
+  3: { label: 'Realizado',  variant: 'success' },
 };
 
 const PASOS = [
@@ -658,52 +669,89 @@ export default function OrdenesPage() {
         </div>
       </div>
 
-      <div className="card">
-        <div className="card__header">
-          <SearchBar
-            value={search}
-            onChange={onSearch}
-            placeholder="Buscar por vehículo, cliente, documento, correo..."
-            filterSlot={
-              <>
-                <select className="filter-select" value={estadoFilter} onChange={e => onEstado(e.target.value)}>
-                  <option value="todos">Todos los estados</option>
-                  <option value="1">Pendiente</option>
-                  <option value="2">En proceso</option>
-                  <option value="3">Realizado</option>
-                  <option value="0">Inactivo</option>
-                </select>
-                <FilterDropdown
-                  showStatus={false}
-                  pageSize={pageSize}
-                  onPageSizeChange={onPageSize}
-                />
-              </>
-            }
-          />
-        </div>
-        {resumenOrd.total > 0 && (
-          <div className="table-summary">
-            <Badge variant="warning">{resumenOrd.pendientes} pendientes</Badge>
-            <Badge variant="info">{resumenOrd.enProceso} en proceso</Badge>
-            <Badge variant="success">{resumenOrd.realizadas} realizadas</Badge>
-            <span className="table-summary__total">{resumenOrd.total} en total</span>
-          </div>
-        )}
-        <Table
-          columns={columns}
-          rowKey="Id_Orden"
-          data={rows}
-          loading={listLoading}
-          serverSide
-          total={total}
-          page={page}
-          onPageChange={setPage}
-          pageSize={pageSize}
-          searchTerm={search}
-          onClearSearch={() => onSearch('')}
-          emptyMessage="No se encontraron órdenes de trabajo"
+      {/* Barra de herramientas: fila propia de la capa compartida, ya no dentro
+          de la cabecera de la tarjeta. Así la búsqueda ocupa el ancho libre y
+          los filtros conservan el suyo, en vez de competir con el título. */}
+      <div className="page__toolbar">
+        <SearchBar
+          value={search}
+          onChange={onSearch}
+          placeholder="Buscar por vehículo, cliente, documento, correo..."
+          filterSlot={
+            <>
+              <select className="filter-select" value={estadoFilter} onChange={e => onEstado(e.target.value)}>
+                <option value="todos">Todos los estados</option>
+                <option value="1">Pendiente</option>
+                <option value="2">En proceso</option>
+                <option value="3">Realizado</option>
+                <option value="0">Inactivo</option>
+              </select>
+              <FilterDropdown
+                showStatus={false}
+                pageSize={pageSize}
+                onPageSizeChange={onPageSize}
+              />
+            </>
+          }
         />
+      </div>
+
+      {/* Bento: cada celda es un contenedor @container independiente. El resumen
+          pasa de ser una fila de badges apretados en la cabecera de la tabla a
+          cuatro módulos con la cifra en jerarquía -- que es lo que el mecánico
+          lee de un barrido desde el celular. */}
+      <div className="bento">
+        {resumenOrd.total > 0 && (
+          <>
+            <div className="bento__module bento__module--3">
+              <div className="card metric metric--warning">
+                <span className="metric__label">Pendientes</span>
+                <span className="metric__value">{resumenOrd.pendientes}</span>
+              </div>
+            </div>
+            <div className="bento__module bento__module--3">
+              <div className="card metric metric--info">
+                <span className="metric__label">En proceso</span>
+                <span className="metric__value">{resumenOrd.enProceso}</span>
+              </div>
+            </div>
+            <div className="bento__module bento__module--3">
+              <div className="card metric metric--success">
+                <span className="metric__label">Realizadas</span>
+                <span className="metric__value">{resumenOrd.realizadas}</span>
+              </div>
+            </div>
+            <div className="bento__module bento__module--3">
+              <div className="card metric metric--neutral">
+                <span className="metric__label">Total</span>
+                <span className="metric__value">{resumenOrd.total}</span>
+              </div>
+            </div>
+          </>
+        )}
+
+        <div className="bento__module bento__module--12">
+          <div className="card">
+            {/* --tabla quita el padding lateral: la tabla ya trae su propio
+                canto redondeado y quedaba un marco dentro de otro marco. */}
+            <div className="card__body card__body--tabla">
+              <Table
+                columns={columns}
+                rowKey="Id_Orden"
+                data={rows}
+                loading={listLoading}
+                serverSide
+                total={total}
+                page={page}
+                onPageChange={setPage}
+                pageSize={pageSize}
+                searchTerm={search}
+                onClearSearch={() => onSearch('')}
+                emptyMessage="No se encontraron órdenes de trabajo"
+              />
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Detail Modal */}

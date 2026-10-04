@@ -1,4 +1,24 @@
-/* === Progress Stepper === */
+/* ===========================================================================
+   ORDENES DE TRABAJO -- estilos propios de la vista.
+
+   El LISTADO ya no tiene CSS propio: lo maqueta la capa compartida
+   (.page__toolbar / .bento / .bento__module--N / .card / .metric), y el paso a
+   tarjetas en movil lo resuelve Table.css con @container. Lo que queda aca es
+   el MODAL DE DETALLE, que si es una pieza especifica: el stepper de progreso,
+   las listas de servicios/repuestos, los totales y la mano de obra.
+
+   CORRECCION DE SEMANTICA DE COLOR. Esta vista usaba el token de EXITO
+   (esmeralda) como si fuera el color de marca -- resto de cuando SIGOT era
+   verde. Quedaba asi: la pestana activa verde, el dinero verde, la mano de
+   obra verde, y la etiqueta del paso actual verde mientras su punto era
+   cobalto. Dos arreglos distintos:
+     - ACTIVO (pestana, paso actual) -> cobalto, que es el color de accion.
+     - DINERO (precios, totales, mano de obra) -> TINTA. Un importe no es un
+       "exito": es el dato principal y lo que necesita es peso, no color. El
+       esmeralda queda reservado para el estado "Realizado".
+   =========================================================================== */
+
+/* === Stepper de progreso === */
 .progreso-container {
   display: flex;
   flex-direction: column;
@@ -58,8 +78,9 @@
   white-space: nowrap;
 }
 
+/* Cobalto, igual que su punto: antes el punto era cobalto y la etiqueta verde. */
 .progreso-step--active .progreso-label {
-  color: var(--color-success-soft-on);
+  color: var(--color-primary-soft-on);
 }
 
 .progreso-step--done .progreso-label {
@@ -133,23 +154,6 @@
   font-size: 0.875rem;
 }
 
-.estado-pill-select {
-  padding: 0.3rem 0.875rem;
-  border-width: 1.5px;
-  border-style: solid;
-  border-radius: 9999px;
-  font-size: 0.72rem;
-  font-weight: 700;
-  font-family: inherit;
-  cursor: pointer;
-  outline: none;
-  transition: opacity 0.15s ease, box-shadow 0.15s ease;
-  white-space: nowrap;
-  letter-spacing: 0.01em;
-}
-.estado-pill-select:hover { opacity: 0.82; }
-.estado-pill-select:focus { box-shadow: 0 0 0 3px rgba(0,0,0,0.08); }
-
 /* Tabs */
 .orden-tabs {
   display: flex;
@@ -171,7 +175,10 @@
 }
 
 .orden-tab:hover { color: var(--color-text); }
-.orden-tab--active { color: var(--color-success-soft-on); border-bottom-color: var(--color-success-strong); }
+.orden-tab--active {
+  color: var(--color-primary-soft-on);
+  border-bottom-color: var(--color-primary);
+}
 
 /* Items list */
 .orden-items-list {
@@ -214,7 +221,7 @@
   letter-spacing: 0.01em;
 }
 .orden-item-qty { color: var(--color-text-muted); font-size: 0.8125rem; }
-.orden-item-price { font-weight: 700; color: var(--color-success-soft-on); }
+.orden-item-price { font-weight: var(--weight-bold); color: var(--color-text); }
 /* Prefijo de iniciales del técnico ("PM. ") antes del nombre de la línea -- solo
    aparece cuando la orden tiene 2+ mecánicos asignados (ver OrdenesPage.jsx::
    hayMultiplesMecanicos/prefijoTecnico). Va DENTRO de .orden-item-name, así que
@@ -415,8 +422,8 @@
 }
 
 .orden-total-final span:last-child {
-  color: var(--color-success-soft-on);
-  font-size: 1.125rem;
+  color: var(--color-text);
+  font-size: var(--text-h2);
 }
 
 .orden-subtotal {
@@ -432,7 +439,7 @@
   color: var(--color-text);
 }
 
-.orden-subtotal span:last-child { color: #047857; }
+.orden-subtotal span:last-child { color: var(--color-text); }
 
 /* Mano de obra */
 .mano-de-obra-section {
@@ -450,7 +457,7 @@
   margin-bottom: 0.625rem;
 }
 
-.mano-de-obra-icon { color: var(--color-success-soft-on); }
+.mano-de-obra-icon { color: var(--color-primary-soft-on); }
 
 .mano-de-obra-title {
   font-size: 0.875rem;
@@ -465,9 +472,9 @@
 }
 
 .mano-de-obra-value {
-  font-size: 1rem;
-  font-weight: 700;
-  color: var(--color-success-soft-on);
+  font-size: var(--text-h3);
+  font-weight: var(--weight-bold);
+  color: var(--color-text);
   flex: 1;
 }
 

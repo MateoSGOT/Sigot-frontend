@@ -202,6 +202,58 @@
   .card__body   { padding: var(--space-lg); }
 }
 
+/* ══════════════════ MÉTRICA ══════════════════
+   Celda de resumen: una cifra grande con su rótulo y una franja del color que
+   encoda el estado. Vive en la capa compartida porque toda página de listado
+   quiere lo mismo (cuántos pendientes, cuántos realizados) y antes eso era una
+   fila de badges apretados dentro de la cabecera de la tabla: el número no
+   tenía jerarquía y no se leía de un barrido desde el celular.
+
+   Es un .card, así que hereda superficie, canto y elevación. La franja usa los
+   pares -soft/-soft-on del sistema, cuyo contraste está verificado. */
+.metric {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  padding: var(--space-lg) var(--space-xl);
+  border-left: 3px solid var(--color-neutral);
+}
+
+.metric__label {
+  font-size: var(--text-caption);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text-light);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wide);
+}
+
+.metric__value {
+  font-family: var(--font-display);
+  font-size: var(--text-display);
+  font-weight: var(--weight-extrabold);
+  color: var(--color-text);
+  line-height: 1.02;
+  letter-spacing: var(--tracking-tight);
+  /* Cifras de ancho fijo: al cambiar el filtro el número cambia sin que la
+     tarjeta "salte" por el ancho distinto de los dígitos. */
+  font-variant-numeric: tabular-nums;
+}
+
+/* Variantes por estado del flujo. La franja lleva el color pleno; la cifra se
+   queda en tinta -- un número grande en ámbar sobre blanco no llega a AA, y
+   teñir el dato además compite con la franja, que ya informa. */
+.metric--warning { border-left-color: var(--color-warning); }
+.metric--info    { border-left-color: var(--color-info); }
+.metric--success { border-left-color: var(--color-success); }
+.metric--neutral { border-left-color: var(--color-neutral); }
+
+/* Celda angosta: se reduce la cifra antes de dejar que desborde. */
+@container modulo (max-width: 220px) {
+  .metric { padding: var(--space-md) var(--space-lg); }
+  .metric__value { font-size: var(--text-h1); }
+  .metric__label { letter-spacing: var(--tracking-normal); }
+}
+
 /* ══════════════════ REJILLA DE DETALLE ══════════════════
    Pares etiqueta/valor. Se adapta al ancho del MÓDULO que la contiene: la misma
    rejilla da dos columnas en una celda ancha y una en una angosta, sin que la

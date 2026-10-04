@@ -301,6 +301,26 @@
   .table__td[data-label="#"] { display: none; }
   .table__td[data-label=""]::before { content: none; }
 
+  /* ÁREA TÁCTIL. En escritorio los botones de acción de una fila son iconos de
+     28px, que con un puntero es de sobra. En modo tarjeta el mismo botón hay
+     que acertarlo con el pulgar, muchas veces con guantes, así que sube al
+     mínimo del sistema (--touch-min, 48px).
+
+     Se aplica desde acá y no desde el CSS de cada página para que cualquier
+     tabla lo reciba: las celdas de acción se llaman distinto en cada módulo
+     (.table-actions en Órdenes, otras en el resto) pero todas montan .btn. */
+  .table__td .btn--icon {
+    min-width: var(--touch-min);
+    min-height: var(--touch-min);
+  }
+  /* La celda de acciones se estira a lo ancho para que los botones queden
+     separados y no pegados en una esquina. */
+  .table__td > .table-actions {
+    display: flex;
+    gap: var(--space-sm);
+    justify-content: flex-end;
+  }
+
   /* Separadores y estado vacío: sin formato de tarjeta */
   .table__row--separator {
     border: none; background: none; box-shadow: none;

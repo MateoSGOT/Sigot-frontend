@@ -371,6 +371,12 @@
     --color-primary-soft: color-mix(in oklab, var(--color-primary) 10%, transparent);
     --color-info-soft:    color-mix(in oklab, var(--color-info) 10%, transparent);
     --color-success-soft: color-mix(in oklab, var(--color-success) 13%, transparent);
+    /* ⚠️ 13% es el TECHO del ámbar. Medido sobre el fondo ya compuesto contra la
+       superficie blanca, la píldora "Pendiente" (texto --color-warning-soft-on
+       #B45309) da 4.54:1 -- pasa AA por 0.04. Subir este porcentaje oscurece el
+       tinte y la tira abajo del 4.5. Si se toca, hay que volver a medir el par,
+       no solo mirarlo. Las otras tres píldoras tienen margen: info 6.58:1,
+       success 4.68:1, gray 6.65:1. */
     --color-warning-soft: color-mix(in oklab, var(--color-accent) 13%, transparent);
     --color-danger-soft:  color-mix(in oklab, var(--color-danger) 11%, transparent);
     --color-accent-soft:  color-mix(in oklab, var(--color-accent) 13%, transparent);
