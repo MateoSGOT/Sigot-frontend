@@ -18,10 +18,14 @@ import { filterItems, formatDate, formatCurrency, todayLocalYMD, formatHora12 } 
 import * as V from '../../../shared/utils/validators.js';
 import { useAutoRefresh } from '../../../shared/hooks/useAutoRefresh.js';
 import api from '../../../shared/services/api.js';
-// Detalle de orden (pestanas, lineas, totales): compartido con OrdenesPage del
-// panel. Este archivo tenia una copia marcada "copied from OrdenesPage.css"
-// cuyos valores ya habian divergido. Ver shared/styles/orden-detalle.css
-import '../../../shared/styles/orden-detalle.css';
+// Clases del detalle de orden: compartidas con el modal del portal, que muestra
+// la MISMA orden. Son constantes JS y no un CSS comun a proposito -- ver el
+// encabezado de clasesOrdenDetalle.js.
+import {
+  OD_TABS, OD_TAB, OD_TAB_ACTIVA, OD_LISTA, OD_FILA, OD_NOMBRE, OD_CANTIDAD,
+  OD_PRECIO, OD_VACIO, OD_SUBTOTAL, OD_TOTAL_CAJA, OD_TOTAL_DESGLOSE,
+  OD_TOTAL_FILA, OD_TOTAL_FINAL, OD_TOTAL_CIFRA,
+} from '../../../shared/styles/clasesOrdenDetalle.js';
 import './PortalPage.css';
 
 const ESTADO_CITA_META = {
@@ -838,9 +842,9 @@ function PortalPageInner() {
           <div className="u-center-note">Cargando detalle...</div>
         ) : ordDetail ? (
           <div>
-            <div className="orden-tabs">
+            <div className={OD_TABS}>
               {[['info', 'Información general'], ['servicios', 'Servicios'], ['repuestos', 'Repuestos']].map(([key, label]) => (
-                <button key={key} className={`orden-tab${ordTab === key ? ' orden-tab--active' : ''}`} onClick={() => setOrdTab(key)}>
+                <button key={key} className={`${OD_TAB}${ordTab === key ? ` ${OD_TAB_ACTIVA}` : ''}`} onClick={() => setOrdTab(key)}>
                   {label}
                 </button>
               ))}
@@ -856,23 +860,23 @@ function PortalPageInner() {
                   <div className="detail-item"><span className="detail-label">Fecha entrega</span><span className="detail-value">{formatDate(ordDetail.FechaEntrega)}</span></div>
                   <div className="detail-item u-span-2"><span className="detail-label">Diagnóstico</span><span className="detail-value">{ordDetail.Diagnostico || '—'}</span></div>
                 </div>
-                <div className="orden-total-card">
+                <div className={OD_TOTAL_CAJA}>
                   {ordenConComprobante ? (
                     <>
-                      <div className="orden-total-breakdown">
-                        <div className="orden-total-row"><span>Servicios</span><span>{formatCurrency(totalServ)}</span></div>
-                        <div className="orden-total-row"><span>Repuestos</span><span>{formatCurrency(totalRep)}</span></div>
-                        <div className="orden-total-row"><span>Mano de obra</span><span>{manoObra != null ? formatCurrency(manoObra) : '—'}</span></div>
+                      <div className={OD_TOTAL_DESGLOSE}>
+                        <div className={OD_TOTAL_FILA}><span>Servicios</span><span>{formatCurrency(totalServ)}</span></div>
+                        <div className={OD_TOTAL_FILA}><span>Repuestos</span><span>{formatCurrency(totalRep)}</span></div>
+                        <div className={OD_TOTAL_FILA}><span>Mano de obra</span><span>{manoObra != null ? formatCurrency(manoObra) : '—'}</span></div>
                       </div>
-                      <div className="orden-total-final">
+                      <div className={OD_TOTAL_FINAL}>
                         <span>Total</span>
-                        <span>{formatCurrency(total)}</span>
+                        <span className={OD_TOTAL_CIFRA}>{formatCurrency(total)}</span>
                       </div>
                     </>
                   ) : (
                     <>
-                      <div className="orden-total-breakdown">
-                        <div className="orden-total-row"><span>Repuestos</span><span>{formatCurrency(totalRep)}</span></div>
+                      <div className={OD_TOTAL_DESGLOSE}>
+                        <div className={OD_TOTAL_FILA}><span>Repuestos</span><span>{formatCurrency(totalRep)}</span></div>
                       </div>
                       <p className="u-hint" style={{ marginTop: '0.5rem' }}>El costo de servicios y mano de obra se muestra cuando la orden queda con comprobante.</p>
                     </>
@@ -883,23 +887,23 @@ function PortalPageInner() {
 
             {ordTab === 'servicios' && (
               <div className="u-mt-lg">
-                <div className="orden-items-list">
+                <div className={OD_LISTA}>
                   {(ordDetail.servicios || []).length > 0
                     ? (ordDetail.servicios || []).map((s, i) => (
-                      <div key={i} className="orden-item-row">
-                        <span className="orden-item-name u-flex-1">{s.servicio || s.Nombre || `Servicio #${s.Id_Servicio}`}</span>
+                      <div key={i} className={OD_FILA}>
+                        <span className={OD_NOMBRE}>{s.servicio || s.Nombre || `Servicio #${s.Id_Servicio}`}</span>
                         {/* El costo de servicios/mano de obra es información interna del taller
                             (margen) -- se destapa solo cuando la orden queda con comprobante
                             (ver ordenConComprobante), pero el CLIENTE siempre debe poder ver QUÉ
                             servicios se le están realizando, con o sin comprobante aún. */}
-                        {ordenConComprobante && <span className="orden-item-price">{formatCurrency(s.precio_unitario)}</span>}
+                        {ordenConComprobante && <span className={OD_PRECIO}>{formatCurrency(s.precio_unitario)}</span>}
                       </div>
                     ))
-                    : <p className="empty-list">No hay servicios registrados en esta orden.</p>
+                    : <p className={OD_VACIO}>No hay servicios registrados en esta orden.</p>
                   }
                 </div>
                 {ordenConComprobante ? (
-                  <div className="orden-subtotal">
+                  <div className={OD_SUBTOTAL}>
                     <span>Subtotal servicios</span>
                     <span>{formatCurrency(totalServ)}</span>
                   </div>
@@ -911,19 +915,19 @@ function PortalPageInner() {
 
             {ordTab === 'repuestos' && (
               <div className="u-mt-lg">
-                <div className="orden-items-list">
+                <div className={OD_LISTA}>
                   {(ordDetail.repuestos || []).length > 0
                     ? (ordDetail.repuestos || []).map((r, i) => (
-                      <div key={i} className="orden-item-row">
-                        <span className="orden-item-name u-flex-1">{r.repuesto || r.Nombre || `Repuesto #${r.Id_Repuesto}`}</span>
-                        <span className="orden-item-qty">x{r.cantidad || r.Cantidad}</span>
-                        <span className="orden-item-price">{formatCurrency(Number(r.cantidad || 1) * Number(r.precio_unitario || 0))}</span>
+                      <div key={i} className={OD_FILA}>
+                        <span className={OD_NOMBRE}>{r.repuesto || r.Nombre || `Repuesto #${r.Id_Repuesto}`}</span>
+                        <span className={OD_CANTIDAD}>x{r.cantidad || r.Cantidad}</span>
+                        <span className={OD_PRECIO}>{formatCurrency(Number(r.cantidad || 1) * Number(r.precio_unitario || 0))}</span>
                       </div>
                     ))
-                    : <p className="empty-list">No hay repuestos registrados en esta orden.</p>
+                    : <p className={OD_VACIO}>No hay repuestos registrados en esta orden.</p>
                   }
                 </div>
-                <div className="orden-subtotal">
+                <div className={OD_SUBTOTAL}>
                   <span>Total repuestos</span>
                   <span>{formatCurrency(totalRep)}</span>
                 </div>

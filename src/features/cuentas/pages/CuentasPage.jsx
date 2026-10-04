@@ -263,7 +263,7 @@ export default function CuentasPage() {
 
         {!limpiezaLoading && limpiezaPreview && (
           candidatos.length === 0 ? (
-            <p className="empty-list">No hay cuentas inactivas creadas antes de esa fecha.</p>
+            <p className="p-xl text-center text-body text-text-muted">No hay cuentas inactivas creadas antes de esa fecha.</p>
           ) : (
             <>
               <div className="cuentas-limpieza-lista u-mb-md" style={{ maxHeight: 220, overflowY: 'auto' }}>

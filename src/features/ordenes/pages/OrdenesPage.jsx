@@ -27,10 +27,14 @@ import * as V from '../../../shared/utils/validators.js';
 import { useFormValidation } from '../../../shared/hooks/useFormValidation.js';
 import { useToast } from '../../../shared/components/Toast/ToastContext.jsx';
 import api from '../../../shared/services/api.js';
-// Detalle de orden (pestanas, lineas, totales): compartido con el portal del
-// cliente, que muestra el mismo modal. Antes cada pagina tenia su copia y las
-// dos se pisaban segun el orden de carga. Ver shared/styles/orden-detalle.css
-import '../../../shared/styles/orden-detalle.css';
+// Clases del detalle de orden: compartidas con el modal del portal, que muestra
+// la MISMA orden. Son constantes JS y no un CSS comun a proposito -- ver el
+// encabezado de clasesOrdenDetalle.js.
+import {
+  OD_TABS, OD_TAB, OD_TAB_ACTIVA, OD_LISTA, OD_FILA, OD_NOMBRE, OD_CANTIDAD,
+  OD_PRECIO, OD_VACIO, OD_SUBTOTAL, OD_TOTAL_CAJA, OD_TOTAL_DESGLOSE,
+  OD_TOTAL_FILA, OD_TOTAL_FINAL, OD_TOTAL_CIFRA,
+} from '../../../shared/styles/clasesOrdenDetalle.js';
 
 // Reglas de validación en tiempo real para crear un servicio/repuesto NUEVO
 // desde la orden (mismo patrón que ServiciosPage/RepuestosPage).
@@ -841,9 +845,9 @@ export default function OrdenesPage() {
       >
         {detailId && (
           <div>
-            <div className="orden-tabs">
+            <div className={OD_TABS}>
               {['info', 'servicios', 'repuestos'].map(tab => (
-                <button key={tab} className={`orden-tab${activeTab === tab ? ' orden-tab--active' : ''}`} onClick={() => setActiveTab(tab)}>
+                <button key={tab} className={`${OD_TAB}${activeTab === tab ? ` ${OD_TAB_ACTIVA}` : ''}`} onClick={() => setActiveTab(tab)}>
                   {tab === 'info' ? 'Información general' : tab === 'servicios' ? 'Servicios' : 'Repuestos'}
                 </button>
               ))}
@@ -1030,13 +1034,13 @@ export default function OrdenesPage() {
                   </div>
                 )}
 
-                <div className="orden-total-card u-mt-xl">
-                  <div className="orden-total-breakdown">
-                    <div className="orden-total-row"><span>Servicios</span><span>{formatCurrency(totalServicios)}</span></div>
-                    <div className="orden-total-row"><span>Repuestos</span><span>{formatCurrency(totalRepuestos)}</span></div>
-                    <div className="orden-total-row"><span>Mano de obra</span><span>{manoDeObra != null ? formatCurrency(manoDeObra) : '—'}</span></div>
+                <div className={OD_TOTAL_CAJA}>
+                  <div className={OD_TOTAL_DESGLOSE}>
+                    <div className={OD_TOTAL_FILA}><span>Servicios</span><span>{formatCurrency(totalServicios)}</span></div>
+                    <div className={OD_TOTAL_FILA}><span>Repuestos</span><span>{formatCurrency(totalRepuestos)}</span></div>
+                    <div className={OD_TOTAL_FILA}><span>Mano de obra</span><span>{manoDeObra != null ? formatCurrency(manoDeObra) : '—'}</span></div>
                   </div>
-                  <div className="orden-total-final">
+                  <div className={OD_TOTAL_FINAL}>
                     <span>Total</span>
                     <span>{formatCurrency(totalGeneral)}</span>
                   </div>
@@ -1052,18 +1056,18 @@ export default function OrdenesPage() {
                   const servSlice = servItems.slice(servStart, servStart + ITEMS_PER_PAGE);
                   return (
                     <>
-                      <div className="orden-items-list">
+                      <div className={OD_LISTA}>
                         {servItems.length > 0 ? (
                           servSlice.map((s, i) => {
                             const prefijo = prefijoTecnico(s.Id_Empleado);
                             return (
-                            <div key={i} className="orden-item-row">
-                              <span className="orden-item-name">
+                            <div key={i} className={OD_FILA}>
+                              <span className={OD_NOMBRE}>
                                 {prefijo && <span className="font-bold text-text-muted">{prefijo}</span>}
                                 {s.servicio || s.Nombre || s.nombre || `Servicio #${s.Id_Servicio}`}
                               </span>
                               <span className="u-muted-nowrap" title="Duración estimada">{fmtDuracion(s.DuracionMinutos)}</span>
-                              <span className="orden-item-price">{formatCurrency(s.precio_unitario || s.Precio)}</span>
+                              <span className={OD_PRECIO}>{formatCurrency(s.precio_unitario || s.Precio)}</span>
                               {!contenidoBloqueado && (
                                 <button className="btn btn--ghost btn--icon btn--sm ml-auto shrink-0 text-text-muted opacity-60 transition-[opacity,color] duration-150 hover:not-disabled:opacity-100 hover:not-disabled:text-danger" title="Eliminar servicio" onClick={() => handleDeleteServicio(s.Id_Servicio)} disabled={actionLoading}>
                                   <MdDeleteOutline size={16} />
@@ -1072,13 +1076,13 @@ export default function OrdenesPage() {
                             </div>
                             );
                           })
-                        ) : <p className="empty-list">No hay servicios agregados.</p>}
+                        ) : <p className={OD_VACIO}>No hay servicios agregados.</p>}
                       </div>
                       {servItems.length > 0 && (
-                        <div className="orden-item-row u-semibold">
-                          <span className="orden-item-name">Tiempo total estimado</span>
+                        <div className={`${OD_FILA} font-semibold`}>
+                          <span className={OD_NOMBRE}>Tiempo total estimado</span>
                           <span className="u-nowrap">{fmtDuracion(selected?.DuracionTotalMin)}</span>
-                          <span className="orden-item-price" />
+                          <span className={OD_PRECIO} />
                         </div>
                       )}
                       {servItems.length > ITEMS_PER_PAGE && (
@@ -1117,7 +1121,7 @@ export default function OrdenesPage() {
                   ) : null}
                 </div>
 
-                <div className="orden-subtotal">
+                <div className={OD_SUBTOTAL}>
                   <span>Subtotal servicios + mano de obra</span>
                   <span>{formatCurrency(totalServicios + (manoDeObra || 0))}</span>
                 </div>
@@ -1202,7 +1206,7 @@ export default function OrdenesPage() {
                   const repSlice = repItems.slice(repStart, repStart + ITEMS_PER_PAGE);
                   return (
                     <>
-                      <div className="orden-items-list">
+                      <div className={OD_LISTA}>
                         {repItems.length > 0 ? (
                           repSlice.map((r, i) => {
                             const info = repuestoById[String(r.Id_Repuesto)];
@@ -1211,17 +1215,17 @@ export default function OrdenesPage() {
                             // Sin prefijo de técnico aquí: "¿Quién lo hizo?" solo aplica a
                             // Servicios (ver mostrarPrefijoTecnico).
                             return (
-                              <div key={i} className="orden-item-row">
+                              <div key={i} className={OD_FILA}>
                                 <div className="flex flex-1 flex-wrap items-center gap-sm">
-                                  <span className="orden-item-name">
+                                  <span className={OD_NOMBRE}>
                                     {r.repuesto || r.Nombre || r.nombre || `Repuesto #${r.Id_Repuesto}`}
                                   </span>
                                   {garantia && (
                                     <span className="whitespace-nowrap rounded-full border border-primary-pale-2 bg-primary-soft px-sm py-[0.1rem] text-[0.7rem] font-semibold text-primary-soft-on">· Garantía: {garantia} {unidad}</span>
                                   )}
                                 </div>
-                                <span className="orden-item-qty">x{r.cantidad || r.Cantidad}</span>
-                                <span className="orden-item-price">{formatCurrency((r.precio_unitario || r.PrecioVenta || 0) * (r.cantidad || r.Cantidad || 1))}</span>
+                                <span className={OD_CANTIDAD}>x{r.cantidad || r.Cantidad}</span>
+                                <span className={OD_PRECIO}>{formatCurrency((r.precio_unitario || r.PrecioVenta || 0) * (r.cantidad || r.Cantidad || 1))}</span>
                                 {!contenidoBloqueado && (
                                   <button className="btn btn--ghost btn--icon btn--sm ml-auto shrink-0 text-text-muted opacity-60 transition-[opacity,color] duration-150 hover:not-disabled:opacity-100 hover:not-disabled:text-danger" title="Eliminar repuesto" onClick={() => handleDeleteRepuesto(r.Id_Repuesto)} disabled={actionLoading}>
                                     <MdDeleteOutline size={16} />
@@ -1230,7 +1234,7 @@ export default function OrdenesPage() {
                               </div>
                             );
                           })
-                        ) : <p className="empty-list">No hay repuestos agregados.</p>}
+                        ) : <p className={OD_VACIO}>No hay repuestos agregados.</p>}
                       </div>
                       {repItems.length > ITEMS_PER_PAGE && (
                         <div className="mt-sm flex items-center justify-center gap-md py-md">
@@ -1243,7 +1247,7 @@ export default function OrdenesPage() {
                   );
                 })()}
 
-                <div className="orden-subtotal">
+                <div className={OD_SUBTOTAL}>
                   <span>Total repuestos</span>
                   <span>{formatCurrency(totalRepuestos)}</span>
                 </div>

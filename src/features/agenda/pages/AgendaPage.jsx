@@ -775,7 +775,7 @@ export default function AgendaPage() {
                 );
               })}
             </div>
-          ) : <p className="empty-list">No hay citas ese día.</p>
+          ) : <p className="p-xl text-center text-body text-text-muted">No hay citas ese día.</p>
         )}
       </Modal>
 
