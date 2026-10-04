@@ -16,7 +16,6 @@ import { StatusBadge } from '../../../shared/components/Badge/Badge.jsx';
 import * as V from '../../../shared/utils/validators.js';
 import { useFormValidation } from '../../../shared/hooks/useFormValidation.js';
 import api from '../../../shared/services/api.js';
-import './VehiculosPage.css';
 
 const RULES = {
   Placa:      V.placa,

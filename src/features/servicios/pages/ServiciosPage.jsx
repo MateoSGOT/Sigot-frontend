@@ -16,7 +16,6 @@ import { formatCurrency } from '../../../shared/utils/helpers.js';
 import * as V from '../../../shared/utils/validators.js';
 import { useFormValidation } from '../../../shared/hooks/useFormValidation.js';
 import api from '../../../shared/services/api.js';
-import './ServiciosPage.css';
 
 const EMPTY = { Nombre: '', Descripcion: '', Precio: '', DuracionMinutos: '' };
 const RULES = {

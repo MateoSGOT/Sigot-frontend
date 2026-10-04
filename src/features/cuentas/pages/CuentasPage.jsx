@@ -12,7 +12,6 @@ import Modal from '../../../shared/components/Modal/Modal.jsx';
 import Badge from '../../../shared/components/Badge/Badge.jsx';
 import { useToast } from '../../../shared/components/Toast/ToastContext.jsx';
 import { filterItems, getErrorMessage, formatDate, todayLocalYMD } from '../../../shared/utils/helpers.js';
-import './CuentasPage.css';
 
 const TEXTO_LIMPIEZA = 'ELIMINAR CUENTAS INACTIVAS';
 
@@ -168,7 +167,7 @@ export default function CuentasPage() {
     },
     {
       key: 'Id_Rol', label: 'Rol', render: (v, row) => (
-        <div className="cuentas-rol-cell">
+        <div className="flex flex-wrap items-center gap-sm [&_.ss]:min-w-[170px]">
           {row.EsSuperAdmin ? (
             <Badge variant="success"><MdSecurity size={11} className="u-ic-mr" />Super Administrador</Badge>
           ) : (
@@ -266,17 +265,17 @@ export default function CuentasPage() {
             <p className="p-xl text-center text-body text-text-muted">No hay cuentas inactivas creadas antes de esa fecha.</p>
           ) : (
             <>
-              <div className="cuentas-limpieza-lista u-mb-md" style={{ maxHeight: 220, overflowY: 'auto' }}>
+              <div className="flex flex-col gap-[6px] u-mb-md" style={{ maxHeight: 220, overflowY: 'auto' }}>
                 {elegibles.map(c => (
-                  <div key={`${c.TipoOrigen}-${c.IdOrigen}`} className="cuentas-limpieza-item">
-                    <span className="cuentas-limpieza-item__nombre">{c.Nombre} <small>· {c.Correo}</small></span>
-                    <span className="cuentas-limpieza-item__fecha">{formatDate(c.createdAt)}</span>
+                  <div key={`${c.TipoOrigen}-${c.IdOrigen}`} className="flex items-center justify-between gap-sm rounded-sm border border-border bg-surface px-md py-sm">
+                    <span className="text-small [&_small]:text-text-muted">{c.Nombre} <small>· {c.Correo}</small></span>
+                    <span className="whitespace-nowrap text-caption text-text-muted">{formatDate(c.createdAt)}</span>
                   </div>
                 ))}
                 {bloqueados.map(c => (
-                  <div key={`${c.TipoOrigen}-${c.IdOrigen}`} className="cuentas-limpieza-item cuentas-limpieza-item--omitida">
-                    <span className="cuentas-limpieza-item__nombre">{c.Nombre}</span>
-                    <span className="cuentas-limpieza-item__motivo">Omitida: {c.motivoBloqueo || 'tiene historial'}</span>
+                  <div key={`${c.TipoOrigen}-${c.IdOrigen}`} className="flex items-center justify-between gap-sm rounded-sm border border-border bg-surface px-md py-sm opacity-60">
+                    <span className="text-small [&_small]:text-text-muted">{c.Nombre}</span>
+                    <span className="text-right text-caption text-danger">Omitida: {c.motivoBloqueo || 'tiene historial'}</span>
                   </div>
                 ))}
               </div>

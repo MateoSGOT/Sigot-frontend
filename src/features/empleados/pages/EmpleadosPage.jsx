@@ -23,7 +23,6 @@ import { useAutoRefresh } from '../../../shared/hooks/useAutoRefresh.js';
 import * as V from '../../../shared/utils/validators.js';
 import { useFormValidation } from '../../../shared/hooks/useFormValidation.js';
 import api from '../../../shared/services/api.js';
-import './EmpleadosPage.css';
 
 const EMPTY = { Nombre: '', Id_TipoDoc: '', Documento: '', Id_Rol: '', Correo: '', Password: '', ConfirmPassword: '' };
 
@@ -206,10 +205,10 @@ export default function EmpleadosPage() {
     { key: '#', label: '#', width: '50px', render: (_, __, i) => i + 1 },
     {
       key: 'Nombre', label: 'Nombre', render: (v, row) => (
-        <div className="emp-cell">
+        <div className="flex items-center gap-sm">
           {(row.Foto_url || row.Foto)
-            ? <img src={row.Foto_url || row.Foto} alt="" className="emp-avatar" />
-            : <div className="emp-avatar emp-avatar--fallback">{v?.charAt(0)}</div>
+            ? <img src={row.Foto_url || row.Foto} alt="" className="size-7 shrink-0 rounded-full object-cover" />
+            : <div className="size-7 shrink-0 rounded-full object-cover flex size-7 shrink-0 items-center justify-center rounded-full bg-accent-soft text-caption font-bold text-accent-soft-on">{v?.charAt(0)}</div>
           }
           <span className="font-semibold">{v}</span>
         </div>
@@ -320,7 +319,7 @@ export default function EmpleadosPage() {
       </div>
 
       {savedOk && (
-        <div className="emp-novedad-banner">
+        <div className="mx-2xl mt-md rounded-md border border-accent bg-accent-soft px-lg py-md text-body text-accent-soft-on max-lg:mx-lg">
           <MdCheck size={16} className="u-ic-mr" /> Empleado guardado correctamente.
         </div>
       )}
@@ -348,9 +347,9 @@ export default function EmpleadosPage() {
             {detailNovedades.length > 0 && (
               <div>
                 <h4 className="u-mb-md fs-body u-bold">Novedades registradas</h4>
-                <div className="novedades-list">
+                <div className="flex flex-col gap-md">
                   {detailNovedades.map((n, i) => (
-                    <div key={i} className="novedad-item">
+                    <div key={i} className="flex items-start gap-md rounded-sm border border-warning-soft-border bg-accent-soft p-md">
                       <MdWarning size={16} className="text-warning" style={{ flexShrink: 0 }} />
                       <div>
                         <p className="fs-body u-semibold">{n.Descripcion}</p>

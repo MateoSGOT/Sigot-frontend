@@ -205,7 +205,7 @@ export default function LandingPage() {
             onClick={() => scrollTo('hero')}
             className="shrink-0 cursor-pointer border-0 bg-transparent p-0
                        font-display text-h1 font-extrabold tracking-[0.16em]
-                       bg-gradient-to-r from-[var(--surface-dark)] to-[var(--color-primary)]
+                       bg-gradient-to-r from-[var(--color-surface-dark)] to-[var(--color-primary)]
                        bg-clip-text text-transparent"
           >
             SIGOT
@@ -455,7 +455,7 @@ export default function LandingPage() {
               <div className="absolute -bottom-lg -left-lg flex items-center gap-md rounded-lg
                               bg-surface-dark px-xl py-lg shadow-lg">
                 <span className="font-display text-display font-extrabold leading-none text-primary-pale-3">12</span>
-                <span className="max-w-[7ch] text-small font-semibold leading-tight text-[var(--surface-dark-on)]">
+                <span className="max-w-[7ch] text-small font-semibold leading-tight text-[var(--color-surface-dark-on)]">
                   años de experiencia
                 </span>
               </div>
@@ -572,7 +572,7 @@ export default function LandingPage() {
       </section>
 
       {/* ── FOOTER ──────────────────────────────────────────── */}
-      <footer className="bg-surface-dark py-2xl text-[var(--surface-dark-on)]">
+      <footer className="bg-surface-dark py-2xl text-[var(--color-surface-dark-on)]">
         <div className={CONTENEDOR}>
           <div className="grid grid-cols-[2fr_1fr_1fr] gap-2xl max-md:grid-cols-1">
             <div>

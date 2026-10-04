@@ -160,9 +160,17 @@
      superficie del sidebar" y "lo oscuro de la app". Al volver el sidebar
      claro y translúcido, esos cuatro consumidores se habrían quedado con texto
      blanco sobre blanco. Son dos conceptos distintos y ahora son dos tokens. */
-  --surface-dark:        #0A0A0B;
-  --surface-dark-raised: #16161A;
-  --surface-dark-on:     #EDEDEF;  /* 15.8:1 sobre --surface-dark */
+  /* El prefijo --color- es OBLIGATORIO: es el namespace del que Tailwind deriva
+     las utilidades de fondo, texto y borde. Con `--surface-dark` a secas,
+     `bg-surface-dark` simplemente NO se generaba -- sin error ni warning -- y
+     el pie de la landing quedaba con texto casi blanco sobre fondo blanco. Lo
+     detectó scripts/auditar-utilidades.mjs, comparando los className del
+     código contra las clases realmente presentes en dist/.
+     (Y el comentario original decía "bg-" seguido de asterisco y barra, que
+     cierra el comentario de CSS antes de tiempo y rompia el build.) */
+  --color-surface-dark:        #0A0A0B;
+  --color-surface-dark-raised: #16161A;
+  --color-surface-dark-on:     #EDEDEF;  /* 15.8:1 sobre --color-surface-dark */
 
   /* ══════════════════ SIDEBAR — vidrio claro flotante ══════════════════
      Blanco translúcido con desenfoque, flotando sobre el canvas en vez de ser
@@ -303,10 +311,14 @@
      Reservan el espacio ANTES de que cargue el contenido, así el layout no
      salta cuando entra una foto o se monta una gráfica. Eso es CLS: la métrica
      que mide el desplazamiento de lo que el usuario está mirando. */
-  --ratio-square: 1;      /* avatares, foto de empleado */
-  --ratio-photo:  4 / 3;  /* foto de vehículo */
-  --ratio-chart:  16 / 9; /* gráficas */
-  --ratio-wide:   21 / 9; /* banda de la serie temporal */
+  /* Namespace --aspect-*, no --ratio-*: es de donde Tailwind deriva las
+     utilidades aspect-*. Con --ratio-* las clases aspect-photo y aspect-chart
+     no se generaban y los contenedores quedaban con altura CERO -- el mapa de
+     la landing colapsaba a nada. */
+  --aspect-square: 1;      /* avatares, foto de empleado */
+  --aspect-photo:  4 / 3;  /* foto de vehículo */
+  --aspect-chart:  16 / 9; /* gráficas */
+  --aspect-wide:   21 / 9; /* banda de la serie temporal */
 
   /* ══════════════════ MOVIMIENTO ══════════════════
      Solo transform y opacity: las dos propiedades que el compositor resuelve sin
@@ -368,7 +380,7 @@
   /* Rampa oscura estructural: negro que aclara apenas hacia abajo, para que no
      se lea como un bloque plano en pantallas altas. La consumen el panel del
      reset de contraseña y las zonas oscuras de la landing. */
-  --surface-dark-gradient:
+  --color-surface-dark-gradient:
     linear-gradient(180deg, #0A0A0B 0%, #101013 64%, #16161A 100%);
 
   /* OJO -- nombre legacy: --sidebar-bg-gradient ya NO es la rampa negra. El

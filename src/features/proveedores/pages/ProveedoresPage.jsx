@@ -17,7 +17,6 @@ import { sortByStatus, sortNewestFirst, filterItems } from '../../../shared/util
 import * as V from '../../../shared/utils/validators.js';
 import { useFormValidation } from '../../../shared/hooks/useFormValidation.js';
 import { MUNICIPIOS_POR_DEPARTAMENTO } from '../../../shared/data/colombiaGeo.js';
-import './ProveedoresPage.css';
 
 const DEPARTAMENTOS = Object.keys(MUNICIPIOS_POR_DEPARTAMENTO).sort().map(d => ({ label: d, value: d }));
 

@@ -32,7 +32,7 @@ const CHECK = process.argv.includes('--check');
    --shadow-* shadow-*, --font-* font-*, --text-* el tamaño de fuente,
    --tracking-* tracking-*, --leading-* leading-*, --ease-* ease-*. */
 const NAMESPACES = ['--color-', '--radius-', '--shadow-', '--font-', '--text-',
-                    '--tracking-', '--leading-', '--ease-'];
+                    '--tracking-', '--leading-', '--ease-', '--aspect-'];
 
 /* Excluidos a mano, con motivo. Un token cuyo valor no es del tipo que el
    namespace espera genera una utilidad con un valor inválido. */

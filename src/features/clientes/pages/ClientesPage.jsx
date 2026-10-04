@@ -21,7 +21,6 @@ import { sortByStatus, sortNewestFirst, filterItems } from '../../../shared/util
 import { useAutoRefresh } from '../../../shared/hooks/useAutoRefresh.js';
 import * as V from '../../../shared/utils/validators.js';
 import api from '../../../shared/services/api.js';
-import './ClientesPage.css';
 
 const EMPTY_FORM = { Nombre: '', Id_TipoDoc: '', Documento: '', Telefono: '', Direccion: '', Correo: '', Foto: '', Password: '', ConfirmPassword: '' };
 

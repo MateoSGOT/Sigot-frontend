@@ -16,7 +16,6 @@ import { StatusBadge } from '../../../shared/components/Badge/Badge.jsx';
 import { sortByStatus, sortNewestFirst, filterItems } from '../../../shared/utils/helpers.js';
 import * as V from '../../../shared/utils/validators.js';
 import { useFormValidation } from '../../../shared/hooks/useFormValidation.js';
-import './CategoriasPage.css';
 
 const EMPTY = { Nombre: '' };
 const RULES = { Nombre: (v) => V.nombre(v, 3, 60) };

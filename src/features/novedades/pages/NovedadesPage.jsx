@@ -18,7 +18,6 @@ import Badge from '../../../shared/components/Badge/Badge.jsx';
 import * as V from '../../../shared/utils/validators.js';
 import { useFormValidation } from '../../../shared/hooks/useFormValidation.js';
 import api from '../../../shared/services/api.js';
-import './NovedadesPage.css';
 
 const EMPTY = { id_empleado: '', Descripcion: '', Fecha_Novedad: '', FechaRealizacion: '', HoraInicio: '', HoraFin: '' };
 const TODAY = todayLocalYMD();

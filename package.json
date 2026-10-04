@@ -10,9 +10,10 @@
     "preview": "vite preview",
     "auditar:paleta": "node scripts/auditar-paleta.mjs",
     "auditar:tablas": "node scripts/auditar-tablas.mjs",
-    "auditar": "npm run auditar:paleta && npm run auditar:tablas && npm run auditar:colisiones && npm run auditar:theme",
+    "auditar": "npm run auditar:paleta && npm run auditar:tablas && npm run auditar:colisiones && npm run auditar:theme && npm run auditar:utilidades",
     "auditar:colisiones": "node scripts/auditar-colisiones.mjs",
-    "auditar:theme": "node scripts/generar-theme.mjs --check"
+    "auditar:theme": "node scripts/generar-theme.mjs --check",
+    "auditar:utilidades": "node scripts/auditar-utilidades.mjs"
   },
   "dependencies": {
     "@reduxjs/toolkit": "^2.11.2",
