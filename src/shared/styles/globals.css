@@ -9,9 +9,26 @@
    en una sola petición y solo los pesos que realmente se usan. */
 @import url('https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;800&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600&display=swap');
 @import './variables.css';
-@import './buttons.css';
-@import './forms.css';
-@import './page.css';
+
+/* Las tres hojas de primitivas compartidas van en la capa `components`, no
+   sueltas, y la razon es la misma que la del reset y la de los titulares: sin
+   capa le ganaban a TODA la capa utilities.
+
+   Comprobado con una sonda en el navegador antes de moverlas: un
+   <input class="form-control border-accent"> computaba el borde de
+   .form-control (rgba(10,10,11,0.07)), no el ambar que pedia; y con p-0
+   conservaba los 10.4px de padding de .form-control. Las utilidades existian en
+   el bundle -- simplemente no podian ganar. Por eso el CSS de Compras tenia que
+   escribir .form-control--warn con !important para pintar un borde: era la
+   unica forma de superar una regla sin capa.
+
+   En `components` siguen siendo la base de un input, un boton o una tarjeta,
+   pero ahora una vista puede ajustarlos con utilidades sin recurrir a
+   !important. El CSS propio de cada pagina sigue sin capa, asi que conserva la
+   ultima palabra igual que antes. */
+@import './buttons.css' layer(components);
+@import './forms.css' layer(components);
+@import './page.css' layer(components);
 
 /* ═══════════════════════════════════════════════════════════════════════════
    RESET — DENTRO DE @layer base, Y ESO ES OBLIGATORIO
@@ -154,12 +171,20 @@ body::before {
 ::-webkit-scrollbar-thumb { background: rgba(10, 10, 11, 0.18); border-radius: var(--radius-full); }
 ::-webkit-scrollbar-thumb:hover { background: rgba(10, 10, 11, 0.30); }
 
-/* === Utility Classes === */
+/* === Utility Classes ===
+   Quedo una sola. Las otras cuatro se borraron por dos motivos distintos:
+
+   .text-danger y .text-warning  ->  Tailwind ya genera esos nombres desde
+     --color-danger / --color-warning con EXACTAMENTE el mismo valor, y al estar
+     estas sin capa le ganaban a la utilidad real. Mientras los valores coinciden
+     no se nota; el dia que uno cambie, el codigo nuevo recibe el viejo en
+     silencio. Es el caso .font-medium otra vez.
+   .text-success y .text-info    ->  cero usos en todo el codigo.
+
+   .text-muted se queda porque NO es un sombreado: no existe un token
+   --color-muted, asi que Tailwind nunca genera ese nombre (de --color-text-muted
+   saldria .text-text-muted). Es una utilidad propia del proyecto. */
 .text-muted    { color: var(--color-text-muted); }
-.text-danger   { color: var(--color-danger); }
-.text-success  { color: var(--color-success); }
-.text-warning  { color: var(--color-warning); }
-.text-info     { color: var(--color-info); }
 
 /* === Utilidades de espaciado/tipografía basadas en tokens ===
    Reemplazan inline styles sueltos. Valores snappeados a la escala 4px. */

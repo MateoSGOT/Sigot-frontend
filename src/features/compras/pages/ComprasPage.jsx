@@ -13,7 +13,60 @@ import FilterDropdown from '../../../shared/components/FilterDropdown/FilterDrop
 import { formatDate, formatCurrency, todayLocalYMD } from '../../../shared/utils/helpers.js';
 import { generarFacturaCompra } from '../../../shared/utils/generarFacturaPDF.js';
 import api from '../../../shared/services/api.js';
-import './ComprasPage.css';
+import { MAQUETA_FILAS_COMPRAS, MAQUETA_DETALLE_COMPRA } from '../../../shared/dev/datosMaqueta.js';
+
+/* La puerta se evalua AQUI, no se importa, y la diferencia no es de estilo.
+   Importada desde datosMaqueta.js, MAQUETA_ACTIVA es una const de OTRO modulo:
+   Vite sustituye import.meta.env.DEV por `false` dentro de ese modulo, pero no
+   propaga el valor plegado a traves del limite del import, asi que el `if` de
+   aca nunca se declaraba muerto y los datos de maqueta seguian referenciados.
+   Resultado comprobado en dist/: un chunk datosMaqueta de 3,9 KB con nombres,
+   placas y precios inventados, importado por esta pagina en PRODUCCION -- justo
+   lo que el comentario del modulo decia que no podia pasar.
+   Escrita en este archivo, las dos lecturas de import.meta.env se reemplazan por
+   literales al compilar, la expresion se pliega a `false` y la rama (con sus
+   referencias a los datos) desaparece junto con el chunk. */
+const MAQUETA_ACTIVA = import.meta.env.DEV && import.meta.env.VITE_DEV_SKIP_AUTH === 'true';
+
+/* ── Clases del modulo de compras ──────────────────────────────────────────
+   Antes en ComprasPage.css. Se conservan los valores exactos.
+
+   LA REJILLA DE PRODUCTOS es la pieza con truco: en escritorio cada campo usa
+   `display: contents`, asi sus controles caen directo en las 6 columnas del
+   padre y las lineas quedan alineadas entre si. Por debajo de 640px el mismo
+   campo pasa a ser un bloque con su etiqueta visible, y la fila se vuelve una
+   sola columna. Es el equivalente, para un formulario, de lo que Table.css hace
+   con las tablas.
+
+   El umbral sigue siendo 640px de VIEWPORT (max-sm:, que en Tailwind es
+   max-width 639.98px) y no una consulta de contenedor: este formulario vive
+   dentro de un Modal, cuyo ancho ya depende del viewport. Cambiarlo a
+   @container obligaria a recalibrar el numero contra el ancho del modal, que es
+   justo el error que se cometio una vez con la tabla del dashboard. */
+const COLUMNAS = 'grid-cols-[2fr_1fr_1.2fr_1fr_1.1fr_36px]';
+const CABECERA_PRODUCTOS = `grid ${COLUMNAS} gap-sm border-b-[1.5px] border-border bg-surface-solid px-md py-sm text-[0.72rem] font-bold tracking-[0.04em] text-text-muted max-sm:hidden`;
+const FILA_PRODUCTO = `grid ${COLUMNAS} items-start gap-sm border-b border-border px-md py-sm last:border-b-0 max-sm:grid-cols-1 max-sm:gap-md max-sm:p-lg`;
+const CAMPO = 'contents max-sm:flex max-sm:flex-col max-sm:gap-[0.3rem]';
+const ETIQUETA_CAMPO = 'hidden max-sm:block text-[0.72rem] font-bold uppercase tracking-[0.04em] text-text-muted';
+
+/* Controles reducidos dentro de la rejilla. Ya no necesitan !important: las
+   hojas compartidas viven en @layer components, asi que una utilidad les gana. */
+const CONTROL_SM = 'form-control px-[0.625rem] py-[0.375rem] text-[0.8125rem]';
+const CONTROL_SM_AVISO = `${CONTROL_SM} border-accent/60 bg-accent/5`;
+const PREVIO_PRECIO = 'mt-[3px] whitespace-nowrap pl-[2px] text-[0.7rem] font-semibold text-text-secondary';
+
+/* Tabla del detalle de la compra: se apila en tarjetas igual que la tabla
+   compartida en vez de obligar a scroll horizontal en el celular. */
+const TABLA_DETALLE = 'w-full border-collapse text-body '
+  + '[&_th]:border-b [&_th]:border-border [&_th]:px-md [&_th]:py-sm [&_th]:text-left [&_th]:text-small [&_th]:font-semibold [&_th]:text-text-muted '
+  + '[&_td]:border-b [&_td]:border-border [&_td]:px-md [&_td]:py-sm '
+  + '[&_td.is-total]:font-semibold';
+const TABLA_DETALLE_MOVIL = 'max-sm:block '
+  + '[&_thead]:max-sm:hidden [&_tbody]:max-sm:block [&_tr]:max-sm:block '
+  + '[&_tbody_tr]:max-sm:mb-md [&_tbody_tr]:max-sm:rounded-md [&_tbody_tr]:max-sm:border [&_tbody_tr]:max-sm:border-border [&_tbody_tr]:max-sm:px-[0.875rem] [&_tbody_tr]:max-sm:py-xs '
+  + '[&_td]:max-sm:flex [&_td]:max-sm:items-center [&_td]:max-sm:justify-between [&_td]:max-sm:gap-lg [&_td]:max-sm:border-0 [&_td]:max-sm:border-t [&_td]:max-sm:border-border-light [&_td]:max-sm:px-0 [&_td]:max-sm:py-[0.55rem] [&_td]:max-sm:text-right '
+  + "[&_td]:max-sm:before:content-[attr(data-label)] [&_td]:max-sm:before:shrink-0 [&_td]:max-sm:before:text-[0.68rem] [&_td]:max-sm:before:font-bold [&_td]:max-sm:before:uppercase [&_td]:max-sm:before:tracking-wide [&_td]:max-sm:before:text-text-muted [&_td]:max-sm:before:text-left "
+  + '[&_tr_td:first-child]:max-sm:border-t-0';
 
 const EMPTY_ITEM = { Id_Repuesto: '', Cantidad: '', PrecioUnitario: '', DescuentoPorcentaje: '' };
 const newForm = () => ({ Id_Proveedor: '', Fecha: todayLocalYMD(), NumeroFactura: '', productos: [{ ...EMPTY_ITEM }] });
@@ -56,7 +109,12 @@ export default function ComprasPage() {
       const r = await api.get(`/api/compras?${params.toString()}`);
       setRows(r.data?.data || []);
       setTotal(r.data?.total ?? 0);
-    } catch { setRows([]); setTotal(0); }
+    } catch {
+      // Igual que en Repuestos: sin sesion la tabla queda vacia y no hay forma de
+      // revisar la insignia de anulada, el detalle ni el colapso a tarjetas.
+      if (MAQUETA_ACTIVA) { setRows(MAQUETA_FILAS_COMPRAS); setTotal(MAQUETA_FILAS_COMPRAS.length); }
+      else { setRows([]); setTotal(0); }
+    }
     finally { setListLoading(false); }
   }, [page, pageSize, search, statusFilter]);
 
@@ -109,7 +167,10 @@ export default function ComprasPage() {
           ? i.NumeroFactura === row.NumeroFactura
           : !i.NumeroFactura && (i.Fecha || '').split('T')[0] === (row.Fecha || '').split('T')[0])
       ));
-    } catch { /* se queda con el fallback [row] */ }
+    } catch {
+      if (MAQUETA_ACTIVA) setDetailGroup(MAQUETA_DETALLE_COMPRA);
+      /* si no, se queda con el fallback [row] */
+    }
     finally { setDetailLoading(false); }
   };
 
@@ -256,7 +317,7 @@ export default function ComprasPage() {
             <MdVisibility size={17} />
           </button>
           {!row.Anulada && (
-            <button className="btn btn--ghost btn--icon btn--sm compra-anular-btn" title="Anular compra" disabled={!puedeAnular} onClick={() => setConfirmAnular(row)}>
+            <button className="btn btn--ghost btn--icon btn--sm text-danger hover:bg-danger/8" title="Anular compra" disabled={!puedeAnular} onClick={() => setConfirmAnular(row)}>
               <MdBlock size={17} />
             </button>
           )}
@@ -338,9 +399,9 @@ export default function ComprasPage() {
               <div className="detail-item"><span className="detail-label">N.° factura</span><span className="detail-value">{detailItem.NumeroFactura || '—'}</span></div>
               <div className="detail-item"><span className="detail-label">Estado</span><span className="detail-value">{detailItem.Anulada ? <Badge variant="gray">Anulada</Badge> : <Badge variant="success">Vigente</Badge>}</span></div>
             </div>
-            <h4 className="compra-detail__subhead">Productos ({detailItems.length}){detailLoading ? ' — cargando...' : ''}</h4>
-            <div className="compra-detail__scroll">
-              <table className="compra-detail-table">
+            <h4 className="mb-md text-body font-bold">Productos ({detailItems.length}){detailLoading ? ' — cargando...' : ''}</h4>
+            <div className="overflow-x-auto max-sm:overflow-x-visible">
+              <table className={`${TABLA_DETALLE} ${TABLA_DETALLE_MOVIL}`}>
                 <thead>
                   <tr>
                     {['Repuesto', 'Cantidad', 'Precio unitario', 'Subtotal', 'Ganancia'].map(h => (
@@ -364,14 +425,14 @@ export default function ComprasPage() {
                 </tbody>
               </table>
             </div>
-            <div className="compra-detail__total">
-              <div className="compra-detail__total-row">
-                <span className="compra-detail__total-label">Total</span>
-                <span className="compra-detail__total-value">{formatCurrency(detailTotal)}</span>
+            <div className="mt-lg flex flex-col items-end gap-xs border-t border-border pt-md">
+              <div className="flex items-baseline gap-sm">
+                <span className="text-small text-text-muted">Total</span>
+                <span className="text-h3 font-bold">{formatCurrency(detailTotal)}</span>
               </div>
-              <div className="compra-detail__total-row compra-detail__total-row--ganancia">
-                <span className="compra-detail__total-label">Ganancia estimada</span>
-                <span className={`compra-detail__total-value compra-detail__total-value--ganancia${gananciaTotalDetalle < 0 ? ' is-negative' : ''}`}>{formatCurrency(gananciaTotalDetalle)}</span>
+              <div className="flex items-baseline gap-sm [&>span:first-child]:text-body">
+                <span className="text-small text-text-muted">Ganancia estimada</span>
+                <span className={`text-body font-semibold ${gananciaTotalDetalle < 0 ? 'text-danger' : 'text-success'}`}>{formatCurrency(gananciaTotalDetalle)}</span>
               </div>
             </div>
           </div>
@@ -396,7 +457,7 @@ export default function ComprasPage() {
         {formError && (
           <div className="form-error-box u-mb-lg">{formError}</div>
         )}
-        <form className="compra-form" onSubmit={handleSubmit} noValidate>
+        <form className="flex flex-col gap-xl" onSubmit={handleSubmit} noValidate>
           <div className="form-grid">
             <div className="form-group">
               <label className="form-label">Proveedor <span className="required">*</span></label>
@@ -417,8 +478,8 @@ export default function ComprasPage() {
             </div>
           </div>
 
-          <div className="compra-productos">
-            <div className="compra-productos__header">
+          <div className="overflow-hidden rounded-md border-[1.5px] border-border">
+            <div className={CABECERA_PRODUCTOS}>
               <span>Repuesto</span>
               <span>Cantidad</span>
               <span>Precio unitario</span>
@@ -428,9 +489,9 @@ export default function ComprasPage() {
             </div>
             {formData.productos.map((item, idx) => (
               <div key={idx}>
-                <div className="compra-producto-row">
-                  <div className="compra-field">
-                    <span className="compra-field-label">Repuesto</span>
+                <div className={FILA_PRODUCTO}>
+                  <div className={CAMPO}>
+                    <span className={ETIQUETA_CAMPO}>Repuesto</span>
                     <SearchableSelect
                       options={repuestosFiltrados.map(r => ({ value: String(r.Id_Repuesto), label: r.NombreRepuesto ?? r.Nombre }))}
                       value={String(item.Id_Repuesto)}
@@ -438,59 +499,59 @@ export default function ComprasPage() {
                       placeholder="Seleccionar repuesto..."
                     />
                   </div>
-                  <div className="compra-field">
-                    <span className="compra-field-label">Cantidad</span>
+                  <div className={CAMPO}>
+                    <span className={ETIQUETA_CAMPO}>Cantidad</span>
                     <input
                       type="number"
                       min="1"
-                      className="form-control form-control--sm"
+                      className={CONTROL_SM}
                       value={item.Cantidad}
                       onChange={e => handleItemChange(idx, 'Cantidad', e.target.value)}
                       placeholder="0"
                     />
                   </div>
-                  <div className="compra-field">
-                    <span className="compra-field-label">Precio unitario</span>
-                    <div className="price-input-wrap">
+                  <div className={CAMPO}>
+                    <span className={ETIQUETA_CAMPO}>Precio unitario</span>
+                    <div className="flex flex-col">
                       <input
                         type="number"
                         min="0"
-                        className={`form-control form-control--sm${priceWarnings[idx] ? ' form-control--warn' : ''}`}
+                        className={priceWarnings[idx] ? CONTROL_SM_AVISO : CONTROL_SM}
                         value={item.PrecioUnitario}
                         onChange={e => handleItemChange(idx, 'PrecioUnitario', e.target.value)}
                         placeholder="0"
                       />
-                      {item.PrecioUnitario && !priceWarnings[idx] ? <small className="price-preview">{formatCurrency(item.PrecioUnitario)}</small> : null}
+                      {item.PrecioUnitario && !priceWarnings[idx] ? <small className={PREVIO_PRECIO}>{formatCurrency(item.PrecioUnitario)}</small> : null}
                     </div>
                   </div>
-                  <div className="compra-field">
-                    <span className="compra-field-label">Descuento % <span className="u-hint-sm">(opcional)</span></span>
+                  <div className={CAMPO}>
+                    <span className={ETIQUETA_CAMPO}>Descuento % <span className="u-hint-sm">(opcional)</span></span>
                     <input
                       type="number"
                       min="0"
                       max="100"
                       step="0.01"
-                      className="form-control form-control--sm"
+                      className={CONTROL_SM}
                       value={item.DescuentoPorcentaje}
                       onChange={e => handleItemChange(idx, 'DescuentoPorcentaje', e.target.value)}
                       placeholder="0"
                     />
                     {item.PrecioUnitario && Number(item.DescuentoPorcentaje) > 0 ? (
-                      <small className="price-preview">
+                      <small className={PREVIO_PRECIO}>
                         Costo neto: {formatCurrency(Number(item.PrecioUnitario) * (1 - Number(item.DescuentoPorcentaje) / 100))}
                       </small>
                     ) : null}
                   </div>
-                  <div className="compra-field">
-                    <span className="compra-field-label">Subtotal</span>
-                    <span className="compra-subtotal">
+                  <div className={CAMPO}>
+                    <span className={ETIQUETA_CAMPO}>Subtotal</span>
+                    <span className="whitespace-nowrap pt-[0.45rem] text-body font-semibold text-text max-sm:pt-0">
                       {formatCurrency(Number(item.Cantidad || 0) * Number(item.PrecioUnitario || 0))}
                     </span>
                   </div>
-                  <div className="compra-field compra-field--action">
+                  <div className={`${CAMPO} max-sm:items-start`}>
                     <button
                       type="button"
-                      className="btn btn--ghost btn--icon btn--sm compra-remove-btn"
+                      className="btn btn--ghost btn--icon btn--sm mt-[2px] text-danger hover:not-disabled:bg-danger/8 disabled:opacity-25"
                       disabled={formData.productos.length === 1}
                       onClick={() => removeItem(idx)}
                       title="Eliminar fila"
@@ -499,9 +560,14 @@ export default function ComprasPage() {
                     </button>
                   </div>
                 </div>
+                {/* text-warning-soft-on (#B45309, 5.02:1) y no text-accent: el ambar
+                    puro del CSS anterior media 2.15:1 sobre el blanco del modal, menos
+                    de la mitad del minimo AA, y esto es un aviso que hay que poder leer.
+                    El borde y el fondo del input si siguen en accent: ahi el color es
+                    una senal, no texto. */}
                 {priceWarnings[idx] && (
-                  <div className="price-warning">
-                    <MdWarning size={14} />
+                  <div className="flex items-center gap-[0.375rem] px-md pt-xs pb-sm text-caption text-warning-soft-on">
+                    <MdWarning size={14} aria-hidden="true" />
                     El precio de compra registrado para este repuesto es {formatCurrency(priceWarnings[idx].esperado)}.
                   </div>
                 )}
@@ -509,13 +575,13 @@ export default function ComprasPage() {
             ))}
           </div>
 
-          <div className="compra-form-footer">
+          <div className="flex flex-wrap items-center justify-between gap-lg">
             <button type="button" className="btn btn--outline btn--sm" onClick={addItem}>
               <MdAdd size={16} /> Agregar producto
             </button>
-            <div className="compra-total">
-              <span className="compra-total__label">Total</span>
-              <span className="compra-total__value">{formatCurrency(grandTotal)}</span>
+            <div className="flex items-center gap-[0.625rem]">
+              <span className="text-body font-semibold text-text-muted">Total</span>
+              <span className="text-[1.0625rem] font-extrabold text-text">{formatCurrency(grandTotal)}</span>
             </div>
           </div>
         </form>

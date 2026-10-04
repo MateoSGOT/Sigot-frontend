@@ -52,20 +52,77 @@ for (const f of archivos) {
 }
 
 /* ── SOMBREADO DE UTILIDADES DE TAILWIND ──
-   Riesgo que apareció al entrar Tailwind: una clase escrita a mano con el mismo
-   NOMBRE que una utilidad. Como el CSS del proyecto no está estratificado y las
-   utilidades viven en la capa `utilities`, la de a mano gana siempre.
+   Una clase escrita a mano con el mismo NOMBRE que una utilidad generada. La de
+   a mano gana (el CSS de pagina no esta estratificado) y la utilidad real nunca
+   se aplica. Con el mismo valor no se nota; en cuanto uno de los dos cambia, el
+   codigo nuevo recibe el valor viejo sin ningun aviso.
 
-   Con el mismo valor no se nota. Pasó con .font-medium: el proyecto la definía
-   como font-weight 600 en DOCE archivos y la de Tailwind es 500, así que el
-   código nuevo que pedía `font-medium` esperando 500 recibía 600 -- y el build
-   pasaba limpio. */
-const NOMBRES_TAILWIND = /^\.(font-(thin|extralight|light|normal|medium|semibold|bold|extrabold|black)|truncate|hidden|block|inline|flex|grid|contents|flex-(row|col|wrap|nowrap)|items-(start|center|end|baseline|stretch)|justify-(start|center|end|between|around|evenly)|gap-\d+|[wh]-(full|screen|auto)|text-(left|right|center|justify)|rounded(-(none|sm|md|lg|xl|full))?|border|shadow(-(sm|md|lg|xl|none))?|relative|absolute|fixed|sticky|static|uppercase|lowercase|capitalize|underline|italic)$/;
+   Paso con .font-medium: el proyecto la definia como font-weight 600 en DOCE
+   archivos y la de Tailwind es 500, asi que el codigo que pedia `font-medium`
+   esperando 500 recibia 600 y el build pasaba limpio.
+
+   LA LISTA DE NOMBRES ERA A MANO, Y ESO FALLABA. Antes esto comparaba contra un
+   regex de nombres de Tailwind escrito por mi. Un regex asi solo encuentra lo
+   que ya sabias que buscar: no incluia los colores, asi que no vio las cinco
+   clases .text-danger / .text-success / .text-warning / .text-info / .text-muted
+   de globals.css, que sombrean utilidades generadas del mismo nombre.
+
+   Ahora la fuente de verdad es el CSS COMPILADO: se leen las clases que Tailwind
+   emitio DENTRO de `@layer utilities` en dist/ y se compara contra las escritas a
+   mano en src/. Nada de listas que mantener.
+
+   Requiere un build previo. Sin dist/ este chequeo se salta (avisando), para que
+   el script siga sirviendo en un arbol recien clonado. */
+const utilidadesGeneradas = new Set();
+let hayDist = false;
+if (fs.existsSync('dist/assets')) {
+  const bundle = fs.readdirSync('dist/assets').filter((n) => n.endsWith('.css'))
+    .map((n) => fs.readFileSync(path.join('dist/assets', n), 'utf8')).join('');
+  // Recorta el contenido de cada bloque @layer utilities{...} contando llaves.
+  let i = bundle.indexOf('@layer utilities');
+  while (i !== -1) {
+    const abre = bundle.indexOf('{', i);
+    if (abre === -1) break;
+    let d = 1, j = abre + 1;
+    while (j < bundle.length && d > 0) { if (bundle[j] === '{') d++; else if (bundle[j] === '}') d--; j++; }
+    const dentro = bundle.slice(abre + 1, j - 1);
+    /* Solo la clase que ENCABEZA el selector es el nombre de la utilidad.
+       Tailwind emite variantes arbitrarias como
+         .\[\&_\.btn\]\:shrink-0 .btn{flex-shrink:0}
+       donde `.btn` es el OBJETIVO del descendiente, no una utilidad generada.
+       Capturarla hacia que .btn, .card, .form-control, .ss, .table-wrapper y
+       .form-error salieran como sombreados cuando no lo son. En CSS minificado
+       un selector arranca justo despues de } o de , ; precedido de un espacio es
+       siempre un descendiente. */
+    for (const m of dentro.matchAll(/[},\n]\s*\.((?:[\w-]|\\.)+)/g)) {
+      utilidadesGeneradas.add(m[1].replace(/\\(.)/g, '$1'));
+      hayDist = true;
+    }
+    i = bundle.indexOf('@layer utilities', j);
+  }
+}
+
+/* Excepciones documentadas. Una entrada aca es una decision tomada, no un
+   descuido: el sombreado existe y se acepta por la razon que se anota. */
+const SOMBRA_ACEPTADA = {
+  '.table': 'Es el nombre estructural de la tabla del proyecto (Table.jsx/Table.css), '
+          + 'anterior a Tailwind y usado por todas las paginas. Tailwind genera .table '
+          + 'solo porque ese mismo nombre aparece como candidato en el codigo, y lo unico '
+          + 'que declara es display:table -- propiedad que Table.css no toca y que un '
+          + '<table> ya tiene por defecto, asi que no hay diferencia en pantalla. '
+          + 'Renombrarlo tocaria todas las vistas sin ganar nada.',
+};
 
 const sombreados = [];
-for (const [sel, lista] of mapa) {
-  if (!NOMBRES_TAILWIND.test(sel)) continue;
-  sombreados.push({ sel, lista });
+const aceptados = [];
+if (hayDist) {
+  for (const [sel, lista] of mapa) {
+    if (!/^\.[\w-]+$/.test(sel)) continue;           // solo clases simples
+    const nombre = sel.slice(1);
+    if (!utilidadesGeneradas.has(nombre)) continue;
+    if (SOMBRA_ACEPTADA[sel]) { aceptados.push(sel); continue; }
+    sombreados.push({ sel, lista });
+  }
 }
 
 /* ── SELECTORES DE ELEMENTO SIN ESTRATIFICAR ──
@@ -151,6 +208,12 @@ if (sombreados.length) {
     console.log(`  ${sel}`);
     for (const x of lista) console.log(`      ${x.archivo}\n          ${x.cuerpo.slice(0, 100)}`);
   }
+}
+
+if (aceptados.length) {
+  console.log('');
+  console.log(`· ${aceptados.length} sombreado(s) aceptado(s) a proposito:`);
+  for (const sel of aceptados) console.log(`    ${sel} — ${SOMBRA_ACEPTADA[sel]}`);
 }
 
 if (sinCapa.length) {

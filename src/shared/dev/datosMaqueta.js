@@ -98,3 +98,61 @@ export const MAQUETA_ORDEN_DETALLE = {
     { id_empleado: 7, Nombre: 'Luis Herrera', esResponsable: false },
   ],
 };
+
+/* Filas para la tabla de Repuestos. Cubren A PROPÓSITO los tres estados de
+   stock, que son el motivo de existir de esta pantalla:
+   · Stock 0            → insignia AGOTADO y banner crítico
+   · Stock <= StockMinimo → insignia STOCK BAJO
+   · Stock holgado      → celda normal, sin adorno
+   Además, un nombre largo (para ver el corte en modo tarjeta), un precio de
+   venta nulo (repuesto sin compras aún) y un margen fuera del 50% por defecto. */
+export const MAQUETA_FILAS_REPUESTOS = [
+  { Id_Repuesto: 7001, Nombre: 'Pastillas de freno delanteras cerámicas (juego x4)',
+    Categoria: 'Frenos', Stock: 0, StockMinimo: 4, Precio: 86000,
+    MargenPorcentaje: 45, PrecioVenta: 148509, Estado: 1 },
+  { Id_Repuesto: 7002, Nombre: 'Filtro de aceite', Categoria: 'Motor',
+    Stock: 3, StockMinimo: 6, Precio: 18500, MargenPorcentaje: 60,
+    PrecioVenta: 35231, Estado: 1 },
+  { Id_Repuesto: 7003, Nombre: 'Bujía iridio NGK', Categoria: 'Encendido',
+    Stock: 6, StockMinimo: 6, Precio: 24900, MargenPorcentaje: 50,
+    PrecioVenta: 44453, Estado: 1 },
+  { Id_Repuesto: 7004, Nombre: 'Correa de repartición', Categoria: 'Motor',
+    Stock: 27, StockMinimo: 5, Precio: 132000, MargenPorcentaje: 38,
+    PrecioVenta: 216580, Estado: 1 },
+  { Id_Repuesto: 7005, Nombre: 'Amortiguador trasero', Categoria: 'Suspensión',
+    Stock: 12, StockMinimo: 4, Precio: null, MargenPorcentaje: 50,
+    PrecioVenta: null, Estado: 0 },
+];
+
+/* Filas para la tabla de Compras. OJO con la forma: esta tabla es por LINEA DE
+   PRODUCTO, no por compra -- una compra con tres repuestos son tres filas que
+   comparten proveedor y N.° de factura, y el Total de cada fila se calcula como
+   Cantidad x PrecioUnitario (ver la columna 'total'). Las dos primeras
+   comparten factura a proposito, que es el caso que agrupa el detalle.
+   Incluye una compra anulada, para ver la insignia y que desaparezca su boton
+   de anular. */
+export const MAQUETA_FILAS_COMPRAS = [
+  { Id_Compra: 5101, Id_Proveedor: 31, Proveedor: 'Importadora Andina S.A.S.',
+    Id_Repuesto: 7001, Repuesto: 'Pastillas de freno delanteras cerámicas (juego x4)',
+    Cantidad: 12, PrecioUnitario: 86000, DescuentoPorcentaje: 10,
+    Fecha: '2026-09-30', NumeroFactura: 'FV-00841', Anulada: false },
+  { Id_Compra: 5102, Id_Proveedor: 31, Proveedor: 'Importadora Andina S.A.S.',
+    Id_Repuesto: 7002, Repuesto: 'Filtro de aceite',
+    Cantidad: 6, PrecioUnitario: 18500, DescuentoPorcentaje: 0,
+    Fecha: '2026-09-30', NumeroFactura: 'FV-00841', Anulada: false },
+  { Id_Compra: 5103, Id_Proveedor: 44, Proveedor: 'Lubricantes Monserrate',
+    Id_Repuesto: 7003, Repuesto: 'Bujía iridio NGK',
+    Cantidad: 4, PrecioUnitario: 46000, DescuentoPorcentaje: 0,
+    Fecha: '2026-09-14', NumeroFactura: 'FV-00798', Anulada: true },
+];
+
+/* Líneas del detalle de una compra: cubren descuento aplicado, ganancia
+   negativa (se pinta en rojo) y una cantidad de dos dígitos. */
+export const MAQUETA_DETALLE_COMPRA = [
+  { Repuesto: 'Pastillas de freno delanteras cerámicas (juego x4)', Cantidad: 12,
+    PrecioUnitario: 86000, DescuentoPorcentaje: 10, PrecioVenta: 148509 },
+  { Repuesto: 'Filtro de aceite', Cantidad: 6, PrecioUnitario: 18500,
+    DescuentoPorcentaje: 0, PrecioVenta: 35231 },
+  { Repuesto: 'Bujía iridio NGK', Cantidad: 4, PrecioUnitario: 46000,
+    DescuentoPorcentaje: 0, PrecioVenta: 44453 },
+];

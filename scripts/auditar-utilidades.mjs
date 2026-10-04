@@ -52,7 +52,30 @@ for (const f of fs.readdirSync(DIST).filter((n) => n.endsWith('.css'))) {
 const PREFIJOS = /^(bg|text|border|shadow|ring|outline|fill|stroke|from|via|to|accent|caret|decoration|divide|p|px|py|pt|pb|pl|pr|m|mx|my|mt|mb|ml|mr|space-x|space-y|gap|size|w|h|min-w|min-h|max-w|max-h|rounded|font|tracking|leading|aspect|duration|ease|delay|animate|col-span|row-span|grid-cols|grid-rows|flex|basis|items|justify|place|opacity|z|inset|top|bottom|left|right|translate|rotate|scale|origin|overflow|whitespace|break|line-clamp|object|cursor|select|pointer-events|backdrop-blur|blur)-/;
 
 const candidatos = new Map();   // clase -> [archivos]
-const esUtilidad = (t) => PREFIJOS.test(t) && !t.includes('${') && !t.includes('(');
+/* Las VARIANTES se quitan antes de probar el prefijo, pero el token completo
+   es el que se busca en dist/. Antes el filtro se aplicaba al token entero, asi
+   que `max-sm:grid-cols-1` no empezaba por ninguna familia conocida y quedaba
+   fuera de la auditoria: TODA utilidad con variante estaba sin comprobar, que es
+   justo de lo que depende el comportamiento movil de Compras.
+
+   Se excluyen los candidatos con interpolacion (${...}): su valor no se conoce
+   hasta ejecutar. Los de variante arbitraria ([&_td]:...) si se comprueban. */
+const sinVariantes = (t) => {
+  let r = t;
+  // corta prefijos de variante uno a uno, respetando los corchetes de [&_td]:
+  for (;;) {
+    let prof = 0, corte = -1;
+    for (let i = 0; i < r.length; i++) {
+      const c = r[i];
+      if (c === '[') prof++;
+      else if (c === ']') prof--;
+      else if (c === ':' && prof === 0) { corte = i; break; }
+    }
+    if (corte === -1) return r;
+    r = r.slice(corte + 1);
+  }
+};
+const esUtilidad = (t) => !t.includes('${') && PREFIJOS.test(sinVariantes(t));
 
 function registrar(clase, rel) {
   if (!candidatos.has(clase)) candidatos.set(clase, new Set());
@@ -70,8 +93,14 @@ function registrar(clase, rel) {
     const cadenas = [
       ...[...src.matchAll(/className=["'`]([^"'`]*)["'`]/g)].map((m) => m[1]),
       // Constantes de clases: const NOMBRE = '...' (y sus concatenaciones)
-      ...[...src.matchAll(/^const [A-Z][A-Z0-9_]*\s*=\s*((?:\s*\+?\s*['"][^'"]*['"])+)/gm)]
-        .flatMap((m) => [...m[1].matchAll(/['"]([^'"]*)['"]/g)].map((x) => x[1])),
+      // Constantes de clases: const NOMBRE = '...' / "..." / `...`, y sus
+      // concatenaciones. Las PLANTILLAS con backtick quedaban fuera, y son
+      // justo las que componen una constante a partir de otra
+      // (const BADGE_AGOTADO = `${BADGE_STOCK} bg-danger-soft ...`): todas esas
+      // utilidades se estaban auditando a medias.
+      ...[...src.matchAll(/^const [A-Z][A-Z0-9_]*\s*=\s*((?:\s*\+?\s*(?:'[^']*'|"[^"]*"|`[^`]*`))+)/gm)]
+        .flatMap((m) => [...m[1].matchAll(/'([^']*)'|"([^"]*)"|`([^`]*)`/g)]
+          .map((x) => x[1] ?? x[2] ?? x[3])),
     ];
 
     for (const cadena of cadenas) {

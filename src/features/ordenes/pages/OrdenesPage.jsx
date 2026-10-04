@@ -13,7 +13,7 @@ import {
 import { ordenesService } from '../services/ordenesService.js';
 // Datos de maqueta: SOLO desarrollo y solo con VITE_DEV_SKIP_AUTH activo.
 // Se consumen unicamente en los catch de abajo -- la ruta de exito no los toca.
-import { MAQUETA_ACTIVA, MAQUETA_RESUMEN_ORDENES, MAQUETA_FILAS_ORDENES, MAQUETA_ORDEN_DETALLE } from '../../../shared/dev/datosMaqueta.js';
+import { MAQUETA_RESUMEN_ORDENES, MAQUETA_FILAS_ORDENES, MAQUETA_ORDEN_DETALLE } from '../../../shared/dev/datosMaqueta.js';
 import Modal from '../../../shared/components/Modal/Modal.jsx';
 import ConfirmDialog from '../../../shared/components/ConfirmDialog/ConfirmDialog.jsx';
 import Table from '../../../shared/components/Table/Table.jsx';
@@ -27,6 +27,19 @@ import * as V from '../../../shared/utils/validators.js';
 import { useFormValidation } from '../../../shared/hooks/useFormValidation.js';
 import { useToast } from '../../../shared/components/Toast/ToastContext.jsx';
 import api from '../../../shared/services/api.js';
+
+/* La puerta se evalua AQUI, no se importa, y la diferencia no es de estilo.
+   Importada desde datosMaqueta.js, MAQUETA_ACTIVA es una const de OTRO modulo:
+   Vite sustituye import.meta.env.DEV por `false` dentro de ese modulo, pero no
+   propaga el valor plegado a traves del limite del import, asi que el `if` de
+   aca nunca se declaraba muerto y los datos de maqueta seguian referenciados.
+   Resultado comprobado en dist/: un chunk datosMaqueta de 3,9 KB con nombres,
+   placas y precios inventados, importado por esta pagina en PRODUCCION -- justo
+   lo que el comentario del modulo decia que no podia pasar.
+   Escrita en este archivo, las dos lecturas de import.meta.env se reemplazan por
+   literales al compilar, la expresion se pliega a `false` y la rama (con sus
+   referencias a los datos) desaparece junto con el chunk. */
+const MAQUETA_ACTIVA = import.meta.env.DEV && import.meta.env.VITE_DEV_SKIP_AUTH === 'true';
 // Clases del detalle de orden: compartidas con el modal del portal, que muestra
 // la MISMA orden. Son constantes JS y no un CSS comun a proposito -- ver el
 // encabezado de clasesOrdenDetalle.js.

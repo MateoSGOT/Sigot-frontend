@@ -20,7 +20,55 @@ import { formatCurrency, todayLocalYMD } from '../../../shared/utils/helpers.js'
 import * as V from '../../../shared/utils/validators.js';
 import { useFormValidation } from '../../../shared/hooks/useFormValidation.js';
 import api from '../../../shared/services/api.js';
-import './RepuestosPage.css';
+import { motion, AnimatePresence } from 'motion/react';
+import { RESORTE } from '../../../shared/styles/movimiento.js';
+import { MAQUETA_FILAS_REPUESTOS } from '../../../shared/dev/datosMaqueta.js';
+
+/* La puerta se evalua AQUI, no se importa, y la diferencia no es de estilo.
+   Importada desde datosMaqueta.js, MAQUETA_ACTIVA es una const de OTRO modulo:
+   Vite sustituye import.meta.env.DEV por `false` dentro de ese modulo, pero no
+   propaga el valor plegado a traves del limite del import, asi que el `if` de
+   aca nunca se declaraba muerto y los datos de maqueta seguian referenciados.
+   Resultado comprobado en dist/: un chunk datosMaqueta de 3,9 KB con nombres,
+   placas y precios inventados, importado por esta pagina en PRODUCCION -- justo
+   lo que el comentario del modulo decia que no podia pasar.
+   Escrita en este archivo, las dos lecturas de import.meta.env se reemplazan por
+   literales al compilar, la expresion se pliega a `false` y la rama (con sus
+   referencias a los datos) desaparece junto con el chunk. */
+const MAQUETA_ACTIVA = import.meta.env.DEV && import.meta.env.VITE_DEV_SKIP_AUTH === 'true';
+
+/* ── Clases del modulo de inventario ───────────────────────────────────────
+   Antes vivian en RepuestosPage.css. Se conservan los valores exactos (incluido
+   el tracking de 0.3px de las insignias, que no cae en ningun token) para que la
+   migracion no mueva nada en pantalla.
+
+   Los colores salen de los pares *-soft / *-soft-on de variables.css, pensados
+   justamente para un fondo tintado con su texto legible encima. */
+const CELDA_STOCK = 'inline-flex items-center gap-xs font-semibold';
+/* whitespace-nowrap: la columna Stock es estrecha y "STOCK BAJO" se partia en
+   dos lineas dentro de la pildora. El CSS viejo tampoco lo evitaba; se ve al
+   mirar la tabla con datos reales. */
+const BADGE_STOCK = 'whitespace-nowrap rounded-[4px] px-[5px] py-px text-[10px] font-bold tracking-[0.3px]';
+const BADGE_AGOTADO = `${BADGE_STOCK} bg-danger-soft text-danger-soft-on`;
+const BADGE_BAJO = `${BADGE_STOCK} bg-warning-soft text-warning-soft-on`;
+
+/* Banner de reabastecimiento: critico cuando algun repuesto esta en cero. */
+/* flex-wrap: en el ancho de un celular el texto ocupa dos lineas y el boton
+   "Ver solo stock bajo" se salia del banner, cortado por la derecha. Venia asi
+   del CSS anterior (flex sin wrap + margin-left:auto); solo se ve con datos
+   cargados y a 390px. Al permitir el salto, el boton baja a su propia linea y
+   se mantiene alineado a la derecha. */
+const BANNER = 'mb-md flex flex-wrap items-center gap-sm rounded-[8px] px-lg py-md text-body font-medium';
+const BANNER_CRITICO = `${BANNER} border border-danger-soft-border bg-danger-soft text-danger-soft-on`;
+const BANNER_BAJO = `${BANNER} border border-warning-soft-border bg-warning-soft text-warning-soft-on`;
+
+/* Panel de resultados del import de Excel: tres niveles de severidad. */
+const RESUMEN = 'mx-[2rem] my-lg flex flex-col gap-[0.6rem] rounded-sm border border-border bg-surface px-lg py-[0.85rem] text-body';
+const NIVEL = 'flex flex-col gap-[0.3rem] rounded-[8px] px-md py-[0.6rem] [&_p]:m-0 [&_span]:m-0';
+const NIVEL_OK = `${NIVEL} border border-primary-soft-border bg-primary-soft text-primary-soft-on`;
+const NIVEL_AVISO = `${NIVEL} border border-warning-soft-border bg-warning-soft text-warning-soft-on`;
+const NIVEL_ERROR = `${NIVEL} border border-danger-soft-border bg-danger-soft text-danger-soft-on`;
+const DETALLE = '[&>summary]:cursor-pointer [&>summary]:font-semibold [&_ul]:mt-xs [&_ul]:max-h-[220px] [&_ul]:overflow-y-auto [&_ul]:pl-lg';
 
 // El repuesto es una ficha de catálogo: Stock y Costo (Precio) se llenan al comprar, no al crear.
 // El margen ya no tiene piso fijo (antes 50%) -- el taller puede vender con un margen
@@ -91,7 +139,7 @@ const RULES = {
 function ImportResumenPanel({ importMsg, onClose }) {
   if (importMsg.error) {
     return (
-      <div className="import-resumen import-resumen--fatal">
+      <div className={`${RESUMEN} flex-row items-center gap-sm border-danger-soft-border bg-danger-soft text-danger-soft-on`}>
         <span>{importMsg.error}</span>
         <button className="btn btn--ghost btn--sm" onClick={onClose}>Cerrar</button>
       </div>
@@ -108,20 +156,20 @@ function ImportResumenPanel({ importMsg, onClose }) {
   const TOPE_NOMBRES = 60;
 
   return (
-    <div className="import-resumen">
-      <div className="import-resumen__row import-resumen__row--header">
-        <span className="import-resumen__title">Resultado de la importación</span>
-        <button className="btn btn--ghost btn--sm" onClick={onClose} style={{ marginLeft: 'auto' }}>Cerrar</button>
+    <div className={RESUMEN}>
+      <div className="flex items-center gap-sm">
+        <span className="font-bold">Resultado de la importación</span>
+        <button className="btn btn--ghost btn--sm ml-auto" onClick={onClose}>Cerrar</button>
       </div>
 
-      <div className="import-resumen__tier import-resumen__tier--ok">
+      <div className={NIVEL_OK}>
         <span>✓ {importMsg.ok} repuesto(s) creado(s).</span>
         {importMsg.categoriasCreadas > 0 && <span>{importMsg.categoriasCreadas} categoría(s) nueva(s) creada(s).</span>}
         {importMsg.categoriasRecuperadas > 0 && <span>{importMsg.categoriasRecuperadas} categoría(s) ya existían (reutilizadas automáticamente, sin error).</span>}
       </div>
 
       {hayAdvertencias && (
-        <div className="import-resumen__tier import-resumen__tier--warn">
+        <div className={NIVEL_AVISO}>
           {rr.omitidosSinDescripcion > 0 && (
             <p>⚠ {rr.omitidosSinDescripcion} código(s) reservado(s) en el archivo sin Descripción -- NO se importaron (no son repuestos reales todavía, hay que completarlos en el Excel primero): {rr.omitidosCodigos.slice(0, 10).join(', ')}{rr.omitidosCodigos.length > 10 ? `… y ${rr.omitidosCodigos.length - 10} más` : ''}.</p>
           )}
@@ -130,13 +178,13 @@ function ImportResumenPanel({ importMsg, onClose }) {
             <p>⚠ {rr.fallbackSinFecha.length} código(s) con más de un lote donde no se pudo determinar cuál es el más reciente por fecha (se usó el último que aparece en la hoja Lotes): {rr.fallbackSinFecha.slice(0, 10).join(', ')}{rr.fallbackSinFecha.length > 10 ? '…' : ''}.</p>
           )}
           {portaCount > 10 && (
-            <p style={{ fontWeight: 700 }}>⚠ La categoría "Porta" agrupó {portaCount} repuestos distintos -- revisa si conviene dividirla en categorías más específicas desde el módulo de Categorías.</p>
+            <p className="font-bold">⚠ La categoría "Porta" agrupó {portaCount} repuestos distintos -- revisa si conviene dividirla en categorías más específicas desde el módulo de Categorías.</p>
           )}
         </div>
       )}
 
       {rr && (
-        <details className="import-resumen__detail">
+        <details className={DETALLE}>
           <summary>Ver {catsOrdenadas.length} categoría(s) y cuántos repuestos tiene cada una</summary>
           <ul>
             {catsOrdenadas.map(([nombre, cantidad]) => <li key={nombre}>{nombre}: {cantidad}</li>)}
@@ -145,10 +193,10 @@ function ImportResumenPanel({ importMsg, onClose }) {
       )}
 
       {importMsg.fail > 0 && (
-        <div className="import-resumen__tier import-resumen__tier--error">
-          <p className="import-resumen__error-heading">✕ {importMsg.fail} repuesto(s) no se pudieron importar:</p>
+        <div className={NIVEL_ERROR}>
+          <p className="font-bold">✕ {importMsg.fail} repuesto(s) no se pudieron importar:</p>
           {motivos.map(([motivo, nombres]) => (
-            <details key={motivo} className="import-resumen__detail import-resumen__detail--error">
+            <details key={motivo} className={`${DETALLE} [&>summary]:font-medium`}>
               <summary>{nombres.length} repuesto(s): {motivo}</summary>
               <ul>
                 {nombres.slice(0, TOPE_NOMBRES).map((n, i) => <li key={`${n}-${i}`}>{n}</li>)}
@@ -206,12 +254,22 @@ export default function RepuestosPage() {
       // se ve apagado, sin importar el estado real.
       setRows((r.data?.data || []).map(x => ({ ...x, Nombre: x.NombreRepuesto || x.Nombre || '', Estado: x.Estado === true ? 1 : x.Estado === false ? 0 : x.Estado })));
       setTotal(r.data?.total ?? 0);
-    } catch { setRows([]); setTotal(0); }
+    } catch {
+      // Sin sesion las peticiones reciben 401 y la tabla queda vacia, asi que no
+      // hay forma de revisar la celda de stock, las insignias ni el banner --
+      // que es justo lo que esta pantalla tiene que mostrar bien. Solo en local
+      // y detras de la misma puerta doble que el resto de la maqueta.
+      if (MAQUETA_ACTIVA) { setRows(MAQUETA_FILAS_REPUESTOS); setTotal(MAQUETA_FILAS_REPUESTOS.length); }
+      else { setRows([]); setTotal(0); }
+    }
     finally { setListLoading(false); }
   }, [page, pageSize, search, statusFilter, categoriaFilter, stockBajoFilter]);
 
   const fetchStockBajo = useCallback(async () => {
-    try { const r = await api.get('/api/repuestos/stock-bajo'); setStockBajoItems(r.data?.data || r.data || []); } catch { /* silent */ }
+    try { const r = await api.get('/api/repuestos/stock-bajo'); setStockBajoItems(r.data?.data || r.data || []); }
+    catch {
+      if (MAQUETA_ACTIVA) setStockBajoItems(MAQUETA_FILAS_REPUESTOS.filter(x => x.Stock <= x.StockMinimo));
+    }
   }, []);
 
   const esSuperadmin = useSelector(s => s.auth.empleado?.EsSuperAdmin === true);
@@ -614,11 +672,11 @@ export default function RepuestosPage() {
         const agotado = stock === 0;
         const bajo = stock <= min;
         return (
-          <span className={`stock-cell ${agotado ? 'stock-cell--agotado' : bajo ? 'stock-cell--low' : ''}`}>
-            {bajo && <MdWarning size={14} style={{ marginRight: '3px' }} />}
+          <span className={`${CELDA_STOCK} ${agotado ? 'text-danger-soft-on' : bajo ? 'text-warning-soft-on' : ''}`}>
+            {bajo && <MdWarning size={14} aria-hidden="true" />}
             {v}
-            {agotado && <span className="stock-badge stock-badge--agotado">AGOTADO</span>}
-            {!agotado && bajo && <span className="stock-badge stock-badge--bajo">STOCK BAJO</span>}
+            {agotado && <span className={BADGE_AGOTADO}>AGOTADO</span>}
+            {!agotado && bajo && <span className={BADGE_BAJO}>STOCK BAJO</span>}
           </span>
         );
       }
@@ -645,14 +703,15 @@ export default function RepuestosPage() {
     <div className="page">
       <div className="page__header">
         <div><h1 className="page__title">Repuestos</h1><p className="page__subtitle">{total} repuesto(s) en inventario</p></div>
-        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+        <div className="page__actions">
           <input ref={fileImportRef} type="file" accept=".xlsx,.xls" style={{ display: 'none' }} onChange={handleImportFile} />
           <button className="btn btn--outline" onClick={() => fileImportRef.current?.click()} disabled={!puedeCrear || importando} title="Importar repuestos desde Excel (columnas: Nombre, Categoría)"><MdUploadFile size={17} />{importando ? 'Importando...' : 'Importar Excel'}</button>
-          <button className="btn btn--outline" onClick={exportarExcel} style={{ color: '#2B5CFF', borderColor: '#2B5CFF' }}><MdTableChart size={17} />Exportar Excel</button>
+          <button className="btn btn--outline text-primary border-primary" onClick={exportarExcel}><MdTableChart size={17} />Exportar Excel</button>
           <button className="btn btn--primary" onClick={openCreate} disabled={!puedeCrear}><MdAdd size={18} />Nuevo repuesto</button>
         </div>
       </div>
-      {importOverlay !== 'idle' && ReactDOM.createPortal(
+      {ReactDOM.createPortal(
+        <AnimatePresence>{importOverlay !== 'idle' && (
         // Portal a document.body (mismo patrón que Modal.jsx): si se renderizara aquí
         // dentro de .page, quedaría "atrapado" como position:fixed relativo a .page en
         // vez del viewport -- .page tiene una animación de entrada (pageFadeIn, ver
@@ -663,36 +722,53 @@ export default function RepuestosPage() {
         // no llegaba a cubrir ni el sidebar ni el resto del viewport (quedaba confinado
         // al alto/ancho de .page). Un portal a body evita depender de que ningún
         // ancestro futuro se quede sin transform.
-        <div className="import-overlay" role="status" aria-live="polite">
-          <div className="import-overlay__card">
+        <motion.div
+          className="fixed inset-0 z-[1300] flex items-center justify-center bg-[rgb(10_10_11_/_0.45)] backdrop-blur-[2px]"
+          role="status" aria-live="polite"
+          initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+          transition={{ duration: 0.15 }}
+        >
+          <motion.div
+            className="flex max-w-[90vw] min-w-[280px] flex-col items-center gap-[0.9rem] rounded-[14px] bg-surface px-[2.5rem] py-2xl shadow-[0_20px_50px_rgb(0_0_0_/_0.25)]"
+            initial={{ opacity: 0, scale: 0.94 }} animate={{ opacity: 1, scale: 1 }}
+            transition={RESORTE}
+          >
             {importOverlay === 'done' ? (
               <>
-                <MdCheckCircle className="import-overlay__check" size={56} />
-                <p className="import-overlay__title">Importación completada</p>
+                {/* El check entraba con un cubic-bezier de rebote escrito a mano;
+                    ahora lo da el mismo muelle compartido que el resto de la app. */}
+                <motion.span className="text-primary"
+                  initial={{ opacity: 0, scale: 0.4 }} animate={{ opacity: 1, scale: 1 }}
+                  transition={RESORTE}
+                >
+                  <MdCheckCircle size={56} />
+                </motion.span>
+                <p className="m-0 text-center text-h3 font-semibold text-text">Importación completada</p>
               </>
             ) : (
               <>
-                <p className="import-overlay__title">Importando repuestos...</p>
-                <div className="import-overlay__bar-track">
-                  <div className="import-overlay__bar-fill" style={{ width: `${importProgress}%` }} />
+                <p className="m-0 text-center text-h3 font-semibold text-text">Importando repuestos...</p>
+                <div className="h-sm w-[220px] overflow-hidden rounded-full bg-border">
+                  <motion.div
+                    className="h-full rounded-full bg-linear-to-r from-primary to-primary-500"
+                    animate={{ width: `${importProgress}%` }}
+                    transition={{ duration: 0.25, ease: 'easeOut' }}
+                  />
                 </div>
-                <p className="import-overlay__pct">{importProgress}%</p>
+                <p className="m-0 text-h2 font-bold text-primary tabular-nums">{importProgress}%</p>
               </>
             )}
-          </div>
-        </div>,
+          </motion.div>
+        </motion.div>
+        )}</AnimatePresence>,
         document.body
       )}
       {importMsg && <ImportResumenPanel importMsg={importMsg} onClose={() => setImportMsg(null)} />}
       {itemsConStockBajo.length > 0 && (
-        <div className={`stock-alerta-banner ${itemsConStockBajo.some(i => i.Stock === 0) ? 'stock-alerta-banner--critico' : 'stock-alerta-banner--bajo'}`}>
+        <div className={itemsConStockBajo.some(i => i.Stock === 0) ? BANNER_CRITICO : BANNER_BAJO}>
           <MdWarning size={18} />
           <span><strong>{itemsConStockBajo.length}</strong> repuesto(s) necesitan reabastecimiento</span>
-          <button
-            className="btn btn--sm btn--outline"
-            style={{ marginLeft: 'auto' }}
-            onClick={onToggleBajo}
-          >
+          <button className="btn btn--sm btn--outline ml-auto" onClick={onToggleBajo}>
             {stockBajoFilter ? 'Ver todos' : 'Ver solo stock bajo'}
           </button>
         </div>

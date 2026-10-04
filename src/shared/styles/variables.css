@@ -90,6 +90,11 @@
   /* Filos de los banners de estado: el mismo tono que el tinte pero un paso más
      saturado, para definir el canto sin meter un gris ajeno a la familia del
      mensaje. */
+  /* La familia *-soft-border tenia danger y warning pero no primary: el panel
+     de resultados del import pintaba su borde con un rgba(43,92,255,0.3) suelto.
+     #BFCEFF es ese mismo color ya compuesto sobre blanco, en el formato solido
+     que usan los otros dos. */
+  --color-primary-soft-border: #BFCEFF;
   --color-danger-soft-border:  #FBCFD8;
   --color-warning-soft-border: #FCD9A0;
   --color-success-soft-border: #BBE5D3;
