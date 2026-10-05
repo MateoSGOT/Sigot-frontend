@@ -27,6 +27,7 @@ import * as V from '../../../shared/utils/validators.js';
 import { useFormValidation } from '../../../shared/hooks/useFormValidation.js';
 import { useToast } from '../../../shared/components/Toast/ToastContext.jsx';
 import api from '../../../shared/services/api.js';
+import { AVISO_CAMPO } from '../../../shared/styles/clasesAviso.js';
 
 /* La puerta se evalua AQUI, no se importa, y la diferencia no es de estilo.
    Importada desde datosMaqueta.js, MAQUETA_ACTIVA es una const de OTRO modulo:
@@ -972,7 +973,7 @@ export default function OrdenesPage() {
                     {selected.Estado === 0 ? 'Estado de la orden' : 'Progreso de la orden'}
                   </p>
                   {selected.Estado === 0 && (
-                    <p className="novedad-warning u-mb-md">
+                    <p className={`${AVISO_CAMPO} u-mb-md`}>
                       Esta orden está inactiva. Actívala para poder editar su contenido.
                     </p>
                   )}

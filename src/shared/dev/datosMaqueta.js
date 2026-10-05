@@ -156,3 +156,36 @@ export const MAQUETA_DETALLE_COMPRA = [
   { Repuesto: 'Bujía iridio NGK', Cantidad: 4, PrecioUnitario: 46000,
     DescuentoPorcentaje: 0, PrecioVenta: 44453 },
 ];
+
+/* Citas para el calendario de Agenda. Las fechas se generan relativas al mes
+   EN CURSO -- un literal fijo quedaria fuera del mes que el calendario abre por
+   defecto y la rejilla se veria vacia.
+
+   Cubren los seis estados (cada uno pinta su chip de un color distinto) y, a
+   proposito, un dia con CUATRO citas: el calendario solo muestra tres chips por
+   celda y añade "+N mas", que es una rama que hay que poder ver. */
+/* La anotacion /*#__PURE__*\/ no es decorativa. Esto es una IIFE, y para el
+   empaquetador una llamada a funcion puede tener efectos secundarios, asi que
+   la conserva aunque nadie use el resultado: el chunk de maqueta volvio a
+   aparecer en dist/ con nombres y placas inventadas en cuanto lo escribi asi,
+   y lo detecto scripts/auditar-maqueta.mjs. La anotacion declara que la llamada
+   solo calcula un valor, y entonces si se elimina al no referenciarse.
+   Las fechas tienen que ser relativas al mes EN CURSO -- un literal fijo caeria
+   fuera del mes que el calendario abre por defecto -- de ahi la funcion. */
+export const MAQUETA_CITAS = /* #__PURE__ */ (() => {
+  const hoy = new Date();
+  const dia = (n) => {
+    const d = new Date(hoy.getFullYear(), hoy.getMonth(), n);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  };
+  const base = { Estado: 1, Id_Empleado: 12, empleado: 'Jair Calle', Servicio: 'Mantenimiento' };
+  return [
+    { ...base, Id_Agenda: 8101, FechaAgendamiento: dia(4),  Hora: '08:00', cliente: 'Daniela Restrepo', vehiculo: 'MTX-412', EstadoCita: 'Confirmada',    DuracionEstimadaMin: 60 },
+    { ...base, Id_Agenda: 8102, FechaAgendamiento: dia(4),  Hora: '09:30', cliente: 'Andrés Betancur',  vehiculo: 'KPR12E',  EstadoCita: 'Pendiente',     DuracionEstimadaMin: 45 },
+    { ...base, Id_Agenda: 8103, FechaAgendamiento: dia(4),  Hora: '11:00', cliente: 'Marcela Ossa',     vehiculo: 'FTR-889', EstadoCita: 'Atendida',      DuracionEstimadaMin: 60 },
+    { ...base, Id_Agenda: 8104, FechaAgendamiento: dia(4),  Hora: '14:00', cliente: 'Hernán Lopera',    vehiculo: 'BQW-203', EstadoCita: 'NoAsistio',     DuracionEstimadaMin: 45 },
+    { ...base, Id_Agenda: 8105, FechaAgendamiento: dia(11), Hora: '10:00', cliente: 'Luisa Cardona',    vehiculo: 'TGH-556', EstadoCita: 'Cancelada',     DuracionEstimadaMin: 60 },
+    { ...base, Id_Agenda: 8106, FechaAgendamiento: dia(18), Hora: '07:30', cliente: 'Camilo Zapata',    vehiculo: 'PLM-074', EstadoCita: 'Confirmada',    DuracionEstimadaMin: 90 },
+    { ...base, Id_Agenda: 8107, FechaAgendamiento: dia(23), Hora: '15:30', cliente: 'Verónica Agudelo', vehiculo: 'RST-311', EstadoCita: 'Pendiente',     DuracionEstimadaMin: 45 },
+  ];
+})();

@@ -19,7 +19,14 @@ import { filterItems, sortNewestFirst, formatDate, todayLocalYMD, formatHora12 }
 import { generarDiagnosticoPDF } from '../../../shared/utils/generarFacturaPDF.js';
 import { useAutoRefresh } from '../../../shared/hooks/useAutoRefresh.js';
 import api from '../../../shared/services/api.js';
-import './AgendaPage.css';
+import { AVISO_CAMPO } from '../../../shared/styles/clasesAviso.js';
+import { MAQUETA_CITAS } from '../../../shared/dev/datosMaqueta.js';
+
+/* Puerta de maqueta evaluada EN ESTE ARCHIVO, no importada: solo asi Vite
+   sustituye las dos lecturas de import.meta.env por literales, pliega la
+   expresion a `false` y elimina la rama junto con los datos. Ver
+   scripts/auditar-maqueta.mjs. */
+const MAQUETA_ACTIVA = import.meta.env.DEV && import.meta.env.VITE_DEV_SKIP_AUTH === 'true';
 
 const EMPTY_CITA  = { Id_Cliente: '', Id_Vehiculo: '', id_empleado: '', FechaAgendamiento: '', Hora: '', DuracionEstimadaMin: '60', TipoCita: 'Mantenimiento' };
 const DURACION_POR_TIPO = { Diagnostico: '45', Mantenimiento: '60' };
@@ -33,17 +40,120 @@ const DURACION_POR_TIPO = { Diagnostico: '45', Mantenimiento: '60' };
 // OJO -- acá había un desajuste: "Atendida" tenía fondo esmeralda con texto
 // COBALTO, porque el mapeo de identidad cambió el texto y no el fondo. Cada par
 // de abajo tiene su contraste verificado (4.57:1 el más bajo, todos AA).
+/* Los seis estados, como PARES DE CLASES y no como estilos en linea.
+
+   Cada uno va en su propia constante en MAYUSCULAS, y eso es a proposito:
+   scripts/auditar-utilidades.mjs reconoce `const NOMBRE = '...'`, asi que estas
+   seis quedan auditadas. Dentro de un objeto literal no las veria, y un token
+   mal escrito aqui no daria error -- la pildora saldria sin color y nadie se
+   enteraria hasta mirarla.
+
+   Los pares *-soft / *-soft-on estan disenados justo para esto: fondo tintado
+   con su texto legible encima. Diagnosticada usa teal, que no tiene variante
+   -soft-on; se mide abajo junto con el resto. */
+const EST_PENDIENTE     = 'bg-neutral-soft text-neutral-soft-on';
+const EST_CONFIRMADA    = 'bg-primary-soft text-primary-soft-on';
+const EST_ATENDIDA      = 'bg-success-soft text-success-soft-on';
+const EST_DIAGNOSTICADA = 'bg-teal-soft text-teal';
+const EST_CANCELADA     = 'bg-danger-soft text-danger-soft-on';
+const EST_NO_ASISTIO    = 'bg-warning-soft text-warning-soft-on';
+
 const ESTADO_CITA_STYLE = {
-  Pendiente:     { bg: 'var(--color-neutral-soft)', fg: 'var(--color-neutral-soft-on)', label: 'Pendiente' },
-  Confirmada:    { bg: 'var(--color-primary-soft)', fg: 'var(--color-primary-soft-on)', label: 'Confirmada' },
-  Atendida:      { bg: 'var(--color-success-soft)', fg: 'var(--color-success-soft-on)', label: 'Atendida' },
-  Diagnosticada: { bg: 'var(--color-teal-soft)',    fg: 'var(--color-teal)',            label: 'Diagnosticada' },
-  Cancelada:     { bg: 'var(--color-danger-soft)',  fg: 'var(--color-danger-soft-on)',  label: 'Cancelada' },
-  NoAsistio:     { bg: 'var(--color-warning-soft)', fg: 'var(--color-warning-soft-on)', label: 'No asistió' },
+  Pendiente:     { clases: EST_PENDIENTE,     label: 'Pendiente' },
+  Confirmada:    { clases: EST_CONFIRMADA,    label: 'Confirmada' },
+  Atendida:      { clases: EST_ATENDIDA,      label: 'Atendida' },
+  Diagnosticada: { clases: EST_DIAGNOSTICADA, label: 'Diagnosticada' },
+  Cancelada:     { clases: EST_CANCELADA,     label: 'Cancelada' },
+  NoAsistio:     { clases: EST_NO_ASISTIO,    label: 'No asistió' },
 };
+
+/* Lunes primero, como la rejilla. getDay() devuelve 0 para domingo, de ahi el
+   desplazamiento (getDay() + 6) % 7 donde se usa para rotular un dia suelto. */
+const DIAS_SEMANA_CORTO = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+
+/* Pildora de estado: forma compartida por la insignia y por la lista del dia. */
+const PILDORA = 'rounded-full px-[10px] py-[2px] text-caption font-semibold';
+/* ── Calendario de citas ───────────────────────────────────────────────────
+   COLAPSO VERTICAL POR DEBAJO DE 480px, y es una consulta de CONTENEDOR, no de
+   pantalla. Es la misma decision (y el mismo numero, --cq-narrow) que tomo
+   Table.css: lo que vuelve ilegible una rejilla de 7 columnas es el ancho del
+   PANEL donde vive, no el del monitor. A 480px cada columna mide unos 66px, que
+   no alcanzan ni para la hora de una cita.
+
+   En modo estrecho la rejilla pasa a una columna y cada dia se vuelve una fila
+   tactil: numero y nombre del dia a la izquierda, las citas debajo. Los dias
+   sin citas se ocultan -- en un mes son hasta 42 celdas, y una lista de 42
+   filas vacias en un celular no sirve para nada. Los dias de relleno de otros
+   meses tambien desaparecen: solo existen para cuadrar la rejilla.
+
+   El contenedor se declara con nombre (`@container/calendario`) para que las
+   variantes apunten a el y no al contenedor mas cercano, que podria ser otro. */
+const CALENDARIO = '@container/calendario p-lg';
+const CAL_NAV = 'mb-lg flex items-center justify-center gap-lg @max-[480px]/calendario:gap-sm';
+/* shrink-0: el mes reservaba 180px fijos y flex comprimia los dos botones por
+   debajo de su texto. A 390px median 68 y 72px de ancho para contenidos de 84 y
+   91px, y `.btn` recorta con overflow:hidden, asi que se leia "- Anterior" y
+   "Siguiente -" cortados. Venia del CSS anterior; solo se ve probando estrecho. */
+const CAL_NAV_BTN = 'btn btn--outline btn--sm shrink-0';
+const CAL_MES = 'min-w-[180px] text-center text-h3 font-semibold @max-[480px]/calendario:min-w-0';
+
+const CAL_REJILLA = 'grid grid-cols-7 gap-px overflow-hidden rounded-md border border-border bg-border '
+  + '@max-[480px]/calendario:grid-cols-1 @max-[480px]/calendario:gap-sm '
+  + '@max-[480px]/calendario:border-0 @max-[480px]/calendario:bg-transparent';
+const CAL_CABECERA = 'mb-sm grid grid-cols-7 border-0 bg-transparent @max-[480px]/calendario:hidden';
+const CAL_DIA_NOMBRE = 'py-sm text-center text-caption font-semibold uppercase text-text-muted';
+
+/* La celda: tarjeta de rejilla en ancho normal, fila tactil en estrecho. */
+const CAL_CELDA = 'flex min-h-[96px] flex-col gap-xs bg-surface p-sm '
+  + '@max-[640px]/calendario:min-h-[64px] '
+  + '@max-[480px]/calendario:min-h-[var(--touch-min)] @max-[480px]/calendario:rounded-sm '
+  + '@max-[480px]/calendario:border @max-[480px]/calendario:border-border @max-[480px]/calendario:px-md @max-[480px]/calendario:py-sm';
+/* Dias de relleno y dias sin citas: invisibles en estrecho (ver arriba). */
+const CAL_CELDA_FUERA = 'bg-surface-solid @max-[480px]/calendario:hidden';
+const CAL_CELDA_VACIA = '@max-[480px]/calendario:hidden';
+const CAL_CELDA_HOY = 'shadow-[inset_0_0_0_2px_var(--color-primary)]';
+const CAL_CELDA_PULSABLE = 'cursor-pointer hover:bg-surface-hover';
+
+const CAL_NUM = 'text-small font-semibold text-text-secondary';
+/* Nombre del dia junto al numero: solo en estrecho, donde ya no hay cabecera
+   de columnas que diga de que dia se trata. */
+const CAL_NUM_DIA_SEMANA = 'hidden @max-[480px]/calendario:inline text-small font-normal text-text-muted';
+const CAL_CITAS = 'flex flex-col gap-[3px] overflow-hidden';
+const CAL_CHIP = 'truncate rounded-sm border-0 px-[6px] py-[2px] text-left text-[11px] font-medium '
+  + 'cursor-pointer hover:brightness-95 '
+  + '@max-[480px]/calendario:min-h-[var(--touch-min)] @max-[480px]/calendario:flex @max-[480px]/calendario:items-center @max-[480px]/calendario:text-small';
+const CAL_MAS = 'pl-[6px] text-[11px] text-text-muted';
+
+/* Vacio del modo estrecho. En la rejilla de 7 columnas un mes sin citas se
+   entiende solo: se ven los 30 numeros. Al colapsar en vertical se ocultan los
+   dias sin citas, asi que un mes vacio dejaba la rejilla a altura 0 -- un hueco
+   mudo entre la navegacion y el borde de la tarjeta. Comprobado en Diciembre
+   2026: 42 celdas, 0 visibles, 0px de alto.
+   Solo aparece en estrecho; en ancho la rejilla ya se explica sola. */
+const CAL_VACIO = 'hidden @max-[480px]/calendario:block rounded-sm border border-dashed border-border px-lg py-xl text-center text-body text-text-muted';
+
+/* Control segmentado de vista (Tabla / Calendario / Diagnosticos). */
+const VISTA_GRUPO = 'flex overflow-hidden rounded-md border border-border';
+const VISTA_BTN = 'cursor-pointer border-0 bg-surface px-[0.9rem] py-sm text-small font-medium text-text-muted '
+  + 'transition-colors duration-150 [&+&]:border-l [&+&]:border-border';
+const VISTA_BTN_ACTIVO = 'bg-primary-soft font-semibold text-primary-soft-on';
+
+/* Lista de citas de un dia (modal). */
+const DIA_LISTA = 'flex flex-col gap-[6px]';
+const DIA_ITEM = 'flex w-full cursor-pointer items-center gap-sm rounded-sm border border-border bg-surface px-md py-sm text-left hover:bg-surface-solid '
+  + 'max-[480px]:min-h-[var(--touch-min)] max-[480px]:flex-wrap';
+const DIA_HORA = 'min-w-[76px] text-small font-semibold';
+const DIA_CLIENTE = 'flex-1 text-small';
+
+/* Fila de "Duracion estimada": input a la izquierda y el mensaje al lado, para
+   no empujar el formulario hacia abajo. Se apila por debajo de 560px, que es
+   donde el input y el texto dejan de caber juntos. */
+const DURACION_FILA = 'flex items-center gap-md max-[560px]:flex-col max-[560px]:items-stretch max-[560px]:gap-[0.35rem]';
+const DURACION_INPUT = 'form-control max-w-[130px] shrink-0 max-[560px]:max-w-none';
+
 function CitaEstadoBadge({ estado }) {
   const s = ESTADO_CITA_STYLE[estado] || ESTADO_CITA_STYLE.Pendiente;
-  return <span style={{ background: s.bg, color: s.fg, padding: '2px 10px', borderRadius: '999px', fontSize: '0.75rem', fontWeight: 600 }}>{s.label}</span>;
+  return <span className={`${PILDORA} ${s.clases}`}>{s.label}</span>;
 }
 const CITA_CANCELABLE = (estado) => ['Pendiente', 'Confirmada'].includes(estado || 'Pendiente');
 const EMPTY_ORDEN = { FechaIngreso: '', FechaEntrega: '', Diagnostico: '', Kilometraje: '' };
@@ -58,7 +168,11 @@ export default function AgendaPage() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { addToast } = useToast();
-  const { items, loading, actionLoading } = useSelector(s => s.agenda);
+  const { items: itemsStore, loading, actionLoading } = useSelector(s => s.agenda);
+  /* Respaldo de SOLO LECTURA, fuera del store: sin sesion el calendario queda
+     vacio y no hay forma de revisar chips, el '+N mas' ni el colapso vertical.
+     Redux no se toca -- es el mismo patron que usa OrdenesPage para su detalle. */
+  const items = (MAQUETA_ACTIVA && itemsStore.length === 0) ? MAQUETA_CITAS : itemsStore;
   const puedeCrear   = usePermiso('AGENDA.REGISTRAR');
   const puedeEditar  = usePermiso('AGENDA.EDITAR');
   const puedeToggle  = usePermiso('AGENDA.CAMBIAR_ESTADO');
@@ -604,7 +718,7 @@ export default function AgendaPage() {
           <div className="table-actions">
             <button className="btn btn--ghost btn--icon btn--sm" title="Ver detalle" onClick={() => setDetailId(row.Id_Agenda ?? row.id)}><MdVisibility size={17} /></button>
             <button className="btn btn--ghost btn--icon btn--sm" title="Editar" disabled={!puedeEditar || bloqueadaEdicion} onClick={() => openEdit(row)}><MdEdit size={17} /></button>
-            <button className="btn btn--ghost btn--icon btn--sm agenda-order-btn" title="Generar orden" disabled={atendida || estadoCita === 'Cancelada'} onClick={() => openGenerarOrden(row)}><MdAssignment size={17} /></button>
+            <button className="btn btn--ghost btn--icon btn--sm text-primary-500 hover:bg-primary/12" title="Generar orden" disabled={atendida || estadoCita === 'Cancelada'} onClick={() => openGenerarOrden(row)}><MdAssignment size={17} /></button>
             {CITA_CANCELABLE(estadoCita) && (
               <button className="btn btn--ghost btn--icon btn--sm" title="Cancelar cita" disabled={!puedeToggle} onClick={() => openCancelar(row)}><MdEventBusy size={17} /></button>
             )}
@@ -632,7 +746,7 @@ export default function AgendaPage() {
           <button className="btn btn--ghost btn--icon btn--sm" title="Ver detalle" onClick={() => setDetailId(row.Id_Agenda ?? row.id)}><MdVisibility size={17} /></button>
           <button className="btn btn--ghost btn--icon btn--sm" title="Imprimir diagnóstico" onClick={() => printDiagnostico(row)}><MdPrint size={17} /></button>
           <button className="btn btn--ghost btn--icon btn--sm" title="Editar diagnóstico" disabled={!puedeEditar} onClick={() => openEditarDiagnostico(row)}><MdEdit size={17} /></button>
-          <button className="btn btn--ghost btn--icon btn--sm agenda-order-btn" title="Generar orden de trabajo" disabled={!puedeCrear} onClick={() => openGenerarOrden(row)}><MdAssignment size={17} /></button>
+          <button className="btn btn--ghost btn--icon btn--sm text-primary-500 hover:bg-primary/12" title="Generar orden de trabajo" disabled={!puedeCrear} onClick={() => openGenerarOrden(row)}><MdAssignment size={17} /></button>
           <button className="btn btn--ghost btn--icon btn--sm btn--danger-ghost" title="Eliminar diagnóstico" disabled={!puedeToggle} onClick={() => setConfirmEliminar(row)}><MdDeleteForever size={17} /></button>
         </div>
       )
@@ -644,10 +758,10 @@ export default function AgendaPage() {
       <div className="page__header">
         <div><h1 className="page__title">Agenda</h1><p className="page__subtitle">{items.length} cita(s) registrada(s)</p></div>
         <div className="page__actions">
-          <div className="agenda-vista-toggle">
-            <button type="button" className={`agenda-vista-btn${vista === 'tabla' ? ' agenda-vista-btn--active' : ''}`} onClick={() => setVista('tabla')}>Tabla</button>
-            <button type="button" className={`agenda-vista-btn${vista === 'calendario' ? ' agenda-vista-btn--active' : ''}`} onClick={() => setVista('calendario')}>Calendario</button>
-            <button type="button" className={`agenda-vista-btn${vista === 'diagnosticos' ? ' agenda-vista-btn--active' : ''}`} onClick={() => setVista('diagnosticos')}>
+          <div className={VISTA_GRUPO}>
+            <button type="button" className={`${VISTA_BTN} ${vista === 'tabla' ? VISTA_BTN_ACTIVO : ''}`} onClick={() => setVista('tabla')}>Tabla</button>
+            <button type="button" className={`${VISTA_BTN} ${vista === 'calendario' ? VISTA_BTN_ACTIVO : ''}`} onClick={() => setVista('calendario')}>Calendario</button>
+            <button type="button" className={`${VISTA_BTN} ${vista === 'diagnosticos' ? VISTA_BTN_ACTIVO : ''}`} onClick={() => setVista('diagnosticos')}>
               Diagnósticos{diagnosticos.length > 0 ? ` (${diagnosticos.length})` : ''}
             </button>
           </div>
@@ -707,36 +821,43 @@ export default function AgendaPage() {
           />
         )}
         {vista === 'calendario' && (
-          <div className="agenda-calendario">
-            <div className="agenda-calendario__nav">
-              <button type="button" className="btn btn--outline btn--sm" onClick={() => cambiarMes(-1)}>← Anterior</button>
-              <span className="agenda-calendario__mes">{MESES_NOMBRE[mesCal.mes]} {mesCal.anio}</span>
-              <button type="button" className="btn btn--outline btn--sm" onClick={() => cambiarMes(1)}>Siguiente →</button>
+          <div className={CALENDARIO}>
+            <div className={CAL_NAV}>
+              <button type="button" className={CAL_NAV_BTN} onClick={() => cambiarMes(-1)}>← Anterior</button>
+              <span className={CAL_MES}>{MESES_NOMBRE[mesCal.mes]} {mesCal.anio}</span>
+              <button type="button" className={CAL_NAV_BTN} onClick={() => cambiarMes(1)}>Siguiente →</button>
             </div>
-            <div className="agenda-calendario__grid agenda-calendario__grid--header">
-              {['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'].map(d => (
-                <div key={d} className="agenda-calendario__dia-nombre">{d}</div>
+            <div className={CAL_CABECERA}>
+              {DIAS_SEMANA_CORTO.map(d => (
+                <div key={d} className={CAL_DIA_NOMBRE}>{d}</div>
               ))}
             </div>
-            <div className="agenda-calendario__grid">
+            <div className={CAL_REJILLA}>
               {celdasCalendario.map(celda => (
                 <div
                   key={celda.ymd}
-                  className={`agenda-calendario__celda${celda.enMes ? '' : ' agenda-calendario__celda--fuera'}${celda.esHoy ? ' agenda-calendario__celda--hoy' : ''}${celda.citas.length ? ' agenda-calendario__celda--clickable' : ''}`}
+                  className={[CAL_CELDA,
+                    celda.enMes ? '' : CAL_CELDA_FUERA,
+                    celda.esHoy ? CAL_CELDA_HOY : '',
+                    celda.citas.length ? CAL_CELDA_PULSABLE : CAL_CELDA_VACIA].join(' ')}
                   onClick={() => celda.citas.length && setDiaDetalle(celda.ymd)}
                   role={celda.citas.length ? 'button' : undefined}
                   tabIndex={celda.citas.length ? 0 : undefined}
                 >
-                  <span className="agenda-calendario__num">{celda.fecha.getDate()}</span>
-                  <div className="agenda-calendario__citas">
+                  <span className={CAL_NUM}>
+                    {celda.fecha.getDate()}{' '}
+                    {/* En estrecho ya no hay cabecera de columnas, asi que el dia
+                        de la semana se dice aqui. */}
+                    <span className={CAL_NUM_DIA_SEMANA}>{DIAS_SEMANA_CORTO[(celda.fecha.getDay() + 6) % 7]}</span>
+                  </span>
+                  <div className={CAL_CITAS}>
                     {celda.citas.slice(0, 3).map(c => {
                       const s = ESTADO_CITA_STYLE[c.EstadoCita] || ESTADO_CITA_STYLE.Pendiente;
                       return (
                         <button
                           key={c.Id_Agenda ?? c.id}
                           type="button"
-                          className="agenda-calendario__chip"
-                          style={{ background: s.bg, color: s.fg }}
+                          className={`${CAL_CHIP} ${s.clases}`}
                           title={`${formatHora12(c.Hora)} · ${c.cliente || ''}`}
                           onClick={(e) => { e.stopPropagation(); setDetailId(c.Id_Agenda ?? c.id); }}
                         >
@@ -745,12 +866,15 @@ export default function AgendaPage() {
                       );
                     })}
                     {celda.citas.length > 3 && (
-                      <span className="agenda-calendario__mas">+{celda.citas.length - 3} más</span>
+                      <span className={CAL_MAS}>+{celda.citas.length - 3} más</span>
                     )}
                   </div>
                 </div>
               ))}
             </div>
+            {celdasCalendario.every(c => c.citas.length === 0) && (
+              <div className={CAL_VACIO}>No hay citas en {MESES_NOMBRE[mesCal.mes]} de {mesCal.anio}.</div>
+            )}
           </div>
         )}
       </div>
@@ -758,19 +882,19 @@ export default function AgendaPage() {
       <Modal isOpen={!!diaDetalle} onClose={() => setDiaDetalle(null)} title={diaDetalle ? `Citas del ${formatDate(diaDetalle)}` : 'Citas del día'} size="md">
         {diaDetalle && (
           (citasPorDia[diaDetalle] || []).slice().sort((a, b) => (a.Hora || '').localeCompare(b.Hora || '')).length > 0 ? (
-            <div className="agenda-dia-lista">
+            <div className={DIA_LISTA}>
               {citasPorDia[diaDetalle].slice().sort((a, b) => (a.Hora || '').localeCompare(b.Hora || '')).map(c => {
                 const s = ESTADO_CITA_STYLE[c.EstadoCita] || ESTADO_CITA_STYLE.Pendiente;
                 return (
                   <button
                     key={c.Id_Agenda ?? c.id}
                     type="button"
-                    className="agenda-dia-lista__item"
+                    className={DIA_ITEM}
                     onClick={() => { setDiaDetalle(null); setDetailId(c.Id_Agenda ?? c.id); }}
                   >
-                    <span className="agenda-dia-lista__hora">{formatHora12(c.Hora)}</span>
-                    <span className="agenda-dia-lista__cliente">{c.cliente}</span>
-                    <span style={{ background: s.bg, color: s.fg, padding: '2px 10px', borderRadius: '999px', fontSize: '0.72rem', fontWeight: 600 }}>{s.label}</span>
+                    <span className={DIA_HORA}>{formatHora12(c.Hora)}</span>
+                    <span className={DIA_CLIENTE}>{c.cliente}</span>
+                    <span className={`${PILDORA} ${s.clases}`}>{s.label}</span>
                   </button>
                 );
               })}
@@ -834,9 +958,9 @@ export default function AgendaPage() {
           </div>
           <div className="form-group span-2">
             <label className="form-label">Duración estimada (min)</label>
-            <div className="agenda-duracion-row">
-              <input name="DuracionEstimadaMin" type="number" min="15" step="15" className={`form-control agenda-duracion-input${duracionError ? ' is-error' : ''}`} value={formData.DuracionEstimadaMin} onChange={handleChange} placeholder="60" />
-              <p className="form-hint agenda-duracion-hint">Diagnóstico 45 min · mantenimiento 60. Las horas que no alcanzan a terminar antes del cierre ({formatHora12(horario.cierre)}) no aparecerán en la lista.</p>
+            <div className={DURACION_FILA}>
+              <input name="DuracionEstimadaMin" type="number" min="15" step="15" className={`${DURACION_INPUT}${duracionError ? ' is-error' : ''}`} value={formData.DuracionEstimadaMin} onChange={handleChange} placeholder="60" />
+              <p className="form-hint m-0">Diagnóstico 45 min · mantenimiento 60. Las horas que no alcanzan a terminar antes del cierre ({formatHora12(horario.cierre)}) no aparecerán en la lista.</p>
             </div>
             {duracionError && <p className="form-error">{duracionError}</p>}
           </div>
@@ -844,7 +968,7 @@ export default function AgendaPage() {
             <label className="form-label">Empleado <span className="required">*</span></label>
             <SearchableSelect options={empleadosOpts} value={String(formData.id_empleado)} onChange={v => setFormData(p => ({ ...p, id_empleado: v, Hora: '' }))} placeholder="Seleccionar empleado..." />
             {formData.id_empleado && empleadosBloqueados.has(String(formData.id_empleado)) && (
-              <p className="novedad-warning">⚠ Este empleado tiene una novedad en la fecha seleccionada y no puede ser asignado.</p>
+              <p className={AVISO_CAMPO}>⚠ Este empleado tiene una novedad en la fecha seleccionada y no puede ser asignado.</p>
             )}
           </div>
           <div className="form-group">
@@ -855,7 +979,7 @@ export default function AgendaPage() {
             <label className="form-label">Vehículo <span className="required">*</span></label>
             <SearchableSelect options={vehiculosOpts} value={String(formData.Id_Vehiculo)} onChange={v => setFormData(p => ({ ...p, Id_Vehiculo: v }))} placeholder="Seleccionar vehículo..." disabled={!formData.Id_Cliente} />
             {vehiculoElegidoConOrden && (
-              <p className="novedad-warning">⚠ Este vehículo tiene una orden de trabajo en curso; no se le puede agendar otra cita hasta que sea entregado.</p>
+              <p className={AVISO_CAMPO}>⚠ Este vehículo tiene una orden de trabajo en curso; no se le puede agendar otra cita hasta que sea entregado.</p>
             )}
           </div>
           <div className="form-group"><label className="form-label">Fecha de agendamiento <span className="required">*</span></label><input name="FechaAgendamiento" type="date" className={`form-control ${fechaError ? 'is-error' : ''}`} value={formData.FechaAgendamiento} onChange={handleChange} min={TODAY} />
