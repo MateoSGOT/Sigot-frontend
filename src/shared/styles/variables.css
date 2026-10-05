@@ -103,10 +103,6 @@
      ilegibles. Estos son el mismo mensaje un paso más claro. */
   --color-danger-on-dark:  #FB7185;  /* 6.70:1 sobre --color-surface-dark-raised */
   --color-text-on-dark:    #EDEDEF;  /* 15.43:1 */
-  /* Faltaba el par de exito sobre oscuro. El esmeralda base (#059669) da 4.79:1
-     sobre la tarjeta oscura -- pasa AA pero sin margen; este da 9.39:1. Lo usa
-     el indicador de fuerza de contrasena en /reset-password. */
-  --color-success-on-dark: #34D399;  /* 9.39:1 */
 
   /* Teal: tercer tono de la rampa categórica (gráficas) y estado "Diagnosticada"
      de las citas, que necesita no confundirse con los demás. */

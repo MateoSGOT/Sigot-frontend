@@ -15,9 +15,9 @@ import {
 import { correo as validarCorreo } from '../../../shared/utils/validators.js';
 import { RESORTE } from '../../../shared/styles/movimiento.js';
 import {
-  AUTH_PAGINA, AUTH_CAPA_CUADRICULA, AUTH_TARJETA, AUTH_TITULO, AUTH_APOYO,
-  AUTH_TENUE, AUTH_TENUE_ACCION, AUTH_CAMPO, AUTH_CAMPO_ACCION, AUTH_ETIQUETA, AUTH_CONTENIDO,
-} from '../../../shared/styles/clasesAuthOscuro.js';
+  AUTH_PAGINA, AUTH_TARJETA, AUTH_TITULO, AUTH_APOYO,
+  AUTH_TENUE, AUTH_TENUE_ACCION, AUTH_CAMPO, AUTH_CAMPO_ACCION, AUTH_ETIQUETA,
+} from '../../../shared/styles/clasesAuth.js';
 
 /* ═══════════════════════════════════════════════════════════════════════════
    LOGIN — reescrito con Tailwind v4 + Motion.
@@ -96,12 +96,17 @@ function LogoGoogle() {
    token --radius-2xl), borde sutil y min-h de 48px, el minimo tactil del
    sistema. Sobre superficie oscura la convencion de marca es el boton claro,
    que ademas lo separa con claridad del cobalto primario. */
+/* Sobre TARJETA CLARA el boton es blanco con borde, que es justo lo que pide la
+   guia de marca de Google para fondos claros. Usa --color-border-strong (0.16)
+   y no el --color-border por defecto (0.07): a 0.07 un boton blanco sobre una
+   tarjeta blanca no se lee como boton, se pierde. El texto #1F1F1F tambien lo
+   fija su guia y mide 16.48:1 sobre blanco. */
 const BOTON_GOOGLE = 'inline-flex w-full min-h-[48px] items-center justify-center gap-sm '
-  + 'rounded-2xl border border-white/14 bg-white/92 px-xl '
+  + 'rounded-2xl border border-border-strong bg-surface px-xl '
   + 'text-body font-semibold text-[#1F1F1F] cursor-pointer '
   + 'transition-[background-color,border-color,transform] duration-150 '
-  + 'hover:bg-white hover:border-white/24 active:scale-[0.99] '
-  + 'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary';
+  + 'hover:bg-bg active:scale-[0.99] '
+  + 'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus';
 
 function Spinner() {
   return (
@@ -221,20 +226,16 @@ export default function LoginPage() {
   };
 
   return (
-    <div className={`${AUTH_PAGINA} font-body items-start`}>
-      {/* Cuadricula matematica al 5%, enmascarada para desvanecerse hacia los
-          bordes. En capa fija y propia: una mascara sobre un elemento CON
-          contenido obliga a componer todo el subarbol en cada cuadro. */}
-      <div aria-hidden="true" className={AUTH_CAPA_CUADRICULA} />
+    <div className={`${AUTH_PAGINA} font-body text-text`}>
 
-      <div className={`${AUTH_CONTENIDO} mx-auto flex min-h-dvh w-full max-w-[26rem] flex-col justify-center gap-xl py-3xl`}>
+      <div className="mx-auto flex min-h-dvh w-full max-w-[26rem] flex-col justify-center gap-xl py-3xl">
         <button
           type="button"
           onClick={() => navigate('/')}
           className={`inline-flex items-center gap-sm self-start rounded-sm border-0 bg-transparent
                      text-small font-medium ${AUTH_TENUE_ACCION} cursor-pointer
-                     transition-colors duration-150 hover:text-white/90
-                     focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary`}
+                     transition-colors duration-150 hover:text-text
+                     focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus`}
         >
           <MdArrowBack size={16} aria-hidden="true" />
           Volver a la página principal
@@ -247,7 +248,7 @@ export default function LoginPage() {
           className={AUTH_TARJETA}
         >
           <header className="mb-xl flex flex-col gap-xs">
-            <span className="font-display text-h2 font-extrabold tracking-tighter text-primary-pale-3">
+            <span className="font-display text-h2 font-extrabold tracking-tighter text-primary">
               SIGOT
             </span>
             <h1 className={AUTH_TITULO}>
@@ -331,9 +332,9 @@ export default function LoginPage() {
                 resuelva/cree el usuario, y el envio de ese token desde aqui. */}
             <div className="flex flex-col gap-sm">
               <div className="flex items-center gap-md" aria-hidden="true">
-                <span className="h-px flex-1 bg-white/12" />
+                <span className="h-px flex-1 bg-border" />
                 <span className={`text-caption ${AUTH_TENUE}`}>o</span>
-                <span className="h-px flex-1 bg-white/12" />
+                <span className="h-px flex-1 bg-border" />
               </div>
 
               <Motion.button
@@ -367,8 +368,8 @@ export default function LoginPage() {
             type="button"
             onClick={openRecovery}
             className="mt-lg w-full rounded-sm border-0 bg-transparent text-small font-semibold
-                       text-primary-pale-3 cursor-pointer transition-colors duration-150
-                       hover:text-white/90
+                       text-primary-soft-on cursor-pointer transition-colors duration-150
+                       hover:text-primary-strong-hover
                        focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
           >
             ¿Olvidaste tu contraseña?
@@ -382,14 +383,14 @@ export default function LoginPage() {
           ¿Eres cliente y no tienes cuenta?{' '}
           <Link
             to="/registro"
-            className="font-semibold text-primary-pale-3 underline decoration-primary/60
-                       decoration-2 underline-offset-2 hover:text-white/90"
+            className="font-semibold text-primary-soft-on underline decoration-primary-pale-2
+                       decoration-2 underline-offset-2 hover:text-primary-strong-hover"
           >
             Regístrate aquí
           </Link>
           <br />
           Si eres del equipo del taller, solicita tus credenciales al{' '}
-          <strong className="font-semibold text-white/90">administrador</strong>.
+          <strong className="font-semibold text-text">administrador</strong>.
         </p>
 
         <p className={`flex items-center justify-center gap-xs text-caption ${AUTH_TENUE_ACCION}`}>

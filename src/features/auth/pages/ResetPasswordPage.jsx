@@ -3,31 +3,31 @@ import { useSearchParams, useNavigate, Link } from 'react-router-dom';
 import { MdLock, MdVisibility, MdVisibilityOff, MdCheckCircle, MdArrowBack, MdWarning } from 'react-icons/md';
 import api from '../../../shared/services/api.js';
 import {
-  AUTH_PAGINA, AUTH_CAPA_CUADRICULA, AUTH_CONTENIDO, AUTH_TARJETA, AUTH_TITULO,
+  AUTH_PAGINA, AUTH_TARJETA, AUTH_TITULO,
   AUTH_APOYO, AUTH_TENUE, AUTH_TENUE_ACCION, AUTH_CAMPO_ACCION,
-} from '../../../shared/styles/clasesAuthOscuro.js';
+} from '../../../shared/styles/clasesAuth.js';
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   NUEVA CONTRASEÑA — única vista del panel sobre SUPERFICIE OSCURA.
+   NUEVA CONTRASEÑA
 
-   SIN CSS PROPIO. ResetPasswordPage.css (245 líneas) eliminado.
+   SIN CSS PROPIO. ResetPasswordPage.css (264 líneas) eliminado.
 
-   CONTRASTE MEDIDO SOBRE LA TARJETA (--color-surface-dark-raised = #16161A),
-   no supuesto. El blanco al 45 % es el PISO para texto normal (4.52:1); por
-   debajo de ahí no llega a AA:
-       95 %  16.27:1      65 %   8.05:1      45 %   4.52:1
-       85 %  13.17:1      50 %   5.31:1      40 %   3.82:1  ← ya no alcanza
-       30 %   2.71:1  ← lo que usaba el CSS anterior para los iconos
+   La superficie sale de shared/styles/clasesAuth.js, el mismo modulo que usa
+   LoginPage: son pantallas hermanas y tienen que verse igual.
 
-   Lo que había fallaba en varios sitios: iconos al 30 % (2.71:1), placeholders
-   al 20 %, y el enlace de volver al 40 % (3.82:1, solo AA para texto grande).
-   Todo subido a 45 % como mínimo, y el texto en reposo a 85-90 %.
+   HUBO UNA VERSION OSCURA de esta pantalla y del login. Se revirtio: dejaba
+   estas dos en negro mientras /registro, /cambiar-password y toda la
+   aplicacion seguian claras. La coherencia del flujo pesa mas que el efecto de
+   una pantalla suelta.
 
-   EL BOTÓN DE ACCIÓN PASA DE ÁMBAR A COBALTO. El ámbar en este sistema
-   significa "en proceso / requiere atención"; crear la contraseña es la ACCIÓN
-   principal. Como relleno con texto blanco el cobalto da 5.15:1 (AA).
-   OJO: el cobalto base como TEXTO sobre esta tarjeta da solo 3.50:1, así que
-   para texto sobre oscuro se usa --color-primary-light (5.88:1).
+   CONTRASTE sobre la tarjeta blanca, calculado y no supuesto:
+       titulo  --color-text           19.79:1
+       apoyo   --color-text-muted      7.58:1
+       tenue   --color-text-light      4.76:1
+       boton   cobalto + blanco        5.15:1
+
+   EL BOTON DE ACCION ES COBALTO, NO AMBAR. El ambar en este sistema significa
+   "en proceso / requiere atencion"; crear la contrasena es la ACCION principal.
    ═══════════════════════════════════════════════════════════════════════════ */
 
 /* El color del indicador cumple DOS funciones con requisitos distintos: rellena
@@ -37,10 +37,10 @@ import {
    quedaban por debajo de AA en la etiqueta -- "Muy débil" 3.84:1 y "Media"
    3.50:1. */
 const NIVELES = {
-  weak:   { label: 'Muy débil', ancho: '25%',  barra: 'bg-danger',  texto: 'text-danger-on-dark' },
-  fair:   { label: 'Débil',     ancho: '50%',  barra: 'bg-accent',  texto: 'text-accent' },
-  medium: { label: 'Media',     ancho: '75%',  barra: 'bg-primary', texto: 'text-primary-light' },
-  strong: { label: 'Fuerte',    ancho: '100%', barra: 'bg-success', texto: 'text-success-on-dark' },
+  weak:   { label: 'Muy débil', ancho: '25%',  barra: 'bg-danger',  texto: 'text-danger-soft-on' },
+  fair:   { label: 'Débil',     ancho: '50%',  barra: 'bg-accent',  texto: 'text-warning-soft-on' },
+  medium: { label: 'Media',     ancho: '75%',  barra: 'bg-primary', texto: 'text-primary-soft-on' },
+  strong: { label: 'Fuerte',    ancho: '100%', barra: 'bg-success', texto: 'text-success-soft-on' },
 };
 
 const getPasswordStrength = (pass) => {
@@ -58,7 +58,7 @@ const getPasswordStrength = (pass) => {
 /* ── Superficie oscura: compartida con LoginPage ──
    Estas constantes vivian duplicadas aqui. Son las dos pantallas de acceso: un
    usuario las ve con minutos de diferencia y tienen que ser la misma superficie.
-   Ver shared/styles/clasesAuthOscuro.js. */
+   Ver shared/styles/clasesAuth.js. */
 const PAGINA = AUTH_PAGINA;
 const TARJETA = AUTH_TARJETA;
 const TITULO = AUTH_TITULO;
@@ -83,7 +83,7 @@ function Marca() {
                        bg-primary text-h3 font-black text-primary-on">
         S
       </span>
-      <span className="font-display text-h2 font-extrabold tracking-tight text-white/90">SIGOT</span>
+      <span className="font-display text-h2 font-extrabold tracking-tight text-text">SIGOT</span>
     </div>
   );
 }
@@ -152,11 +152,9 @@ export default function ResetPasswordPage() {
   if (!token) {
     return (
       <div className={PAGINA}>
-        {/* Misma trama que el login: las dos pantallas de acceso son la misma superficie. */}
-        <div aria-hidden="true" className={AUTH_CAPA_CUADRICULA} />
-        <main className={`${AUTH_CONTENIDO} ${TARJETA} text-center`}>
+        <main className={`${TARJETA} text-center`}>
           <Marca />
-          <span className="mb-lg inline-flex text-accent"><MdWarning size={48} aria-hidden="true" /></span>
+          <span className="mb-lg inline-flex text-warning-soft-on"><MdWarning size={48} aria-hidden="true" /></span>
           <h1 className={TITULO}>Enlace inválido</h1>
           <p className={`${APOYO} mt-sm mb-xl`}>
             Este enlace de recuperación no es válido o ya expiró.
@@ -174,11 +172,9 @@ export default function ResetPasswordPage() {
   if (success) {
     return (
       <div className={PAGINA}>
-        {/* Misma trama que el login: las dos pantallas de acceso son la misma superficie. */}
-        <div aria-hidden="true" className={AUTH_CAPA_CUADRICULA} />
-        <main className={`${AUTH_CONTENIDO} ${TARJETA} text-center`}>
+        <main className={`${TARJETA} text-center`}>
           <Marca />
-          <span className="mb-lg inline-flex text-success-on-dark">
+          <span className="mb-lg inline-flex text-success-soft-on">
             <MdCheckCircle size={48} aria-hidden="true" />
           </span>
           <h1 className={TITULO}>¡Contraseña actualizada!</h1>
@@ -195,9 +191,7 @@ export default function ResetPasswordPage() {
   /* ── Formulario ── */
   return (
     <div className={PAGINA}>
-        {/* Misma trama que el login: las dos pantallas de acceso son la misma superficie. */}
-        <div aria-hidden="true" className={AUTH_CAPA_CUADRICULA} />
-      <main className={`${AUTH_CONTENIDO} ${TARJETA}`}>
+      <main className={`${TARJETA}`}>
         <Marca />
 
         <header className="mb-xl text-center">
@@ -208,14 +202,14 @@ export default function ResetPasswordPage() {
         <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-lg">
           {error && (
             <p role="alert" className="rounded-md border border-danger/30 bg-danger/12 px-lg py-md
-                                       text-small font-medium text-danger-on-dark">
+                                       text-small font-medium text-danger-soft-on">
               {error}
             </p>
           )}
 
           {campos.map((c) => (
             <div key={c.id} className="flex flex-col gap-sm">
-              <label htmlFor={c.id} className="text-small font-semibold text-white/65">{c.label}</label>
+              <label htmlFor={c.id} className="text-small font-semibold text-text-muted">{c.label}</label>
               <div className="relative">
                 <MdLock className={`pointer-events-none absolute left-lg top-1/2 -translate-y-1/2 ${TENUE}`}
                         size={18} aria-hidden="true" />
@@ -236,7 +230,7 @@ export default function ResetPasswordPage() {
                   aria-label={c.ver ? 'Ocultar contraseña' : 'Mostrar contraseña'}
                   className={`absolute right-sm top-1/2 flex size-9 -translate-y-1/2 items-center
                               justify-center rounded-sm border-0 bg-transparent cursor-pointer
-                              transition-colors duration-150 hover:text-white/90 ${TENUE_ACCION}`}
+                              transition-colors duration-150 hover:text-text ${TENUE_ACCION}`}
                 >
                   {c.ver ? <MdVisibilityOff size={18} /> : <MdVisibility size={18} />}
                 </button>
@@ -245,7 +239,7 @@ export default function ResetPasswordPage() {
               {/* Indicador de fuerza, solo bajo el primer campo */}
               {c.id === 'rsp-nueva' && fuerza && (
                 <div className="mt-xs flex items-center gap-md">
-                  <div className="h-1 flex-1 overflow-hidden rounded-full bg-white/10">
+                  <div className="h-1 flex-1 overflow-hidden rounded-full bg-track">
                     <div
                       className={`h-full rounded-full transition-[width,background-color] duration-300 ${fuerza.barra}`}
                       style={{ width: fuerza.ancho }}
@@ -258,7 +252,7 @@ export default function ResetPasswordPage() {
               )}
 
               {c.id === 'rsp-confirmar' && noCoincide && (
-                <p className="text-caption font-medium text-danger-on-dark">Las contraseñas no coinciden.</p>
+                <p className="text-caption font-medium text-danger-soft-on">Las contraseñas no coinciden.</p>
               )}
             </div>
           ))}
@@ -278,7 +272,7 @@ export default function ResetPasswordPage() {
           <Link
             to="/login"
             className={`inline-flex items-center gap-xs text-small font-medium no-underline
-                        transition-colors duration-150 hover:text-white/90 ${TENUE_ACCION}`}
+                        transition-colors duration-150 hover:text-text ${TENUE_ACCION}`}
           >
             <MdArrowBack size={14} aria-hidden="true" />Volver al login
           </Link>
