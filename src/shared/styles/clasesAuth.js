@@ -34,9 +34,14 @@
    EL CANVAS YA ERA slate-50. --color-bg vale #F8FAFC, que es exactamente el
    slate-50 de Tailwind. No hubo nada que cambiar ahí.
 
-   EL HALO YA ESTABA AL 4%. --color-primary-50 es rgba(43,92,255,0.04): cobalto
-   al cuatro por ciento, flotando arriba a la derecha. Compuesto sobre el canvas
-   da rgb(240,244,252), ocho niveles de diferencia. Estaba, pero apenas.
+   EL HALO YA ESTABA, arriba a la derecha. Ojo con su opacidad: el token declara
+   rgba(43,92,255,0.04), pero el bloque @supports de color-mix lo redefine como
+   color-mix(in oklab, var(--color-primary) 5%, transparent), y esa es la rama
+   que toma cualquier navegador actual. Medido en pantalla: el color efectivo es
+   oklab(... / 0.05) y compone a rgb(238,242,252), diez niveles de diferencia.
+   O sea 5%, no 4% -- un punto por encima de lo pedido. No se toca el token
+   porque lo comparte OrdenesPage (bg-primary-50); si se quiere exactamente 4%,
+   hay que bajar el 5% de esa linea de variables.css y revisar esa otra vista.
 
    LA CUADRÍCULA ES LO QUE FALTABA, y su color NO es el que se pidió. El encargo
    decía slate-200 al 15-20 %. Medido sobre este lienzo:
