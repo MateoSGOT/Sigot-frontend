@@ -26,7 +26,6 @@ import {
   OD_PRECIO, OD_VACIO, OD_SUBTOTAL, OD_TOTAL_CAJA, OD_TOTAL_DESGLOSE,
   OD_TOTAL_FILA, OD_TOTAL_FINAL, OD_TOTAL_CIFRA,
 } from '../../../shared/styles/clasesOrdenDetalle.js';
-import './PortalPage.css';
 
 const ESTADO_CITA_META = {
   Pendiente:  { cls: 'bg-info-soft text-info-soft-on',  label: 'Pendiente' },

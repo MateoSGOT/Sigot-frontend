@@ -17,6 +17,41 @@ const NAV_ITEMS = [
   { key: 'citas',     Icon: MdCalendarMonth, label: 'Mis Citas'     },
 ];
 
+/* ── Clases propias del sidebar del portal, en utilidades ──────────────────
+   Eran las ultimas tres reglas de PortalPage.css, el ultimo .css de pagina que
+   quedaba en src/features. El <aside> reutiliza .sidebar/.sidebar--open de
+   Sidebar.css; aqui solo van sus diferencias.
+
+   NO hizo falta estratificar Sidebar.css para que estas utilidades ganen:
+   .sidebar__item declara display, gap, padding, radio, color, tamano y peso,
+   pero NO width, background, border, text-align ni font-family -- que es
+   justamente lo que hay que neutralizar aqui. No compiten, asi que no hay nada
+   que ceder en la cascada. (Comprobado leyendo la regla, no supuesto.)
+
+   El selector viejo era `.portal-sidebar .portal-sidebar__item`, con dos clases
+   para ganar especificidad. Con utilidades esa gimnasia sobra. */
+
+/* Subtitulo bajo el wordmark. El cobalto claro original (rgba(109,140,255,.78))
+   no alcanzaba contraste de etiqueta sobre el vidrio claro; usa el par del
+   sistema. */
+const SUBTITULO = 'mt-[3px] text-caption font-bold uppercase tracking-wide text-primary-soft-on';
+
+/* El portal navega por PESTANAS, no por rutas, asi que sus items son <button> y
+   no <NavLink>: hay que neutralizar los defaults del boton para que se vean
+   igual que los enlaces del panel. */
+const ITEM_BOTON = 'w-full cursor-pointer border-0 bg-transparent text-left font-[inherit]';
+
+/* Cerrar el cajon: solo por debajo de 1024px (en escritorio el panel es fijo).
+   max-lg: es exactamente el @media (max-width: 1023px) que habia.
+   Los tokens --sidebar-* no son --color-*, asi que Tailwind no genera utilidad
+   para ellos y se referencian como valor arbitrario. */
+const BOTON_CERRAR = 'hidden max-lg:flex items-center justify-center '
+  + 'ml-auto cursor-pointer rounded-sm border-0 bg-transparent p-xs '  // `background: none`
+  // en forma larga tambien pone el color en transparent, no solo la imagen:
+  // bg-none solo limpiaria background-image y dejaria el gris del boton.
+  + 'text-[var(--sidebar-icon)] transition-[background-color,color] duration-150 '
+  + 'hover:bg-[var(--sidebar-hover)] hover:text-text';
+
 export default function PortalSidebar({ activeTab, onTabChange }) {
   const dispatch    = useDispatch();
   const navigate    = useNavigate();
@@ -42,12 +77,12 @@ export default function PortalSidebar({ activeTab, onTabChange }) {
       // Sidebar.css el mismo transform/sombra/z-index (1200, por encima del overlay 1100),
       // en vez de una copia propia que antes tenía su propio z-index (100), mucho más bajo
       // y desalineado de la escala real de capas fijas de la app (ver Layout.css).
-      <aside className={`sidebar portal-sidebar${mobileOpen ? ' sidebar--open' : ''}${collapsed ? ' sidebar--collapsed' : ''}`}>
+      <aside className={`sidebar${mobileOpen ? ' sidebar--open' : ''}${collapsed ? ' sidebar--collapsed' : ''}`}>
         <div className="sidebar__header">
           <div className="sidebar__logo">
-            <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.25 }}>
+            <div className="flex flex-col leading-[1.25]">
               <span className="sidebar__logo-text">SIGOT</span>
-              <span className="portal-sidebar__subtitle">Portal del Cliente</span>
+              <span className={SUBTITULO}>Portal del Cliente</span>
             </div>
           </div>
           <div className="sidebar__header-actions">
@@ -62,7 +97,7 @@ export default function PortalSidebar({ activeTab, onTabChange }) {
             >
               <MdMenuOpen size={20} />
             </button>
-            <button className="portal-sidebar-close" onClick={closeMobile} aria-label="Cerrar menú">
+            <button className={BOTON_CERRAR} onClick={closeMobile} aria-label="Cerrar menú">
               <MdClose size={18} />
             </button>
           </div>
@@ -72,7 +107,7 @@ export default function PortalSidebar({ activeTab, onTabChange }) {
           {NAV_ITEMS.map(({ key, Icon, label }) => (
             <button
               key={key}
-              className={`sidebar__item portal-sidebar__item${activeTab === key ? ' sidebar__item--active' : ''}`}
+              className={`sidebar__item ${ITEM_BOTON}${activeTab === key ? ' sidebar__item--active' : ''}`}
               onClick={() => handleNav(key)}
             >
               <Icon size={20} className="sidebar__item-icon" />
