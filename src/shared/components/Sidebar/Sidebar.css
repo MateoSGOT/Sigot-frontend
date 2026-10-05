@@ -366,24 +366,6 @@
   color: var(--color-danger-soft-on);
 }
 
-/* Badge de contador. El pulso anima box-shadow, que es una propiedad de
-   PINTADO: en un elemento chico y estático es un repintado despreciable, pero
-   no se extiende a nada más grande. */
-.sidebar__badge {
-  display: inline-flex; align-items: center; justify-content: center;
-  min-width: 18px; height: 18px;
-  background: var(--color-primary);
-  color: var(--color-primary-on);
-  font-size: var(--text-caption);
-  font-weight: var(--weight-extrabold);
-  border-radius: var(--radius-full); padding: 0 5px;
-  margin-left: auto;
-  animation: badgePulse 2.5s ease-in-out infinite;
-}
-@keyframes badgePulse {
-  0%, 100% { box-shadow: 0 0 0 0 var(--color-primary-200); }
-  50%       { box-shadow: 0 0 0 4px rgba(43, 92, 255, 0); }
-}
 
 /* ═══════════════════════════════════════════════════════════
    RESPONSIVE — drawer en tablet/móvil (<1024).

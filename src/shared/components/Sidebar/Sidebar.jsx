@@ -9,13 +9,53 @@ import { useSidebar } from '../../contexts/SidebarContext.jsx';
 // Estructura y filtrado por permisos: compartidos con BottomNav. Ver navStructure.js
 // -- están afuera para que exista un solo criterio de visibilidad por rol.
 import { navConCuentas, buildVisibleNav } from './navStructure.js';
+import { motion as Motion } from 'motion/react';
+import TooltipLateral from './TooltipLateral.jsx';
+import { useMediaQuery, mq } from '../../styles/breakpoints.js';
+import { RESORTE } from '../../styles/movimiento.js';
 import './Sidebar.css';
+
+/* ── Estado colapsado, en utilidades ───────────────────────────────────────
+   El aspecto del sidebar sigue viniendo de Sidebar.css, que ya produce el panel
+   flotante translucido sobre slate-50 descrito en el encargo. Lo que NO existia
+   era el colapso: los tres tokens de ancho valian 232px, asi que el boton
+   cambiaba la clase y el panel no se movia. Eso se arregla en variables.css
+   (--sidebar-collapsed-width: 64px) y aqui va lo que el modo estrecho necesita
+   en la marcacion.
+
+   Estas utilidades ganan sin pelear con Sidebar.css porque esa hoja no declara
+   las mismas propiedades: .sidebar__item-label no fija `display`, y el centrado
+   se aplica sobre contenedores que solo traian gap y padding. Comprobado
+   leyendo las reglas, no supuesto. */
+const OCULTO_AL_COLAPSAR = 'hidden';
+/* SOLO justify-center, y no es por economia. Probe con `gap-0 px-0` tambien y
+   las dos son INERTES: Sidebar.css declara gap y padding en .sidebar__item, y
+   esa hoja no esta estratificada, asi que le gana a la capa utilities.
+   Comprobado en el navegador -- con las tres puestas, el computado seguia en
+   gap 12px y padding 8px 12px.
+
+   No hace falta forzarlas: con la etiqueta en display:none el icono queda como
+   unico hijo flex, asi que el gap no separa nada, y el padding es simetrico, de
+   modo que justify-center centra igual. Medido: desviacion de 0px entre el
+   centro del item y el del icono.
+
+   Dejarlas puestas habria sido peor que quitarlas: auditar-utilidades.mjs las
+   da por buenas porque EXISTEN en el bundle -- lo que no puede comprobar es si
+   ganan. */
+const ITEM_COLAPSADO = 'justify-center';
+const CABECERA_COLAPSADA = 'justify-center px-0';
+const PERFIL_COLAPSADO = 'justify-center gap-0';
 
 export default function Sidebar() {
   const dispatch  = useDispatch();
   const location  = useLocation();
   const { empleado, cliente, permisos } = useSelector((state) => state.auth);
   const { mobileOpen, collapsed, toggleCollapsed, setCollapsed } = useSidebar();
+  /* El colapso es SOLO de escritorio: por debajo de 1024 el sidebar es un drawer
+     que entra con transform y conserva su ancho. Sin esta condicion, el ancho en
+     linea que pone Motion se aplicaria tambien en movil y encogeria el cajon. */
+  const esEscritorio = useMediaQuery(mq.desktop);
+  const estrecho = collapsed && esEscritorio;
   const [profileOpen, setProfileOpen] = useState(false);
   const profileRef = React.useRef(null);
   const esSuperAdmin = !!(empleado?.EsSuperAdmin || cliente?.EsSuperAdmin);
@@ -71,14 +111,23 @@ export default function Sidebar() {
   };
 
   return (
-    <aside className={`sidebar${mobileOpen ? ' sidebar--open' : ''}${collapsed ? ' sidebar--collapsed' : ''}`}>
+    /* El ancho lo anima Motion y no CSS, y hay un motivo concreto: Sidebar.css
+       lleva `transition: none` explicito porque transicionar `width` entre dos
+       valores var() deja el ancho pegado en algunos motores (esta documentado
+       ahi mismo). Motion interpola NUMEROS en JS y escribe el valor resuelto, asi
+       que ese problema no se da. Solo en escritorio: en movil el ancho no cambia. */
+    <Motion.aside
+      className={`sidebar${mobileOpen ? ' sidebar--open' : ''}${collapsed ? ' sidebar--collapsed' : ''}`}
+      animate={esEscritorio ? { width: estrecho ? 64 : 232 } : {}}
+      transition={RESORTE}
+    >
       {/* Logo */}
-      <div className="sidebar__header">
-        <div className="sidebar__logo">
+      <div className={`sidebar__header${estrecho ? ` ${CABECERA_COLAPSADA}` : ''}`}>
+        <div className={`sidebar__logo${estrecho ? ` ${OCULTO_AL_COLAPSAR}` : ''}`}>
           <span className="sidebar__logo-text">SIGOT</span>
         </div>
         <div className="sidebar__header-actions">
-          <div className="sidebar__header-bells">
+          <div className={`sidebar__header-bells${estrecho ? ` ${OCULTO_AL_COLAPSAR}` : ''}`}>
             <StockAlertBell />
             {esAdminOSuperAdmin && <NovedadAlertBell />}
           </div>
@@ -99,21 +148,27 @@ export default function Sidebar() {
         {visibleNav.map((item) => {
           if (item.type === 'section') {
             return (
-              <div key={item.label} className="sidebar__section-label">{item.label}</div>
+              <div
+                key={item.label}
+                className={`sidebar__section-label${estrecho ? ` ${OCULTO_AL_COLAPSAR}` : ''}`}
+              >{item.label}</div>
             );
           }
 
           if (item.type === 'link') {
             return (
-              <NavLink
-                key={item.to}
-                to={item.to}
-                title={item.label}
-                className={({ isActive }) => `sidebar__item${isActive ? ' sidebar__item--active' : ''}`}
-              >
-                <item.icon size={20} className="sidebar__item-icon" />
-                <span className="sidebar__item-label">{item.label}</span>
-              </NavLink>
+              <TooltipLateral key={item.to} texto={item.label} activo={estrecho}>
+                <NavLink
+                  to={item.to}
+                  /* El title nativo se quita cuando hay tooltip propio: si no,
+                     el navegador pinta ADEMAS su globo gris encima del nuestro. */
+                  title={estrecho ? undefined : item.label}
+                  className={({ isActive }) => `sidebar__item${isActive ? ' sidebar__item--active' : ''}${estrecho ? ` ${ITEM_COLAPSADO}` : ''}`}
+                >
+                  <item.icon size={20} className="sidebar__item-icon" />
+                  <span className={`sidebar__item-label${estrecho ? ` ${OCULTO_AL_COLAPSAR}` : ''}`}>{item.label}</span>
+                </NavLink>
+              </TooltipLateral>
             );
           }
 
@@ -123,19 +178,23 @@ export default function Sidebar() {
 
             return (
               <div key={item.name} className="sidebar__group">
-                <button
-                  className={`sidebar__group-header${isGroupActive ? ' sidebar__group-header--active' : ''}`}
-                  onClick={() => toggleGroup(item.name)}
-                  title={item.name}
-                >
-                  <item.icon size={20} className="sidebar__item-icon" />
-                  <span className="sidebar__item-label">{item.name}</span>
-                  <MdChevronRight
-                    size={16}
-                    className={`sidebar__group-chevron${isOpen ? ' sidebar__group-chevron--open' : ''}`}
-                  />
-                </button>
-                <div className={`sidebar__group-children${isOpen ? ' sidebar__group-children--open' : ''}`}>
+                <TooltipLateral texto={item.name} activo={estrecho}>
+                  <button
+                    className={`sidebar__group-header${isGroupActive ? ' sidebar__group-header--active' : ''}${estrecho ? ` ${ITEM_COLAPSADO}` : ''}`}
+                    onClick={() => toggleGroup(item.name)}
+                    title={estrecho ? undefined : item.name}
+                  >
+                    <item.icon size={20} className="sidebar__item-icon" />
+                    <span className={`sidebar__item-label${estrecho ? ` ${OCULTO_AL_COLAPSAR}` : ''}`}>{item.name}</span>
+                    {/* El chevron sobra sin texto al lado: al pulsar en estrecho
+                        el sidebar se expande (ver toggleGroup), no se despliega. */}
+                    <MdChevronRight
+                      size={16}
+                      className={`sidebar__group-chevron${isOpen ? ' sidebar__group-chevron--open' : ''}${estrecho ? ` ${OCULTO_AL_COLAPSAR}` : ''}`}
+                    />
+                  </button>
+                </TooltipLateral>
+                <div className={`sidebar__group-children${isOpen ? ' sidebar__group-children--open' : ''}${estrecho ? ` ${OCULTO_AL_COLAPSAR}` : ''}`}>
                   {item.children.map(child => (
                     <NavLink
                       key={child.to}
@@ -166,24 +225,36 @@ export default function Sidebar() {
               </button>
             </div>
           )}
-          <div className="sidebar__user" onClick={() => setProfileOpen(o => !o)} style={{ cursor: 'pointer' }}>
-            {empleado && (
-              <>
-                <div className="sidebar__user-avatar">
-                  {(empleado.Foto_url || empleado.Foto)
-                    ? <img src={empleado.Foto_url || empleado.Foto} alt="" style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} />
-                    : empleado.Nombre?.charAt(0).toUpperCase()
-                  }
-                </div>
-                <div className="sidebar__user-info">
-                  <span className="sidebar__user-name">{empleado.Nombre}</span>
-                  <span className="sidebar__user-role">{empleado.Rol || empleado.rol || 'Administrador'}</span>
-                </div>
-              </>
-            )}
-          </div>
+          <TooltipLateral texto={empleado?.Nombre || 'Perfil'} activo={estrecho}>
+            <div
+              className={`sidebar__user cursor-pointer${estrecho ? ` ${PERFIL_COLAPSADO}` : ''}`}
+              onClick={() => setProfileOpen(o => !o)}
+            >
+              {empleado && (
+                <>
+                  <div className="sidebar__user-avatar">
+                    {(empleado.Foto_url || empleado.Foto)
+                      ? <img src={empleado.Foto_url || empleado.Foto} alt="" className="size-full rounded-full object-cover" />
+                      : empleado.Nombre?.charAt(0).toUpperCase()
+                    }
+                  </div>
+                  <div className={`sidebar__user-info${estrecho ? ` ${OCULTO_AL_COLAPSAR}` : ''}`}>
+                    <span className="sidebar__user-name">{empleado.Nombre}</span>
+                    {/* Debajo del nombre va el CORREO, no el rol. El rol ya se ve
+                        en Cuentas y en el propio perfil; el correo es lo que
+                        identifica con cual de varias cuentas estas dentro, que es
+                        la pregunta que uno le hace a este bloque. Si no viniera
+                        en la sesion, se cae al rol en vez de dejar el hueco. */}
+                    <span className="sidebar__user-role">
+                      {empleado.Correo || empleado.rol || empleado.Rol || 'Administrador'}
+                    </span>
+                  </div>
+                </>
+              )}
+            </div>
+          </TooltipLateral>
         </div>
       </div>
-    </aside>
+    </Motion.aside>
   );
 }
