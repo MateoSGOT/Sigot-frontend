@@ -13,6 +13,11 @@ import {
   MdSend, MdLocationOn, MdArrowBack,
 } from 'react-icons/md';
 import { correo as validarCorreo } from '../../../shared/utils/validators.js';
+import { RESORTE } from '../../../shared/styles/movimiento.js';
+import {
+  AUTH_PAGINA, AUTH_CAPA_CUADRICULA, AUTH_TARJETA, AUTH_TITULO, AUTH_APOYO,
+  AUTH_TENUE, AUTH_TENUE_ACCION, AUTH_CAMPO, AUTH_CAMPO_ACCION, AUTH_ETIQUETA, AUTH_CONTENIDO,
+} from '../../../shared/styles/clasesAuthOscuro.js';
 
 /* ═══════════════════════════════════════════════════════════════════════════
    LOGIN — reescrito con Tailwind v4 + Motion.
@@ -38,31 +43,65 @@ import { correo as validarCorreo } from '../../../shared/utils/validators.js';
 
 const RESEND_COOLDOWN = 60;
 
-/* Transición física compartida. Un spring (no una curva de duración fija) es lo
-   que hace que el movimiento se sienta nativo: la tarjeta desacelera por masa,
-   no por reloj. `stiffness` alto y `damping` alto = rápido y sin rebote visible,
-   que es lo que corresponde a una pantalla de acceso -- un login que rebota se
-   lee como poco serio. */
-const RESORTE = { type: 'spring', stiffness: 420, damping: 32, mass: 0.9 };
+/* El muelle sale de shared/styles/movimiento.js, el mismo k250/c30/m0.85 que
+   usa el resto de la app.
+
+   Antes habia aqui una copia propia con k420/c32/m0.9 y un comentario que decia
+   "sin rebote visible". No era cierto: la razon de amortiguamiento de ese
+   muelle es z = c/(2*raiz(k*m)) = 32/(2*raiz(420*0.9)) = 0.823, por debajo de 1,
+   o sea SUBAMORTIGUADO -- rebotaba. El compartido da z = 30/(2*raiz(250*0.85))
+   = 1.029, apenas por encima del critico: llega y se queda.
+
+   Ademas de ser el valor correcto, al importarlo deja de haber dos fisicas
+   distintas en la misma aplicacion. */
 
 /* Clases repetidas, extraídas a constantes y no a @apply: con @apply volverían a
    ser CSS propio, que es justo lo que se está quitando. */
-const CAMPO = 'w-full rounded-md border border-border bg-input-bg py-md pl-[2.75rem] pr-md '
-  + 'text-body text-text placeholder:text-text-disabled outline-none '
-  + 'transition-[border-color,box-shadow] duration-150 '
-  + 'focus-visible:border-focus focus-visible:shadow-[0_0_0_3px_var(--color-focus-ring)]';
+/* Clases repetidas, extraidas a constantes y no a @apply: con @apply volverian a
+   ser CSS propio, que es justo lo que se esta quitando. Las de superficie oscura
+   vienen del modulo compartido con ResetPassword. */
+const CAMPO = AUTH_CAMPO;
 
-const ICONO_CAMPO = 'pointer-events-none absolute left-lg top-1/2 -translate-y-1/2 text-text-light';
+/* El candado es un adorno junto a un campo que ya tiene etiqueta, asi que puede
+   vivir en el piso de AA; el ojo de "mostrar contrasena" se pulsa y no. */
+const ICONO_CAMPO = `pointer-events-none absolute left-lg top-1/2 -translate-y-1/2 ${AUTH_TENUE}`;
 
-const ETIQUETA = 'block text-caption font-semibold uppercase tracking-wide text-text-light';
+const ETIQUETA = AUTH_ETIQUETA;
 
 const BOTON_PRIMARIO = 'inline-flex w-full items-center justify-center gap-sm rounded-md '
   + 'bg-primary px-xl text-body font-semibold text-primary-on '
   + 'min-h-[var(--touch-min)] cursor-pointer border-0 '
   + 'transition-[background-color,box-shadow,transform] duration-150 '
-  + 'hover:bg-primary-strong hover:shadow-[var(--shadow-green)] active:scale-[0.99] '
-  + 'disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:bg-primary disabled:hover:shadow-none '
+  + 'hover:bg-primary-strong active:scale-[0.99] '
+  + 'disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:bg-primary '
   + 'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus';
+
+/* La "G" oficial de Google, en SVG inline y con sus cuatro colores de marca.
+   Inline y no <img src>: una peticion a un host externo para pintar un icono
+   dentro del login es una dependencia de red innecesaria, y el proyecto ya no
+   carga imagenes remotas. Los colores son los de la marca y NO salen de los
+   tokens a proposito -- no son parte de la paleta de SIGOT. */
+function LogoGoogle() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true" className="shrink-0">
+      <path fill="#4285F4" d="M45.12 24.5c0-1.56-.14-3.06-.4-4.5H24v8.51h11.84c-.51 2.75-2.06 5.08-4.39 6.64v5.52h7.11c4.16-3.83 6.56-9.47 6.56-16.17z" />
+      <path fill="#34A853" d="M24 46c5.94 0 10.92-1.97 14.56-5.33l-7.11-5.52c-1.97 1.32-4.49 2.1-7.45 2.1-5.73 0-10.58-3.87-12.31-9.07H4.34v5.7C7.96 41.07 15.4 46 24 46z" />
+      <path fill="#FBBC05" d="M11.69 28.18C11.25 26.86 11 25.45 11 24s.25-2.86.69-4.18v-5.7H4.34C2.85 17.09 2 20.45 2 24s.85 6.91 2.34 9.88l7.35-5.7z" />
+      <path fill="#EA4335" d="M24 10.75c3.23 0 6.13 1.11 8.41 3.29l6.31-6.31C34.91 4.18 29.93 2 24 2 15.4 2 7.96 6.93 4.34 14.12l7.35 5.7c1.73-5.2 6.58-9.07 12.31-9.07z" />
+    </svg>
+  );
+}
+
+/* Boton de Google. La geometria la hereda de la tarjeta: rounded-2xl (28px, el
+   token --radius-2xl), borde sutil y min-h de 48px, el minimo tactil del
+   sistema. Sobre superficie oscura la convencion de marca es el boton claro,
+   que ademas lo separa con claridad del cobalto primario. */
+const BOTON_GOOGLE = 'inline-flex w-full min-h-[48px] items-center justify-center gap-sm '
+  + 'rounded-2xl border border-white/14 bg-white/92 px-xl '
+  + 'text-body font-semibold text-[#1F1F1F] cursor-pointer '
+  + 'transition-[background-color,border-color,transform] duration-150 '
+  + 'hover:bg-white hover:border-white/24 active:scale-[0.99] '
+  + 'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary';
 
 function Spinner() {
   return (
@@ -79,6 +118,9 @@ export default function LoginPage() {
   const { loading, error } = useSelector((state) => state.auth);
   const [form, setForm] = useState({ Correo: '', Password: '' });
   const [showPassword, setShowPassword] = useState(false);
+  // Estado puramente de presentacion: explica que el acceso con Google aun no
+  // existe. No toca el store ni la logica de autenticacion.
+  const [avisoGoogle, setAvisoGoogle] = useState(false);
 
   // Recovery modal state
   const [showRecovery, setShowRecovery] = useState(false);
@@ -179,23 +221,20 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-dvh bg-bg font-body text-text">
-      {/* Un solo halo frío arriba a la derecha, el mismo de --bg-app. Pintado en
-          una capa fija aparte para que no se repinte con el scroll. */}
-      <div
-        aria-hidden="true"
-        className="pointer-events-none fixed inset-0 -z-10
-                   bg-[radial-gradient(1200px_600px_at_100%_-10%,var(--color-primary-50),transparent_62%)]"
-      />
+    <div className={`${AUTH_PAGINA} font-body items-start`}>
+      {/* Cuadricula matematica al 5%, enmascarada para desvanecerse hacia los
+          bordes. En capa fija y propia: una mascara sobre un elemento CON
+          contenido obliga a componer todo el subarbol en cada cuadro. */}
+      <div aria-hidden="true" className={AUTH_CAPA_CUADRICULA} />
 
-      <div className="mx-auto flex min-h-dvh w-full max-w-[26rem] flex-col justify-center gap-xl px-lg py-3xl">
+      <div className={`${AUTH_CONTENIDO} mx-auto flex min-h-dvh w-full max-w-[26rem] flex-col justify-center gap-xl py-3xl`}>
         <button
           type="button"
           onClick={() => navigate('/')}
-          className="inline-flex items-center gap-sm self-start rounded-sm border-0 bg-transparent
-                     text-small font-medium text-text-muted cursor-pointer
-                     transition-colors duration-150 hover:text-text
-                     focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+          className={`inline-flex items-center gap-sm self-start rounded-sm border-0 bg-transparent
+                     text-small font-medium ${AUTH_TENUE_ACCION} cursor-pointer
+                     transition-colors duration-150 hover:text-white/90
+                     focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary`}
         >
           <MdArrowBack size={16} aria-hidden="true" />
           Volver a la página principal
@@ -205,16 +244,16 @@ export default function LoginPage() {
           initial={{ opacity: 0, y: 14, scale: 0.985 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           transition={RESORTE}
-          className="rounded-lg border border-border bg-surface p-2xl shadow-md"
+          className={AUTH_TARJETA}
         >
           <header className="mb-xl flex flex-col gap-xs">
-            <span className="font-display text-h2 font-extrabold tracking-tighter text-primary">
+            <span className="font-display text-h2 font-extrabold tracking-tighter text-primary-pale-3">
               SIGOT
             </span>
-            <h1 className="font-display text-h1 font-extrabold tracking-tight text-text">
+            <h1 className={AUTH_TITULO}>
               Iniciar sesión
             </h1>
-            <p className="text-body text-text-muted">
+            <p className={AUTH_APOYO}>
               Ingresa tus credenciales para continuar
             </p>
           </header>
@@ -257,7 +296,7 @@ export default function LoginPage() {
                 <input
                   id="login-password"
                   type={showPassword ? 'text' : 'password'} name="Password"
-                  className={`${CAMPO} pr-[2.75rem]`}
+                  className={AUTH_CAMPO_ACCION}
                   placeholder="••••••••" value={form.Password}
                   onChange={handleChange} autoComplete="current-password" required
                 />
@@ -277,15 +316,60 @@ export default function LoginPage() {
             <button type="submit" className={BOTON_PRIMARIO} disabled={loading || loginInvalido}>
               {loading ? <><Spinner />Iniciando sesión...</> : 'Ingresar'}
             </button>
+
+            {/* ── Acceso con Google ──
+                El boton entra con el mismo muelle que la tarjeta, un poco
+                despues, para que se lea como parte de ella y no como un anadido.
+
+                OJO: HOY NO INICIA SESION. No existe OAuth de Google ni en este
+                repositorio ni en la API (no hay cliente, ni ruta, ni
+                verificacion de token). Por eso el clic no simula un acceso: dice
+                lo que pasa. Un boton con la marca de Google que parece funcionar
+                y no hace nada es peor que no tenerlo.
+                Para habilitarlo hacen falta tres cosas: un Client ID de Google,
+                una ruta en la API que verifique el id_token contra Google y
+                resuelva/cree el usuario, y el envio de ese token desde aqui. */}
+            <div className="flex flex-col gap-sm">
+              <div className="flex items-center gap-md" aria-hidden="true">
+                <span className="h-px flex-1 bg-white/12" />
+                <span className={`text-caption ${AUTH_TENUE}`}>o</span>
+                <span className="h-px flex-1 bg-white/12" />
+              </div>
+
+              <Motion.button
+                type="button"
+                onClick={() => setAvisoGoogle(true)}
+                className={BOTON_GOOGLE}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ ...RESORTE, delay: 0.08 }}
+              >
+                <LogoGoogle />
+                Sign in with Google
+              </Motion.button>
+
+              {avisoGoogle && (
+                <Motion.p
+                  role="status"
+                  initial={{ opacity: 0, y: -4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={RESORTE}
+                  className={`text-caption ${AUTH_APOYO}`}
+                >
+                  El acceso con Google todavía no está habilitado. Ingresa con tu
+                  correo y contraseña.
+                </Motion.p>
+              )}
+            </div>
           </form>
 
           <button
             type="button"
             onClick={openRecovery}
             className="mt-lg w-full rounded-sm border-0 bg-transparent text-small font-semibold
-                       text-primary-soft-on cursor-pointer transition-colors duration-150
-                       hover:text-primary-strong-hover
-                       focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+                       text-primary-pale-3 cursor-pointer transition-colors duration-150
+                       hover:text-white/90
+                       focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
           >
             ¿Olvidaste tu contraseña?
           </button>
@@ -294,21 +378,21 @@ export default function LoginPage() {
         {/* El modelo pasó de "el taller crea todas las cuentas" a autoregistro para
             CLIENTES. Los empleados siguen recibiendo sus credenciales del admin
             (POST /api/empleados), así que el pie menciona los dos casos. */}
-        <p className="text-balance text-center text-small leading-normal text-text-muted">
+        <p className={`text-balance text-center text-small leading-normal ${AUTH_TENUE_ACCION}`}>
           ¿Eres cliente y no tienes cuenta?{' '}
           <Link
             to="/registro"
-            className="font-semibold text-primary-soft-on underline decoration-primary-pale-2
-                       decoration-2 underline-offset-2 hover:text-primary-strong-hover"
+            className="font-semibold text-primary-pale-3 underline decoration-primary/60
+                       decoration-2 underline-offset-2 hover:text-white/90"
           >
             Regístrate aquí
           </Link>
           <br />
           Si eres del equipo del taller, solicita tus credenciales al{' '}
-          <strong className="font-semibold text-text">administrador</strong>.
+          <strong className="font-semibold text-white/90">administrador</strong>.
         </p>
 
-        <p className="flex items-center justify-center gap-xs text-caption text-text-light">
+        <p className={`flex items-center justify-center gap-xs text-caption ${AUTH_TENUE_ACCION}`}>
           <MdLocationOn size={14} aria-hidden="true" />
           Copacabana, Antioquia · Sistema de gestión de taller
         </p>

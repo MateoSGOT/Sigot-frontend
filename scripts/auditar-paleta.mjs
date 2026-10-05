@@ -23,6 +23,22 @@ const PALETA = 'src/shared/styles/variables.css';
 // propósito (texto sobre sólidos, sombras).
 const ABSOLUTOS = new Set(['#fff', '#ffffff', '#000', '#000000']);
 
+/* MARCAS DE TERCEROS. Una entrada aqui es una decision tomada, no un descuido.
+
+   Los colores de una marca ajena NO pueden tokenizarse ni ajustarse al sistema:
+   sus directrices exigen reproducirlos exactos. Meterlos en variables.css seria
+   peor que la excepcion -- quedarian expuestos como utilidades de SIGOT
+   (bg-google-azul) y alguien acabaria usandolos para algo que no es la marca.
+
+   Si se agrega otra marca, se documenta aqui con su motivo. */
+const MARCAS_TERCEROS = new Map([
+  ['#4285f4', 'Google · azul de marca (logo "G" del boton de acceso)'],
+  ['#34a853', 'Google · verde de marca'],
+  ['#fbbc05', 'Google · amarillo de marca'],
+  ['#ea4335', 'Google · rojo de marca'],
+  ['#1f1f1f', 'Google · color de texto que fija su guia para el boton claro'],
+]);
+
 const paleta = fs.readFileSync(PALETA, 'utf8');
 
 // Todo hex que aparezca en variables.css es, por definición, del sistema.
@@ -62,6 +78,7 @@ const tripletasDelSistema = new Set([
 ]);
 
 const hallazgos = [];
+const marcas = new Set();
 
 function recorrer(dir) {
   for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
@@ -94,6 +111,7 @@ function recorrer(dir) {
         const c = m[0].toLowerCase();
         if (c.length === 9 || c.length === 5) continue;   // con canal alfa
         if (ABSOLUTOS.has(c)) continue;
+        if (MARCAS_TERCEROS.has(c)) { marcas.add(c); continue; }
         if (delSistema.has(c)) continue;
         hallazgos.push({ rel, l: i + 1, c, txt: linea.trim().slice(0, 70) });
       }
@@ -110,6 +128,7 @@ function recorrer(dir) {
       for (const m of linea.matchAll(/%23([0-9a-fA-F]{3,6})/g)) {
         const c = `#${m[1].toLowerCase()}`;
         if (ABSOLUTOS.has(c)) continue;
+        if (MARCAS_TERCEROS.has(c)) { marcas.add(c); continue; }
         if (delSistema.has(c)) continue;
         hallazgos.push({ rel, l: i + 1, c: `${c} (en data URI)`, txt: linea.trim().slice(0, 70) });
       }
@@ -122,6 +141,12 @@ recorrer(RAIZ);
 console.log(`paleta: ${delSistema.size} valores definidos en ${PALETA}`);
 
 if (hallazgos.length === 0) {
+  if (marcas.size) {
+    console.log('');
+    console.log(`· ${marcas.size} color(es) de marca ajena, admitidos a proposito:`);
+    for (const c of [...marcas].sort()) console.log(`    ${c} — ${MARCAS_TERCEROS.get(c)}`);
+    console.log('');
+  }
   console.log('✓ cero colores fuera del sistema de tokens');
   process.exit(0);
 }

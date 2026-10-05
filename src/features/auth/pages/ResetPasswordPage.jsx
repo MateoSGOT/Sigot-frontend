@@ -2,6 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate, Link } from 'react-router-dom';
 import { MdLock, MdVisibility, MdVisibilityOff, MdCheckCircle, MdArrowBack, MdWarning } from 'react-icons/md';
 import api from '../../../shared/services/api.js';
+import {
+  AUTH_PAGINA, AUTH_CAPA_CUADRICULA, AUTH_CONTENIDO, AUTH_TARJETA, AUTH_TITULO,
+  AUTH_APOYO, AUTH_TENUE, AUTH_TENUE_ACCION, AUTH_CAMPO_ACCION,
+} from '../../../shared/styles/clasesAuthOscuro.js';
 
 /* ═══════════════════════════════════════════════════════════════════════════
    NUEVA CONTRASEÑA — única vista del panel sobre SUPERFICIE OSCURA.
@@ -51,36 +55,18 @@ const getPasswordStrength = (pass) => {
   return 'fair';
 };
 
-/* ── Clases compartidas por los tres estados de la pantalla ── */
-const PAGINA = 'flex min-h-dvh items-center justify-center bg-surface-dark px-lg py-2xl '
-  + 'bg-[radial-gradient(900px_520px_at_85%_10%,rgb(43_92_255_/_0.22),transparent_62%)]';
+/* ── Superficie oscura: compartida con LoginPage ──
+   Estas constantes vivian duplicadas aqui. Son las dos pantallas de acceso: un
+   usuario las ve con minutos de diferencia y tienen que ser la misma superficie.
+   Ver shared/styles/clasesAuthOscuro.js. */
+const PAGINA = AUTH_PAGINA;
+const TARJETA = AUTH_TARJETA;
+const TITULO = AUTH_TITULO;
+const APOYO = AUTH_APOYO;
+const TENUE = AUTH_TENUE;
+const TENUE_ACCION = AUTH_TENUE_ACCION;
+const CAMPO = AUTH_CAMPO_ACCION;
 
-const TARJETA = 'w-full max-w-[26rem] rounded-lg border border-white/8 '
-  + 'bg-surface-dark-raised p-2xl shadow-lg';
-
-/* 90 % = 14.73:1. Texto principal. */
-const TITULO = 'font-display text-h1 font-bold tracking-tight text-white/90';
-/* 65 % = 8.05:1. Texto secundario, con margen de sobra. */
-const APOYO = 'text-body leading-normal text-white/65';
-/* 45 % = 4.52:1. El PISO: iconos y pistas. No bajar de aquí. */
-/* Dos niveles de texto atenuado, separados a proposito.
-
-   TENUE (45% -> 4.52:1) es el piso exacto de AA. Vale para adornos que
-   acompanan a un elemento ya etiquetado -- el candado al lado de un campo que
-   dice "Nueva contrasena" no carga informacion propia.
-
-   TENUE_ACCION (60% -> 7.08:1) es para lo que se puede pulsar: el toggle de
-   visibilidad y el enlace de vuelta. Un control en el piso justo de AA se lee
-   como texto apagado en vez de como algo accionable, y no deja margen si el
-   fondo de la tarjeta cambia un tono. Medido en el navegador, no estimado. */
-const TENUE = 'text-white/45';
-const TENUE_ACCION = 'text-white/60';
-
-const CAMPO = 'w-full rounded-md border border-white/12 bg-white/6 py-md pl-[2.75rem] pr-[2.75rem] '
-  + 'text-body text-white/90 placeholder:text-white/45 outline-none '
-  + 'transition-[border-color,background-color,box-shadow] duration-150 '
-  + 'focus-visible:border-primary-light focus-visible:bg-white/10 '
-  + 'focus-visible:shadow-[0_0_0_3px_var(--color-focus-ring)]';
 
 /* Cobalto sólido + blanco = 5.15:1 (AA). Era ámbar. */
 const BOTON = 'inline-flex w-full items-center justify-center gap-sm rounded-md border-0 '
@@ -166,7 +152,9 @@ export default function ResetPasswordPage() {
   if (!token) {
     return (
       <div className={PAGINA}>
-        <main className={`${TARJETA} text-center`}>
+        {/* Misma trama que el login: las dos pantallas de acceso son la misma superficie. */}
+        <div aria-hidden="true" className={AUTH_CAPA_CUADRICULA} />
+        <main className={`${AUTH_CONTENIDO} ${TARJETA} text-center`}>
           <Marca />
           <span className="mb-lg inline-flex text-accent"><MdWarning size={48} aria-hidden="true" /></span>
           <h1 className={TITULO}>Enlace inválido</h1>
@@ -186,7 +174,9 @@ export default function ResetPasswordPage() {
   if (success) {
     return (
       <div className={PAGINA}>
-        <main className={`${TARJETA} text-center`}>
+        {/* Misma trama que el login: las dos pantallas de acceso son la misma superficie. */}
+        <div aria-hidden="true" className={AUTH_CAPA_CUADRICULA} />
+        <main className={`${AUTH_CONTENIDO} ${TARJETA} text-center`}>
           <Marca />
           <span className="mb-lg inline-flex text-success-on-dark">
             <MdCheckCircle size={48} aria-hidden="true" />
@@ -205,7 +195,9 @@ export default function ResetPasswordPage() {
   /* ── Formulario ── */
   return (
     <div className={PAGINA}>
-      <main className={TARJETA}>
+        {/* Misma trama que el login: las dos pantallas de acceso son la misma superficie. */}
+        <div aria-hidden="true" className={AUTH_CAPA_CUADRICULA} />
+      <main className={`${AUTH_CONTENIDO} ${TARJETA}`}>
         <Marca />
 
         <header className="mb-xl text-center">
