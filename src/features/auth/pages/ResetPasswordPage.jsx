@@ -3,7 +3,7 @@ import { useSearchParams, useNavigate, Link } from 'react-router-dom';
 import { MdLock, MdVisibility, MdVisibilityOff, MdCheckCircle, MdArrowBack, MdWarning } from 'react-icons/md';
 import api from '../../../shared/services/api.js';
 import {
-  AUTH_PAGINA, AUTH_TARJETA, AUTH_TITULO,
+  AUTH_PAGINA, AUTH_CAPA_CUADRICULA, AUTH_CONTENIDO, AUTH_TARJETA, AUTH_TITULO,
   AUTH_APOYO, AUTH_TENUE, AUTH_TENUE_ACCION, AUTH_CAMPO_ACCION,
 } from '../../../shared/styles/clasesAuth.js';
 
@@ -152,7 +152,8 @@ export default function ResetPasswordPage() {
   if (!token) {
     return (
       <div className={PAGINA}>
-        <main className={`${TARJETA} text-center`}>
+        <div aria-hidden="true" className={AUTH_CAPA_CUADRICULA} />
+        <main className={`${AUTH_CONTENIDO} ${TARJETA} text-center`}>
           <Marca />
           <span className="mb-lg inline-flex text-warning-soft-on"><MdWarning size={48} aria-hidden="true" /></span>
           <h1 className={TITULO}>Enlace inválido</h1>
@@ -172,7 +173,8 @@ export default function ResetPasswordPage() {
   if (success) {
     return (
       <div className={PAGINA}>
-        <main className={`${TARJETA} text-center`}>
+        <div aria-hidden="true" className={AUTH_CAPA_CUADRICULA} />
+        <main className={`${AUTH_CONTENIDO} ${TARJETA} text-center`}>
           <Marca />
           <span className="mb-lg inline-flex text-success-soft-on">
             <MdCheckCircle size={48} aria-hidden="true" />
@@ -191,7 +193,8 @@ export default function ResetPasswordPage() {
   /* ── Formulario ── */
   return (
     <div className={PAGINA}>
-      <main className={`${TARJETA}`}>
+        <div aria-hidden="true" className={AUTH_CAPA_CUADRICULA} />
+      <main className={`${AUTH_CONTENIDO} ${TARJETA}`}>
         <Marca />
 
         <header className="mb-xl text-center">

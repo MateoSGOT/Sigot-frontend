@@ -15,7 +15,7 @@ import {
 import { correo as validarCorreo } from '../../../shared/utils/validators.js';
 import { RESORTE } from '../../../shared/styles/movimiento.js';
 import {
-  AUTH_PAGINA, AUTH_TARJETA, AUTH_TITULO, AUTH_APOYO,
+  AUTH_PAGINA, AUTH_CAPA_CUADRICULA, AUTH_CONTENIDO, AUTH_TARJETA, AUTH_TITULO, AUTH_APOYO,
   AUTH_TENUE, AUTH_TENUE_ACCION, AUTH_CAMPO, AUTH_CAMPO_ACCION, AUTH_ETIQUETA,
 } from '../../../shared/styles/clasesAuth.js';
 
@@ -227,8 +227,11 @@ export default function LoginPage() {
 
   return (
     <div className={`${AUTH_PAGINA} font-body text-text`}>
+      {/* Cuadricula de 1px cada 40px, enmascarada para desvanecerse hacia los
+          bordes. Capa fija propia: ver AUTH_CAPA_CUADRICULA. */}
+      <div aria-hidden="true" className={AUTH_CAPA_CUADRICULA} />
 
-      <div className="mx-auto flex min-h-dvh w-full max-w-[26rem] flex-col justify-center gap-xl py-3xl">
+      <div className={`${AUTH_CONTENIDO} mx-auto flex min-h-dvh w-full max-w-[26rem] flex-col justify-center gap-xl py-3xl`}>
         <button
           type="button"
           onClick={() => navigate('/')}

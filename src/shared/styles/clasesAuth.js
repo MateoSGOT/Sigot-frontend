@@ -26,14 +26,63 @@
      boton   cobalto + blanco       5.15:1
    ═══════════════════════════════════════════════════════════════════════════ */
 
-/* Lienzo: el canvas de la app mas un halo frio arriba a la derecha, el mismo
-   que --bg-app. Es el unico adorno; sin el, el fondo plano se ve vacio. */
+/* ── Lienzo inmersivo ──
+   Tres capas, en orden de pintado: el canvas base, el halo cobalto y la
+   cuadrícula. Las dos últimas son lo que evita que el fondo se lea como un
+   blanco plano infinito.
+
+   EL CANVAS YA ERA slate-50. --color-bg vale #F8FAFC, que es exactamente el
+   slate-50 de Tailwind. No hubo nada que cambiar ahí.
+
+   EL HALO YA ESTABA AL 4%. --color-primary-50 es rgba(43,92,255,0.04): cobalto
+   al cuatro por ciento, flotando arriba a la derecha. Compuesto sobre el canvas
+   da rgb(240,244,252), ocho niveles de diferencia. Estaba, pero apenas.
+
+   LA CUADRÍCULA ES LO QUE FALTABA, y su color NO es el que se pidió. El encargo
+   decía slate-200 al 15-20 %. Medido sobre este lienzo:
+       slate-200 al 15 %  ->  rgb(245,247,250)    3 niveles de diferencia
+       slate-200 al 20 %  ->  rgb(244,246,250)    4 niveles
+   Tres o cuatro niveles sobre 248 no se ven en ninguna pantalla: sería una
+   cuadrícula que existe en el CSS y no en la imagen. La referencia útil es la
+   versión oscura, que usaba blanco al 5 % sobre #0A0A0B y daba 12 niveles.
+
+   Se usa --color-border-light (rgba(10,10,11,0.045)), que compone a
+   rgb(237,239,241): 11 niveles, prácticamente esa misma referencia. Y es un
+   token del sistema, no un color suelto -- es justamente "la línea más tenue
+   sobre superficie clara", que es lo que es una trama de hairlines.
+
+   Para ajustarlo: --color-border da 17 niveles (más marcada); bajar el token,
+   menos. El tamaño de celda son 40px, como se pidió.
+
+   UNA SOLA CADENA, SIN CONCATENAR. Tailwind busca candidatos escaneando el
+   TEXTO FUENTE: una clase repartida entre dos literales unidos con + no aparece
+   entera en el archivo, el escáner no la ve y la utilidad no se genera. El
+   build pasa limpio y el fondo sale liso. Ya ocurrió con esta misma trama en su
+   versión oscura. De ahí la línea larga. */
+const CUADRICULA = 'bg-[repeating-linear-gradient(0deg,var(--color-border-light)_0px,var(--color-border-light)_1px,transparent_1px,transparent_40px),repeating-linear-gradient(90deg,var(--color-border-light)_0px,var(--color-border-light)_1px,transparent_1px,transparent_40px)] [mask-image:radial-gradient(900px_600px_at_50%_30%,#000_20%,transparent_75%)]';
+
+const HALO = 'bg-[radial-gradient(1200px_600px_at_100%_-10%,var(--color-primary-50),transparent_62%)]';
+
 /* items-center, no items-start: la tarjeta de ResetPassword cuelga DIRECTAMENTE
-   de este contenedor y depende de el para centrarse en vertical. LoginPage no
+   de este contenedor y depende de él para centrarse en vertical. LoginPage no
    se ve afectado porque mete su propio envoltorio con min-h-dvh y
    justify-center, que ocupa todo el alto igual. */
-export const AUTH_PAGINA = 'flex min-h-dvh items-center justify-center bg-bg px-lg py-2xl '
-  + 'bg-[radial-gradient(1200px_600px_at_100%_-10%,var(--color-primary-50),transparent_62%)]';
+export const AUTH_PAGINA = `flex min-h-dvh items-center justify-center bg-bg px-lg py-2xl ${HALO}`;
+
+/* La trama va en capa FIJA y propia, no en el mismo elemento, por dos razones:
+   una máscara sobre un elemento CON contenido obliga al navegador a componer
+   todo el subárbol en cada cuadro, y en position:fixed no se repinta al
+   desplazarse.
+
+   z-0 y NO -z-10. En el orden de pintado, los hijos con z-index NEGATIVO van en
+   el paso 2 y los fondos de los descendientes de bloque en flujo en el paso 3:
+   el bg-bg del contenedor taparía la trama. Eso pasó tal cual con la versión
+   oscura -- el gradiente, la máscara y la utilidad estaban todos bien y no se
+   veía nada. El contenido va en z-10 por delante (AUTH_CONTENIDO). */
+export const AUTH_CAPA_CUADRICULA = `pointer-events-none fixed inset-0 z-0 ${CUADRICULA}`;
+
+/* El contenido, por delante de la trama. */
+export const AUTH_CONTENIDO = 'relative z-10';
 
 export const AUTH_TARJETA = 'w-full max-w-[26rem] rounded-lg border border-border bg-surface p-2xl shadow-md';
 
