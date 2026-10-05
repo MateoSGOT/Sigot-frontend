@@ -21,12 +21,19 @@ import { sortByStatus, sortNewestFirst, filterItems } from '../../../shared/util
 import { useAutoRefresh } from '../../../shared/hooks/useAutoRefresh.js';
 import * as V from '../../../shared/utils/validators.js';
 import api from '../../../shared/services/api.js';
+import { MAQUETA_CLIENTES } from '../../../shared/dev/datosMaqueta.js';
+
+/* Puerta de maqueta evaluada EN ESTE ARCHIVO, no importada: ver
+   scripts/auditar-maqueta.mjs. */
+const MAQUETA_ACTIVA = import.meta.env.DEV && import.meta.env.VITE_DEV_SKIP_AUTH === 'true';
 
 const EMPTY_FORM = { Nombre: '', Id_TipoDoc: '', Documento: '', Telefono: '', Direccion: '', Correo: '', Foto: '', Password: '', ConfirmPassword: '' };
 
 export default function ClientesPage() {
   const dispatch = useDispatch();
-  const { items, loading, actionLoading } = useSelector((s) => s.clientes);
+  const { items: itemsStore, loading, actionLoading } = useSelector((s) => s.clientes);
+  /* Respaldo de SOLO LECTURA, fuera del store: Redux no se toca. */
+  const items = (MAQUETA_ACTIVA && itemsStore.length === 0) ? MAQUETA_CLIENTES : itemsStore;
   const puedeCrear   = usePermiso('CLIENTES.REGISTRAR');
   const puedeEditar  = usePermiso('CLIENTES.EDITAR');
   const puedeToggle  = usePermiso('CLIENTES.CAMBIAR_ESTADO');
@@ -234,7 +241,7 @@ export default function ClientesPage() {
             <div className="detail-item"><span className="detail-label">Documento</span><span className="detail-value">{detailItem.Documento}</span></div>
             <div className="detail-item"><span className="detail-label">Estado</span><span className="detail-value"><StatusBadge estado={detailItem.Estado} /></span></div>
             <div className="detail-item"><span className="detail-label">Teléfono</span><span className="detail-value">{detailItem.Telefono || '—'}</span></div>
-            <div className="detail-item" style={{ gridColumn: 'span 2' }}><span className="detail-label">Dirección</span><span className="detail-value">{detailItem.Direccion || '—'}</span></div>
+            <div className="detail-item col-span-2"><span className="detail-label">Dirección</span><span className="detail-value">{detailItem.Direccion || '—'}</span></div>
             <div className="detail-item"><span className="detail-label">Correo</span><span className="detail-value">{detailItem.Correo || '—'}</span></div>
           </div>
         )}

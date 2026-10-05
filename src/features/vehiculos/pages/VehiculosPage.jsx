@@ -16,6 +16,13 @@ import { StatusBadge } from '../../../shared/components/Badge/Badge.jsx';
 import * as V from '../../../shared/utils/validators.js';
 import { useFormValidation } from '../../../shared/hooks/useFormValidation.js';
 import api from '../../../shared/services/api.js';
+import { MAQUETA_VEHICULOS } from '../../../shared/dev/datosMaqueta.js';
+
+/* Puerta de maqueta evaluada EN ESTE ARCHIVO, no importada: solo asi Vite
+   sustituye las dos lecturas de import.meta.env por literales, pliega la
+   expresion a `false` y elimina la rama con sus datos. Ver
+   scripts/auditar-maqueta.mjs. */
+const MAQUETA_ACTIVA = import.meta.env.DEV && import.meta.env.VITE_DEV_SKIP_AUTH === 'true';
 
 const RULES = {
   Placa:      V.placa,
@@ -70,7 +77,12 @@ export default function VehiculosPage() {
       // Estado viene como booleano crudo de Postgres -- ToggleSwitch compara === 1.
       setRows((r.data?.data || []).map(x => ({ ...x, Estado: x.Estado === true ? 1 : x.Estado === false ? 0 : x.Estado })));
       setTotal(r.data?.total ?? 0);
-    } catch { setRows([]); setTotal(0); }
+    } catch {
+      // Sin sesion la tabla queda vacia y no hay forma de revisar su colapso a
+      // tarjetas por debajo de 480px, que es como el operario la ve en el patio.
+      if (MAQUETA_ACTIVA) { setRows(MAQUETA_VEHICULOS); setTotal(MAQUETA_VEHICULOS.length); }
+      else { setRows([]); setTotal(0); }
+    }
     finally { setListLoading(false); }
   }, [page, pageSize, search, statusFilter]);
 

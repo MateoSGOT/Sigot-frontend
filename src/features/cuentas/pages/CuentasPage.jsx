@@ -12,6 +12,13 @@ import Modal from '../../../shared/components/Modal/Modal.jsx';
 import Badge from '../../../shared/components/Badge/Badge.jsx';
 import { useToast } from '../../../shared/components/Toast/ToastContext.jsx';
 import { filterItems, getErrorMessage, formatDate, todayLocalYMD } from '../../../shared/utils/helpers.js';
+import { MAQUETA_CUENTAS } from '../../../shared/dev/datosMaqueta.js';
+
+/* Puerta de maqueta evaluada EN ESTE ARCHIVO, no importada: solo asi Vite
+   sustituye las dos lecturas de import.meta.env por literales, pliega la
+   expresion a `false` y elimina la rama con sus datos. Ver
+   scripts/auditar-maqueta.mjs. */
+const MAQUETA_ACTIVA = import.meta.env.DEV && import.meta.env.VITE_DEV_SKIP_AUTH === 'true';
 
 const TEXTO_LIMPIEZA = 'ELIMINAR CUENTAS INACTIVAS';
 
@@ -57,7 +64,11 @@ export default function CuentasPage() {
         setCuentas(cuentasRes?.data || []);
         setRoles((rolesRes?.data || []).filter(r => r.Estado !== 0));
       })
-      .catch(() => { setCuentas([]); setRoles([]); })
+      .catch(() => {
+        if (MAQUETA_ACTIVA) setCuentas(MAQUETA_CUENTAS);
+        else setCuentas([]);
+        setRoles([]);
+      })
       .finally(() => setLoading(false));
   };
 
@@ -152,7 +163,10 @@ export default function CuentasPage() {
         <div className="flex items-center gap-sm">
           <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-accent-soft text-small font-bold uppercase text-accent-soft-on">{v?.charAt(0)}</div>
           <span className="font-semibold">{v}</span>
-          {esUnoMismo(row) && <Badge variant="gray" style={{ marginLeft: '0.5rem', fontSize: '0.7rem' }}>Tú</Badge>}
+          {/* El margen y el tamano iban como prop `style` en el Badge, y Badge no la
+              acepta ni la propaga: se descartaban en silencio desde siempre. Van en
+              un envoltorio, que es lo que si surte efecto. */}
+          {esUnoMismo(row) && <span className="ml-sm text-[0.7rem]"><Badge variant="gray">Tú</Badge></span>}
         </div>
       )
     },
@@ -242,7 +256,7 @@ export default function CuentasPage() {
           <button className="btn btn--outline" onClick={() => setShowLimpieza(false)}>Cerrar</button>
         )}
       >
-        <p className="del-modal__lead" style={{ marginBottom: '1rem' }}>
+        <p className="del-modal__lead mb-lg">
           Elimina de forma permanente las cuentas <strong>inactivas</strong> (clientes y empleados) creadas antes de la fecha
           que elijas. Nunca incluye Super Administradores ni la cuenta protegida del sistema, y omite cualquiera que
           tenga historial real (órdenes, novedades) aunque esté antes de esa fecha.
@@ -265,7 +279,7 @@ export default function CuentasPage() {
             <p className="p-xl text-center text-body text-text-muted">No hay cuentas inactivas creadas antes de esa fecha.</p>
           ) : (
             <>
-              <div className="flex flex-col gap-[6px] u-mb-md" style={{ maxHeight: 220, overflowY: 'auto' }}>
+              <div className="flex max-h-[220px] flex-col gap-[6px] overflow-y-auto u-mb-md">
                 {elegibles.map(c => (
                   <div key={`${c.TipoOrigen}-${c.IdOrigen}`} className="flex items-center justify-between gap-sm rounded-sm border border-border bg-surface px-md py-sm">
                     <span className="text-small [&_small]:text-text-muted">{c.Nombre} <small>· {c.Correo}</small></span>

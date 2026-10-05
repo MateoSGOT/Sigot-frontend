@@ -189,3 +189,29 @@ export const MAQUETA_CITAS = /* #__PURE__ */ (() => {
     { ...base, Id_Agenda: 8107, FechaAgendamiento: dia(23), Hora: '15:30', cliente: 'Verónica Agudelo', vehiculo: 'RST-311', EstadoCita: 'Pendiente',     DuracionEstimadaMin: 45 },
   ];
 })();
+
+/* Flota de vehiculos. Incluye a proposito una placa de moto de 6 caracteres, un
+   kilometraje de seis digitos, un color con nombre largo y un vehiculo inactivo
+   -- los cuatro casos que descuadran la tabla o su version en tarjetas. */
+export const MAQUETA_VEHICULOS = [
+  { Id_Vehiculo: 3201, Placa: 'MTX-412', Anio: 2019, Kilometraje: 184320, Color: 'Gris grafito',   Cliente: 'Daniela Restrepo', Estado: 1 },
+  { Id_Vehiculo: 3202, Placa: 'KPR12E',  Anio: 2022, Kilometraje: 23870,  Color: 'Rojo',           Cliente: 'Andrés Betancur',  Estado: 1 },
+  { Id_Vehiculo: 3203, Placa: 'FTR-889', Anio: 2016, Kilometraje: 241905, Color: 'Blanco perlado', Cliente: 'Marcela Ossa',     Estado: 1 },
+  { Id_Vehiculo: 3204, Placa: 'BQW-203', Anio: 2024, Kilometraje: 4120,   Color: 'Azul',           Cliente: 'Hernán Lopera',    Estado: 0 },
+];
+
+/* Clientes. Con un correo largo (caso que desborda la celda), un telefono vacio
+   y una direccion que ocupa las dos columnas del detalle. */
+export const MAQUETA_CLIENTES = [
+  { Id_Cliente: 4101, Nombre: 'Daniela Restrepo', Documento: '1037654321', Correo: 'daniela.restrepo.osorio@correoempresarial.com.co', Telefono: '3105558899', Direccion: 'Cra 50 #38-21, Barrio Machado, Copacabana', Estado: 1 },
+  { Id_Cliente: 4102, Nombre: 'Andrés Betancur',  Documento: '71998455',   Correo: 'abetancur@gmail.com',  Telefono: '',           Direccion: 'Calle 52 #47-10', Estado: 1 },
+  { Id_Cliente: 4103, Nombre: 'Marcela Ossa',     Documento: '43887120',   Correo: 'marcela.ossa@outlook.com', Telefono: '3012244557', Direccion: 'Vereda El Convento, km 3', Estado: 0 },
+];
+
+/* Cuentas: mezcla de empleado y cliente, con y sin rol asignado. La primera
+   simula ser la del propio usuario, que es la que lleva la insignia "Tú". */
+export const MAQUETA_CUENTAS = [
+  { TipoOrigen: 'empleado', IdOrigen: 12, Nombre: 'Jair Calle',       Correo: 'jair.calle@sigot.com',  Documento: '98765432',   Id_Rol: 1,    Rol: 'Administrador' },
+  { TipoOrigen: 'empleado', IdOrigen: 18, Nombre: 'Sebastián Muñoz',  Correo: 'smunoz@sigot.com',      Documento: '1017334455', Id_Rol: 2,    Rol: 'Mecánico' },
+  { TipoOrigen: 'cliente',  IdOrigen: 4101, Nombre: 'Daniela Restrepo', Correo: 'daniela.restrepo.osorio@correoempresarial.com.co', Documento: '1037654321', Id_Rol: null, Rol: null },
+];
