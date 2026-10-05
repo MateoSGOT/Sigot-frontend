@@ -25,3 +25,9 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+# Enlace local del CLI de Vercel: es por maquina, no va al repo.
+.vercel
+# Secretos. La negacion es necesaria: .env* tambien taparia .env.example,
+# que es documentacion y SI tiene que viajar en el repo.
+.env*
+!.env.example
