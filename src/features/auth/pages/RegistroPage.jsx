@@ -17,6 +17,13 @@ import {
   PasoAnimado,
 } from '../../../shared/components/FlujoProgresivo/FlujoProgresivo.jsx';
 import { useFlujoProgresivo } from '../../../shared/components/FlujoProgresivo/useFlujoProgresivo.js';
+import {
+  FLUJO_PAGINA, FLUJO_TARJETA, FLUJO_TARJETA_ANCHA, FLUJO_CABECERA, FLUJO_VOLVER,
+  FLUJO_MARCA, FLUJO_MARCA_LOGO, FLUJO_MARCA_NOMBRE, FLUJO_TITULO, FLUJO_SUB,
+  FLUJO_ERROR, FLUJO_AVISO, FLUJO_PIE, FLUJO_FILA_2, FLUJO_REENVIO,
+  FLUJO_REENVIO_ESPERA, FLUJO_REENVIO_BTN, CAMPO_OJO,
+  CAMPO, CAMPO_CAJA, CAMPO_ICONO, CAMPO_INPUT, CAMPO_INPUT_SELECT,
+} from '../../../shared/styles/clasesFlujo.js';
 
 /* Autoregistro de clientes en 3 pasos. La transición de slide, la barra de progreso y los
    campos salen de FlujoProgresivo (compartidos con el agendamiento público, AgendarCitaPage)
@@ -31,7 +38,7 @@ export default function RegistroPage() {
   const navigate = useNavigate();
   const { loading: loadingSesion } = useSelector((s) => s.auth);
 
-  const { paso, direccion, irAPaso, vibrar, error, setError, claseCuerpo } = useFlujoProgresivo(1);
+  const { paso, direccion, irAPaso, vibrar, error, setError, claseCuerpo, shake } = useFlujoProgresivo(1);
   const [cargando, setCargando] = useState(false);
 
   // Paso 1
@@ -152,13 +159,13 @@ export default function RegistroPage() {
   const ocupado = cargando || loadingSesion;
 
   return (
-    <div className="flujo-page">
-      <div className="flujo-card">
-        <header className="flujo-card__header">
-          <Link to="/login" className="flujo-volver"><MdArrowBack size={18} /> Volver</Link>
-          <div className="flujo-marca">
-            <span className="flujo-marca__logo">S</span>
-            <span className="flujo-marca__nombre">SIGOT</span>
+    <div className={FLUJO_PAGINA}>
+      <div className={FLUJO_TARJETA}>
+        <header className={FLUJO_CABECERA}>
+          <Link to="/login" className={FLUJO_VOLVER}><MdArrowBack size={18} /> Volver</Link>
+          <div className={FLUJO_MARCA}>
+            <span className={FLUJO_MARCA_LOGO}>S</span>
+            <span className={FLUJO_MARCA_NOMBRE}>SIGOT</span>
           </div>
         </header>
 
@@ -167,12 +174,12 @@ export default function RegistroPage() {
         {/* El deslizamiento entre pasos lo resuelve PasoAnimado con un spring de
             Motion y AnimatePresence mode="wait". Antes eran keyframes CSS
             coreografiados con setTimeout en el hook. */}
-        <PasoAnimado paso={paso} direccion={direccion} className={claseCuerpo}>
+        <PasoAnimado paso={paso} direccion={direccion} vibra={shake} className={claseCuerpo}>
           {/* ════════ PASO 1 — Cuenta ════════ */}
           {paso === 1 && (
             <form onSubmit={enviarPaso1} noValidate>
-              <h1 className="flujo-titulo">Crea tu cuenta</h1>
-              <p className="flujo-sub">
+              <h1 className={FLUJO_TITULO}>Crea tu cuenta</h1>
+              <p className={FLUJO_SUB}>
                 Crea tu cuenta para comenzar a gestionar tus órdenes de trabajo de forma segura
               </p>
 
@@ -191,7 +198,7 @@ export default function RegistroPage() {
                 valido={!!cuenta.Password && !passwordDebil}
               >
                 <button
-                  type="button" className="campo__ojo" onClick={() => setVerPassword((v) => !v)}
+                  type="button" className={CAMPO_OJO} onClick={() => setVerPassword((v) => !v)}
                   aria-label={verPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
                 >
                   {verPassword ? <MdVisibilityOff size={18} /> : <MdVisibility size={18} />}
@@ -206,17 +213,17 @@ export default function RegistroPage() {
                 valido={!!cuenta.ConfirmarPassword && !validarConfirmacion(cuenta.ConfirmarPassword, cuenta.Password)}
               />
 
-              {error && <p className="flujo-error" role="alert">{error}</p>}
+              {error && <p className={FLUJO_ERROR} role="alert">{error}</p>}
               <BotonFlujo cargando={ocupado}>Continuar</BotonFlujo>
-              <p className="flujo-pie">¿Ya tienes cuenta? <Link to="/login">Inicia sesión</Link></p>
+              <p className={FLUJO_PIE}>¿Ya tienes cuenta? <Link to="/login">Inicia sesión</Link></p>
             </form>
           )}
 
           {/* ════════ PASO 2 — Verificación ════════ */}
           {paso === 2 && (
             <form onSubmit={enviarPaso2} noValidate>
-              <h1 className="flujo-titulo">Verifica tu correo</h1>
-              <p className="flujo-sub">
+              <h1 className={FLUJO_TITULO}>Verifica tu correo</h1>
+              <p className={FLUJO_SUB}>
                 Enviamos un código de 6 dígitos a <strong>{cuenta.Correo}</strong>
               </p>
 
@@ -225,14 +232,14 @@ export default function RegistroPage() {
                 error={!!error} deshabilitado={ocupado}
               />
 
-              {error && <p className="flujo-error" role="alert">{error}</p>}
+              {error && <p className={FLUJO_ERROR} role="alert">{error}</p>}
               <BotonFlujo cargando={ocupado} disabled={codigo.length !== OTP_LARGO}>Verificar</BotonFlujo>
 
-              <div className="flujo-reenvio">
+              <div className={FLUJO_REENVIO}>
                 {reenvio > 0 ? (
-                  <span className="flujo-reenvio__espera">Puedes reenviar el código en {reenvio}s</span>
+                  <span className={FLUJO_REENVIO_ESPERA}>Puedes reenviar el código en {reenvio}s</span>
                 ) : (
-                  <button type="button" className="flujo-reenvio__btn" onClick={reenviarCodigo} disabled={ocupado}>
+                  <button type="button" className={FLUJO_REENVIO_BTN} onClick={reenviarCodigo} disabled={ocupado}>
                     Reenviar código
                   </button>
                 )}
@@ -243,8 +250,8 @@ export default function RegistroPage() {
           {/* ════════ PASO 3 — Datos legales ════════ */}
           {paso === 3 && (
             <form onSubmit={enviarPaso3} noValidate>
-              <h1 className="flujo-titulo">Tus datos</h1>
-              <p className="flujo-sub">Último paso para terminar de crear tu cuenta.</p>
+              <h1 className={FLUJO_TITULO}>Tus datos</h1>
+              <p className={FLUJO_SUB}>Último paso para terminar de crear tu cuenta.</p>
 
               <CampoFlotante
                 id="reg-nombre" name="Nombre" label="Nombre completo"
@@ -274,13 +281,13 @@ export default function RegistroPage() {
                 valido={datos.Contacto.trim().length >= 7}
               />
 
-              <p className="flujo-aviso">
+              <p className={FLUJO_AVISO}>
                 <MdShield size={15} aria-hidden="true" />
                 Tu documento de identidad es requerido exclusivamente para la asignación legal
                 de tus órdenes de trabajo
               </p>
 
-              {error && <p className="flujo-error" role="alert">{error}</p>}
+              {error && <p className={FLUJO_ERROR} role="alert">{error}</p>}
               <BotonFlujo cargando={ocupado}>Finalizar registro</BotonFlujo>
             </form>
           )}

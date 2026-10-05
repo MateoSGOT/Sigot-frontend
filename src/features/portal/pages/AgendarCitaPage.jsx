@@ -22,6 +22,13 @@ import {
   PasoAnimado,
 } from '../../../shared/components/FlujoProgresivo/FlujoProgresivo.jsx';
 import { useFlujoProgresivo } from '../../../shared/components/FlujoProgresivo/useFlujoProgresivo.js';
+import {
+  FLUJO_PAGINA, FLUJO_TARJETA, FLUJO_TARJETA_ANCHA, FLUJO_CABECERA, FLUJO_VOLVER,
+  FLUJO_MARCA, FLUJO_MARCA_LOGO, FLUJO_MARCA_NOMBRE, FLUJO_TITULO, FLUJO_SUB,
+  FLUJO_ERROR, FLUJO_AVISO, FLUJO_PIE, FLUJO_FILA_2, FLUJO_REENVIO,
+  FLUJO_REENVIO_ESPERA, FLUJO_REENVIO_BTN, CAMPO_OJO,
+  CAMPO, CAMPO_CAJA, CAMPO_ICONO, CAMPO_INPUT, CAMPO_INPUT_SELECT,
+} from '../../../shared/styles/clasesFlujo.js';
 
 /* ═══════════════════════════════════════════════════════════════════════════
    Agendamiento público con autoregistro en caliente.
@@ -134,7 +141,7 @@ export default function AgendarCitaPage() {
   const [enviando, setEnviando] = useState(false);   // envío final (los POST secuenciales)
   const [etapaEnvio, setEtapaEnvio] = useState(0);
 
-  const { paso, direccion, irAPaso, vibrar, error, setError, claseCuerpo } = useFlujoProgresivo(1);
+  const { paso, direccion, irAPaso, vibrar, error, setError, claseCuerpo, shake } = useFlujoProgresivo(1);
 
   /* ── Pasos del flujo, segun el estado de quien entra ── */
   const tieneVehiculos = Array.isArray(vehiculos) && vehiculos.length > 0;
@@ -392,8 +399,8 @@ export default function AgendarCitaPage() {
   /* ── Render ── */
   if (cargandoInicial) {
     return (
-      <div className="flujo-page">
-        <div className="flujo-card">
+      <div className={FLUJO_PAGINA}>
+        <div className={FLUJO_TARJETA}>
           <CargaUnificada titulo="Cargando tus datos..." etapas={[]} etapaActual={0} />
         </div>
       </div>
@@ -403,13 +410,13 @@ export default function AgendarCitaPage() {
   const hoy = todayLocalYMD();
 
   return (
-    <div className="flujo-page">
-      <div className="flujo-card flujo-card--ancha">
-        <header className="flujo-card__header">
-          <Link to="/" className="flujo-volver"><MdArrowBack size={18} /> Volver</Link>
-          <div className="flujo-marca">
-            <span className="flujo-marca__logo">S</span>
-            <span className="flujo-marca__nombre">SIGOT</span>
+    <div className={FLUJO_PAGINA}>
+      <div className={`${FLUJO_TARJETA} ${FLUJO_TARJETA_ANCHA}`}>
+        <header className={FLUJO_CABECERA}>
+          <Link to="/" className={FLUJO_VOLVER}><MdArrowBack size={18} /> Volver</Link>
+          <div className={FLUJO_MARCA}>
+            <span className={FLUJO_MARCA_LOGO}>S</span>
+            <span className={FLUJO_MARCA_NOMBRE}>SIGOT</span>
           </div>
         </header>
 
@@ -418,7 +425,7 @@ export default function AgendarCitaPage() {
         {/* El deslizamiento entre pasos lo resuelve PasoAnimado con un spring de
             Motion y AnimatePresence mode="wait". Antes eran keyframes CSS
             coreografiados con setTimeout en el hook. */}
-        <PasoAnimado paso={paso} direccion={direccion} className={claseCuerpo}>
+        <PasoAnimado paso={paso} direccion={direccion} vibra={shake} className={claseCuerpo}>
           {/* ════════ Envío final: una sola carga para las 3 peticiones ════════ */}
           {enviando ? (
             <CargaUnificada
@@ -431,8 +438,8 @@ export default function AgendarCitaPage() {
               {/* ════════ CUENTA ════════ */}
               {pasoActual === 'Cuenta' && (
                 <form onSubmit={enviarCuenta} noValidate>
-                  <h1 className="flujo-titulo">Agenda tu cita</h1>
-                  <p className="flujo-sub">
+                  <h1 className={FLUJO_TITULO}>Agenda tu cita</h1>
+                  <p className={FLUJO_SUB}>
                     Crea tu cuenta y agenda en un solo paso. Para atender tu vehículo necesitamos
                     registrarlo, así que te lo pedimos enseguida.
                   </p>
@@ -451,7 +458,7 @@ export default function AgendarCitaPage() {
                     valido={!!cuenta.Password && !passwordDebil}
                   >
                     <button
-                      type="button" className="campo__ojo" onClick={() => setVerPassword((v) => !v)}
+                      type="button" className={CAMPO_OJO} onClick={() => setVerPassword((v) => !v)}
                       aria-label={verPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
                     >
                       {verPassword ? <MdVisibilityOff size={18} /> : <MdVisibility size={18} />}
@@ -476,7 +483,7 @@ export default function AgendarCitaPage() {
                     icon={MdPhone} inputMode="tel" autoComplete="tel" maxLength={50}
                     valido={cuenta.Contacto.trim().length >= 7}
                   />
-                  <div className="flujo-fila-2">
+                  <div className={FLUJO_FILA_2}>
                     <CampoSelect
                       id="ag-tipodoc" name="Id_TipoDoc" icon={MdBadge}
                       value={cuenta.Id_TipoDoc} onChange={cambiar(setCuenta)}
@@ -491,15 +498,15 @@ export default function AgendarCitaPage() {
                     />
                   </div>
 
-                  <p className="flujo-aviso">
+                  <p className={FLUJO_AVISO}>
                     <MdShield size={15} aria-hidden="true" />
                     Tu documento de identidad es requerido exclusivamente para la asignación legal
                     de tus órdenes de trabajo
                   </p>
 
-                  {error && <p className="flujo-error" role="alert">{error}</p>}
+                  {error && <p className={FLUJO_ERROR} role="alert">{error}</p>}
                   <BotonFlujo cargando={cargando}>Continuar</BotonFlujo>
-                  <p className="flujo-pie">
+                  <p className={FLUJO_PIE}>
                     ¿Ya tienes cuenta? <Link to="/login">Inicia sesión</Link>
                   </p>
                 </form>
@@ -508,8 +515,8 @@ export default function AgendarCitaPage() {
               {/* ════════ CÓDIGO ════════ */}
               {pasoActual === 'Código' && (
                 <form onSubmit={enviarCodigo} noValidate>
-                  <h1 className="flujo-titulo">Verifica tu correo</h1>
-                  <p className="flujo-sub">
+                  <h1 className={FLUJO_TITULO}>Verifica tu correo</h1>
+                  <p className={FLUJO_SUB}>
                     Enviamos un código de 6 dígitos a <strong>{cuenta.Correo}</strong>
                   </p>
 
@@ -519,16 +526,16 @@ export default function AgendarCitaPage() {
                     error={!!error} deshabilitado={cargando}
                   />
 
-                  {error && <p className="flujo-error" role="alert">{error}</p>}
+                  {error && <p className={FLUJO_ERROR} role="alert">{error}</p>}
                   <BotonFlujo cargando={cargando} disabled={codigo.length !== OTP_LARGO}>
                     Verificar
                   </BotonFlujo>
 
-                  <div className="flujo-reenvio">
+                  <div className={FLUJO_REENVIO}>
                     {reenvio > 0 ? (
-                      <span className="flujo-reenvio__espera">Puedes reenviar el código en {reenvio}s</span>
+                      <span className={FLUJO_REENVIO_ESPERA}>Puedes reenviar el código en {reenvio}s</span>
                     ) : (
-                      <button type="button" className="flujo-reenvio__btn" onClick={reenviarCodigo} disabled={cargando}>
+                      <button type="button" className={FLUJO_REENVIO_BTN} onClick={reenviarCodigo} disabled={cargando}>
                         Reenviar código
                       </button>
                     )}
@@ -539,8 +546,8 @@ export default function AgendarCitaPage() {
               {/* ════════ VEHÍCULO ════════ */}
               {pasoActual === 'Vehículo' && (
                 <form onSubmit={continuarVehiculo} noValidate>
-                  <h1 className="flujo-titulo">Tu vehículo</h1>
-                  <p className="flujo-sub">
+                  <h1 className={FLUJO_TITULO}>Tu vehículo</h1>
+                  <p className={FLUJO_SUB}>
                     Para agendar necesitamos el vehículo registrado. Con la placa y el año alcanza.
                   </p>
 
@@ -553,7 +560,7 @@ export default function AgendarCitaPage() {
                     error={errPlaca}
                     valido={!!vehiculo.Placa && !validarPlaca(vehiculo.Placa)}
                   />
-                  <div className="flujo-fila-2">
+                  <div className={FLUJO_FILA_2}>
                     <CampoFlotante
                       id="ag-anio" name="Anio" label="Año"
                       value={vehiculo.Anio} onChange={cambiar(setVehiculo)}
@@ -567,7 +574,7 @@ export default function AgendarCitaPage() {
                     />
                   </div>
 
-                  {error && <p className="flujo-error" role="alert">{error}</p>}
+                  {error && <p className={FLUJO_ERROR} role="alert">{error}</p>}
                   <BotonFlujo cargando={false}>Continuar</BotonFlujo>
                   {tieneVehiculos && (
                     <BotonFlujo
@@ -583,8 +590,8 @@ export default function AgendarCitaPage() {
               {/* ════════ CITA ════════ */}
               {pasoActual === 'Cita' && (
                 <form onSubmit={confirmar} noValidate>
-                  <h1 className="flujo-titulo">Detalles de la cita</h1>
-                  <p className="flujo-sub">
+                  <h1 className={FLUJO_TITULO}>Detalles de la cita</h1>
+                  <p className={FLUJO_SUB}>
                     {cliente?.Nombre ? `${cliente.Nombre}, elige ` : 'Elige '}
                     cuándo traer el vehículo y qué necesitas.
                   </p>
@@ -611,13 +618,13 @@ export default function AgendarCitaPage() {
                     </>
                   )}
 
-                  <div className="flujo-fila-2">
-                    <div className="campo">
-                      <div className="campo__caja">
-                        <MdCalendarToday className="campo__icono" size={19} aria-hidden="true" />
+                  <div className={FLUJO_FILA_2}>
+                    <div className={CAMPO}>
+                      <div className={CAMPO_CAJA}>
+                        <MdCalendarToday className={CAMPO_ICONO} size={19} aria-hidden="true" />
                         <input
                           id="ag-fecha" name="Fecha" type="date"
-                          className="campo__input campo__input--select"
+                          className={`${CAMPO_INPUT} ${CAMPO_INPUT_SELECT}`}
                           value={cita.Fecha} min={hoy}
                           onChange={cambiarFecha}
                           aria-label="Fecha de la cita"
@@ -659,14 +666,14 @@ export default function AgendarCitaPage() {
                     icon={MdEventNote} maxLength={300}
                   />
 
-                  <p className="flujo-aviso">
+                  <p className={FLUJO_AVISO}>
                     <MdSchedule size={15} aria-hidden="true" />
                     {cita.Fecha && franjas.length === 0
                       ? `Para hoy ya no quedan horas disponibles (atendemos hasta las ${HORA_CIERRE}:00). Elige otra fecha.`
                       : `Atendemos de ${String(HORA_APERTURA).padStart(2, '0')}:00 a ${HORA_CIERRE}:00. Si la hora que eliges ya está ocupada te lo avisamos al confirmar.`}
                   </p>
 
-                  {error && <p className="flujo-error" role="alert">{error}</p>}
+                  {error && <p className={FLUJO_ERROR} role="alert">{error}</p>}
                   <BotonFlujo cargando={false} disabled={!citaLista}>Confirmar cita</BotonFlujo>
                 </form>
               )}

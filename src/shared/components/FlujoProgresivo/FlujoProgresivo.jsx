@@ -4,7 +4,17 @@ import React, { useRef } from 'react';
 // regla no reconoce el JSX con miembro (<Motion.div>) como un uso.
 import { motion as Motion, AnimatePresence } from 'motion/react';
 import { MdCheck } from 'react-icons/md';
-import './flujo-progresivo.css';
+import {
+  FLUJO_PROGRESO, FLUJO_RIEL, FLUJO_RELLENO, FLUJO_PASOS, FLUJO_PASO,
+  FLUJO_BOLITA, FLUJO_BOLITA_INERTE, FLUJO_BOLITA_ACTIVA, FLUJO_BOLITA_HECHA,
+  FLUJO_PASO_NOMBRE, FLUJO_PASO_NOMBRE_INERTE, FLUJO_PASO_NOMBRE_ACTIVO, FLUJO_PASO_NOMBRE_HECHO,
+  CAMPO, CAMPO_CAJA, CAMPO_ICONO, CAMPO_INPUT, CAMPO_INPUT_SELECT, CAMPO_LABEL,
+  CAMPO_CHECK, CAMPO_ERROR_INPUT, CAMPO_ERROR_ICONO, CAMPO_MSG_ERROR,
+  OTP, OTP_CAJA, OTP_CAJA_LLENO, OTP_CAJA_ERROR,
+  FLUJO_BOTON, FLUJO_BOTON_SECUNDARIO, FLUJO_BOTON_CARGANDO, FLUJO_SPINNER,
+  FLUJO_CARGA, FLUJO_CARGA_SPINNER, FLUJO_CARGA_TITULO, FLUJO_CARGA_ETAPAS,
+  FLUJO_CARGA_ETAPA, FLUJO_CARGA_ETAPA_ACTIVA, FLUJO_CARGA_ETAPA_HECHA,
+} from '../../styles/clasesFlujo.js';
 
 /* Piezas compartidas por los flujos multi-paso (autoregistro y agendamiento público).
    Viven juntas para que la transición, la barra de progreso y los campos se vean y se
@@ -59,7 +69,14 @@ const VARIANTES_PASO = {
   sale:   (dir) => ({ x: dir >= 0 ? -32 : 32, opacity: 0 }),
 };
 
-export function PasoAnimado({ paso, direccion = 1, className, children }) {
+/* La VIBRACION de error tambien pasa a Motion. Era un @keyframes flujo-shake de
+   400ms; como arreglo de fotogramas de x se expresa igual y deja de haber una
+   animacion CSS que mantener aparte. Lleva su propia transicion y no el muelle:
+   un spring interpola hacia UN destino, no reproduce una secuencia. */
+const VIBRACION = [0, -7, 7, -7, 7, 0];
+const TRANSICION_VIBRA = { duration: 0.4, ease: [0.16, 1, 0.3, 1] };
+
+export function PasoAnimado({ paso, direccion = 1, vibra = false, className, children }) {
   return (
     <AnimatePresence mode="wait" custom={direccion} initial={false}>
       <Motion.div
@@ -68,9 +85,9 @@ export function PasoAnimado({ paso, direccion = 1, className, children }) {
         custom={direccion}
         variants={VARIANTES_PASO}
         initial="entra"
-        animate="centro"
+        animate={vibra ? { x: VIBRACION, opacity: 1 } : 'centro'}
         exit="sale"
-        transition={RESORTE_PASO}
+        transition={vibra ? TRANSICION_VIBRA : RESORTE_PASO}
       >
         {children}
       </Motion.div>
@@ -82,19 +99,19 @@ export function PasoAnimado({ paso, direccion = 1, className, children }) {
 export function BarraProgreso({ pasos, paso }) {
   const total = pasos.length;
   return (
-    <div className="flujo-progreso" role="group" aria-label={`Paso ${paso} de ${total}`}>
+    <div className={FLUJO_PROGRESO} role="group" aria-label={`Paso ${paso} de ${total}`}>
       <div
-        className="flujo-progreso__riel"
+        className={FLUJO_RIEL}
         /* El riel va de centro a centro de las bolitas extremas; con N pasos repartidos
            en N columnas iguales, cada centro queda a 1/(2N) de cada borde. */
         style={{ marginLeft: `${50 / total}%`, marginRight: `${50 / total}%` }}
       >
         <div
-          className="flujo-progreso__relleno"
+          className={FLUJO_RELLENO}
           style={{ width: total > 1 ? `${((paso - 1) / (total - 1)) * 100}%` : '100%' }}
         />
       </div>
-      <ol className="flujo-progreso__pasos">
+      <ol className={FLUJO_PASOS}>
         {pasos.map((nombre, i) => {
           const numero = i + 1;
           const completo = numero < paso;
@@ -102,13 +119,18 @@ export function BarraProgreso({ pasos, paso }) {
           return (
             <li
               key={nombre}
-              className={`flujo-paso${completo ? ' flujo-paso--completo' : ''}${activo ? ' flujo-paso--activo' : ''}`}
+              className={FLUJO_PASO}
               aria-current={activo ? 'step' : undefined}
             >
-              <span className="flujo-paso__bolita" aria-hidden="true">
+              <span
+                className={`${FLUJO_BOLITA} ${activo ? FLUJO_BOLITA_ACTIVA : completo ? FLUJO_BOLITA_HECHA : FLUJO_BOLITA_INERTE}`}
+                aria-hidden="true"
+              >
                 {completo ? <MdCheck size={15} /> : numero}
               </span>
-              <span className="flujo-paso__nombre">{nombre}</span>
+              <span className={`${FLUJO_PASO_NOMBRE} ${activo ? FLUJO_PASO_NOMBRE_ACTIVO : completo ? FLUJO_PASO_NOMBRE_HECHO : FLUJO_PASO_NOMBRE_INERTE}`}>
+                {nombre}
+              </span>
             </li>
           );
         })}
@@ -123,14 +145,13 @@ export function CampoFlotante({
   autoComplete, inputMode, maxLength, children, onBlur,
 }) {
   return (
-    <div className={`campo${error ? ' campo--error' : ''}`}>
-      <div className="campo__caja">
-        {Icon && <Icon className="campo__icono" size={19} aria-hidden="true" />}
+    <div className={CAMPO}>
+      <div className={CAMPO_CAJA}>
         <input
           id={id}
           name={name}
           type={type}
-          className="campo__input"
+          className={`${CAMPO_INPUT}${error ? ` ${CAMPO_ERROR_INPUT}` : ''}`}
           value={value}
           onChange={onChange}
           onBlur={onBlur}
@@ -143,11 +164,22 @@ export function CampoFlotante({
           aria-invalid={!!error}
           aria-describedby={error ? `${id}-error` : undefined}
         />
-        <label htmlFor={id} className="campo__label">{label}</label>
-        {valido && !error && <MdCheck className="campo__check" size={18} aria-hidden="true" />}
+        {/* El icono y el label van DESPUES del input en el DOM, no antes: la
+            variante `peer` de Tailwind solo alcanza a hermanos POSTERIORES. El
+            CSS anterior usaba `~` y podia ponerlos en cualquier orden; aqui el
+            orden es parte del mecanismo. Visualmente no cambia nada: los tres
+            estan posicionados en absoluto sobre la misma caja. */}
+        {Icon && <Icon className={`${CAMPO_ICONO}${error ? ` ${CAMPO_ERROR_ICONO}` : ''}`} size={19} aria-hidden="true" />}
+        <label htmlFor={id} className={CAMPO_LABEL}>{label}</label>
+        {/* El check se corre a la izquierda si hay un ojo al lado. Antes esto lo
+            resolvia `.campo__check:has(~ .campo__ojo)`; aqui se sabe en JS, que
+            es mas directo que un selector condicional. */}
+        {valido && !error && (
+          <MdCheck className={`${CAMPO_CHECK} ${children ? 'right-[42px]' : 'right-md'}`} size={18} aria-hidden="true" />
+        )}
         {children}
       </div>
-      {error && <span id={`${id}-error`} className="campo__msg-error" role="alert">{error}</span>}
+      {error && <span id={`${id}-error`} className={CAMPO_MSG_ERROR} role="alert">{error}</span>}
     </div>
   );
 }
@@ -156,12 +188,11 @@ export function CampoFlotante({
        tiene :placeholder-shown, así que la primera opción hace de placeholder) ─── */
 export function CampoSelect({ id, name, value, onChange, icon: Icon, placeholder, error, options, children }) {
   return (
-    <div className={`campo${error ? ' campo--error' : ''}`}>
-      <div className="campo__caja">
-        {Icon && <Icon className="campo__icono" size={19} aria-hidden="true" />}
+    <div className={CAMPO}>
+      <div className={CAMPO_CAJA}>
         <select
           id={id} name={name}
-          className="campo__input campo__input--select"
+          className={`${CAMPO_INPUT} ${CAMPO_INPUT_SELECT}${error ? ` ${CAMPO_ERROR_INPUT}` : ''}`}
           value={value} onChange={onChange}
           aria-invalid={!!error}
         >
@@ -169,9 +200,10 @@ export function CampoSelect({ id, name, value, onChange, icon: Icon, placeholder
           {options?.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
           {children}
         </select>
-        {!!value && !error && <MdCheck className="campo__check" size={18} aria-hidden="true" />}
+        {Icon && <Icon className={`${CAMPO_ICONO}${error ? ` ${CAMPO_ERROR_ICONO}` : ''}`} size={19} aria-hidden="true" />}
+        {!!value && !error && <MdCheck className={`${CAMPO_CHECK} right-md`} size={18} aria-hidden="true" />}
       </div>
-      {error && <span className="campo__msg-error" role="alert">{error}</span>}
+      {error && <span className={CAMPO_MSG_ERROR} role="alert">{error}</span>}
     </div>
   );
 }
@@ -213,12 +245,12 @@ export function CodigoOtp({ valor, onChange, error, deshabilitado }) {
   };
 
   return (
-    <div className={`otp${error ? ' otp--error' : ''}`} role="group" aria-label="Código de verificación">
+    <div className={OTP} role="group" aria-label="Código de verificación">
       {Array.from({ length: OTP_LARGO }).map((_, i) => (
         <input
           key={i}
           ref={(el) => { refs.current[i] = el; }}
-          className={`otp__caja${valor[i] ? ' otp__caja--lleno' : ''}`}
+          className={`${OTP_CAJA}${valor[i] ? ` ${OTP_CAJA_LLENO}` : ''}${error ? ` ${OTP_CAJA_ERROR}` : ''}`}
           type="text"
           inputMode="numeric"
           autoComplete={i === 0 ? 'one-time-code' : 'off'}
@@ -243,11 +275,11 @@ export function BotonFlujo({ cargando, children, secundario, disabled, type, ...
   return (
     <button
       type={type || 'submit'}
-      className={`flujo-btn${secundario ? ' flujo-btn--secundario' : ''}${cargando ? ' flujo-btn--cargando' : ''}`}
+      className={`${FLUJO_BOTON}${secundario ? ` ${FLUJO_BOTON_SECUNDARIO}` : ''}${cargando ? ` ${FLUJO_BOTON_CARGANDO}` : ''}`}
       disabled={cargando || disabled}
       {...resto}
     >
-      {cargando ? <span className="flujo-spinner" aria-hidden="true" /> : children}
+      {cargando ? <span className={FLUJO_SPINNER} aria-hidden="true" /> : children}
     </button>
   );
 }
@@ -256,19 +288,19 @@ export function BotonFlujo({ cargando, children, secundario, disabled, type, ...
        secuenciales, mostrando en qué etapa va. ─── */
 export function CargaUnificada({ titulo, etapas, etapaActual }) {
   return (
-    <div className="flujo-carga" role="status" aria-live="polite">
-      <span className="flujo-carga__spinner" aria-hidden="true" />
-      <p className="flujo-carga__titulo">{titulo}</p>
-      <ol className="flujo-carga__etapas">
+    <div className={FLUJO_CARGA} role="status" aria-live="polite">
+      <span className={FLUJO_CARGA_SPINNER} aria-hidden="true" />
+      <p className={FLUJO_CARGA_TITULO}>{titulo}</p>
+      <ol className={FLUJO_CARGA_ETAPAS}>
         {etapas.map((texto, i) => {
           const hecha = i < etapaActual;
           const activa = i === etapaActual;
           return (
             <li
               key={texto}
-              className={`flujo-carga__etapa${activa ? ' flujo-carga__etapa--activa' : ''}${hecha ? ' flujo-carga__etapa--hecha' : ''}`}
+              className={`${FLUJO_CARGA_ETAPA}${activa ? ` ${FLUJO_CARGA_ETAPA_ACTIVA}` : ''}${hecha ? ` ${FLUJO_CARGA_ETAPA_HECHA}` : ''}`}
             >
-              {hecha ? <MdCheck size={16} aria-hidden="true" /> : <span style={{ width: 16 }} aria-hidden="true" />}
+              {hecha ? <MdCheck size={16} aria-hidden="true" /> : <span className="w-4" aria-hidden="true" />}
               {texto}
             </li>
           );

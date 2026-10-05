@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
+import { FLUJO_CUERPO } from '../../styles/clasesFlujo.js';
 
 /**
  * Maneja el paso actual de un flujo multi-paso y la vibración lateral de error.
@@ -65,8 +66,11 @@ export function useFlujoProgresivo(pasoInicial = 1) {
     programar(() => setShake(false), 420);
   }, [programar]);
 
-  // Solo el shake: la entrada y la salida las anima Motion.
-  const claseCuerpo = `flujo-card__cuerpo${shake ? ' flujo-card__cuerpo--shake' : ''}`;
+  /* El relleno del cuerpo, nada mas. La vibracion ya NO viaja como clase: la
+     anima Motion dentro de <PasoAnimado vibra={shake}>, asi que `shake` sale
+     tal cual y quien dibuja decide como expresarlo. El estado y su temporizador
+     no cambian. */
+  const claseCuerpo = FLUJO_CUERPO;
 
-  return { paso, setPaso, direccion, irAPaso, vibrar, error, setError, claseCuerpo, programar };
+  return { paso, setPaso, direccion, irAPaso, vibrar, error, setError, claseCuerpo, shake, programar };
 }
