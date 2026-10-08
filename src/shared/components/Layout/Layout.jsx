@@ -7,7 +7,7 @@ import { SidebarProvider, useSidebar } from '../../contexts/SidebarContext.jsx';
 import './Layout.css';
 
 function LayoutInner() {
-  const { closeMobile, collapsed } = useSidebar();
+  const { closeMobile } = useSidebar();
   const location = useLocation();
 
   // Cerrar el drawer al cambiar de ruta (el bloqueo de scroll del body y el cierre con
@@ -16,7 +16,7 @@ function LayoutInner() {
   useEffect(() => { closeMobile(); }, [location.pathname, closeMobile]);
 
   return (
-    <div className={`layout${collapsed ? ' layout--collapsed' : ''}`}>
+    <div className="layout">
       <MobileSidebarChrome />
       <Sidebar />
       <main className="layout__main">

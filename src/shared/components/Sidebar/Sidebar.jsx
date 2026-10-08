@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
-import { MdLogout, MdChevronRight, MdMenuOpen } from 'react-icons/md';
+import { MdLogout, MdChevronRight } from 'react-icons/md';
 import { logout } from '../../../features/auth/slices/authSlice';
 import StockAlertBell from '../StockAlertBell/StockAlertBell.jsx';
 import NovedadAlertBell from '../NovedadAlertBell/NovedadAlertBell.jsx';
@@ -10,52 +10,40 @@ import { useSidebar } from '../../contexts/SidebarContext.jsx';
 // -- están afuera para que exista un solo criterio de visibilidad por rol.
 import { navConCuentas, buildVisibleNav } from './navStructure.js';
 import { motion as Motion } from 'motion/react';
-import TooltipLateral from './TooltipLateral.jsx';
 import { useMediaQuery, mq } from '../../styles/breakpoints.js';
 import { RESORTE } from '../../styles/movimiento.js';
 import './Sidebar.css';
 
-/* ── Estado colapsado, en utilidades ───────────────────────────────────────
-   El aspecto del sidebar sigue viniendo de Sidebar.css, que ya produce el panel
-   flotante translucido sobre slate-50 descrito en el encargo. Lo que NO existia
-   era el colapso: los tres tokens de ancho valian 232px, asi que el boton
-   cambiaba la clase y el panel no se movia. Eso se arregla en variables.css
-   (--sidebar-collapsed-width: 64px) y aqui va lo que el modo estrecho necesita
-   en la marcacion.
+/* ── Riel que se expande al pasar el cursor ────────────────────────────────
+   Antes esto era un boton de colapsar, y estaba roto de tres maneras: el
+   wordmark y las campanas no se ocultaban (sus reglas en Sidebar.css declaran
+   display y le ganan a una utilidad `hidden`), el avatar de 32px no cabia en
+   los 28 disponibles, y el propio boton quedaba empujado fuera del panel de
+   64px, donde overflow:hidden lo recortaba. Sin boton alcanzable no habia forma
+   de volver a expandir.
 
-   Estas utilidades ganan sin pelear con Sidebar.css porque esa hoja no declara
-   las mismas propiedades: .sidebar__item-label no fija `display`, y el centrado
-   se aplica sobre contenedores que solo traian gap y padding. Comprobado
-   leyendo las reglas, no supuesto. */
-const OCULTO_AL_COLAPSAR = 'hidden';
-/* SOLO justify-center, y no es por economia. Probe con `gap-0 px-0` tambien y
-   las dos son INERTES: Sidebar.css declara gap y padding en .sidebar__item, y
-   esa hoja no esta estratificada, asi que le gana a la capa utilities.
-   Comprobado en el navegador -- con las tres puestas, el computado seguia en
-   gap 12px y padding 8px 12px.
+   Ahora el panel vive en 64px y crece al entrar el cursor. Lo visual lo resuelve
+   la clase .sidebar--riel DENTRO de Sidebar.css, no utilidades desde aqui: esas
+   propiedades ya estan declaradas alli y esa hoja no esta estratificada.
 
-   No hace falta forzarlas: con la etiqueta en display:none el icono queda como
-   unico hijo flex, asi que el gap no separa nada, y el padding es simetrico, de
-   modo que justify-center centra igual. Medido: desviacion de 0px entre el
-   centro del item y el del icono.
+   EL ANCHO SI LO ANIMA MOTION, por lo mismo que antes: Sidebar.css lleva
+   `transition: none` porque transicionar width entre valores var() se queda
+   pegado en algunos motores. Motion interpola numeros.
 
-   Dejarlas puestas habria sido peor que quitarlas: auditar-utilidades.mjs las
-   da por buenas porque EXISTEN en el bundle -- lo que no puede comprobar es si
-   ganan. */
-const ITEM_COLAPSADO = 'justify-center';
-const CABECERA_COLAPSADA = 'justify-center px-0';
-const PERFIL_COLAPSADO = 'justify-center gap-0';
+   Se expande tambien con :focus-within, no solo con el cursor: tabulando por el
+   menu hay que poder leer donde se esta. */
 
 export default function Sidebar() {
   const dispatch  = useDispatch();
   const location  = useLocation();
   const { empleado, cliente, permisos } = useSelector((state) => state.auth);
-  const { mobileOpen, collapsed, toggleCollapsed, setCollapsed } = useSidebar();
-  /* El colapso es SOLO de escritorio: por debajo de 1024 el sidebar es un drawer
-     que entra con transform y conserva su ancho. Sin esta condicion, el ancho en
-     linea que pone Motion se aplicaria tambien en movil y encogeria el cajon. */
+  const { mobileOpen } = useSidebar();
+  /* Solo escritorio: por debajo de 1024 el sidebar es un cajon que entra con
+     transform y conserva su ancho. Sin esta condicion, el ancho en linea que
+     pone Motion se aplicaria tambien en movil y encogeria el cajon. */
   const esEscritorio = useMediaQuery(mq.desktop);
-  const estrecho = collapsed && esEscritorio;
+  const [encima, setEncima] = useState(false);
+  const riel = esEscritorio && !encima;
   const [profileOpen, setProfileOpen] = useState(false);
   const profileRef = React.useRef(null);
   const esSuperAdmin = !!(empleado?.EsSuperAdmin || cliente?.EsSuperAdmin);
@@ -96,9 +84,8 @@ export default function Sidebar() {
   // Acordeón: solo un grupo abierto a la vez (en cualquier sentido -- abrir uno
   // cierra el que estuviera abierto, sea el de arriba o el de abajo).
   const toggleGroup = (name) => {
-    // Colapsado: al tocar un grupo, expandimos el sidebar y abrimos ese grupo
-    // (si no, no habría dónde mostrar los hijos).
-    if (collapsed) { setCollapsed(false); setOpenGroups({ [name]: true }); return; }
+    /* Ya no hay que expandir a mano: si el cursor esta sobre el grupo, el panel
+       ya esta expandido y los hijos tienen donde mostrarse. */
     setOpenGroups(p => (p[name] ? {} : { [name]: true }));
   };
 
@@ -117,29 +104,32 @@ export default function Sidebar() {
        ahi mismo). Motion interpola NUMEROS en JS y escribe el valor resuelto, asi
        que ese problema no se da. Solo en escritorio: en movil el ancho no cambia. */
     <Motion.aside
-      className={`sidebar${mobileOpen ? ' sidebar--open' : ''}${collapsed ? ' sidebar--collapsed' : ''}`}
-      animate={esEscritorio ? { width: estrecho ? 64 : 232 } : {}}
+      className={`sidebar${mobileOpen ? ' sidebar--open' : ''}${riel ? ' sidebar--riel' : ''}`}
+      animate={esEscritorio ? { width: riel ? 64 : 232 } : {}}
       transition={RESORTE}
+      onMouseEnter={() => setEncima(true)}
+      onMouseLeave={() => setEncima(false)}
+      /* focus-within via JS: al tabular dentro del menu el panel se abre igual
+         que con el raton, y al salir el foco se vuelve a cerrar. */
+      onFocusCapture={() => setEncima(true)}
+      onBlurCapture={(e) => {
+        if (!e.currentTarget.contains(e.relatedTarget)) setEncima(false);
+      }}
     >
       {/* Logo */}
-      <div className={`sidebar__header${estrecho ? ` ${CABECERA_COLAPSADA}` : ''}`}>
-        <div className={`sidebar__logo${estrecho ? ` ${OCULTO_AL_COLAPSAR}` : ''}`}>
+      <div className="sidebar__header">
+        <div className="sidebar__logo">
           <span className="sidebar__logo-text">SIGOT</span>
         </div>
+        {/* Marca compacta: solo se ve en el riel, donde "SIGOT" con su tracking
+            de 0.2em no cabe ni de lejos en 62px. La muestra y la oculta
+            Sidebar.css (.sidebar--riel .sidebar__marca-mini). */}
+        <span className="sidebar__marca-mini" aria-hidden="true">S</span>
         <div className="sidebar__header-actions">
-          <div className={`sidebar__header-bells${estrecho ? ` ${OCULTO_AL_COLAPSAR}` : ''}`}>
+          <div className="sidebar__header-bells">
             <StockAlertBell />
             {esAdminOSuperAdmin && <NovedadAlertBell />}
           </div>
-          {/* Botón de colapso — solo escritorio (en móvil el sidebar es drawer) */}
-          <button
-            className="sidebar__collapse-btn"
-            onClick={toggleCollapsed}
-            title={collapsed ? 'Expandir menú' : 'Colapsar menú'}
-            aria-label={collapsed ? 'Expandir menú' : 'Colapsar menú'}
-          >
-            <MdMenuOpen size={20} />
-          </button>
         </div>
       </div>
 
@@ -148,27 +138,21 @@ export default function Sidebar() {
         {visibleNav.map((item) => {
           if (item.type === 'section') {
             return (
-              <div
-                key={item.label}
-                className={`sidebar__section-label${estrecho ? ` ${OCULTO_AL_COLAPSAR}` : ''}`}
-              >{item.label}</div>
+              <div key={item.label} className="sidebar__section-label">{item.label}</div>
             );
           }
 
           if (item.type === 'link') {
             return (
-              <TooltipLateral key={item.to} texto={item.label} activo={estrecho}>
-                <NavLink
-                  to={item.to}
-                  /* El title nativo se quita cuando hay tooltip propio: si no,
-                     el navegador pinta ADEMAS su globo gris encima del nuestro. */
-                  title={estrecho ? undefined : item.label}
-                  className={({ isActive }) => `sidebar__item${isActive ? ' sidebar__item--active' : ''}${estrecho ? ` ${ITEM_COLAPSADO}` : ''}`}
-                >
-                  <item.icon size={20} className="sidebar__item-icon" />
-                  <span className={`sidebar__item-label${estrecho ? ` ${OCULTO_AL_COLAPSAR}` : ''}`}>{item.label}</span>
-                </NavLink>
-              </TooltipLateral>
+              <NavLink
+                key={item.to}
+                to={item.to}
+                title={item.label}
+                className={({ isActive }) => `sidebar__item${isActive ? ' sidebar__item--active' : ''}`}
+              >
+                <item.icon size={20} className="sidebar__item-icon" />
+                <span className="sidebar__item-label">{item.label}</span>
+              </NavLink>
             );
           }
 
@@ -178,23 +162,19 @@ export default function Sidebar() {
 
             return (
               <div key={item.name} className="sidebar__group">
-                <TooltipLateral texto={item.name} activo={estrecho}>
-                  <button
-                    className={`sidebar__group-header${isGroupActive ? ' sidebar__group-header--active' : ''}${estrecho ? ` ${ITEM_COLAPSADO}` : ''}`}
-                    onClick={() => toggleGroup(item.name)}
-                    title={estrecho ? undefined : item.name}
-                  >
-                    <item.icon size={20} className="sidebar__item-icon" />
-                    <span className={`sidebar__item-label${estrecho ? ` ${OCULTO_AL_COLAPSAR}` : ''}`}>{item.name}</span>
-                    {/* El chevron sobra sin texto al lado: al pulsar en estrecho
-                        el sidebar se expande (ver toggleGroup), no se despliega. */}
-                    <MdChevronRight
-                      size={16}
-                      className={`sidebar__group-chevron${isOpen ? ' sidebar__group-chevron--open' : ''}${estrecho ? ` ${OCULTO_AL_COLAPSAR}` : ''}`}
-                    />
-                  </button>
-                </TooltipLateral>
-                <div className={`sidebar__group-children${isOpen ? ' sidebar__group-children--open' : ''}${estrecho ? ` ${OCULTO_AL_COLAPSAR}` : ''}`}>
+                <button
+                  className={`sidebar__group-header${isGroupActive ? ' sidebar__group-header--active' : ''}`}
+                  onClick={() => toggleGroup(item.name)}
+                  title={item.name}
+                >
+                  <item.icon size={20} className="sidebar__item-icon" />
+                  <span className="sidebar__item-label">{item.name}</span>
+                  <MdChevronRight
+                    size={16}
+                    className={`sidebar__group-chevron${isOpen ? ' sidebar__group-chevron--open' : ''}`}
+                  />
+                </button>
+                <div className={`sidebar__group-children${isOpen ? ' sidebar__group-children--open' : ''}`}>
                   {item.children.map(child => (
                     <NavLink
                       key={child.to}
@@ -225,11 +205,11 @@ export default function Sidebar() {
               </button>
             </div>
           )}
-          <TooltipLateral texto={empleado?.Nombre || 'Perfil'} activo={estrecho}>
-            <div
-              className={`sidebar__user cursor-pointer${estrecho ? ` ${PERFIL_COLAPSADO}` : ''}`}
-              onClick={() => setProfileOpen(o => !o)}
-            >
+          <div
+            className="sidebar__user cursor-pointer"
+            onClick={() => setProfileOpen(o => !o)}
+            title={empleado?.Nombre}
+          >
               {empleado && (
                 <>
                   <div className="sidebar__user-avatar">
@@ -238,7 +218,7 @@ export default function Sidebar() {
                       : empleado.Nombre?.charAt(0).toUpperCase()
                     }
                   </div>
-                  <div className={`sidebar__user-info${estrecho ? ` ${OCULTO_AL_COLAPSAR}` : ''}`}>
+                  <div className="sidebar__user-info">
                     <span className="sidebar__user-name">{empleado.Nombre}</span>
                     {/* Debajo del nombre va el CORREO, no el rol. El rol ya se ve
                         en Cuentas y en el propio perfil; el correo es lo que
@@ -251,8 +231,7 @@ export default function Sidebar() {
                   </div>
                 </>
               )}
-            </div>
-          </TooltipLateral>
+          </div>
         </div>
       </div>
     </Motion.aside>

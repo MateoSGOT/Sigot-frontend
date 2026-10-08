@@ -45,12 +45,11 @@
   transition: none;
 }
 
-/* Sidebar colapsado (solo escritorio): el contenido usa el ancho reducido */
-@media (min-width: 1024px) {
-  .layout--collapsed .layout__main {
-    margin-left: calc(var(--sidebar-collapsed-width) + 2 * var(--sidebar-inset));
-  }
-}
+/* Sin regla de colapso: --layout-inset-left ya se calcula sobre el ancho del
+   RIEL, que es el estado permanente del sidebar. Al expandirse con el cursor el
+   panel se superpone (position:fixed) en vez de empujar el contenido, asi que
+   este margen no cambia nunca. Antes habia aqui un .layout--collapsed que
+   apuntaba a --sidebar-collapsed-width, token que ya no existe. */
 
 /* Hamburguesa + overlay: solo en tablet/móvil (<1024) */
 .layout__hamburger { display: none; }

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -9,6 +9,9 @@ import { logout } from '../../auth/slices/authSlice.js';
 import PortalNotifBell from './PortalNotifBell.jsx';
 import { useSidebar } from '../../../shared/contexts/SidebarContext.jsx';
 import '../../../shared/components/Sidebar/Sidebar.css';
+import { motion as Motion } from 'motion/react';
+import { useMediaQuery, mq } from '../../../shared/styles/breakpoints.js';
+import { RESORTE } from '../../../shared/styles/movimiento.js';
 
 const NAV_ITEMS = [
   { key: 'cuenta',    Icon: MdHome,          label: 'Mi Cuenta'     },
@@ -62,7 +65,13 @@ export default function PortalSidebar({ activeTab, onTabChange }) {
   // localStorage que sí tiene el panel principal. El hamburger + overlay del drawer
   // móvil los renderiza el propio PortalPage vía <MobileSidebarChrome />, igual que
   // Layout.jsx hace para el panel principal.
-  const { mobileOpen, closeMobile, collapsed, toggleCollapsed } = useSidebar();
+  const { mobileOpen, closeMobile } = useSidebar();
+  /* Mismo riel con expansion por cursor que el panel principal: los dos
+     comparten .sidebar y .sidebar--riel de Sidebar.css, asi que basta con
+     aplicar la clase y animar el ancho igual. */
+  const esEscritorio = useMediaQuery(mq.desktop);
+  const [encima, setEncima] = useState(false);
+  const riel = esEscritorio && !encima;
 
   const handleLogout = () => { dispatch(logout()); window.location.replace('/login'); };
 
@@ -77,7 +86,15 @@ export default function PortalSidebar({ activeTab, onTabChange }) {
       // Sidebar.css el mismo transform/sombra/z-index (1200, por encima del overlay 1100),
       // en vez de una copia propia que antes tenía su propio z-index (100), mucho más bajo
       // y desalineado de la escala real de capas fijas de la app (ver Layout.css).
-      <aside className={`sidebar${mobileOpen ? ' sidebar--open' : ''}${collapsed ? ' sidebar--collapsed' : ''}`}>
+      <Motion.aside
+        className={`sidebar${mobileOpen ? ' sidebar--open' : ''}${riel ? ' sidebar--riel' : ''}`}
+        animate={esEscritorio ? { width: riel ? 64 : 232 } : {}}
+        transition={RESORTE}
+        onMouseEnter={() => setEncima(true)}
+        onMouseLeave={() => setEncima(false)}
+        onFocusCapture={() => setEncima(true)}
+        onBlurCapture={(e) => { if (!e.currentTarget.contains(e.relatedTarget)) setEncima(false); }}
+      >
         <div className="sidebar__header">
           <div className="sidebar__logo">
             <div className="flex flex-col leading-[1.25]">
@@ -85,18 +102,13 @@ export default function PortalSidebar({ activeTab, onTabChange }) {
               <span className={SUBTITULO}>Portal del Cliente</span>
             </div>
           </div>
+          {/* Marca compacta del riel: la muestra Sidebar.css, misma regla que en
+              el panel principal. */}
+          <span className="sidebar__marca-mini" aria-hidden="true">S</span>
           <div className="sidebar__header-actions">
             <div className="sidebar__header-bells">
               <PortalNotifBell onNavigate={onTabChange} />
             </div>
-            <button
-              className="sidebar__collapse-btn"
-              onClick={toggleCollapsed}
-              title={collapsed ? 'Expandir menú' : 'Colapsar menú'}
-              aria-label={collapsed ? 'Expandir menú' : 'Colapsar menú'}
-            >
-              <MdMenuOpen size={20} />
-            </button>
             <button className={BOTON_CERRAR} onClick={closeMobile} aria-label="Cerrar menú">
               <MdClose size={18} />
             </button>
@@ -130,6 +142,6 @@ export default function PortalSidebar({ activeTab, onTabChange }) {
             </button>
           </div>
         </div>
-      </aside>
+      </Motion.aside>
   );
 }

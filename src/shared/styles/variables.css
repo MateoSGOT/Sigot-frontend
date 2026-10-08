@@ -198,19 +198,19 @@
   --sidebar-border:     rgba(10, 10, 11, 0.07);
   /* Más delgado que antes (eran 256): el brief pide un riel fino, y al flotar
      con margen propio ya no necesita ancho para separarse del contenido. */
+  /* ANCHO EXPANDIDO. Es el ancho al que crece el panel cuando el cursor entra;
+     ya NO es el ancho por defecto. */
   --sidebar-width:      232px;
 
-  /* ANCHO COLAPSADO REAL. Hasta ahora los tres tokens de ancho valian 232px, o
-     sea que el boton de colapsar no colapsaba nada: cambiaba la clase y el
-     panel seguia igual de ancho. Era una afordancia sin efecto.
+  /* ANCHO DEL RIEL: el estado normal. 64px = 24 de icono + 20 de aire a cada
+     lado. El panel vive asi salvo mientras se le pasa el cursor por encima.
 
-     64px es el ancho de un modulo de solo iconos: 24 de icono + 20 de aire a
-     cada lado. Por debajo de eso el icono deja de tener respiracion; por encima
-     se empieza a ver como un panel estrecho en vez de una tira.
-
-     El contenido se desplaza solo: Layout.css ya calcula su margen con este
-     token (ver .layout--collapsed .layout__main). */
-  --sidebar-collapsed-width: 64px;
+     Sustituye a --sidebar-collapsed-width, que venia de un colapso con boton.
+     Ese boton se quito: con el panel a 64px el propio boton quedaba empujado
+     fuera del area visible por el wordmark y las campanas, y como .sidebar
+     tiene overflow:hidden, se recortaba -- no habia forma de volver a expandir.
+     Con expansion por cursor no hay nada que pulsar y el problema desaparece. */
+  --sidebar-rail-width: 64px;
 
   --sidebar-inset:      12px;
   /* Dónde empieza el contenido al lado del sidebar flotante: su inset
@@ -220,7 +220,11 @@
      de una utilidad arbitraria de Tailwind exige escapar los espacios como _
      (`calc(a_+_b)`): sin ellos el CSS es inválido y la regla se descarta en
      silencio. Con el token, la clase queda ml-[var(--layout-inset-left)]. */
-  --layout-inset-left: calc(var(--sidebar-width) + 2 * var(--sidebar-inset));
+  /* El contenido se aparta del RIEL, no del panel expandido: al crecer, el
+     sidebar se SUPERPONE (es position:fixed) en vez de empujar la pagina. Si el
+     margen siguiera al ancho expandido, todo el contenido saltaria cada vez que
+     el cursor rozara el panel, que es justo lo que no se quiere. */
+  --layout-inset-left: calc(var(--sidebar-rail-width) + 2 * var(--sidebar-inset));
 
   /* ══════════════════ SUPERFICIES ══════════════════
      Canvas slate-50, tarjetas blanco puro. El "borde" de tarjeta es un filo

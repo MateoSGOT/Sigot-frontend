@@ -86,26 +86,6 @@
 }
 
 /* Botón de colapsar/expandir (solo escritorio; en móvil el sidebar es drawer) */
-.sidebar__collapse-btn {
-  display: none;
-  width: 30px; height: 30px;
-  align-items: center; justify-content: center;
-  flex-shrink: 0;
-  background: transparent;
-  border: 1px solid var(--sidebar-border);
-  border-radius: var(--radius-sm);
-  color: var(--sidebar-icon);
-  cursor: pointer;
-  transition: background var(--duration-fast) var(--ease),
-              color var(--duration-fast) var(--ease);
-}
-.sidebar__collapse-btn:hover {
-  background: var(--sidebar-hover);
-  color: var(--color-primary-soft-on);
-}
-.sidebar__collapse-btn svg { transition: transform var(--duration-slow) var(--ease); }
-.sidebar--collapsed .sidebar__collapse-btn svg { transform: rotate(180deg); }
-
 .sidebar__logo {
   display: flex;
   align-items: center;
@@ -413,15 +393,86 @@
 }
 
 /* ═══════════════════════════════════════════════════════════
-   COLAPSO — solo escritorio (≥1024). En móvil el sidebar es un drawer y el
-   colapso no aplica. Los tres tokens de ancho comparten valor a propósito
-   (ver variables.css), así que hoy el colapso no cambia el ancho: el botón
-   queda como afordancia para cuando se reactive.
+   RIEL Y EXPANSIÓN AL PASAR EL CURSOR — solo escritorio (≥1024).
+   En móvil el sidebar es un cajón y esto no aplica.
+
+   POR QUÉ ESTAS REGLAS VIVEN AQUÍ Y NO COMO UTILIDADES EN EL JSX
+   Lo intenté al revés y salió mal. Estas mismas propiedades ya están
+   declaradas en este archivo (.sidebar__logo lleva display:flex, .sidebar__user
+   lleva padding y gap, etc.), y esta hoja NO está estratificada: le gana a toda
+   la capa `utilities`. De siete `hidden` que puse desde el JSX, CUATRO eran
+   inertes -- el wordmark, las campanas, los datos del perfil y los hijos de
+   grupo seguían ahí, desbordando un panel de 64px.
+
+   Y ese desbordamiento es lo que dejó la interfaz sin salida: el botón de
+   colapsar mide 30×30 y el contenido del header son exactamente 30px
+   (64 − 2 de borde − 32 de padding). Con el wordmark y las campanas delante, el
+   botón quedaba empujado fuera y .sidebar tiene overflow:hidden, así que se
+   recortaba. No había manera de volver a expandir.
+
+   El botón ya no existe: el panel se expande al entrar el cursor. No hay nada
+   que pulsar, así que no hay nada que pueda quedar fuera de alcance.
+
+   LAS CUENTAS DEL RIEL (panel 64px, 62 de caja de contenido):
+     header   sin padding lateral → 62px para la marca "S" de 28px
+     ítems    sin padding lateral, centrados → icono de 20px en 62px
+     pie      padding 6 → 50px; .sidebar__user padding 4 + 2 de borde → 40px;
+              avatar reducido a 28px, que entra con holgura
+   Con los valores originales el avatar medía 32 y disponía de 28: se recortaba.
    ═══════════════════════════════════════════════════════════ */
 @media (min-width: 1024px) {
-  .sidebar__collapse-btn { display: flex; }
+  /* Todo lo que es texto o adorno desaparece en el riel. Van juntos en una sola
+     regla a propósito: son el mismo gesto y así no se pueden desincronizar. */
+  .sidebar--riel .sidebar__logo,
+  .sidebar--riel .sidebar__header-bells,
+  .sidebar--riel .sidebar__user-info,
+  .sidebar--riel .sidebar__group-children,
+  .sidebar--riel .sidebar__item-label,
+  .sidebar--riel .sidebar__section-label,
+  .sidebar--riel .sidebar__group-chevron {
+    display: none;
+  }
 
-  /* .sidebar.sidebar--collapsed (0,2,0) para ganarle al ancho base .sidebar
-     sin depender del orden de las hojas de estilo. */
-  .sidebar.sidebar--collapsed { width: var(--sidebar-collapsed-width); }
+  /* La marca compacta es lo contrario: solo existe en el riel. */
+  .sidebar__marca-mini { display: none; }
+  .sidebar--riel .sidebar__marca-mini {
+    display: grid;
+    place-items: center;
+    width: 28px; height: 28px;
+    border-radius: 8px;
+    background: var(--color-primary);
+    color: var(--color-primary-on);
+    font-family: var(--font-display);
+    font-weight: 900;
+    font-size: 0.95rem;
+    flex-shrink: 0;
+  }
+
+  .sidebar--riel .sidebar__header {
+    justify-content: center;
+    padding-left: 0;
+    padding-right: 0;
+  }
+
+  .sidebar--riel .sidebar__item,
+  .sidebar--riel .sidebar__group-header {
+    justify-content: center;
+    padding-left: 0;
+    padding-right: 0;
+    gap: 0;
+  }
+
+  .sidebar--riel .sidebar__footer { padding: 6px; }
+  .sidebar--riel .sidebar__user {
+    justify-content: center;
+    padding: 4px;
+    gap: 0;
+  }
+  .sidebar--riel .sidebar__user-avatar { width: 28px; height: 28px; }
+
+  /* La barra del indicador activo se corre al borde: en el riel no hay texto
+     que acompañar y pegada al canto se lee mejor. */
+  .sidebar--riel .sidebar__item--active::before { left: 0; }
 }
+
+
