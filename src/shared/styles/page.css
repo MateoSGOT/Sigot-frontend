@@ -378,3 +378,10 @@
   .page__toolbar > * { flex: 1 1 100%; }
   .page__toolbar--fin { margin-left: 0; }
 }
+
+/* Área táctil del selector de filtros en pantallas de dedo. Medido a 768px:
+   35px de alto. Es el mismo criterio que .btn en buttons.css -- el padding de
+   escritorio se respeta y solo se pone un suelo. */
+@media (max-width: 1023px) {
+  .filter-select { min-height: var(--touch-min); }
+}

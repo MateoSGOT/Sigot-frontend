@@ -134,7 +134,8 @@ const CAL_VACIO = 'hidden @max-[480px]/calendario:block rounded-sm border border
 
 /* Control segmentado de vista (Tabla / Calendario / Diagnosticos). */
 const VISTA_GRUPO = 'flex overflow-hidden rounded-md border border-border';
-const VISTA_BTN = 'cursor-pointer border-0 bg-surface px-[0.9rem] py-sm text-small font-medium text-text-muted '
+/* min-h tactil en pantallas de dedo: medidos 34px, que con el pulgar es poco. */
+const VISTA_BTN = 'cursor-pointer border-0 bg-surface px-[0.9rem] py-sm text-small font-medium text-text-muted max-lg:min-h-[48px] '
   + 'transition-colors duration-150 [&+&]:border-l [&+&]:border-border';
 const VISTA_BTN_ACTIVO = 'bg-primary-soft font-semibold text-primary-soft-on';
 

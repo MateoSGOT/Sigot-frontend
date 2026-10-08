@@ -120,7 +120,8 @@ export default function StockAlertBell() {
     <div className="stock-bell">
       <button
         ref={btnRef}
-        className={`stock-bell__btn ${count > 0 ? 'stock-bell__btn--alert' : ''}`}
+        /* 34x34 medidos. Sube en las dos dimensiones para que siga cuadrada. */
+        className={`stock-bell__btn max-lg:min-h-[44px] max-lg:min-w-[44px] ${count > 0 ? 'stock-bell__btn--alert' : ''}`}
         onClick={toggle}
         title="Alertas de stock"
       >

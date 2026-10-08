@@ -621,7 +621,7 @@ function PortalPageInner() {
                         <input
                           id={id}
                           type={type}
-                          className={`w-full rounded-sm border bg-input-bg px-md py-sm text-body text-text
+                          className={`w-full max-lg:min-h-[48px] rounded-sm border bg-input-bg px-md py-sm text-body text-text
                                       placeholder:text-text-disabled outline-none
                                       transition-[border-color,box-shadow] duration-150
                                       focus-visible:border-focus focus-visible:shadow-[0_0_0_3px_var(--color-focus-ring)]

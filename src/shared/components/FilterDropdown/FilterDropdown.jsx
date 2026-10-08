@@ -53,7 +53,8 @@ export default function FilterDropdown({
   return (
     <div className="fdd" ref={ref}>
       <button
-        className={`fdd__trigger${open ? ' fdd__trigger--open' : ''}`}
+        /* 39px medidos; sube al minimo tactil en pantallas de dedo. */
+        className={`fdd__trigger max-lg:min-h-[48px]${open ? ' fdd__trigger--open' : ''}`}
         onClick={() => setOpen(!open)}
         type="button"
       >

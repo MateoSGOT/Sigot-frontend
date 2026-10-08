@@ -48,7 +48,8 @@ const ITEM_BOTON = 'w-full cursor-pointer border-0 bg-transparent text-left font
    max-lg: es exactamente el @media (max-width: 1023px) que habia.
    Los tokens --sidebar-* no son --color-*, asi que Tailwind no genera utilidad
    para ellos y se referencian como valor arbitrario. */
-const BOTON_CERRAR = 'hidden max-lg:flex items-center justify-center '
+/* min-h tactil: medido en 26px. Es el boton que cierra el cajon en movil. */
+const BOTON_CERRAR = 'hidden max-lg:flex max-lg:min-h-[48px] max-lg:min-w-[48px] items-center justify-center '
   + 'ml-auto cursor-pointer rounded-sm border-0 bg-transparent p-xs '  // `background: none`
   // en forma larga tambien pone el color en transparent, no solo la imagen:
   // bg-none solo limpiaria background-image y dejaria el gris del boton.
@@ -137,7 +138,7 @@ export default function PortalSidebar({ activeTab, onTabChange }) {
               <span className="sidebar__user-name">{cliente?.Nombre}</span>
               <span className="sidebar__user-role">Cliente</span>
             </div>
-            <button className="sidebar__logout" onClick={handleLogout} title="Cerrar sesión">
+            <button className="sidebar__logout max-lg:min-h-[48px]" onClick={handleLogout} title="Cerrar sesión">
               <MdExitToApp size={16} />
             </button>
           </div>

@@ -29,7 +29,7 @@ export default function Toast({ type = 'info', message, onClose }) {
         <Icon size={20} />
       </div>
       <span className="toast__message">{message}</span>
-      <button className="toast__close" onClick={handleClose}>
+      <button className="toast__close max-lg:min-h-[44px] max-lg:min-w-[44px]" onClick={handleClose}>
         <MdClose size={16} />
       </button>
     </div>

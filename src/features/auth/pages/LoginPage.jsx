@@ -235,7 +235,9 @@ export default function LoginPage() {
         <button
           type="button"
           onClick={() => navigate('/')}
-          className={`inline-flex items-center gap-sm self-start rounded-sm border-0 bg-transparent
+          /* min-h tactil: medido en 18px, que es el alto de su texto. Es un
+             control, no una linea de parrafo. */
+          className={`inline-flex min-h-[48px] items-center gap-sm self-start rounded-sm border-0 bg-transparent
                      text-small font-medium ${AUTH_TENUE_ACCION} cursor-pointer
                      transition-colors duration-150 hover:text-text
                      focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus`}
@@ -308,7 +310,7 @@ export default function LoginPage() {
                   type="button" tabIndex={-1}
                   onClick={() => setShowPassword(!showPassword)}
                   aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
-                  className="absolute right-sm top-1/2 flex size-9 -translate-y-1/2 items-center
+                  className="absolute right-sm top-1/2 flex size-9 max-lg:size-12 -translate-y-1/2 items-center
                              justify-center rounded-sm border-0 bg-transparent text-text-light
                              cursor-pointer transition-colors duration-150 hover:text-text"
                 >
@@ -370,7 +372,7 @@ export default function LoginPage() {
           <button
             type="button"
             onClick={openRecovery}
-            className="mt-lg w-full rounded-sm border-0 bg-transparent text-small font-semibold
+            className="mt-lg min-h-[48px] w-full rounded-sm border-0 bg-transparent text-small font-semibold
                        text-primary-soft-on cursor-pointer transition-colors duration-150
                        hover:text-primary-strong-hover
                        focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"

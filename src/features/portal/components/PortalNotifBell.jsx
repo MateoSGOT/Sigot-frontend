@@ -155,7 +155,7 @@ export default function PortalNotifBell({ onNavigate }) {
     <div className="novedad-bell">
       <button
         ref={btnRef}
-        className={`novedad-bell__btn ${count > 0 ? 'novedad-bell__btn--alert' : ''}`}
+        className={`novedad-bell__btn max-lg:min-h-[44px] max-lg:min-w-[44px] ${count > 0 ? 'novedad-bell__btn--alert' : ''}`}
         onClick={toggle}
         title="Notificaciones"
       >

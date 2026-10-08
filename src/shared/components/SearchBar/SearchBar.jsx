@@ -9,7 +9,8 @@ export default function SearchBar({ value, onChange, placeholder = 'Buscar...', 
         <MdSearch className="searchbar__icon" size={20} />
         <input
           type="text"
-          className="searchbar__input"
+          /* 41px medidos a 494px de ancho; con el dedo se queda corto. */
+          className="searchbar__input max-lg:min-h-[48px]"
           placeholder={placeholder}
           value={value}
           onChange={(e) => onChange(e.target.value)}

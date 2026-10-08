@@ -127,7 +127,8 @@ export default function NovedadAlertBell() {
     <div className="novedad-bell">
       <button
         ref={btnRef}
-        className={`novedad-bell__btn ${count > 0 ? 'novedad-bell__btn--alert' : ''}`}
+        /* Misma campana que StockAlertBell: 34x34 y mismo remedio. */
+        className={`novedad-bell__btn max-lg:min-h-[44px] max-lg:min-w-[44px] ${count > 0 ? 'novedad-bell__btn--alert' : ''}`}
         onClick={toggle}
         title="Novedades activas"
       >

@@ -385,8 +385,17 @@
     overscroll-behavior: contain;
   }
   .sidebar__section-label { padding: var(--space-sm) var(--space-sm) var(--space-xs); }
+  /* Compactados para que el menu quepa, pero con un minimo tactil: medidos a
+     494px daban 28px de alto, que con el pulgar es poco. 44px es el minimo
+     practico sin que el cajon crezca tanto que necesite scroll en un telefono
+     corriente; el nav ya tiene overflow-y y overscroll-behavior:contain por si
+     en una pantalla muy baja llegara a desbordar. */
   .sidebar__item,
-  .sidebar__group-header { padding-top: var(--space-xs); padding-bottom: var(--space-xs); }
+  .sidebar__group-header {
+    padding-top: var(--space-xs);
+    padding-bottom: var(--space-xs);
+    min-height: 44px;
+  }
   .sidebar__item--child { padding-top: 5px; padding-bottom: 5px; }
   .sidebar__header { min-height: 54px; padding-top: var(--space-md); padding-bottom: var(--space-sm); }
   .sidebar__footer { padding: var(--space-sm); }

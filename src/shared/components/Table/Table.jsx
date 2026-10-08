@@ -139,13 +139,13 @@ export default function Table({
 
       {!loading && totalPages > 1 && (
         <div className="table-pagination">
-          <button className="table-pagination__btn" onClick={() => goTo(safePage - 1)} disabled={safePage === 1} aria-label="Página anterior">
+          <button className="table-pagination__btn max-lg:min-h-[44px] max-lg:min-w-[44px]" onClick={() => goTo(safePage - 1)} disabled={safePage === 1} aria-label="Página anterior">
             <MdChevronLeft size={16} />
           </button>
           <span className="table-pagination__current">{safePage}</span>
           <span className="table-pagination__sep">de</span>
           <span className="table-pagination__total">{totalPages}</span>
-          <button className="table-pagination__btn" onClick={() => goTo(safePage + 1)} disabled={safePage === totalPages} aria-label="Página siguiente">
+          <button className="table-pagination__btn max-lg:min-h-[44px] max-lg:min-w-[44px]" onClick={() => goTo(safePage + 1)} disabled={safePage === totalPages} aria-label="Página siguiente">
             <MdChevronRight size={16} />
           </button>
         </div>

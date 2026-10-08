@@ -134,3 +134,18 @@
 @media (prefers-reduced-motion: reduce) {
   .btn__spinner { animation-duration: 1.2s; }
 }
+
+/* ÁREA TÁCTIL EN PANTALLAS DE DEDO (<1024, telefono y tablet).
+
+   Medido en el navegador: a 768px de ancho, .btn--primary daba 38px de alto y
+   los botones de icono 34. Con un raton sobran; con el pulgar, no. El padding
+   de .btn esta pensado para densidad de escritorio, asi que en lugar de tocarlo
+   se pone un suelo con min-height, que no altera el aspecto cuando el contenido
+   ya supera esa altura.
+
+   Table.css ya daba 48px a los .btn--icon DENTRO de una tabla en modo tarjeta;
+   esto cubre los que estan fuera de una tabla -- cabeceras de pagina, barras de
+   herramientas, pies de modal -- que antes se quedaban en 34 o 38. */
+@media (max-width: 1023px) {
+  .btn { min-height: var(--touch-min); }
+}

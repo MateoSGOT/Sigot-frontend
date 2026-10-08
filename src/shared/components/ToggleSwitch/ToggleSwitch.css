@@ -48,3 +48,22 @@
   cursor: not-allowed;
   opacity: 0.45;
 }
+
+/* ÁREA TÁCTIL EN PANTALLA DE DEDO. El interruptor mide 42×24, que con un ratón
+   sobra y con el pulgar no: medido en /vehiculos a 494px de ancho, los cuatro
+   toggles de la tabla daban 24px de alto.
+
+   Se amplía con un ::before transparente en vez de con min-height, y la
+   diferencia importa: min-height le ganaría al `height: 24px` de arriba y
+   estiraría la PISTA del interruptor, que es justo lo que no debe cambiar.
+   El pseudo-elemento extiende solo la zona que recibe el clic.
+
+   -12px arriba y abajo sobre 24 de alto = 48, el mínimo del sistema. El ::after
+   ya lo usa el pulsador, de ahí que este sea ::before. */
+@media (max-width: 1023px) {
+  .toggle-switch::before {
+    content: '';
+    position: absolute;
+    inset: -12px 0;
+  }
+}

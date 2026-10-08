@@ -16,7 +16,8 @@ export default function MobileSidebarChrome() {
   const { mobileOpen, toggleMobile, closeMobile } = useSidebar();
   return (
     <>
-      <button className="layout__hamburger" onClick={toggleMobile} aria-label="Abrir menú">
+      <button /* Es EL control para abrir el menu en movil: no puede quedarse corto. */
+        className="layout__hamburger max-lg:min-h-[48px] max-lg:min-w-[48px]" onClick={toggleMobile} aria-label="Abrir menú">
         <MdMenu size={22} />
       </button>
       <div
