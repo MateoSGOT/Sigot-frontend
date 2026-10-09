@@ -53,6 +53,22 @@ const ETIQUETA_CAMPO = 'hidden max-sm:block text-[0.72rem] font-bold uppercase t
    hojas compartidas viven en @layer components, asi que una utilidad les gana. */
 const CONTROL_SM = 'form-control px-[0.625rem] py-[0.375rem] text-[0.8125rem]';
 const CONTROL_SM_AVISO = `${CONTROL_SM} border-accent/60 bg-accent/5`;
+
+/* ── Consumo inmediato ──
+   El interruptor ocupa toda la fila por debajo de los campos, no una columna
+   mas: en la rejilla de 6 columnas no cabe sin estrujar el resto, y en movil la
+   fila ya se apila en una sola columna. `col-span-full` lo resuelve en los dos
+   casos sin una media query propia.
+
+   min-h-[44px] en la etiqueta entera -- no solo en la casilla -- para que el
+   area tactil sea toda la linea y no un cuadradito de 16px. La casilla usa
+   accent-primary, que es la forma de tenir un control nativo con el token del
+   sistema sin reimplementarlo con divs. */
+const FILA_CONSUMO = 'col-span-full mt-xs flex flex-wrap items-center gap-sm max-sm:mt-0';
+const TOGGLE_CONSUMO = 'inline-flex min-h-[44px] cursor-pointer items-center gap-sm '
+  + 'text-[0.8125rem] font-semibold text-text-muted select-none';
+const TOGGLE_CASILLA = 'size-[18px] shrink-0 cursor-pointer accent-primary';
+const TOGGLE_NOTA = 'text-[0.75rem] font-semibold text-warning-soft-on';
 const PREVIO_PRECIO = 'mt-[3px] whitespace-nowrap pl-[2px] text-[0.7rem] font-semibold text-text-secondary';
 
 /* Tabla del detalle de la compra: se apila en tarjetas igual que la tabla
@@ -68,7 +84,7 @@ const TABLA_DETALLE_MOVIL = 'max-sm:block '
   + "[&_td]:max-sm:before:content-[attr(data-label)] [&_td]:max-sm:before:shrink-0 [&_td]:max-sm:before:text-[0.68rem] [&_td]:max-sm:before:font-bold [&_td]:max-sm:before:uppercase [&_td]:max-sm:before:tracking-wide [&_td]:max-sm:before:text-text-muted [&_td]:max-sm:before:text-left "
   + '[&_tr_td:first-child]:max-sm:border-t-0';
 
-const EMPTY_ITEM = { Id_Repuesto: '', Cantidad: '', PrecioUnitario: '', DescuentoPorcentaje: '' };
+const EMPTY_ITEM = { Id_Repuesto: '', Cantidad: '', PrecioUnitario: '', DescuentoPorcentaje: '', NoInventariado: false };
 const newForm = () => ({ Id_Proveedor: '', Fecha: todayLocalYMD(), NumeroFactura: '', productos: [{ ...EMPTY_ITEM }] });
 
 export default function ComprasPage() {
@@ -182,6 +198,7 @@ export default function ComprasPage() {
   // recientes que cambiaron su costo/margen, pero da una referencia real de
   // cuánto deja cada compra al precio actual.
   const gananciaLinea = (row) => {
+    if (row.NoInventariado) return null;   // no se revende: se gasta
     const rep = repuestos.find(r => String(r.Id_Repuesto) === String(row.Id_Repuesto));
     if (!rep || rep.PrecioVenta == null) return null;
     return (Number(rep.PrecioVenta) - Number(row.PrecioUnitario || 0)) * Number(row.Cantidad || 0);
@@ -225,11 +242,18 @@ export default function ComprasPage() {
         setPriceWarnings(prev => { const next = { ...prev }; delete next[idx]; return next; });
       }
 
+      /* Al marcar consumo inmediato se limpia el aviso de precio de esa fila:
+         ese aviso compara contra el costo del repuesto en inventario, y una
+         linea que no toca el inventario no tiene con que discrepar. */
+      if (field === 'NoInventariado' && value) {
+        setPriceWarnings(prev => { const next = { ...prev }; delete next[idx]; return next; });
+      }
+
       if (field === 'PrecioUnitario') {
         const item = productos[idx];
         const repuesto = repuestos.find(r => String(r.Id_Repuesto) === String(item.Id_Repuesto));
         const precioRef = repuesto?.PrecioCompra ?? repuesto?.Precio;
-        if (repuesto && precioRef !== undefined && value && Number(value) !== Number(precioRef)) {
+        if (!item.NoInventariado && repuesto && precioRef !== undefined && value && Number(value) !== Number(precioRef)) {
           setPriceWarnings(prev => ({ ...prev, [idx]: { esperado: precioRef, ingresado: value } }));
         } else {
           setPriceWarnings(prev => { const next = { ...prev }; delete next[idx]; return next; });
@@ -270,6 +294,9 @@ export default function ComprasPage() {
         Fecha: formData.Fecha,
         NumeroFactura: formData.NumeroFactura,
         DescuentoPorcentaje: item.DescuentoPorcentaje || 0,
+        // El gasto se registra en la factura, pero la API no suma stock ni
+        // mueve el costo del repuesto -- ver compra.model.js::create.
+        NoInventariado: !!item.NoInventariado,
       }));
       if (result.error) {
         setFormError(result.payload || 'Error al registrar compra.');
@@ -411,10 +438,14 @@ export default function ComprasPage() {
                 </thead>
                 <tbody>
                   {detailItems.map((row, i) => {
-                    const ganancia = gananciaLinea(row);
+                    // Un consumible no se revende, se gasta: no tiene ganancia que estimar.
+                    const ganancia = row.NoInventariado ? null : gananciaLinea(row);
                     return (
                       <tr key={i}>
-                        <td data-label="Repuesto">{row.Repuesto || getNombre(repuestos, 'Id_Repuesto', row.Id_Repuesto)}</td>
+                        <td data-label="Repuesto">
+                          {row.Repuesto || getNombre(repuestos, 'Id_Repuesto', row.Id_Repuesto)}
+                          {row.NoInventariado ? <Badge variant="warning">Consumo inmediato</Badge> : null}
+                        </td>
                         <td data-label="Cantidad">{row.Cantidad}</td>
                         <td data-label="Precio unitario">{formatCurrency(row.PrecioUnitario)}</td>
                         <td data-label="Subtotal" className="is-total">{formatCurrency(Number(row.Cantidad) * Number(row.PrecioUnitario))}</td>
@@ -540,6 +571,20 @@ export default function ComprasPage() {
                       <small className={PREVIO_PRECIO}>
                         Costo neto: {formatCurrency(Number(item.PrecioUnitario) * (1 - Number(item.DescuentoPorcentaje) / 100))}
                       </small>
+                    ) : null}
+                  </div>
+                  <div className={FILA_CONSUMO}>
+                    <label className={TOGGLE_CONSUMO}>
+                      <input
+                        type="checkbox"
+                        className={TOGGLE_CASILLA}
+                        checked={!!item.NoInventariado}
+                        onChange={e => handleItemChange(idx, 'NoInventariado', e.target.checked)}
+                      />
+                      Repuesto No Inventariado (Consumo inmediato)
+                    </label>
+                    {item.NoInventariado ? (
+                      <span className={TOGGLE_NOTA}>No suma stock ni cambia el costo del repuesto.</span>
                     ) : null}
                   </div>
                   <div className={CAMPO}>
