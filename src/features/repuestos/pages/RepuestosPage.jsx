@@ -91,6 +91,30 @@ function _agruparPorMotivo(faltantes) {
 }
 
 const _sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+/* Primer alias con contenido REAL. Hace falta porque sheet_to_json corre con
+   defval:'': una columna presente pero vacia en esa fila llega como cadena
+   vacia, que para `??` es un valor definido y corta la cadena de respaldo. */
+const _primerValor = (fila, alias) => {
+  for (const k of alias) {
+    const v = fila[k];
+    if (v != null && String(v).trim() !== '') return v;
+  }
+  return null;
+};
+
+/* El margen se GUARDA como factor (0.635) porque es lo que divide en la
+   formula, pero el taller lo lee como porcentaje. Se pinta multiplicado por
+   100 con un decimal y sin el .0 sobrante: 0.635 -> "63.5%", 0.5 -> "50%".
+   El redondeo es necesario, no cosmetico: la mayoria de los factores no son
+   exactos en binario y un toFixed crudo saca cosas como "63.5%" junto a
+   "80.0%". No toca el valor almacenado ni lo que se envia a la API. */
+const _margenPorcentaje = (factor) => {
+  const f = Number(factor);
+  if (!Number.isFinite(f)) return '—';
+  const pct = Math.round(f * 1000) / 10; // un decimal, sin ruido de coma flotante
+  return `${Number.isInteger(pct) ? pct : pct.toFixed(1)}%`;
+};
 // Pausa entre filas del import de Excel: con hasta 2 solicitudes por fila (categoría +
 // repuesto) y archivos reales de cientas de filas, sin ninguna pausa el import dispara
 // cientos de solicitudes seguidas en pocos segundos -- mala práctica de todas formas,
@@ -416,19 +440,26 @@ export default function RepuestosPage() {
         Stock: Number(fila.Stock ?? 0),
       };
       if (lote) {
-        const costo  = Number(lote['Prc con dsc']);
+        /* _primerValor y no Number(lote['Prc con dsc']) a secas: con defval:'' una
+           celda vacia da Number('') === 0, y `!isNaN(0)` es cierto, asi que se
+           enviaba un COSTO 0 como si fuera un dato. El backend lo acepta, no
+           calcula PrecioVenta (requiere costo > 0) y las dos columnas quedan en
+           "—" aunque el codigo y el stock hayan entrado bien. Mismo sintoma que
+           el del importador de hoja unica, por otro camino. */
+        const costo  = Number(_primerValor(lote, ['Prc con dsc', 'Costo', 'Precio Unitario', 'Precio unitario', 'Precio']) ?? NaN);
         /* SIN multiplicar por 100. El archivo del taller ya guarda el margen como
            FACTOR decimal (0.635) y antes se convertía a porcentaje porque el
            backend lo esperaba así. Ahora el backend usa el factor tal cual en
            costo/margen, de modo que la conversión sobra -- y aplicarla daría un
            precio de venta 100 veces menor. */
-        const margen = Number(lote['Margen de ganancia']);
-        const precioVentaReal = Number(lote['Precio de venta']);
-        if (!isNaN(costo))  payload.Precio = costo;
-        if (!isNaN(margen) && margen > 0) payload.MargenGanancia = margen;
+        const margen = Number(_primerValor(lote, ['Margen de ganancia', 'Margen', 'MargenGanancia']) ?? NaN);
+        const precioVentaReal = Number(_primerValor(lote, ['Precio de venta', 'PrecioVenta', 'Precio venta']) ?? NaN);
+        // costo > 0 y no solo !isNaN: un 0 aqui no es un costo, es una celda sin llenar.
+        if (Number.isFinite(costo) && costo > 0) payload.Precio = costo;
+        if (Number.isFinite(margen) && margen > 0) payload.MargenGanancia = margen;
         // PrecioVenta se importa TAL CUAL (punto de partida real del inventario ya
         // comprado); la SIGUIENTE compra lo recalcula con la fórmula estándar.
-        if (!isNaN(precioVentaReal)) payload.PrecioVenta = precioVentaReal;
+        if (Number.isFinite(precioVentaReal) && precioVentaReal > 0) payload.PrecioVenta = precioVentaReal;
       } else {
         sinLote++;
       }
@@ -519,12 +550,33 @@ export default function RepuestosPage() {
         const stockMinimo = Number(fila['Stock mínimo'] ?? fila.StockMinimo ?? 5);
         const margen      = Number(fila['Margen de ganancia'] ?? fila.MargenGanancia ?? fila['Margen'] ?? 0.635);
 
+        /* EL COSTO: esta lectura NO existia, y es la causa exacta de que Costo y
+           Precio de venta entraran vacios mientras Codigo y Stock entraban
+           perfectos -- este importador leia codigo, nombre, stock, minimo y
+           margen, y de precios no mandaba nada. El backend recibe Precio
+           ausente, lo deja en 0, y con costo 0 no calcula PrecioVenta (lo deja
+           en null): las dos celdas se pintan "—".
+
+           Se usa _primerValor y NO la cadena `??` directa: sheet_to_json corre
+           con defval:'', asi que una columna que EXISTE pero viene vacia en esa
+           fila llega como '' -- un valor definido, que corta la cadena de
+           fusion nula y entrega Number('') === 0. Es la misma trampa que ya
+           obligo a recorrer candidatos para el nombre unas lineas arriba. */
+        const costo = Number(_primerValor(fila, ['Prc con dsc', 'Costo', 'Precio Unitario', 'Precio unitario', 'Precio', 'costo']) ?? 0);
+        /* El precio de venta del archivo se respeta TAL CUAL cuando viene, igual
+           que en el importador multi-hoja: es el punto de partida real del
+           inventario ya comprado. Si no viene, el backend lo calcula con la
+           formula (costo/margen + costo*0.19). */
+        const precioVentaArchivo = Number(_primerValor(fila, ['Precio de venta', 'PrecioVenta', 'Precio venta']) ?? NaN);
+
         const payload = {
           Codigo: codigo,
           NombreRepuesto: nombre,
           Stock: Number.isFinite(stock) ? stock : 0,
           StockMinimo: Number.isFinite(stockMinimo) ? stockMinimo : 5,
         };
+        if (Number.isFinite(costo) && costo > 0) payload.Precio = costo;
+        if (Number.isFinite(precioVentaArchivo) && precioVentaArchivo > 0) payload.PrecioVenta = precioVentaArchivo;
         // El margen es un FACTOR (0.635). Solo se envia si es valido; si no, el
         // backend aplica su propio defecto.
         if (Number.isFinite(margen) && margen > 0 && margen <= 1) payload.MargenGanancia = margen;
@@ -634,7 +686,7 @@ export default function RepuestosPage() {
     },
     { key: 'StockMinimo', label: 'Stock mín.', render: v => v ?? 5 },
     { key: 'Precio', label: 'Costo', render: v => (v != null && Number(v) > 0 ? formatCurrency(v) : '—') },
-    { key: 'MargenGanancia', label: 'Margen', render: v => Number(v ?? 0.635).toFixed(3) },
+    { key: 'MargenGanancia', label: 'Margen', render: v => _margenPorcentaje(v ?? 0.635) },
     { key: 'PrecioVenta', label: 'Precio venta', render: v => (v != null ? formatCurrency(v) : '—') },
     {
       key: 'acciones', label: 'Acciones', render: (_, row) => (
@@ -764,7 +816,7 @@ export default function RepuestosPage() {
           <div className="detail-item"><span className="detail-label">Código</span><span className="detail-value font-mono">{detailItem.Codigo}</span></div>
           <div className="detail-item"><span className="detail-label">Stock</span><span className="detail-value">{detailItem.Stock}</span></div>
           <div className="detail-item"><span className="detail-label">Costo</span><span className="detail-value">{detailItem.Precio != null && Number(detailItem.Precio) > 0 ? formatCurrency(detailItem.Precio) : '—'}</span></div>
-          <div className="detail-item"><span className="detail-label">Margen</span><span className="detail-value">{Number(detailItem.MargenGanancia ?? 0.635).toFixed(3)}</span></div>
+          <div className="detail-item"><span className="detail-label">Margen</span><span className="detail-value">{_margenPorcentaje(detailItem.MargenGanancia ?? 0.635)}</span></div>
           <div className="detail-item"><span className="detail-label">Precio venta {detailItem.IvaPorcentaje != null ? `(IVA ${detailItem.IvaPorcentaje}%)` : ''}</span><span className="detail-value">{detailItem.PrecioVenta != null ? formatCurrency(detailItem.PrecioVenta) : '—'}</span></div>
           <div className="detail-item"><span className="detail-label">Estado</span><span className="detail-value"><StatusBadge estado={detailItem.Estado} /></span></div>
         </div>}
