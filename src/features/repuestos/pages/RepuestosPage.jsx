@@ -338,10 +338,19 @@ export default function RepuestosPage() {
     return () => { document.body.style.overflow = ''; };
   }, [importOverlay]);
 
-  // --- Importación del INVENTARIO REAL (formato multi-hoja Repuesto/Lotes/Entradas) ---
-  // Se detecta por la presencia de una hoja "Repuesto" y una hoja "Lotes" en el mismo
+  // --- Importación del INVENTARIO REAL (formato multi-hoja REPUESTOS/Lotes/Entradas) ---
+  // Se detecta por la presencia de una hoja "REPUESTOS" y una hoja "Lotes" en el mismo
   // libro; si no calzan esos nombres, se usa el importador genérico de una sola hoja
   // de siempre (más abajo), sin ningún cambio de comportamiento.
+  //
+  // LA "s" DE /^repuestos?$/i NO ES COSMETICA. El detector pedia la hoja en
+  // SINGULAR y el archivo del taller la llama "REPUESTOS": no casaba, el libro
+  // se iba al importador generico, y ese lee la PRIMERA hoja -- que trae
+  // Codigo, Descripcion, Ubicacion, Und medida y Stock, y NINGUNA columna de
+  // dinero. Los costos viven en la hoja Lotes ("Prc con dsc"), que solo este
+  // camino cruza. De ahi el sintoma exacto: codigos y stock perfectos, Costo y
+  // Precio de venta en "—". Ningun alias de costo podia arreglarlo, porque en
+  // esa hoja no hay costo que leer.
   const _buscarHoja = (wb, re) => wb.SheetNames.find(n => re.test(n.trim()));
   // Mismo detector de encabezado (primera fila con contenido) que ya usa el importador
   // genérico, factorizado para reusarlo con las 3 hojas del formato real.
@@ -368,7 +377,7 @@ export default function RepuestosPage() {
   };
 
   const importInventarioReal = async (wb) => {
-    const repuestoRows = _parsearHoja(wb, _buscarHoja(wb, /^repuesto$/i));
+    const repuestoRows = _parsearHoja(wb, _buscarHoja(wb, /^repuestos?$/i));
     const lotesRows    = _parsearHoja(wb, _buscarHoja(wb, /^lotes$/i));
     const entradasRows = _parsearHoja(wb, _buscarHoja(wb, /^entradas$/i));
 
@@ -498,7 +507,7 @@ export default function RepuestosPage() {
       // Cualquier otro archivo (una sola hoja, columnas Nombre/Categoría) sigue el
       // importador genérico de siempre, sin cambios. Ambos caminos comparten el mismo
       // cierre (barra al 100% + check verde) más abajo, antes del catch/finally.
-      const esFormatoReal = _buscarHoja(wb, /^repuesto$/i) && _buscarHoja(wb, /^lotes$/i);
+      const esFormatoReal = _buscarHoja(wb, /^repuestos?$/i) && _buscarHoja(wb, /^lotes$/i);
       if (esFormatoReal) {
         await importInventarioReal(wb);
         setImportProgress(100);
