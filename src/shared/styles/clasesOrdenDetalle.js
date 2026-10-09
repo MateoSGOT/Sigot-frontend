@@ -59,3 +59,45 @@ export const OD_TOTAL_FINAL = 'flex items-center justify-between border-t border
 /* La cifra del total, un paso por encima del rótulo: es lo único que el cliente
    busca al abrir esta pestaña. */
 export const OD_TOTAL_CIFRA = 'text-h2 tabular-nums';
+
+/* ── FACTURACIÓN ───────────────────────────────────────────────────────────
+   Dos acciones que aparecen solo cuando la orden está Realizada: marcarla como
+   facturada o dejarla con factura pendiente. Viven acá, con el resto del
+   detalle, porque el modal del portal muestra la misma orden y va a necesitar
+   leer el estado con los mismos colores.
+
+   RESPONSIVO POR CONTENIDO, no por breakpoint: `flex-1 basis-[200px]` con
+   `flex-wrap` deja los dos botones lado a lado cuando caben 200px cada uno y
+   los apila cuando no. Una media query fija partiría en un ancho concreto sin
+   saber cuánto mide el contenedor -- y este vive dentro de un modal, no del
+   viewport. `min-h-[48px]` es el área táctil mínima que ya usa el resto de la
+   plataforma.
+
+   Los colores salen de los tokens con su par de contraste (`-on`), no de
+   utilidades de paleta sueltas: así el ámbar sigue siendo legible en claro y en
+   oscuro sin elegir el texto a ojo. */
+const OD_FACT_BTN = 'flex min-h-[48px] flex-1 basis-[200px] items-center justify-center gap-sm '
+  + 'rounded-lg border px-lg py-md text-body font-bold transition-colors '
+  + 'disabled:cursor-not-allowed disabled:opacity-50';
+
+export const OD_FACT_CAJA = 'mt-xl rounded-lg border border-border bg-surface-raised px-lg py-lg';
+export const OD_FACT_ACCIONES = 'flex flex-wrap gap-md';
+
+/* Cobalto = la acción rápida, la que el taller va a pulsar casi siempre. */
+export const OD_FACT_BTN_FACTURAR = `${OD_FACT_BTN} border-primary bg-primary text-primary-on `
+  + 'hover:bg-primary-hover';
+
+/* Ámbar = "queda pendiente". No es un error, es un recordatorio, así que va en
+   el tono suave y no en el sólido: competir en peso con el botón cobalto haría
+   que las dos acciones se vieran igual de principales. */
+export const OD_FACT_BTN_PENDIENTE = `${OD_FACT_BTN} border-warning-soft-border bg-warning-soft `
+  + 'text-warning-soft-on hover:bg-warning-light';
+
+export const OD_FACT_ETIQUETA = 'mb-md flex items-center gap-sm text-body font-bold text-text';
+
+/* El estado actual, en una píldora que usa el token del estado que representa. */
+export const OD_FACT_ESTADO = {
+  'Facturada':    'inline-flex items-center gap-xs rounded-full bg-success-soft px-md py-xs text-small font-bold text-success-soft-on',
+  'Pendiente':    'inline-flex items-center gap-xs rounded-full bg-warning-soft px-md py-xs text-small font-bold text-warning-soft-on',
+  'No facturada': 'inline-flex items-center gap-xs rounded-full bg-neutral-soft px-md py-xs text-small font-bold text-neutral-soft-on',
+};

@@ -25,8 +25,8 @@ export const addRepuestoToOrden = createAsyncThunk('ordenes/addRepuesto', async 
   try { const r = await ordenesService.addRepuesto(id, data); return r.data || r; }
   catch (e) { return rejectWithValue(e?.response?.data?.message || 'Error'); }
 });
-export const setManoDeObra = createAsyncThunk('ordenes/setManoDeObra', async ({ id, valor }, { rejectWithValue }) => {
-  try { const r = await ordenesService.setManoDeObra(id, valor); return r.data || r; }
+export const setEstadoFacturacion = createAsyncThunk('ordenes/setEstadoFacturacion', async ({ id, estado }, { rejectWithValue }) => {
+  try { const r = await ordenesService.setEstadoFacturacion(id, estado); return r.data || r; }
   catch (e) { return rejectWithValue(e?.response?.data?.message || 'Error'); }
 });
 export const deleteServicioFromOrden = createAsyncThunk('ordenes/deleteServicio', async ({ id, servicioId }, { rejectWithValue }) => {
@@ -73,9 +73,19 @@ const ordenesSlice = createSlice({
      .addCase(addRepuestoToOrden.pending, s => { s.actionLoading=true; })
      .addCase(addRepuestoToOrden.fulfilled, (s,a) => { s.actionLoading=false; if(a.payload) s.selected=a.payload; })
      .addCase(addRepuestoToOrden.rejected, (s,a) => { s.actionLoading=false; s.error=a.payload; })
-     .addCase(setManoDeObra.pending, s => { s.actionLoading=true; })
-     .addCase(setManoDeObra.fulfilled, (s,a) => { s.actionLoading=false; if(a.payload) s.selected=a.payload; })
-     .addCase(setManoDeObra.rejected, (s,a) => { s.actionLoading=false; s.error=a.payload; })
+     .addCase(setEstadoFacturacion.pending, s => { s.actionLoading=true; })
+     /* La respuesta del PATCH trae SOLO { Id_Orden, EstadoFacturacion }: pisar
+        `selected` con ella dejaria el detalle sin servicios, repuestos ni
+        cliente y el modal se vaciaria. Se fusiona el campo sobre lo que ya hay.
+        setManoDeObra si podia reemplazarlo entero porque su endpoint devolvia
+        la orden completa. */
+     .addCase(setEstadoFacturacion.fulfilled, (s,a) => {
+       s.actionLoading=false;
+       if (a.payload && s.selected) s.selected = { ...s.selected, EstadoFacturacion: a.payload.EstadoFacturacion };
+       const fila = a.payload && s.items?.find(o => o.Id_Orden === a.payload.Id_Orden);
+       if (fila) fila.EstadoFacturacion = a.payload.EstadoFacturacion;
+     })
+     .addCase(setEstadoFacturacion.rejected, (s,a) => { s.actionLoading=false; s.error=a.payload; })
      .addCase(deleteServicioFromOrden.pending, s => { s.actionLoading=true; })
      .addCase(deleteServicioFromOrden.fulfilled, s => { s.actionLoading=false; })
      .addCase(deleteServicioFromOrden.rejected, (s,a) => { s.actionLoading=false; s.error=a.payload; })

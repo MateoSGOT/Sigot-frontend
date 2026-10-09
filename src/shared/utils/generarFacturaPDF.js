@@ -21,10 +21,11 @@ const PAGE_W = 210;
 const M = 14;                     // margen lateral
 const RIGHT = PAGE_W - M;         // 196
 
-// Mismo 19% que usa RepuestosPage.jsx (_iva) para calcular PrecioVenta = costo ×
-// margen × IVA -- el IVA de los repuestos ya viene INCLUIDO en ese precio, no se
-// suma aparte. Servicios y Mano de obra no tienen IVA calculado en ningún lado
-// (precios fijos que pone el admin), así que la línea de IVA del comprobante es
+// Mismo 19% de la fórmula del taller: PrecioVenta = costo/margen + costo×0.19,
+// así que el IVA ya viene INCLUIDO en ese precio y no se suma aparte. Los
+// servicios con costo informado siguen la misma fórmula en el servidor; los que
+// entraron con un precio a mano no desglosan IVA, así que la línea de IVA del
+// comprobante es
 // puramente informativa: solo desglosa cuánto del subtotal de repuestos ya es IVA,
 // sin tocar el total (ver buildComprobanteOrden).
 const IVA_PORCENTAJE = 19;
@@ -233,10 +234,14 @@ export function buildComprobanteOrden(orden, { getTecnicoPrefijo } = {}) {
     y = doc.lastAutoTable.finalY + 8;
   }
 
-  const manoDeObra   = Number(orden.ManoDeObra ?? orden.mano_de_obra ?? 0);
+  /* Sin mano de obra: ese campo se elimino de la OT y lo que el taller cobre
+     por trabajo se registra como un SERVICIO, de modo que ya entra en
+     subtotalServ. Misma formula que el total del modal (OrdenesPage) y que
+     dashboard.model.js::INGRESO_EXPR en la API -- tres sitios que tienen que
+     dar el mismo numero. */
   const subtotalServ = (orden.servicios || []).reduce((s, x) => s + Number(x.subtotal ?? x.Subtotal ?? 0), 0);
   const subtotalRep  = (orden.repuestos || []).reduce((s, x) => s + Number(x.subtotal ?? x.Subtotal ?? 0), 0);
-  const total = subtotalServ + subtotalRep + manoDeObra;
+  const total = subtotalServ + subtotalRep;
   // Desglose informativo: cuánto del subtotal de repuestos ya es IVA (no se suma
   // al total, solo lo hace explícito -- ver comentario de IVA_PORCENTAJE arriba).
   const ivaIncluido = subtotalRep * (IVA_PORCENTAJE / (100 + IVA_PORCENTAJE));
@@ -245,7 +250,6 @@ export function buildComprobanteOrden(orden, { getTecnicoPrefijo } = {}) {
     ['Subtotal servicios', subtotalServ],
     ['Subtotal repuestos', subtotalRep],
     ...(subtotalRep > 0 ? [[`  · IVA incluido en repuestos (${IVA_PORCENTAJE}%)`, ivaIncluido]] : []),
-    ['Mano de obra', manoDeObra],
   ]) + 1;
   totalBox(doc, y, total);
 

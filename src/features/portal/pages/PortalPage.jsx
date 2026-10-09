@@ -423,9 +423,10 @@ function PortalPageInner() {
   /* ── Orden totals ────────────────────────────────────────── */
   const totalServ = (ordDetail?.servicios || []).reduce((s, x) => s + Number(x.precio_unitario || 0), 0);
   const totalRep  = (ordDetail?.repuestos  || []).reduce((s, x) => s + Number(x.cantidad || 1) * Number(x.precio_unitario || 0), 0);
-  const manoObra  = ordDetail?.mano_de_obra ?? null;
-  const total     = totalServ + totalRep + (manoObra || 0);
-  // El cliente no ve el desglose de servicios ni la mano de obra mientras la orden
+  // Sin mano de obra: el campo se eliminó de la OT y lo que el taller cobre por
+  // trabajo se registra como un servicio, así que entra en totalServ.
+  const total     = totalServ + totalRep;
+  // El cliente no ve el desglose de servicios mientras la orden
   // está en curso (son precios/margen internos del taller) -- solo cuando queda
   // Realizada (EstadoFlujo "Realizado" = 3) se destapa el desglose completo con el total real.
   const ordenConComprobante = Number(ordDetail?.Estado) === 3;
@@ -865,7 +866,6 @@ function PortalPageInner() {
                       <div className={OD_TOTAL_DESGLOSE}>
                         <div className={OD_TOTAL_FILA}><span>Servicios</span><span>{formatCurrency(totalServ)}</span></div>
                         <div className={OD_TOTAL_FILA}><span>Repuestos</span><span>{formatCurrency(totalRep)}</span></div>
-                        <div className={OD_TOTAL_FILA}><span>Mano de obra</span><span>{manoObra != null ? formatCurrency(manoObra) : '—'}</span></div>
                       </div>
                       <div className={OD_TOTAL_FINAL}>
                         <span>Total</span>
@@ -877,7 +877,7 @@ function PortalPageInner() {
                       <div className={OD_TOTAL_DESGLOSE}>
                         <div className={OD_TOTAL_FILA}><span>Repuestos</span><span>{formatCurrency(totalRep)}</span></div>
                       </div>
-                      <p className="u-hint" style={{ marginTop: '0.5rem' }}>El costo de servicios y mano de obra se muestra cuando la orden queda con comprobante.</p>
+                      <p className="u-hint" style={{ marginTop: '0.5rem' }}>El costo de los servicios se muestra cuando la orden queda con comprobante.</p>
                     </>
                   )}
                 </div>
@@ -891,7 +891,7 @@ function PortalPageInner() {
                     ? (ordDetail.servicios || []).map((s, i) => (
                       <div key={i} className={OD_FILA}>
                         <span className={OD_NOMBRE}>{s.servicio || s.Nombre || `Servicio #${s.Id_Servicio}`}</span>
-                        {/* El costo de servicios/mano de obra es información interna del taller
+                        {/* El costo de los servicios es información interna del taller
                             (margen) -- se destapa solo cuando la orden queda con comprobante
                             (ver ordenConComprobante), pero el CLIENTE siempre debe poder ver QUÉ
                             servicios se le están realizando, con o sin comprobante aún. */}
@@ -907,7 +907,7 @@ function PortalPageInner() {
                     <span>{formatCurrency(totalServ)}</span>
                   </div>
                 ) : (ordDetail.servicios || []).length > 0 && (
-                  <p className="u-hint" style={{ marginTop: '0.5rem' }}>El costo de servicios y mano de obra se muestra cuando la orden queda con comprobante.</p>
+                  <p className="u-hint" style={{ marginTop: '0.5rem' }}>El costo de los servicios se muestra cuando la orden queda con comprobante.</p>
                 )}
               </div>
             )}

@@ -1,12 +1,12 @@
 ﻿import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useLocation } from 'react-router-dom';
-import { MdVisibility, MdEdit, MdAdd, MdBuild, MdCheck, MdArrowForward, MdDeleteOutline, MdClose } from 'react-icons/md';
+import { MdVisibility, MdEdit, MdAdd, MdCheck, MdArrowForward, MdDeleteOutline, MdClose, MdReceiptLong, MdCheckCircle, MdSchedule } from 'react-icons/md';
 import { usePermiso } from '../../../shared/hooks/usePermiso.js';
 import { useAutoRefresh } from '../../../shared/hooks/useAutoRefresh.js';
 import {
   fetchOrdenById, updateOrden, toggleOrdenEstado,
-  addServicioToOrden, addRepuestoToOrden, setManoDeObra, clearSelected,
+  addServicioToOrden, addRepuestoToOrden, setEstadoFacturacion, clearSelected,
   deleteServicioFromOrden, deleteRepuestoFromOrden, reasignarEmpleadoOrden, extenderDuracionOrden,
   agregarMecanicoOrden, quitarMecanicoOrden,
 } from '../slices/ordenesSlice.js';
@@ -48,6 +48,8 @@ import {
   OD_TABS, OD_TAB, OD_TAB_ACTIVA, OD_LISTA, OD_FILA, OD_NOMBRE, OD_CANTIDAD,
   OD_PRECIO, OD_VACIO, OD_SUBTOTAL, OD_TOTAL_CAJA, OD_TOTAL_DESGLOSE,
   OD_TOTAL_FILA, OD_TOTAL_FINAL, OD_TOTAL_CIFRA,
+  OD_FACT_CAJA, OD_FACT_ACCIONES, OD_FACT_BTN_FACTURAR, OD_FACT_BTN_PENDIENTE,
+  OD_FACT_ETIQUETA, OD_FACT_ESTADO,
 } from '../../../shared/styles/clasesOrdenDetalle.js';
 
 // Reglas de validación en tiempo real para crear un servicio/repuesto NUEVO
@@ -288,8 +290,6 @@ export default function OrdenesPage() {
   const [addRepForm, setAddRepForm]       = useState({ Id_Repuesto: '', cantidad: '', precio_unitario: '' });
   const [addRepError, setAddRepError]     = useState('');
   const [flujoError, setFlujoError]       = useState('');
-  const [manoInput, setManoInput]         = useState('');
-  const [editingMano, setEditingMano]     = useState(false);
   const [servPage, setServPage]           = useState(0);
   const [repPage, setRepPage]             = useState(0);
   const [editingEmpleado, setEditingEmpleado] = useState(false);
@@ -381,8 +381,6 @@ export default function OrdenesPage() {
     if (detailId) {
       dispatch(fetchOrdenById(detailId));
       setActiveTab('info');
-      setEditingMano(false);
-      setManoInput('');
       setServPage(0);
       setRepPage(0);
       setFlujoError('');
@@ -443,13 +441,40 @@ export default function OrdenesPage() {
 
   const totalServicios = (selected?.servicios || []).reduce((sum, s) => sum + Number(s.precio_unitario || s.Precio || 0), 0);
   const totalRepuestos = (selected?.repuestos || []).reduce((sum, r) => sum + Number(r.precio_unitario || r.PrecioVenta || 0) * Number(r.cantidad || r.Cantidad || 1), 0);
-  const manoDeObra     = selected?.mano_de_obra ?? null;
-  const totalGeneral   = totalServicios + totalRepuestos + (manoDeObra || 0);
+  /* El total es la suma de servicios + repuestos y nada mas. La mano de obra
+     desaparecio como campo de la OT: lo que el taller cobre por trabajo se
+     registra como un SERVICIO, asi que entra por totalServicios.
 
-  // Bloquea SOLO la edición de contenido (servicios, repuestos, mano de obra).
+     Misma formula que el servidor (dashboard.model.js::INGRESO_EXPR) y que el
+     PDF de factura -- son tres sitios que deben dar el mismo numero. */
+  const totalGeneral   = totalServicios + totalRepuestos;
+
+  // Bloquea SOLO la edición de contenido (servicios y repuestos).
   // El toggle de estado (activar/inactivar) permanece siempre disponible.
   const contenidoBloqueado = selected?.EstadoFlujo === 'Realizado' || selected?.Estado === 0;
   const puedeGenerarComprobante  = selected?.EstadoFlujo === 'Realizado';
+
+  /* FACTURACION. Se apoya en la MISMA condicion que el comprobante -- la orden
+     esta Realizada -- porque es el mismo momento del negocio: la orden ya se
+     entrego y lo que queda es cobrarla. Se reusa la constante en vez de repetir
+     la comparacion para que no puedan divergir.
+
+     El estado de cobro es un eje APARTE del flujo de taller: una orden
+     Realizada puede estar sin facturar, pendiente o facturada. Por eso el
+     backend no lo deriva de EstadoFlujo (ver orden.service.js). */
+  const puedeFacturar      = puedeGenerarComprobante;
+  const estadoFacturacion  = selected?.EstadoFacturacion ?? 'No facturada';
+  const handleFacturacion = async (estado) => {
+    const result = await dispatch(setEstadoFacturacion({ id: detailId, estado }));
+    if (result.error) {
+      addToast({ type: 'error', message: result.payload || 'No se pudo actualizar el estado de facturación.' });
+      return;
+    }
+    addToast({
+      type: estado === 'Facturada' ? 'success' : 'info',
+      message: estado === 'Facturada' ? 'Orden marcada como facturada.' : 'Orden marcada con factura pendiente.',
+    });
+  };
 
   const [enviandoComprobante, setEnviandoComprobante] = useState(false);
   const handleEnviarComprobanteCorreo = async () => {
@@ -630,13 +655,6 @@ export default function OrdenesPage() {
   const handleSaveObservacion = async () => {
     const result = await dispatch(updateOrden({ id: detailId, data: { Observacion: obsEdit } }));
     if (!result.error) { setObsEdit(null); dispatch(fetchOrdenById(detailId)); }
-  };
-
-  const handleSetMano = async () => {
-    const valor = Number(manoInput);
-    if (!manoInput || isNaN(valor) || valor < 0) return;
-    const result = await dispatch(setManoDeObra({ id: detailId, valor }));
-    if (!result.error) { setEditingMano(false); setManoInput(''); }
   };
 
   const handleDeleteServicio = async (servicioId) => {
@@ -1046,13 +1064,47 @@ export default function OrdenesPage() {
                   <div className={OD_TOTAL_DESGLOSE}>
                     <div className={OD_TOTAL_FILA}><span>Servicios</span><span>{formatCurrency(totalServicios)}</span></div>
                     <div className={OD_TOTAL_FILA}><span>Repuestos</span><span>{formatCurrency(totalRepuestos)}</span></div>
-                    <div className={OD_TOTAL_FILA}><span>Mano de obra</span><span>{manoDeObra != null ? formatCurrency(manoDeObra) : '—'}</span></div>
                   </div>
                   <div className={OD_TOTAL_FINAL}>
                     <span>Total</span>
                     <span>{formatCurrency(totalGeneral)}</span>
                   </div>
                 </div>
+
+                {/* Solo con la orden Realizada: antes de entregarla no hay nada
+                    que facturar, y mostrar los botones en gris invitaria a
+                    pulsarlos. */}
+                {puedeFacturar && (
+                  <div className={OD_FACT_CAJA}>
+                    <div className={OD_FACT_ETIQUETA}>
+                      <MdReceiptLong size={16} className="text-primary-soft-on" />
+                      <span>Facturación</span>
+                      <span className={OD_FACT_ESTADO[estadoFacturacion] || OD_FACT_ESTADO['No facturada']}>
+                        {estadoFacturacion}
+                      </span>
+                    </div>
+                    <div className={OD_FACT_ACCIONES}>
+                      <button
+                        type="button"
+                        className={OD_FACT_BTN_FACTURAR}
+                        onClick={() => handleFacturacion('Facturada')}
+                        disabled={actionLoading || estadoFacturacion === 'Facturada'}
+                        title={estadoFacturacion === 'Facturada' ? 'Esta orden ya está facturada' : undefined}
+                      >
+                        <MdCheckCircle size={18} /> Marcar como facturada
+                      </button>
+                      <button
+                        type="button"
+                        className={OD_FACT_BTN_PENDIENTE}
+                        onClick={() => handleFacturacion('Pendiente')}
+                        disabled={actionLoading || estadoFacturacion === 'Pendiente'}
+                        title={estadoFacturacion === 'Pendiente' ? 'Ya está marcada como pendiente' : undefined}
+                      >
+                        <MdSchedule size={18} /> Factura pendiente
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
@@ -1104,34 +1156,9 @@ export default function OrdenesPage() {
                   );
                 })()}
 
-                <div className="mb-xl rounded-lg border-[1.5px] border-dashed border-border bg-surface px-lg py-md">
-                  <div className="mb-md flex items-center gap-sm">
-                    <MdBuild size={16} className="text-primary-soft-on" />
-                    <span className="text-body font-bold text-text">Mano de obra</span>
-                  </div>
-                  {manoDeObra != null && !editingMano ? (
-                    <div className="flex items-center gap-lg">
-                      <span className="flex-1 text-h3 font-bold text-text">{formatCurrency(manoDeObra)}</span>
-                      {!contenidoBloqueado && (
-                        <button className="btn btn--outline btn--sm" onClick={() => { setManoInput(String(manoDeObra)); setEditingMano(true); }}>
-                          <MdEdit size={15} /> Editar
-                        </button>
-                      )}
-                    </div>
-                  ) : !contenidoBloqueado ? (
-                    <div className="flex items-center gap-sm [&_.form-control]:flex-1 [&_.form-control]:max-w-[200px]">
-                      <input type="number" min="0" className="form-control" placeholder="Valor mano de obra..." value={manoInput} onChange={e => setManoInput(e.target.value)} />
-                      <button className="btn btn--primary btn--sm" onClick={handleSetMano} disabled={actionLoading || !manoInput}>
-                        {actionLoading ? 'Guardando...' : 'Guardar'}
-                      </button>
-                      {editingMano && <button className="btn btn--outline btn--sm" onClick={() => { setEditingMano(false); setManoInput(''); }}>Cancelar</button>}
-                    </div>
-                  ) : null}
-                </div>
-
                 <div className={OD_SUBTOTAL}>
-                  <span>Subtotal servicios + mano de obra</span>
-                  <span>{formatCurrency(totalServicios + (manoDeObra || 0))}</span>
+                  <span>Subtotal servicios</span>
+                  <span>{formatCurrency(totalServicios)}</span>
                 </div>
 
                 {!contenidoBloqueado && (

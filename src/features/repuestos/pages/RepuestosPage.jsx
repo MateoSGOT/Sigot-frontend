@@ -75,9 +75,16 @@ const DETALLE = '[&>summary]:cursor-pointer [&>summary]:font-semibold [&_ul]:mt-
 // El margen ya no tiene piso fijo (antes 50%) -- el taller puede vender con un margen
 // más bajo si lo necesita (ej. competir en precio); el precio de venta se calcula
 // igual (costo × margen × IVA).
-/* MargenGanancia es un FACTOR decimal (0.635), no un porcentaje. El precio de
-   venta se calcula en la API como costo/margen + costo*0.19. */
-const EMPTY = { NombreRepuesto: '', Codigo: '', StockMinimo: '5', MargenGanancia: '0.635', _costo: 0, _iva: 19, _precioVenta: null };
+/* OJO con MargenGanancia: en el FORMULARIO es un porcentaje entero (50) y en
+   la API es un factor decimal (0.5). La conversion ocurre en dos sitios y solo
+   dos: openEdit al cargar (factor -> %) y handleSubmit al enviar (% -> factor).
+
+   El defecto del formulario es 50 por pedido del taller, y conviene saber que
+   NO coincide con el margen real del inventario importado, que es 0.635 (63.5
+   %) en las 415 fichas que entraron del Excel. Un repuesto creado a mano
+   arranca entonces con un margen distinto al de sus vecinos: es intencional,
+   no un descuido. */
+const EMPTY = { NombreRepuesto: '', Codigo: '', StockMinimo: '5', MargenGanancia: '50', _costo: 0, _iva: 19, _precioVenta: null };
 // Agrupa la lista de fallos { nombre, motivo } en { motivo: [nombre, ...] }, ordenado por
 // cuántos ítems tiene cada motivo (el más frecuente primero) -- así el panel de resultados
 // muestra "18 repuestos: <motivo real>" en vez de una lista plana de 18 nombres sin contexto.
@@ -112,9 +119,20 @@ const _primerValor = (fila, alias) => {
 const _margenPorcentaje = (factor) => {
   const f = Number(factor);
   if (!Number.isFinite(f)) return '—';
-  const pct = Math.round(f * 1000) / 10; // un decimal, sin ruido de coma flotante
+  const pct = _factorAPorcentaje(f);
   return `${Number.isInteger(pct) ? pct : pct.toFixed(1)}%`;
 };
+
+/* Las DOS conversiones del formulario, en un solo lugar y en un solo sentido
+   cada una. El input habla en porcentaje entero (50) y la API en factor
+   decimal (0.5); tener la multiplicacion repartida por el componente es como
+   se cuela un margen 100 veces mas grande.
+
+   El redondeo del factor -> porcentaje no es cosmetico: 0.635*100 da 63.5
+   limpio, pero muchos factores no son exactos en binario y salen con cola
+   (0.07*100 = 7.000000000000001), que en un input type=number se ve. */
+const _factorAPorcentaje = (factor) => Math.round(Number(factor) * 1000) / 10;
+const _porcentajeAFactor = (pct) => Number(pct) / 100;
 // Pausa entre filas del import de Excel: con hasta 2 solicitudes por fila (categoría +
 // repuesto) y archivos reales de cientas de filas, sin ninguna pausa el import dispara
 // cientos de solicitudes seguidas en pocos segundos -- mala práctica de todas formas,
@@ -129,12 +147,15 @@ const RULES = {
     if (t.length > 40) return 'El código no puede superar los 40 caracteres.';
     return '';
   },
+  // En PORCENTAJE, que es lo que se teclea. El limite de 100 es el mismo que el
+  // de la API expresado en esta unidad (factor <= 1): por encima de 100 % se
+  // venderia por debajo del costo.
   MargenGanancia: (v) => {
     if (v == null || String(v).trim() === '') return ''; // opcional; queda en su default
     const n = Number(v);
     if (Number.isNaN(n)) return 'El margen debe ser un número.';
-    if (n <= 0) return 'El margen debe ser mayor que 0 (es un factor, ej. 0.635).';
-    if (n > 1) return 'El margen no puede ser mayor que 1: sería vender por debajo del costo.';
+    if (n <= 0) return 'El margen debe ser mayor que 0 %.';
+    if (n > 100) return 'El margen no puede pasar del 100 %: sería vender por debajo del costo.';
     return '';
   },
 };
@@ -623,7 +644,7 @@ export default function RepuestosPage() {
       NombreRepuesto: item.NombreRepuesto || item.Nombre || '',
       StockMinimo: String(item.StockMinimo ?? 5),
       Codigo: String(item.Codigo ?? ''),
-      MargenGanancia: String(item.MargenGanancia ?? 0.635),
+      MargenGanancia: String(_factorAPorcentaje(item.MargenGanancia ?? 0.5)),
       _costo: Number(item.Precio ?? 0),
       _iva: Number(item.IvaPorcentaje ?? 19),
       _precioVenta: item.PrecioVenta ?? null,
@@ -631,13 +652,20 @@ export default function RepuestosPage() {
     setEditingId(item.Id_Repuesto); setFormError(''); reset(); setShowForm(true);
   };
 
-  // Previsualización del precio de venta al cambiar el margen (la fuente de verdad es la API).
+  /* Previsualizacion del precio de venta al cambiar el margen. La fuente de
+     verdad sigue siendo la API; esto solo evita guardar a ciegas.
+
+     Estaba calculando con la formula ANTERIOR -- costo*(1+m/100)*(1+iva/100),
+     con el margen multiplicando y el IVA sobre el total -- y con un piso de
+     m < 50 que ya no existe. Mostraba un numero que no era el que la API iba a
+     guardar: para costo 16008 y margen 50 %, 28574 en pantalla contra 31059
+     reales. Ahora es la misma formula del servidor. */
   const previewPrecioVenta = () => {
     const costo = Number(formData._costo ?? 0);
-    const iva   = Number(formData._iva ?? 19);
-    const m     = Number(formData.MargenGanancia);
-    if (!costo || Number.isNaN(m) || m < 50) return null;
-    return Math.round(costo * (1 + m / 100) * (1 + iva / 100) * 100) / 100;
+    const pct   = Number(formData.MargenGanancia);
+    if (!costo || !Number.isFinite(pct) || pct <= 0 || pct > 100) return null;
+    const margen = _porcentajeAFactor(pct);
+    return Math.round(costo / margen + costo * 0.19);
   };
   const setField = (name, value) => {
     const next = { ...formData, [name]: value };
@@ -659,8 +687,10 @@ export default function RepuestosPage() {
       NombreRepuesto: formData.NombreRepuesto.trim(),
       StockMinimo: Number(formData.StockMinimo ?? 5),
       Codigo: String(formData.Codigo).trim(),
-      // ?? y no ||: respeta un margen escrito explicitamente.
-      MargenGanancia: Number(formData.MargenGanancia ?? 0.635),
+      /* % -> factor. La API espera el factor decimal (0.5), el input muestra
+         el porcentaje (50). Si este /100 se cae, el validador de Joi rechaza el
+         50 con "no puede ser mayor que 1", que es la red de seguridad. */
+      MargenGanancia: _porcentajeAFactor(formData.MargenGanancia ?? 50),
     };
     const action = editingId ? updateRepuesto({ id: editingId, data: payload }) : createRepuesto(payload);
     const result = await dispatch(action);
@@ -876,12 +906,16 @@ export default function RepuestosPage() {
             <input name="StockMinimo" type="number" min="0" className="form-control" value={formData.StockMinimo} onChange={handleChange} placeholder="5" />
           </div>
           <div className="form-group span-2">
-            <label className="form-label">Margen de ganancia</label>
-            <input name="MargenGanancia" type="number" min="0.001" max="1" step="0.001" className={`form-control ${fieldError('MargenGanancia') ? 'is-error' : ''}`} value={formData.MargenGanancia} onChange={handleChange} onBlur={handleBlur} placeholder="0.635" />
+            <label className="form-label">Margen de ganancia (%)</label>
+            {/* PORCENTAJE entero, como lo lee el taller. El % va dentro del campo
+                con padding a la derecha para el texto, no como sufijo suelto: asi
+                la unidad no se puede perder de vista al teclear. */}
+            <div className="relative">
+              <input name="MargenGanancia" type="number" min="1" max="100" step="1" inputMode="numeric" className={`form-control pr-2xl ${fieldError('MargenGanancia') ? 'is-error' : ''}`} value={formData.MargenGanancia} onChange={handleChange} onBlur={handleBlur} placeholder="50" />
+              <span className="pointer-events-none absolute right-md top-1/2 -translate-y-1/2 text-body font-semibold text-text-muted">%</span>
+            </div>
             {fieldError('MargenGanancia') && <p className="form-error">{fieldError('MargenGanancia')}</p>}
-            {/* FACTOR decimal, no porcentaje: es la forma en que lo guarda el archivo
-                del taller y la que usa la formula (costo/margen + costo×19%). */}
-            <p className="form-hint">Factor decimal entre 0 y 1 (ej. 0.635). El precio de venta se calcula solo.</p>
+            <p className="form-hint">Porcentaje entre 1 y 100 (ej. 50). El precio de venta se calcula solo.</p>
           </div>
           {editingId && (
             <>

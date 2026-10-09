@@ -62,7 +62,7 @@ export const MAQUETA_FILAS_ORDENES = [
 ];
 
 /* Detalle de UNA orden, para poder revisar el modal (stepper, lineas, totales,
-   mano de obra) sin sesion. Se expone aparte del listado porque el detalle lo
+   totales) sin sesion. Se expone aparte del listado porque el detalle lo
    trae un thunk distinto (fetchOrdenById) y, con CORS bloqueado en local, nunca
    llega.
 
@@ -80,9 +80,6 @@ export const MAQUETA_ORDEN_DETALLE = {
   FechaIngreso: '2026-09-28',
   FechaEntrega: null,
   Estado: 2,
-  // El componente lee `mano_de_obra` (snake_case), no ManoDeObra: lo verifique
-  // en el navegador porque el campo salia como "—" con la clave equivocada.
-  mano_de_obra: 85000,
   DuracionTotalMin: 150,
   Empleado: 'Pedro Muñoz',
   servicios: [

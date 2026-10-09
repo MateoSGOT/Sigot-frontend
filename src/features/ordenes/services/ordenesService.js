@@ -7,7 +7,10 @@ export const ordenesService = {
   toggleEstado:   (id, Estado)   => api.patch(`${BASE}/${id}/estado`, { Estado }).then(r => r.data),
   addServicio:    (id, data)     => api.post(`${BASE}/${id}/servicios`, data).then(r => r.data),
   addRepuesto:    (id, data)     => api.post(`${BASE}/${id}/repuestos`, data).then(r => r.data),
-  setManoDeObra:  (id, valor)    => api.patch(`${BASE}/${id}/mano-de-obra`, { mano_de_obra: valor }).then(r => r.data),
+  /* Estado de COBRO de la orden, aparte del flujo de taller: una orden puede
+     estar Realizada y aun sin facturar. Reemplaza a setManoDeObra, que
+     desaparecio junto con el campo ManoDeObra de la OT. */
+  setEstadoFacturacion: (id, estado) => api.patch(`${BASE}/${id}/estado-facturacion`, { EstadoFacturacion: estado }).then(r => r.data),
   // "Necesito más tiempo": extiende la duración estimada de la cita de origen. El backend
   // detecta si eso choca con la siguiente cita del mismo técnico y, de ser así, avisa por
   // correo al cliente afectado (no bloquea: el trabajo ya está en curso).
