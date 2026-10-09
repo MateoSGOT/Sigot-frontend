@@ -4,7 +4,6 @@ import clientesReducer from '../features/clientes/slices/clientesSlice';
 import vehiculosReducer from '../features/vehiculos/slices/vehiculosSlice';
 import empleadosReducer from '../features/empleados/slices/empleadosSlice';
 import repuestosReducer from '../features/repuestos/slices/repuestosSlice';
-import categoriasReducer from '../features/categorias/slices/categoriasSlice';
 import proveedoresReducer from '../features/proveedores/slices/proveedoresSlice';
 import comprasReducer from '../features/compras/slices/comprasSlice';
 import serviciosReducer from '../features/servicios/slices/serviciosSlice';
@@ -21,7 +20,6 @@ export const store = configureStore({
     vehiculos: vehiculosReducer,
     empleados: empleadosReducer,
     repuestos: repuestosReducer,
-    categorias: categoriasReducer,
     proveedores: proveedoresReducer,
     compras: comprasReducer,
     servicios: serviciosReducer,

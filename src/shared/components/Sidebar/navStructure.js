@@ -44,7 +44,6 @@ export const NAV_STRUCTURE = [
   {
     type: 'group', name: 'Inventario', icon: MdStorage,
     children: [
-      { to: '/categorias', icon: MdCategory, label: 'Categorías', permiso: 'CATEGORIAS' },
       { to: '/repuestos',  icon: MdBuild,    label: 'Repuestos',  permiso: 'REPUESTOS'  },
     ],
   },

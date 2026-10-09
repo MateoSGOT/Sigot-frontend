@@ -5,7 +5,7 @@ const normEstado = (v) => v === true ? 1 : v === false ? 0 : Number(v);
 const norm = (r) => ({
   ...r,
   Nombre: r.NombreRepuesto ?? r.Nombre,
-  Id_Categoria: r.Id_categoria ?? r.Id_Categoria,
+  Codigo: r.Codigo,
   Estado: normEstado(r.Estado),
 });
 

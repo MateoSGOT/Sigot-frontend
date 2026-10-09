@@ -21,7 +21,6 @@ const ClientesPage = lazy(() => import('./features/clientes/pages/ClientesPage.j
 const VehiculosPage = lazy(() => import('./features/vehiculos/pages/VehiculosPage.jsx'));
 const EmpleadosPage = lazy(() => import('./features/empleados/pages/EmpleadosPage.jsx'));
 const RepuestosPage = lazy(() => import('./features/repuestos/pages/RepuestosPage.jsx'));
-const CategoriasPage = lazy(() => import('./features/categorias/pages/CategoriasPage.jsx'));
 const ProveedoresPage = lazy(() => import('./features/proveedores/pages/ProveedoresPage.jsx'));
 const ComprasPage = lazy(() => import('./features/compras/pages/ComprasPage.jsx'));
 const ServiciosPage = lazy(() => import('./features/servicios/pages/ServiciosPage.jsx'));
@@ -214,7 +213,6 @@ function App() {
         <Route path="/vehiculos"   element={<VehiculosPage />} />
         <Route path="/empleados"   element={<EmpleadosPage />} />
         <Route path="/repuestos"   element={<RepuestosPage />} />
-        <Route path="/categorias"  element={<CategoriasPage />} />
         <Route path="/proveedores" element={<ProveedoresPage />} />
         <Route path="/compras"     element={<ComprasPage />} />
         <Route path="/servicios"   element={<ServiciosPage />} />

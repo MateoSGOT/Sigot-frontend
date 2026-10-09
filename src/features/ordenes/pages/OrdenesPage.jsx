@@ -63,7 +63,6 @@ const RULES_NUEVO_SERV = {
 };
 const RULES_NUEVO_REP = {
   NombreRepuesto: (v) => V.nombre(v, 3, 120),
-  Id_categoria:   (v) => V.requiredSelect(v, 'La categoría'),
   cantidad: (v) => {
     if (v === '' || v == null) return 'La cantidad es obligatoria.';
     const n = Number(v);
@@ -238,7 +237,6 @@ export default function OrdenesPage() {
   const puedeToggle  = usePermiso('ORDENES.CAMBIAR_ESTADO');
   const [serviciosOpts, setServiciosOpts] = useState([]);
   const [repuestosOpts, setRepuestosOpts] = useState([]);
-  const [categoriasOpts, setCategoriasOpts] = useState([]);
   // Técnicos activos, para asignar quién hizo cada servicio/repuesto de la orden
   // (independiente del técnico "principal" ya asignado vía Agenda).
   const [tecnicosOpts, setTecnicosOpts] = useState([]);
@@ -250,7 +248,7 @@ export default function OrdenesPage() {
   // Servicios -- un repuesto es una pieza que se instala, no un trabajo que "hace"
   // un técnico en particular, y varios técnicos pueden trabajar la misma orden sin
   // que eso implique repartir los repuestos entre ellos.
-  const [nuevoRep, setNuevoRep] = useState({ NombreRepuesto: '', Id_categoria: '', cantidad: '', precio_unitario: '' });
+  const [nuevoRep, setNuevoRep] = useState({ NombreRepuesto: '', cantidad: '', precio_unitario: '' });
   const servVal = useFormValidation(RULES_NUEVO_SERV);
   const repVal  = useFormValidation(RULES_NUEVO_REP);
   const setServField = (name, value) => {
@@ -357,8 +355,6 @@ export default function OrdenesPage() {
   useEffect(() => {
     api.get('/api/servicios').then(r => setServiciosOpts(r.data?.data || r.data || [])).catch(() => {});
     api.get('/api/repuestos').then(r => setRepuestosOpts(r.data?.data || r.data || [])).catch(() => {});
-    api.get('/api/categoria-repuestos').then(r => setCategoriasOpts(r.data?.data || r.data || []))
-      .catch(() => addToast({ type: 'error', message: 'No se pudieron cargar las categorías de repuesto. Verifica tus permisos o intenta de nuevo.' }));
     api.get('/api/empleados').then(r => {
       const data = r.data?.data || r.data || [];
       // Bug real encontrado: /mec|tec/i NO hace match con "Técnico" (con tilde) -- en JS,
@@ -612,9 +608,7 @@ export default function OrdenesPage() {
     try {
       const res = await api.post('/api/repuestos', {
         NombreRepuesto: nuevoRep.NombreRepuesto.trim(),
-        Id_categoria: nuevoRep.Id_categoria,
         StockMinimo: 5,
-        MargenPorcentaje: 50,
       });
       const creado = res.data?.data || res.data;
       const newId = creado?.Id_Repuesto ?? creado?.id;
@@ -622,7 +616,7 @@ export default function OrdenesPage() {
       setRepuestosOpts(list.data?.data || list.data || []);
       const result = await dispatch(addRepuestoToOrden({ id: detailId, data: { Id_Repuesto: newId, cantidad: nuevoRep.cantidad, precio_unitario: nuevoRep.precio_unitario } }));
       if (!result.error) {
-        setNuevoRep({ NombreRepuesto: '', Id_categoria: '', cantidad: '', precio_unitario: '' });
+        setNuevoRep({ NombreRepuesto: '', cantidad: '', precio_unitario: '' });
         repVal.reset();
         setModoRep('existente');
         dispatch(fetchOrdenById(detailId));
@@ -1316,15 +1310,9 @@ export default function OrdenesPage() {
                             <input name="NombreRepuesto" className={`form-control ${repVal.fieldError('NombreRepuesto') ? 'is-error' : ''}`} placeholder="Nombre del repuesto" value={nuevoRep.NombreRepuesto} onChange={handleRepChange} onBlur={handleRepBlur} maxLength={120} />
                             {repVal.fieldError('NombreRepuesto') && <p className="form-error">{repVal.fieldError('NombreRepuesto')}</p>}
                           </div>
-                          <div className="flex min-w-[120px] flex-1 flex-col gap-[2px] [&_.form-error]:m-0">
-                            <SearchableSelect
-                              options={categoriasOpts.map(c => ({ value: String(c.Id_categoria ?? c.Id_Categoria), label: c.Nombre ?? c.nombre }))}
-                              value={nuevoRep.Id_categoria}
-                              onChange={id => { handleRepChange({ target: { name: 'Id_categoria', value: id } }); handleRepBlur({ target: { name: 'Id_categoria' } }); }}
-                              placeholder="Categoría..."
-                            />
-                            {repVal.fieldError('Id_categoria') && <p className="form-error">{repVal.fieldError('Id_categoria')}</p>}
-                          </div>
+                          {/* Ya no se pide categoria: al dar de alta un repuesto desde
+                              una orden, la API le asigna el siguiente codigo libre de la
+                              serie (ver orden.service.js). */}
                           <div className="flex min-w-[120px] flex-1 flex-col gap-[2px] [&_.form-error]:m-0">
                             <input name="cantidad" type="number" min="1" className={`form-control ${repVal.fieldError('cantidad') ? 'is-error' : ''}`} placeholder="Cantidad" value={nuevoRep.cantidad} onChange={handleRepChange} onBlur={handleRepBlur} />
                             {repVal.fieldError('cantidad') && <p className="form-error">{repVal.fieldError('cantidad')}</p>}

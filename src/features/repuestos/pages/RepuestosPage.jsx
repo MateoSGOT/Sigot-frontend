@@ -9,18 +9,19 @@ import { usePermiso } from '../../../shared/hooks/usePermiso.js';
 import * as XLSX from 'xlsx';
 import ToggleSwitch from '../../../shared/components/ToggleSwitch/ToggleSwitch.jsx';
 import { createRepuesto, updateRepuesto, toggleRepuestoEstado } from '../slices/repuestosSlice.js';
-import { createCategoria } from '../../categorias/slices/categoriasSlice.js';
 import Modal from '../../../shared/components/Modal/Modal.jsx';
 import Table from '../../../shared/components/Table/Table.jsx';
 import SearchBar from '../../../shared/components/SearchBar/SearchBar.jsx';
 import FilterDropdown from '../../../shared/components/FilterDropdown/FilterDropdown.jsx';
-import SearchableSelect from '../../../shared/components/SearchableSelect/SearchableSelect.jsx';
 import { StatusBadge } from '../../../shared/components/Badge/Badge.jsx';
 import { formatCurrency, todayLocalYMD } from '../../../shared/utils/helpers.js';
 import * as V from '../../../shared/utils/validators.js';
 import { useFormValidation } from '../../../shared/hooks/useFormValidation.js';
 import api from '../../../shared/services/api.js';
-import { motion, AnimatePresence } from 'motion/react';
+// Se importa como `Motion` (mayuscula): la config de eslint del proyecto exime de
+// no-unused-vars solo lo que empieza en mayuscula, y sin eslint-plugin-react la regla
+// no reconoce el JSX con miembro (<Motion.div>) como un uso.
+import { motion as Motion, AnimatePresence } from 'motion/react';
 import { RESORTE } from '../../../shared/styles/movimiento.js';
 import { MAQUETA_FILAS_REPUESTOS } from '../../../shared/dev/datosMaqueta.js';
 
@@ -74,29 +75,9 @@ const DETALLE = '[&>summary]:cursor-pointer [&>summary]:font-semibold [&_ul]:mt-
 // El margen ya no tiene piso fijo (antes 50%) -- el taller puede vender con un margen
 // más bajo si lo necesita (ej. competir en precio); el precio de venta se calcula
 // igual (costo × margen × IVA).
-const EMPTY = { NombreRepuesto: '', StockMinimo: '5', Id_categoria: '', MargenPorcentaje: '50', _costo: 0, _iva: 19, _precioVenta: null };
-// Busca una categoría YA EXISTENTE por nombre contra el catálogo actual del servidor --
-// no contra el estado `categorias` cargado al montar la página, que puede estar
-// desactualizado si la categoría se creó en una corrida anterior de este mismo import (o
-// manualmente) después de que la página cargó. Se usa como respaldo cuando createCategoria
-// falla: antes, cualquier categoría ya existente (ej. "Polea" de una corrida anterior)
-// tumbaba TODOS los repuestos de esa categoría uno por uno durante el resto del import,
-// porque nunca se resolvía su Id_categoria real. `cache` es un objeto mutable simple
-// ({ current: null }) creado una vez por corrida de import -- se llena con un solo GET la
-// primera vez que se necesita, y se reutiliza para el resto de la corrida (una categoría
-// resuelta así queda en catByName y no vuelve a pasar por aquí).
-async function _resolverCategoriaExistente(nombre, cache) {
-  if (!cache.current) {
-    try {
-      const r = await api.get('/api/categoria-repuestos');
-      cache.current = r.data?.data || r.data || [];
-    } catch { cache.current = []; }
-  }
-  const objetivo = nombre.trim().toLowerCase();
-  const match = cache.current.find(c => String(c.Nombre ?? c.nombre ?? '').trim().toLowerCase() === objetivo);
-  return match ? (match.Id_categoria ?? match.Id_Categoria ?? null) : null;
-}
-
+/* MargenGanancia es un FACTOR decimal (0.635), no un porcentaje. El precio de
+   venta se calcula en la API como costo/margen + costo*0.19. */
+const EMPTY = { NombreRepuesto: '', Codigo: '', StockMinimo: '5', MargenGanancia: '0.635', _costo: 0, _iva: 19, _precioVenta: null };
 // Agrupa la lista de fallos { nombre, motivo } en { motivo: [nombre, ...] }, ordenado por
 // cuántos ítems tiene cada motivo (el más frecuente primero) -- así el panel de resultados
 // muestra "18 repuestos: <motivo real>" en vez de una lista plana de 18 nombres sin contexto.
@@ -118,13 +99,18 @@ const PAUSA_ENTRE_FILAS_MS = 60;
 
 const RULES = {
   NombreRepuesto: (v) => V.nombre(v, 3, 120),
-  Id_categoria:   (v) => V.requiredSelect(v, 'La categoría'),
-  MargenPorcentaje: (v) => {
-    if (v == null || String(v).trim() === '') return ''; // opcional; queda en su default 50
+  Codigo: (v) => {
+    const t = String(v ?? '').trim();
+    if (!t) return 'El código de inventario es obligatorio.';
+    if (t.length > 40) return 'El código no puede superar los 40 caracteres.';
+    return '';
+  },
+  MargenGanancia: (v) => {
+    if (v == null || String(v).trim() === '') return ''; // opcional; queda en su default
     const n = Number(v);
     if (Number.isNaN(n)) return 'El margen debe ser un número.';
-    if (n < 0) return 'El margen de ganancia no puede ser negativo.';
-    if (n > 1000) return 'El margen no puede superar el 1000%.';
+    if (n <= 0) return 'El margen debe ser mayor que 0 (es un factor, ej. 0.635).';
+    if (n > 1) return 'El margen no puede ser mayor que 1: sería vender por debajo del costo.';
     return '';
   },
 };
@@ -147,8 +133,8 @@ function ImportResumenPanel({ importMsg, onClose }) {
   }
 
   const rr = importMsg.resumenReal;
-  const catsOrdenadas = rr ? Object.entries(rr.porCategoria).sort((a, b) => b[1] - a[1]) : [];
-  const portaCount = rr?.porCategoria?.['Porta'] || 0;
+  const prefijosOrdenados = rr ? Object.entries(rr.porPrefijo ?? {}).sort((a, b) => b[1] - a[1]) : [];
+  const portaCount = 0;
   const motivos = Object.entries(importMsg.fallosPorMotivo || {});
   const hayAdvertencias = !!rr && (rr.omitidosSinDescripcion > 0 || rr.sinLote > 0 || rr.fallbackSinFecha?.length > 0 || portaCount > 10);
   // Tope defensivo de nombres mostrados por motivo (un import real puede tener cientos de
@@ -164,8 +150,7 @@ function ImportResumenPanel({ importMsg, onClose }) {
 
       <div className={NIVEL_OK}>
         <span>✓ {importMsg.ok} repuesto(s) creado(s).</span>
-        {importMsg.categoriasCreadas > 0 && <span>{importMsg.categoriasCreadas} categoría(s) nueva(s) creada(s).</span>}
-        {importMsg.categoriasRecuperadas > 0 && <span>{importMsg.categoriasRecuperadas} categoría(s) ya existían (reutilizadas automáticamente, sin error).</span>}
+        {importMsg.sinCodigo > 0 && <span>{importMsg.sinCodigo} fila(s) sin código de inventario: omitidas.</span>}
       </div>
 
       {hayAdvertencias && (
@@ -185,9 +170,9 @@ function ImportResumenPanel({ importMsg, onClose }) {
 
       {rr && (
         <details className={DETALLE}>
-          <summary>Ver {catsOrdenadas.length} categoría(s) y cuántos repuestos tiene cada una</summary>
+          <summary>Ver {prefijosOrdenados.length} prefijo(s) de código y cuántos repuestos tiene cada uno</summary>
           <ul>
-            {catsOrdenadas.map(([nombre, cantidad]) => <li key={nombre}>{nombre}: {cantidad}</li>)}
+            {prefijosOrdenados.map(([nombre, cantidad]) => <li key={nombre}>{nombre}: {cantidad}</li>)}
           </ul>
         </details>
       )}
@@ -216,10 +201,10 @@ export default function RepuestosPage() {
   const puedeCrear   = usePermiso('REPUESTOS.REGISTRAR');
   const puedeEditar  = usePermiso('REPUESTOS.EDITAR');
   const puedeToggle  = usePermiso('REPUESTOS.CAMBIAR_ESTADO');
-  const [categorias, setCategorias]       = useState([]);
   const [search, setSearch]               = useState('');
   const [statusFilter, setStatusFilter]   = useState('todos');
-  const [categoriaFilter, setCategoriaFilter] = useState('');
+  // Siguiente codigo libre que sugiere la API al abrir el formulario de alta.
+  const [codigoSugerido, setCodigoSugerido] = useState('');
   const [pageSize, setPageSize]           = useState(5);
   const [stockBajoFilter, setStockBajoFilter] = useState(false);
   // Estado del listado SERVER-SIDE (piloto de paginación).
@@ -244,7 +229,6 @@ export default function RepuestosPage() {
       const ps = pageSize === 'all' ? 9999 : pageSize;
       const params = new URLSearchParams({ page: String(page), pageSize: String(ps), estado: statusFilter });
       if (search) params.set('search', search);
-      if (categoriaFilter) params.set('categoria', categoriaFilter);
       if (stockBajoFilter) params.set('soloBajo', 'true');
       const r = await api.get(`/api/repuestos?${params.toString()}`);
       // El backend devuelve NombreRepuesto; la columna de la tabla lee `Nombre`
@@ -263,7 +247,7 @@ export default function RepuestosPage() {
       else { setRows([]); setTotal(0); }
     }
     finally { setListLoading(false); }
-  }, [page, pageSize, search, statusFilter, categoriaFilter, stockBajoFilter]);
+  }, [page, pageSize, search, statusFilter, stockBajoFilter]);
 
   const fetchStockBajo = useCallback(async () => {
     try { const r = await api.get('/api/repuestos/stock-bajo'); setStockBajoItems(r.data?.data || r.data || []); }
@@ -276,7 +260,6 @@ export default function RepuestosPage() {
   const del = useBorradoReal(repuestosService, { entidadLabel: 'repuesto', onDeleted: () => { fetchPage(); fetchStockBajo(); } });
 
   useEffect(() => {
-    api.get('/api/categoria-repuestos').then(r => setCategorias(r.data?.data || r.data || [])).catch(() => {});
     fetchStockBajo();
   }, [fetchStockBajo]);
 
@@ -284,7 +267,6 @@ export default function RepuestosPage() {
 
   // Al cambiar búsqueda/filtro → reiniciar a la página 1 (y refetch por dependencias).
   const onSearch    = (v) => { setSearch(v); setPage(1); };
-  const onCategoria = (v) => { setCategoriaFilter(v); setPage(1); };
   const onStatus    = (v) => { setStatusFilter(v); setPage(1); };
   const onPageSize  = (v) => { setPageSize(v); setPage(1); };
   const onToggleBajo = () => { setStockBajoFilter(v => !v); setPage(1); };
@@ -296,15 +278,14 @@ export default function RepuestosPage() {
     try {
       const res = await api.get('/api/repuestos?limit=9999');
       const data = res.data?.data || res.data || rows;
-      const catMap = {};
-      categorias.forEach(c => { catMap[c.Id_categoria ?? c.Id_Categoria] = c.Nombre; });
+
       const exportRows = data.map((r, i) => ({
         '#': i + 1,
         Nombre: r.NombreRepuesto || r.Nombre || '',
-        Categoría: catMap[r.Id_categoria ?? r.Id_Categoria] || '—',
+        Código: r.Codigo || '—',
         Stock: r.Stock ?? 0,
         Costo: Number(r.Precio ?? 0),
-        'Margen %': Number(r.MargenPorcentaje ?? 50),
+        Margen: Number(r.MargenGanancia ?? 0.635),
         'Precio venta': r.PrecioVenta != null ? Number(r.PrecioVenta) : '',
         Estado: r.Estado ? 'Activo' : 'Inactivo',
       }));
@@ -399,94 +380,73 @@ export default function RepuestosPage() {
       return candidatos.reduce((max, l) => (l.__rowIdx > max.__rowIdx ? l : max), candidatos[0]);
     };
 
-    const catByName = {};
-    categorias.forEach(c => { const n = String(c.Nombre ?? c.nombre ?? '').trim().toLowerCase(); if (n) catByName[n] = c.Id_categoria ?? c.Id_Categoria; });
-    const SIN_CATEGORIA = 'Sin categoría';
-
-    let ok = 0, fail = 0, categoriasCreadas = 0, categoriasRecuperadas = 0, omitidosSinDescripcion = 0, sinLote = 0;
-    const porCategoria = {};
+    /* Ya no se derivan categorias de la descripcion: el CODIGO del propio archivo
+       es ahora el identificador del repuesto. Eso elimina de un golpe el bloque
+       que creaba categorias por la primera palabra, el respaldo que las
+       recuperaba cuando la creacion fallaba y el cache de categorias frescas:
+       tres mecanismos que existian solo para sostener una dimension que el
+       archivo del taller nunca tuvo. */
+    let ok = 0, fail = 0, omitidosSinDescripcion = 0, sinLote = 0;
+    const porPrefijo = {};
     const faltantes = []; // { nombre, motivo }
-    const omitidosCodigos = []; // códigos con fila reservada pero sin Descripción -- no se importaron
-    const categoriasFrescasCache = { current: null };
+    const omitidosCodigos = []; // códigos con fila reservada pero sin Descripción
 
     for (let i = 0; i < repuestoRows.length; i++) {
       if (i > 0) await _sleep(PAUSA_ENTRE_FILAS_MS);
       const fila = repuestoRows[i];
       setImportProgress(Math.round(((i + 1) / repuestoRows.length) * 100));
       const codigo = String(fila.Codigo || '').trim();
-      // Filas de relleno del archivo real (sin código ni ningún otro dato): se descartan,
-      // no representan ningún repuesto.
+      // Filas de relleno del archivo real (sin código ni ningún otro dato): se descartan.
       if (!codigo) continue;
       const descripcion = String(fila.Descripcion || '').trim();
-      // Código con Descripción vacía: NO es un repuesto real con dato incompleto -- es un
-      // código reservado en la plantilla del Excel del taller que todavía no se llenó con
-      // un producto real (confirmado: en el archivo real, 94 de estas filas son casi todas
-      // Stock=0 y sin Ubicación, un patrón de "casillero vacío", no de inventario real). Se
-      // omite por completo en vez de crear un repuesto fantasma con el código como nombre
-      // (que es justo lo que hacía antes esta importación y generó datos basura reales).
+      // Código con Descripción vacía: NO es un repuesto con dato incompleto -- es un
+      // casillero reservado en la plantilla del taller que todavía no se llenó. Se omite
+      // en vez de crear un repuesto fantasma con el código como nombre. El backend
+      // rechaza esa misma forma por su cuenta (ver repuesto.model.js::_assertNombreUtil),
+      // así que ahora hay dos barreras y no una.
       if (!descripcion) { omitidosSinDescripcion++; omitidosCodigos.push(codigo); continue; }
       const nombre = descripcion;
 
-      // Categoría automática: primera palabra de la Descripción, normalizada a
-      // formato título (ej. "Suichet", "Bombillo"). Sin Descripción reconocible → "Sin categoría".
-      const catNombre = descripcion ? (_primeraPalabra(descripcion) || SIN_CATEGORIA) : SIN_CATEGORIA;
-      const catKey = catNombre.toLowerCase();
-      let idCat = catByName[catKey];
-      let motivoFallo = null;
-      if (!idCat) {
-        const rCat = await dispatch(createCategoria({ Nombre: catNombre }));
-        if (!rCat.error && rCat.payload?.Id_categoria) {
-          idCat = rCat.payload.Id_categoria;
-          catByName[catKey] = idCat;
-          if (catKey !== SIN_CATEGORIA.toLowerCase()) categoriasCreadas++;
-        } else {
-          // La creación falló -- el caso más común es que la categoría YA exista (de una
-          // corrida anterior de este mismo import): se busca en el catálogo actual antes
-          // de dar el ítem por perdido. Sin esto, todos los repuestos siguientes de esta
-          // misma categoría repetían el mismo error uno por uno durante el resto del import.
-          const idExistente = await _resolverCategoriaExistente(catNombre, categoriasFrescasCache);
-          if (idExistente) {
-            idCat = idExistente;
-            catByName[catKey] = idCat;
-            categoriasRecuperadas++;
-          } else {
-            motivoFallo = rCat.payload || 'No se pudo crear la categoría';
-          }
-        }
-      }
-      if (!idCat) { fail++; faltantes.push({ nombre, motivo: motivoFallo || 'Categoría no disponible' }); continue; }
-
       const lote = elegirLote(codigo);
-      const payload = { NombreRepuesto: nombre, Id_categoria: idCat, Stock: Number(fila.Stock || 0) || 0 };
+      const payload = {
+        Codigo: codigo,
+        NombreRepuesto: nombre,
+        /* ?? y no ||: un stock de 0 es un dato REAL (repuesto agotado). Con `||`
+           un 0 legítimo caía al valor por defecto y el inventario entraba mal. */
+        Stock: Number(fila.Stock ?? 0),
+      };
       if (lote) {
         const costo  = Number(lote['Prc con dsc']);
-        const margen = Number(lote['Margen de ganancia']) * 100;
+        /* SIN multiplicar por 100. El archivo del taller ya guarda el margen como
+           FACTOR decimal (0.635) y antes se convertía a porcentaje porque el
+           backend lo esperaba así. Ahora el backend usa el factor tal cual en
+           costo/margen, de modo que la conversión sobra -- y aplicarla daría un
+           precio de venta 100 veces menor. */
+        const margen = Number(lote['Margen de ganancia']);
         const precioVentaReal = Number(lote['Precio de venta']);
         if (!isNaN(costo))  payload.Precio = costo;
-        if (!isNaN(margen)) payload.MargenPorcentaje = margen;
-        // PrecioVenta se importa TAL CUAL del archivo (punto de partida real del
-        // inventario que el taller ya tenía comprado), sin recalcular con la fórmula
-        // estándar -- la SIGUIENTE compra que se registre para este repuesto en el
-        // sistema sí recalculará normalmente, como cualquier otro repuesto (ver
-        // compra.model.js::create).
+        if (!isNaN(margen) && margen > 0) payload.MargenGanancia = margen;
+        // PrecioVenta se importa TAL CUAL (punto de partida real del inventario ya
+        // comprado); la SIGUIENTE compra lo recalcula con la fórmula estándar.
         if (!isNaN(precioVentaReal)) payload.PrecioVenta = precioVentaReal;
       } else {
-        // Sin ningún lote asociado: se importa solo con Nombre/Categoría/Stock,
-        // dejando Precio/Margen en los valores por defecto del backend (0 y 50).
         sinLote++;
       }
 
       const r = await dispatch(createRepuesto(payload));
       if (r.error) { fail++; faltantes.push({ nombre, motivo: r.payload || 'Error al crear el repuesto' }); }
-      else { ok++; porCategoria[catNombre] = (porCategoria[catNombre] || 0) + 1; }
+      else {
+        ok++;
+        const prefijo = codigo.split('-')[0] || 'Sin prefijo';
+        porPrefijo[prefijo] = (porPrefijo[prefijo] || 0) + 1;
+      }
     }
 
     setImportMsg({
-      ok, fail, categoriasCreadas, categoriasRecuperadas, fallosPorMotivo: _agruparPorMotivo(faltantes),
-      resumenReal: { omitidosSinDescripcion, omitidosCodigos, sinLote, porCategoria, fallbackSinFecha },
+      ok, fail, fallosPorMotivo: _agruparPorMotivo(faltantes),
+      resumenReal: { omitidosSinDescripcion, omitidosCodigos, sinLote, porPrefijo, fallbackSinFecha },
     });
     fetchPage();
-    api.get('/api/categoria-repuestos').then(r => setCategorias(r.data?.data || r.data || [])).catch(() => {});
   };
 
   const handleImportFile = async (e) => {
@@ -529,71 +489,52 @@ export default function RepuestosPage() {
         .filter(r => r.some(c => String(c).trim() !== ''))
         .map(r => { const o = {}; headers.forEach((h, i) => { const k = String(h).trim(); if (k) o[k] = r[i] ?? ''; }); return o; });
 
-      const catByName = {};
-      categorias.forEach(c => { const n = String(c.Nombre ?? c.nombre ?? '').trim().toLowerCase(); if (n) catByName[n] = c.Id_categoria ?? c.Id_Categoria; });
-      // Si el archivo no trae columna de categoría (ej. inventarios reales que solo
-      // tienen código/descripción/stock), se agrupan todos en "Sin categoría" en vez
-      // de descartarlos -- la categoría igual se puede corregir después por repuesto.
-      const SIN_CATEGORIA = 'sin categoría';
-      let ok = 0, fail = 0, categoriasCreadas = 0, categoriasRecuperadas = 0;
+      let ok = 0, fail = 0, sinCodigo = 0;
       const faltantes = []; // { nombre, motivo }
-      const categoriasFrescasCache = { current: null };
       for (let i = 0; i < filas.length; i++) {
         if (i > 0) await _sleep(PAUSA_ENTRE_FILAS_MS);
         const fila = filas[i];
         setImportProgress(Math.round(((i + 1) / filas.length) * 100));
-        // Si no hay descripción (dato incompleto en el archivo de origen), se usa el
-        // código como respaldo -- mejor importarlo identificado por su código que
-        // perderlo del inventario.
-        // OJO: con ?? un valor "" (celda vacía) ya cuenta como "definido" y corta la
-        // cadena de respaldo ahí mismo -- por eso se recorre una lista y se toma el
-        // primer candidato con contenido real, en vez de encadenar ??.
-        const nombreCandidatos = [fila.Nombre, fila.NombreRepuesto, fila.nombre, fila.Descripcion, fila.descripcion, fila.Codigo, fila.codigo];
+
+        /* El CODIGO es ahora obligatorio y unico. Sin el no hay repuesto que
+           crear, asi que la fila se omite en vez de inventarle uno: un codigo
+           autogenerado aqui chocaria con la numeracion real del taller. */
+        const codigo = String(fila.Codigo ?? fila.codigo ?? fila['Código'] ?? '').trim();
+        if (!codigo) { sinCodigo++; continue; }
+
+        /* Con ?? una celda vacia ("") ya cuenta como definida y corta la cadena de
+           respaldo, por eso se recorre una lista y se toma el primer candidato con
+           contenido real. OJO: el codigo YA NO esta en esta lista -- usarlo como
+           nombre es justo lo que generaba repuestos fantasma, y el backend ahora lo
+           rechaza (ver repuesto.model.js::_assertNombreUtil). */
+        const nombreCandidatos = [fila.Nombre, fila.NombreRepuesto, fila.nombre, fila.Descripcion, fila.descripcion];
         const nombre = String(nombreCandidatos.find(v => v != null && String(v).trim() !== '') ?? '').trim();
-        const catNombreOrig = String(fila['Categoría'] ?? fila.Categoria ?? fila.categoria ?? '').trim() || 'Sin categoría';
-        const catNombre    = catNombreOrig.toLowerCase();
-        let idCat = catByName[catNombre];
-        let motivoFallo = null;
-        // Si la categoría no existe todavía (incluida "Sin categoría"), se crea sobre la
-        // marcha -- así una sola importación de repuestos no depende de haber importado
-        // antes las categorías, ni de que el archivo original tenga esa columna.
-        if (!idCat) {
-          const rCat = await dispatch(createCategoria({ Nombre: catNombreOrig }));
-          if (!rCat.error && rCat.payload?.Id_categoria) {
-            idCat = rCat.payload.Id_categoria;
-            catByName[catNombre] = idCat;
-            if (catNombre !== SIN_CATEGORIA) categoriasCreadas++;
-          } else {
-            // Igual que en importInventarioReal: si la creación falló porque la categoría
-            // YA existe (de una corrida anterior), se busca en el catálogo actual en vez
-            // de dar por perdidos todos los repuestos siguientes de esa categoría.
-            const idExistente = await _resolverCategoriaExistente(catNombreOrig, categoriasFrescasCache);
-            if (idExistente) {
-              idCat = idExistente;
-              catByName[catNombre] = idCat;
-              categoriasRecuperadas++;
-            } else {
-              motivoFallo = rCat.payload || 'No se pudo crear la categoría';
-            }
-          }
-        }
-        if (!nombre) { fail++; continue; } // fila sin ningún nombre reconocible: nada que reportar por nombre
-        if (!idCat) { fail++; faltantes.push({ nombre, motivo: motivoFallo || 'Categoría no disponible' }); continue; }
-        const r = await dispatch(createRepuesto({
+        if (!nombre) { fail++; faltantes.push({ nombre: codigo, motivo: 'La fila no trae descripción: se necesita para no crear un repuesto fantasma' }); continue; }
+
+        /* ?? en lugar de ||, y no es cosmetico: con `|| 5` un stock minimo de 0 se
+           convertia en 5, y con `|| 50` un margen de 0 pasaba a 50. El operador de
+           fusion nula solo sustituye null/undefined, de modo que los ceros reales
+           del Excel llegan como ceros. */
+        const stock       = Number(fila.Stock ?? fila.stock ?? fila.Cantidad ?? fila.cantidad ?? fila.Existencia ?? fila.existencia ?? 0);
+        const stockMinimo = Number(fila['Stock mínimo'] ?? fila.StockMinimo ?? 5);
+        const margen      = Number(fila['Margen de ganancia'] ?? fila.MargenGanancia ?? fila['Margen'] ?? 0.635);
+
+        const payload = {
+          Codigo: codigo,
           NombreRepuesto: nombre,
-          Id_categoria: idCat,
-          Stock: Number(fila.Stock ?? fila.stock ?? fila.Cantidad ?? fila.cantidad ?? 0) || 0,
-          StockMinimo: Number(fila['Stock mínimo'] ?? fila.StockMinimo ?? 5) || 5,
-          MargenPorcentaje: Number(fila['Margen %'] ?? fila.MargenPorcentaje ?? 50) || 50,
-        }));
+          Stock: Number.isFinite(stock) ? stock : 0,
+          StockMinimo: Number.isFinite(stockMinimo) ? stockMinimo : 5,
+        };
+        // El margen es un FACTOR (0.635). Solo se envia si es valido; si no, el
+        // backend aplica su propio defecto.
+        if (Number.isFinite(margen) && margen > 0 && margen <= 1) payload.MargenGanancia = margen;
+
+        const r = await dispatch(createRepuesto(payload));
         if (r.error) { fail++; faltantes.push({ nombre, motivo: r.payload || 'Error al crear el repuesto' }); }
         else ok++;
       }
-      setImportMsg({ ok, fail, categoriasCreadas, categoriasRecuperadas, fallosPorMotivo: _agruparPorMotivo(faltantes) });
+      setImportMsg({ ok, fail, sinCodigo, fallosPorMotivo: _agruparPorMotivo(faltantes) });
       fetchPage();
-      if (categoriasCreadas > 0) {
-        api.get('/api/categoria-repuestos').then(r => setCategorias(r.data?.data || r.data || [])).catch(() => {});
-      }
       setImportProgress(100);
       setImportOverlay('done');
       await new Promise((resolve) => setTimeout(resolve, 900));
@@ -606,13 +547,22 @@ export default function RepuestosPage() {
     }
   };
 
-  const openCreate = () => { setFormData(EMPTY); setEditingId(null); setFormError(''); reset(); setShowForm(true); };
+  const openCreate = () => {
+    setFormData(EMPTY); setEditingId(null); setFormError(''); reset(); setShowForm(true);
+    /* Se pide al ABRIR, no al montar la pagina: asi refleja el inventario del
+       momento y no un valor viejo de cuando se cargo la vista. Si falla, el campo
+       queda vacio y se escribe a mano -- la sugerencia es una comodidad, no un
+       requisito. */
+    api.get('/api/repuestos/siguiente-codigo')
+      .then(r => setCodigoSugerido(r.data?.data?.codigo || ''))
+      .catch(() => setCodigoSugerido(''));
+  };
   const openEdit = (item) => {
     setFormData({
       NombreRepuesto: item.NombreRepuesto || item.Nombre || '',
       StockMinimo: String(item.StockMinimo ?? 5),
-      Id_categoria: String(item.Id_categoria ?? item.Id_Categoria ?? ''),
-      MargenPorcentaje: String(item.MargenPorcentaje ?? 50),
+      Codigo: String(item.Codigo ?? ''),
+      MargenGanancia: String(item.MargenGanancia ?? 0.635),
       _costo: Number(item.Precio ?? 0),
       _iva: Number(item.IvaPorcentaje ?? 19),
       _precioVenta: item.PrecioVenta ?? null,
@@ -624,7 +574,7 @@ export default function RepuestosPage() {
   const previewPrecioVenta = () => {
     const costo = Number(formData._costo ?? 0);
     const iva   = Number(formData._iva ?? 19);
-    const m     = Number(formData.MargenPorcentaje);
+    const m     = Number(formData.MargenGanancia);
     if (!costo || Number.isNaN(m) || m < 50) return null;
     return Math.round(costo * (1 + m / 100) * (1 + iva / 100) * 100) / 100;
   };
@@ -647,8 +597,9 @@ export default function RepuestosPage() {
     const payload = {
       NombreRepuesto: formData.NombreRepuesto.trim(),
       StockMinimo: Number(formData.StockMinimo ?? 5),
-      Id_categoria: Number(formData.Id_categoria),
-      MargenPorcentaje: Number(formData.MargenPorcentaje || 50),
+      Codigo: String(formData.Codigo).trim(),
+      // ?? y no ||: respeta un margen escrito explicitamente.
+      MargenGanancia: Number(formData.MargenGanancia ?? 0.635),
     };
     const action = editingId ? updateRepuesto({ id: editingId, data: payload }) : createRepuesto(payload);
     const result = await dispatch(action);
@@ -664,7 +615,7 @@ export default function RepuestosPage() {
   const columns = [
     { key: '#', label: '#', width: '50px', render: (_, __, i) => (page - 1) * pageSizeNum + i + 1 },
     { key: 'Nombre', label: 'Nombre', render: v => <span className="font-semibold">{v}</span> },
-    { key: 'Categoria', label: 'Categoría' },
+    { key: 'Codigo', label: 'Código', render: v => <span className="font-mono text-small">{v}</span> },
     {
       key: 'Stock', label: 'Stock', render: (v, row) => {
         const min = Number(row.StockMinimo ?? 5);
@@ -683,7 +634,7 @@ export default function RepuestosPage() {
     },
     { key: 'StockMinimo', label: 'Stock mín.', render: v => v ?? 5 },
     { key: 'Precio', label: 'Costo', render: v => (v != null && Number(v) > 0 ? formatCurrency(v) : '—') },
-    { key: 'MargenPorcentaje', label: 'Margen %', render: v => `${Number(v ?? 50)}%` },
+    { key: 'MargenGanancia', label: 'Margen', render: v => Number(v ?? 0.635).toFixed(3) },
     { key: 'PrecioVenta', label: 'Precio venta', render: v => (v != null ? formatCurrency(v) : '—') },
     {
       key: 'acciones', label: 'Acciones', render: (_, row) => (
@@ -722,13 +673,13 @@ export default function RepuestosPage() {
         // no llegaba a cubrir ni el sidebar ni el resto del viewport (quedaba confinado
         // al alto/ancho de .page). Un portal a body evita depender de que ningún
         // ancestro futuro se quede sin transform.
-        <motion.div
+        <Motion.div
           className="fixed inset-0 z-[1300] flex items-center justify-center bg-[rgb(10_10_11_/_0.45)] backdrop-blur-[2px]"
           role="status" aria-live="polite"
           initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
           transition={{ duration: 0.15 }}
         >
-          <motion.div
+          <Motion.div
             className="flex max-w-[90vw] min-w-[280px] flex-col items-center gap-[0.9rem] rounded-[14px] bg-surface px-[2.5rem] py-2xl shadow-[0_20px_50px_rgb(0_0_0_/_0.25)]"
             initial={{ opacity: 0, scale: 0.94 }} animate={{ opacity: 1, scale: 1 }}
             transition={RESORTE}
@@ -737,19 +688,19 @@ export default function RepuestosPage() {
               <>
                 {/* El check entraba con un cubic-bezier de rebote escrito a mano;
                     ahora lo da el mismo muelle compartido que el resto de la app. */}
-                <motion.span className="text-primary"
+                <Motion.span className="text-primary"
                   initial={{ opacity: 0, scale: 0.4 }} animate={{ opacity: 1, scale: 1 }}
                   transition={RESORTE}
                 >
                   <MdCheckCircle size={56} />
-                </motion.span>
+                </Motion.span>
                 <p className="m-0 text-center text-h3 font-semibold text-text">Importación completada</p>
               </>
             ) : (
               <>
                 <p className="m-0 text-center text-h3 font-semibold text-text">Importando repuestos...</p>
                 <div className="h-sm w-[220px] overflow-hidden rounded-full bg-border">
-                  <motion.div
+                  <Motion.div
                     className="h-full rounded-full bg-linear-to-r from-primary to-primary-500"
                     animate={{ width: `${importProgress}%` }}
                     transition={{ duration: 0.25, ease: 'easeOut' }}
@@ -758,8 +709,8 @@ export default function RepuestosPage() {
                 <p className="m-0 text-h2 font-bold text-primary tabular-nums">{importProgress}%</p>
               </>
             )}
-          </motion.div>
-        </motion.div>
+          </Motion.div>
+        </Motion.div>
         )}</AnimatePresence>,
         document.body
       )}
@@ -778,13 +729,9 @@ export default function RepuestosPage() {
           <SearchBar
             value={search}
             onChange={onSearch}
-            placeholder="Buscar por nombre..."
+            placeholder="Buscar por nombre o código..."
             filterSlot={
               <>
-                <select className="filter-select" value={categoriaFilter} onChange={e => onCategoria(e.target.value)}>
-                  <option value="">Todas las categorías</option>
-                  {categorias.map(c => <option key={c.Id_categoria} value={c.Id_categoria}>{c.Nombre}</option>)}
-                </select>
                 <FilterDropdown
                   statusFilter={statusFilter}
                   onStatusChange={onStatus}
@@ -814,10 +761,10 @@ export default function RepuestosPage() {
       <Modal isOpen={!!detailItem} onClose={() => setDetailItem(null)} title="Detalle del repuesto" size="md">
         {detailItem && <div className="detail-grid">
           <div className="detail-item"><span className="detail-label">Nombre</span><span className="detail-value">{detailItem.Nombre}</span></div>
-          <div className="detail-item"><span className="detail-label">Categoría</span><span className="detail-value">{detailItem.Categoria || detailItem.Id_Categoria}</span></div>
+          <div className="detail-item"><span className="detail-label">Código</span><span className="detail-value font-mono">{detailItem.Codigo}</span></div>
           <div className="detail-item"><span className="detail-label">Stock</span><span className="detail-value">{detailItem.Stock}</span></div>
           <div className="detail-item"><span className="detail-label">Costo</span><span className="detail-value">{detailItem.Precio != null && Number(detailItem.Precio) > 0 ? formatCurrency(detailItem.Precio) : '—'}</span></div>
-          <div className="detail-item"><span className="detail-label">Margen</span><span className="detail-value">{Number(detailItem.MargenPorcentaje ?? 50)}%</span></div>
+          <div className="detail-item"><span className="detail-label">Margen</span><span className="detail-value">{Number(detailItem.MargenGanancia ?? 0.635).toFixed(3)}</span></div>
           <div className="detail-item"><span className="detail-label">Precio venta {detailItem.IvaPorcentaje != null ? `(IVA ${detailItem.IvaPorcentaje}%)` : ''}</span><span className="detail-value">{detailItem.PrecioVenta != null ? formatCurrency(detailItem.PrecioVenta) : '—'}</span></div>
           <div className="detail-item"><span className="detail-label">Estado</span><span className="detail-value"><StatusBadge estado={detailItem.Estado} /></span></div>
         </div>}
@@ -835,24 +782,45 @@ export default function RepuestosPage() {
             {fieldError('NombreRepuesto') && <p className="form-error">{fieldError('NombreRepuesto')}</p>}
           </div>
           <div className="form-group span-2">
-            <label className="form-label">Categoría <span className="required">*</span></label>
-            <SearchableSelect
-              options={categorias.map(c => ({ value: String(c.Id_categoria), label: c.Nombre }))}
-              value={formData.Id_categoria != null ? String(formData.Id_categoria) : ''}
-              onChange={id => { handleChange({ target: { name: 'Id_categoria', value: id } }); handleBlur({ target: { name: 'Id_categoria' } }); }}
-              placeholder="Seleccionar categoría..."
-            />
-            {fieldError('Id_categoria') && <p className="form-error">{fieldError('Id_categoria')}</p>}
+            <label className="form-label">Código de inventario <span className="required">*</span></label>
+            <div className="flex items-center gap-sm">
+              <input
+                name="Codigo"
+                className={`form-control font-mono ${fieldError('Codigo') ? 'is-error' : ''}`}
+                value={formData.Codigo}
+                onChange={handleChange}
+                onBlur={handleBlur}
+                maxLength={40}
+                placeholder={codigoSugerido || 'JC-1'}
+                autoComplete="off"
+              />
+              {/* Sugerencia, no imposicion: rellena el siguiente libre de la serie
+                  (JC-416 si el inventario llega a JC-415) y se puede sobrescribir.
+                  Es una sugerencia y no una reserva -- si otra persona crea el mismo
+                  codigo antes, el indice unico de la base lo rechaza. */}
+              {!editingId && codigoSugerido && (
+                <button
+                  type="button"
+                  className="btn btn--outline btn--sm whitespace-nowrap"
+                  onClick={() => { handleChange({ target: { name: 'Codigo', value: codigoSugerido } }); handleBlur({ target: { name: 'Codigo' } }); }}
+                >
+                  Usar {codigoSugerido}
+                </button>
+              )}
+            </div>
+            {fieldError('Codigo') && <p className="form-error">{fieldError('Codigo')}</p>}
           </div>
           <div className="form-group span-2">
             <label className="form-label">Stock mínimo</label>
             <input name="StockMinimo" type="number" min="0" className="form-control" value={formData.StockMinimo} onChange={handleChange} placeholder="5" />
           </div>
           <div className="form-group span-2">
-            <label className="form-label">Margen de ganancia (%)</label>
-            <input name="MargenPorcentaje" type="number" min="0" step="1" className={`form-control ${fieldError('MargenPorcentaje') ? 'is-error' : ''}`} value={formData.MargenPorcentaje} onChange={handleChange} onBlur={handleBlur} placeholder="50" />
-            {fieldError('MargenPorcentaje') && <p className="form-error">{fieldError('MargenPorcentaje')}</p>}
-            <p className="form-hint">Mínimo 50%. El precio de venta se calcula automáticamente.</p>
+            <label className="form-label">Margen de ganancia</label>
+            <input name="MargenGanancia" type="number" min="0.001" max="1" step="0.001" className={`form-control ${fieldError('MargenGanancia') ? 'is-error' : ''}`} value={formData.MargenGanancia} onChange={handleChange} onBlur={handleBlur} placeholder="0.635" />
+            {fieldError('MargenGanancia') && <p className="form-error">{fieldError('MargenGanancia')}</p>}
+            {/* FACTOR decimal, no porcentaje: es la forma en que lo guarda el archivo
+                del taller y la que usa la formula (costo/margen + costo×19%). */}
+            <p className="form-hint">Factor decimal entre 0 y 1 (ej. 0.635). El precio de venta se calcula solo.</p>
           </div>
           {editingId && (
             <>
