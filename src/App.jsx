@@ -29,6 +29,7 @@ const OrdenesPage = lazy(() => import('./features/ordenes/pages/OrdenesPage.jsx'
 const NovedadesPage = lazy(() => import('./features/novedades/pages/NovedadesPage.jsx'));
 const RolesPage = lazy(() => import('./features/roles/pages/RolesPage.jsx'));
 const CuentasPage = lazy(() => import('./features/cuentas/pages/CuentasPage.jsx'));
+const NotificacionesPage = lazy(() => import('./features/notificaciones/pages/NotificacionesPage.jsx'));
 
 /* ═══════════════════════════════════════════════════════════════════════════
    OMITIR LA VALIDACIÓN DE SESIÓN — SOLO DESARROLLO LOCAL
@@ -220,6 +221,11 @@ function App() {
         <Route path="/ordenes"     element={<OrdenesPage />} />
         <Route path="/novedades"   element={<NovedadesPage />} />
         <Route path="/roles"       element={<RolesPage />} />
+        {/* Sin RequireSuperAdmin ni envoltura de permiso: lo que cada usuario ve
+            lo decide la matriz de suscripcion de SU rol en el servidor, que es
+            un filtro mas estricto. Un rol sin suscripciones entra y ve la lista
+            vacia, no un 403. */}
+        <Route path="/notificaciones" element={<NotificacionesPage />} />
         <Route path="/cuentas"     element={<RequireSuperAdmin><CuentasPage /></RequireSuperAdmin>} />
       </Route>
 

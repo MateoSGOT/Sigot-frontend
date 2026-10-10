@@ -15,7 +15,7 @@ import {
   MdDashboard, MdPeople, MdDirectionsCar, MdBuild, MdShoppingCart,
   MdMiscellaneousServices, MdAssignment, MdEventNote,
   MdNewReleases, MdSecurity, MdCategory, MdLocalShipping,
-  MdPerson, MdSettings, MdStorage, MdAdminPanelSettings,
+  MdPerson, MdSettings, MdStorage, MdAdminPanelSettings, MdNotificationsActive,
 } from 'react-icons/md';
 
 export const NAV_STRUCTURE = [
@@ -51,6 +51,12 @@ export const NAV_STRUCTURE = [
   { type: 'link', to: '/proveedores', icon: MdLocalShipping, label: 'Proveedores',    permiso: 'PROVEEDORES' },
   { type: 'link', to: '/compras',    icon: MdShoppingCart,  label: 'Compras',         permiso: 'COMPRAS'     },
   { type: 'link', to: '/novedades',  icon: MdNewReleases,   label: 'Novedades',       permiso: 'NOVEDADES'   },
+  /* permiso: null -- la visibilidad NO se decide por permiso de modulo. Lo que
+     cada rol recibe lo decide la matriz de suscripcion (NotificacionRol), y
+     anadir aqui un permiso 'NOTIFICACIONES' obligaria a marcarlo rol por rol
+     antes de que alguien viera su primera alerta: dos mecanismos para la misma
+     decision, que se desincronizan. canSee() deja pasar permiso null. */
+  { type: 'link', to: '/notificaciones', icon: MdNotificationsActive, label: 'Notificaciones', permiso: null },
 ];
 
 /* "Cuentas y accesos": exclusiva del Super Administrador, no depende del sistema

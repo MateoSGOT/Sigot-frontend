@@ -11,6 +11,11 @@ import ToggleSwitch from '../../../shared/components/ToggleSwitch/ToggleSwitch.j
 import EliminarRealModal from '../../../shared/components/EliminarRealModal/EliminarRealModal.jsx';
 import { useBorradoReal } from '../../../shared/hooks/useBorradoReal.js';
 import { rolesService } from '../services/rolesService.js';
+import { notificacionesService } from '../../notificaciones/services/notificacionesService.js';
+import {
+  TIPOS_NOTIFICACION, estiloTipo, NOTIF_ICONO, SUSCRIP_REJILLA, SUSCRIP_TARJETA,
+  SUSCRIP_TARJETA_ACTIVA, SUSCRIP_CASILLA, SUSCRIP_LABEL, SUSCRIP_DESC,
+} from '../../../shared/styles/clasesNotificaciones.js';
 import { fetchRoles, createRol, updateRol, toggleRolEstado } from '../slices/rolesSlice.js';
 import Modal from '../../../shared/components/Modal/Modal.jsx';
 import Table from '../../../shared/components/Table/Table.jsx';
@@ -127,6 +132,12 @@ export default function RolesPage() {
   const [formNombre, setFormNombre] = useState('');
   const [matrix, setMatrix]         = useState([]);
   const [matLoading, setMatLoading] = useState(false);
+  /* Suscripcion de notificaciones del rol que se esta editando. Estado APARTE
+     de `matrix` y no una fila mas de ella: la matriz de permisos es
+     modulo x accion (4 columnas fijas) y esto es una lista plana de tipos.
+     Meterlo ahi obligaria a que emptyMatrix() y el PUT de /api/permisos
+     entendieran una fila con otra forma. */
+  const [tiposNotif, setTiposNotif] = useState([]);
   const [saving, setSaving]         = useState(false);
   const [formError, setFormError]   = useState('');
 
@@ -225,6 +236,7 @@ export default function RolesPage() {
     setFormNombre(rol.Nombre);
     setFormError('');
     setMatrix(emptyMatrix());
+    setTiposNotif([]);
     setShowEdit(true);
     setMatLoading(true);
     try {
@@ -235,6 +247,19 @@ export default function RolesPage() {
         return found ? { ...row, ...found } : row;
       }));
     } catch {} finally { setMatLoading(false); }
+
+    /* Peticion SEPARADA y con su propio catch: si la suscripcion no se puede
+       leer, el modal sigue sirviendo para los permisos. Encadenarla al try de
+       arriba dejaria la matriz de permisos vacia por un fallo que no tiene nada
+       que ver con ella. */
+    try {
+      const sus = await notificacionesService.getTiposDeRol(rol.Id_Rol);
+      setTiposNotif(sus?.tipos || []);
+    } catch { setTiposNotif([]); }
+  };
+
+  const toggleTipoNotif = (tipo) => {
+    setTiposNotif(prev => (prev.includes(tipo) ? prev.filter(t => t !== tipo) : [...prev, tipo]));
   };
 
   const toggleCell = (modulo, action) => {
@@ -281,6 +306,12 @@ export default function RolesPage() {
     try {
       await dispatch(updateRol({ id: editingRol.Id_Rol, data: { Nombre: formNombre.trim() } }));
       await api.put(`/api/permisos/rol/${editingRol.Id_Rol}`, matrix);
+      /* La suscripcion se guarda con el resto, en el mismo boton: separarla en
+         su propio "guardar" deja al administrador pensando que ya quedo cuando
+         en realidad solo guardo los permisos. Va DESPUES de los permisos para
+         que un fallo aqui no impida guardar el acceso al modulo, que es lo que
+         bloquea de verdad a un empleado. */
+      await notificacionesService.guardarTiposDeRol(editingRol.Id_Rol, tiposNotif);
       setShowEdit(false);
       dispatch(fetchRoles());
       showToast('success', `Rol "${formNombre.trim()}" actualizado`);
@@ -602,6 +633,42 @@ export default function RolesPage() {
             </table>
           </div>
         )}
+
+        {/* ── Suscripcion a notificaciones ──
+            Modulo del bento con su propia superficie, debajo de la matriz de
+            permisos: son dos decisiones distintas sobre el mismo rol (que PUEDE
+            hacer / que le AVISAMOS) y mezclarlas en una sola tabla haria que la
+            columna de notificaciones pareciera un permiso mas.
+
+            La rejilla es auto-fit con minimo de 15rem: con el modal ancho entran
+            dos por fila y al estrecharse caen a una, sin media query -- el ancho
+            lo decide el modal, no el viewport. */}
+        <div className="mb-lg mt-xl border-0 border-t border-border" />
+        <p className="mb-xs text-caption font-bold uppercase tracking-wide text-text-muted">Notificaciones que recibe este rol</p>
+        <p className="mb-lg text-small text-text-muted">
+          Lo que no esté marcado no llega: el listado de /notificaciones se filtra
+          en el servidor con esta suscripción.
+        </p>
+        <div className={SUSCRIP_REJILLA}>
+          {TIPOS_NOTIFICACION.map(t => {
+            const activo = tiposNotif.includes(t.tipo);
+            return (
+              <label key={t.tipo} className={`${SUSCRIP_TARJETA}${activo ? ` ${SUSCRIP_TARJETA_ACTIVA}` : ''}`}>
+                <input
+                  type="checkbox"
+                  className={SUSCRIP_CASILLA}
+                  checked={activo}
+                  onChange={() => toggleTipoNotif(t.tipo)}
+                />
+                <span className={NOTIF_ICONO} style={estiloTipo(t.tipo)} aria-hidden="true" />
+                <span className="min-w-0 flex-1">
+                  <span className={`block ${SUSCRIP_LABEL}`}>{t.label}</span>
+                  <span className={`block ${SUSCRIP_DESC}`}>{t.descripcion}</span>
+                </span>
+              </label>
+            );
+          })}
+        </div>
       </Modal>
 
       <EliminarRealModal
