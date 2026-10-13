@@ -1,4 +1,5 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import {
   MdNotificationsActive, MdEventNote, MdInventory2, MdLocalShipping,
@@ -53,6 +54,12 @@ export default function NotificacionesPage() {
   const [soloNoLeidas, setSoloNoLeidas] = useState(false);
   const [tipoFiltro, setTipoFiltro] = useState('TODOS');
 
+  /* Repuesto a resaltar al llegar desde la campana de stock. Viene por el state
+     del router porque es un detalle de navegacion, no un recurso con URL. */
+  const location = useLocation();
+  const resaltarRepuesto = location.state?.resaltarRepuesto ?? null;
+  const filaResaltada = useRef(null);
+
   /* Se carga UNA vez la lista sin filtrar y los dos filtros -- tipo y "sin
      leer" -- se aplican en el cliente.
 
@@ -70,6 +77,16 @@ export default function NotificacionesPage() {
   }, [dispatch, addToast]);
 
   useEffect(() => { cargar(); }, [cargar]);
+
+  /* Se desplaza hasta la alerta del repuesto pulsado en cuanto la lista esta
+     en pantalla. Depende de `items` y no solo del state: al llegar desde la
+     campana la lista aun no ha cargado, y hacer el scroll antes no encontraria
+     la fila. `block: center` y no `start` porque la lista tiene su propio
+     scroll dentro del modulo: alinear arriba la dejaria pegada al borde. */
+  useEffect(() => {
+    if (!resaltarRepuesto || !filaResaltada.current) return;
+    filaResaltada.current.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  }, [resaltarRepuesto, items]);
 
   /* El optimismo vive en el SLICE (se aplica en `pending` y se revierte en
      `rejected`), no aqui: asi la campana del Sidebar tambien ve el cambio al
@@ -183,12 +200,19 @@ export default function NotificacionesPage() {
                 visibles.map(n => {
                   const Icono = ICONO_TIPO[n.Tipo] || MdNotificationsActive;
                   const meta = META_TIPO[n.Tipo];
+                  /* La alerta del repuesto que se pulso en la campana: se marca
+                     con un anillo, que es lo que responde "cual era el que
+                     seleccione". El anillo no sustituye a la franja de no
+                     leida -- son dos cosas distintas y pueden coincidir. */
+                  const esResaltada = resaltarRepuesto != null
+                    && n.Tipo === 'STOCK_BAJO' && Number(n.EntidadId) === Number(resaltarRepuesto);
                   return (
                     <button
                       key={n.Id}
+                      ref={esResaltada ? filaResaltada : undefined}
                       type="button"
                       onClick={() => marcarUna(n)}
-                      className={`${NOTIF_FILA} ${n.Leido ? NOTIF_FILA_LEIDA : NOTIF_FILA_NO_LEIDA}`}
+                      className={`${NOTIF_FILA} ${n.Leido ? NOTIF_FILA_LEIDA : NOTIF_FILA_NO_LEIDA}${esResaltada ? ' ring-2 ring-inset ring-primary' : ''}`}
                       title={n.Leido ? 'Ya leída' : 'Marcar como leída'}
                     >
                       <span className={NOTIF_ICONO} style={estiloTipo(n.Tipo)}>

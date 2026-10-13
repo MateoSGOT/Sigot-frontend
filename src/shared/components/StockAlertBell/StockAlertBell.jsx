@@ -107,7 +107,16 @@ export default function StockAlertBell() {
             <div
               key={item.Id_Repuesto}
               className={`stock-bell__item ${item.criticidad === 'critico' ? 'stock-bell__item--critico' : 'stock-bell__item--bajo'}`}
-              onClick={() => { setOpen(false); navigate('/repuestos'); }}
+              /* A /notificaciones y NO a /repuestos: alli cada alerta nombra su
+                 repuesto ("Cable 2*10 (JC-14) tiene 0 unidades, por debajo del
+                 minimo de 5"), que es lo que faltaba -- /repuestos abria el
+                 listado completo sin decir cual se habia pulsado.
+
+                 Se pasa el id por el state del router, no por la URL: es un
+                 detalle de navegacion, no un recurso direccionable, y asi
+                 recargar la pagina no deja un resaltado colgado de un enlace
+                 que alguien podria compartir. */
+              onClick={() => { setOpen(false); navigate('/notificaciones', { state: { resaltarRepuesto: item.Id_Repuesto } }); }}
             >
               <span className="stock-bell__item-name">{item.NombreRepuesto}</span>
               <span className="stock-bell__item-stock">
@@ -120,8 +129,8 @@ export default function StockAlertBell() {
           ))}
           </div>
       {count > 0 && (
-        <button className="stock-bell__ver-todos" onClick={() => { setOpen(false); navigate('/repuestos'); }}>
-          {hayMas ? `Ver más (${count}) en Repuestos →` : 'Ver todos en Repuestos →'}
+        <button className="stock-bell__ver-todos" onClick={() => { setOpen(false); navigate('/notificaciones'); }}>
+          {hayMas ? `Ver más (${count}) en Notificaciones →` : 'Ver todas en Notificaciones →'}
         </button>
       )}
     </div>,
