@@ -5,7 +5,7 @@ import {
   MdReceiptLong, MdDoneAll, MdNotificationsNone,
 } from 'react-icons/md';
 import {
-  fetchNotificaciones, marcarNotificacionLeida, marcarTodasLeidas,
+  fetchNotificaciones, marcarNotificacionLeida, marcarTodasLeidas, PAGE_SIZE,
 } from '../slices/notificacionesSlice.js';
 import { useToast } from '../../../shared/components/Toast/ToastContext.jsx';
 import {
@@ -42,8 +42,6 @@ const fechaRelativa = (iso) => {
   return new Date(iso).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' });
 };
 
-const PAGE_SIZE = 50;
-
 export default function NotificacionesPage() {
   const { addToast } = useToast();
   const dispatch = useDispatch();
@@ -55,15 +53,21 @@ export default function NotificacionesPage() {
   const [soloNoLeidas, setSoloNoLeidas] = useState(false);
   const [tipoFiltro, setTipoFiltro] = useState('TODOS');
 
-  /* soloNoLeidas se manda al SERVIDOR y el filtro por tipo se aplica en el
-     cliente, y no es inconsistencia: "no leídas" cambia cuántas filas existen
-     (y por tanto el paginado y el contador), mientras que el tipo solo acota lo
-     que ya se trajo. Mandar el tipo también obligaría a recargar en cada
-     pastilla para un recorte que cabe en memoria. */
+  /* Se carga UNA vez la lista sin filtrar y los dos filtros -- tipo y "sin
+     leer" -- se aplican en el cliente.
+
+     Antes "sin leer" se mandaba al servidor, y eso rompia la campana: la
+     recarga reemplazaba `items` en el store, que es la MISMA lista que lee el
+     panel del Sidebar, asi que activar el filtro aqui dejaba a la campana
+     mostrando solo las no leidas sin que nadie se lo hubiera pedido. El panel
+     es el acceso rapido a esta vista: tiene que ver lo mismo que ella.
+
+     El contador `noLeidas` sigue viniendo del servidor, que es quien conoce el
+     total real mas alla de las PAGE_SIZE traidas. */
   const cargar = useCallback(async () => {
-    const r = await dispatch(fetchNotificaciones({ page: 1, pageSize: PAGE_SIZE, soloNoLeidas }));
+    const r = await dispatch(fetchNotificaciones({ page: 1, pageSize: PAGE_SIZE }));
     if (r.error) addToast({ type: 'error', message: 'No se pudieron cargar las notificaciones.' });
-  }, [dispatch, soloNoLeidas, addToast]);
+  }, [dispatch, addToast]);
 
   useEffect(() => { cargar(); }, [cargar]);
 
@@ -92,7 +96,9 @@ export default function NotificacionesPage() {
     });
   };
 
-  const visibles = tipoFiltro === 'TODOS' ? items : items.filter(n => n.Tipo === tipoFiltro);
+  const visibles = items
+    .filter(n => (tipoFiltro === 'TODOS' ? true : n.Tipo === tipoFiltro))
+    .filter(n => (soloNoLeidas ? !n.Leido : true));
 
   /* Conteo por tipo sobre lo CARGADO, que es lo mismo que filtra la pastilla:
      si el número viniera del total del servidor y el filtro del cliente, la

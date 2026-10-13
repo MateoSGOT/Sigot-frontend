@@ -91,6 +91,42 @@ export const NOTIF_PILDORA = 'inline-flex items-center rounded-full border px-sm
 
 export const NOTIF_VACIO = 'flex flex-col items-center justify-center gap-sm px-lg py-2xl text-center';
 
+/* ── Panel flotante de la campana ──
+   GEOMETRÍA PROPIA, no la de .stock-bell__dropdown. Esa clase declara
+   `overflow: hidden` SIN altura máxima: mientras el contenido cabe no se nota,
+   y en cuanto no cabe se recorta sin forma de desplazarlo -- el contenido
+   sobrante simplemente deja de existir para el usuario. Es lo que pasaba aquí.
+
+   La caja se limita a min(70dvh, 26rem) y se reparte en tres franjas: cabecera
+   y pie FIJOS (shrink-0) y la lista en medio con su propio desplazamiento. Así
+   el botón de "ver más" sigue siempre visible y alcanzable, que es justo lo que
+   se pierde cuando una lista empuja el pie fuera de la pantalla.
+
+   dvh y no vh: en móvil, vh no descuenta la barra del navegador y la caja se
+   pasa de alto por la altura de esa barra.
+
+   El overflow-hidden del contenedor sigue haciendo falta para que las esquinas
+   redondeadas recorten la primera y la última fila. */
+export const NOTIF_PANEL = 'fixed z-[1300] flex max-h-[min(70dvh,26rem)] flex-col overflow-hidden '
+  + 'rounded-xl border border-border bg-surface shadow-lg';
+
+export const NOTIF_PANEL_CABECERA = 'flex shrink-0 items-center gap-sm border-b border-border '
+  + 'bg-surface-raised px-md py-sm text-small font-bold text-text';
+
+/* La zona desplazable. overscroll-contain evita que al llegar al final el gesto
+   siga desplazando la página por detrás del panel. */
+export const NOTIF_PANEL_LISTA = 'flex-1 overflow-y-auto overscroll-contain divide-y divide-border';
+
+export const NOTIF_PANEL_FILA = 'flex min-h-[48px] w-full items-start gap-sm px-md py-sm text-left '
+  + 'transition-colors hover:bg-surface-hover focus-visible:bg-surface-hover '
+  + 'focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-primary';
+
+export const NOTIF_PANEL_PIE = 'flex min-h-[48px] shrink-0 items-center justify-center gap-xs '
+  + 'border-t border-border bg-surface px-lg text-body font-bold text-primary transition-colors '
+  + 'hover:bg-primary-wash focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-primary';
+
+export const NOTIF_PANEL_VACIO = 'px-md py-xl text-center text-small text-text-muted';
+
 /* ── Filtros ──
    Área táctil de 44px por pastilla y envoltura, para que en móvil no haya que
    apuntar a un texto de 13px. */

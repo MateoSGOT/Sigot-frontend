@@ -8,6 +8,17 @@ import { notificacionesService } from '../services/notificacionesService.js';
 
    Con estado local en cada uno, los dos piden lo mismo por su cuenta y quedan
    desincronizados en cuanto el usuario toca uno de ellos. */
+/* UNA sola lista en el store, sin filtrar, y un solo tamano de pagina.
+   La campana es el acceso rapido a /notificaciones: lo que muestra tienen que
+   ser las MISMAS cinco primeras de esa lista. Si la pagina recargara con un
+   filtro aplicado (p. ej. "sin leer"), reemplazaria `items` y la campana pasaria
+   a mostrar un subconjunto distinto de lo que el usuario cree estar viendo.
+
+   Por eso el filtro de no leidas se aplica en el CLIENTE, igual que el de tipo:
+   los dos acotan lo ya traido y ninguno toca la lista canonica. El contador
+   `noLeidas` sigue viniendo del servidor, que es quien sabe el total real. */
+export const PAGE_SIZE = 50;
+
 export const fetchNotificaciones = createAsyncThunk(
   'notificaciones/fetch',
   async ({ page = 1, pageSize = 30, soloNoLeidas = false } = {}, { rejectWithValue }) => {

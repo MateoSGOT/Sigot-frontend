@@ -6,14 +6,20 @@ import {
   MdNotificationsActive, MdEventNote, MdInventory2,
   MdLocalShipping, MdReceiptLong, MdArrowForward,
 } from 'react-icons/md';
-import { fetchNotificaciones, marcarNotificacionLeida } from '../../../features/notificaciones/slices/notificacionesSlice.js';
-import { META_TIPO, estiloTipo } from '../../styles/clasesNotificaciones.js';
-/* Se reusa el CSS de StockAlertBell para el BOTÓN, la insignia y la caja
-   flotante, en vez de reproducirlos con utilidades. No es pereza: las tres
-   campanas viven en la misma barra oscura y tienen que verse idénticas; con
-   cadenas propias, el día que cambie el tamaño del botón cambiaría en una sola.
-   Y no añade ni una regla de CSS nueva. El CONTENIDO del panel sí va en
-   utilidades de Tailwind, que es donde hay maquetación propia. */
+import { fetchNotificaciones, marcarNotificacionLeida, PAGE_SIZE } from '../../../features/notificaciones/slices/notificacionesSlice.js';
+import {
+  META_TIPO, estiloTipo,
+  NOTIF_PANEL, NOTIF_PANEL_CABECERA, NOTIF_PANEL_LISTA, NOTIF_PANEL_FILA,
+  NOTIF_PANEL_PIE, NOTIF_PANEL_VACIO,
+} from '../../styles/clasesNotificaciones.js';
+/* Se reusa el CSS de StockAlertBell SOLO para el BOTÓN y la insignia: las tres
+   campanas viven en la misma barra oscura y tienen que verse idénticas.
+
+   El PANEL ya NO usa .stock-bell__dropdown. Esa clase declara `overflow: hidden`
+   sin altura máxima, así que en cuanto el contenido no cabía en la pantalla se
+   recortaba sin forma de desplazarlo. El panel tiene ahora su propia geometría
+   en clasesNotificaciones.js, con altura acotada y la lista desplazándose
+   dentro. */
 import '../StockAlertBell/StockAlertBell.css';
 
 const ICONO_TIPO = {
@@ -23,10 +29,9 @@ const ICONO_TIPO = {
   FACTURACION: MdReceiptLong,
 };
 
-/* MÁXIMO en el panel flotante. Es una vista previa, no la lista: cinco filas
-   caben sin que el panel se convierta en una columna con scroll propio dentro de
-   un dropdown de 280px, que es cuando deja de poder usarse con el pulgar. El
-   resto se ve en /notificaciones. */
+/* MÁXIMO en el panel flotante. Son las CINCO PRIMERAS de la misma lista que
+   pinta /notificaciones -- mismo orden, mismo origen, mismo store -- porque el
+   panel es el acceso rapido a esa vista, no otra lista. El resto se ve alli. */
 const MAX_PREVIO = 5;
 
 const fechaCorta = (iso) => {
@@ -53,7 +58,10 @@ export default function NotificacionesBell() {
   const btnRef = useRef(null);
   const panelRef = useRef(null);
 
-  useEffect(() => { dispatch(fetchNotificaciones({ pageSize: 30 })); }, [dispatch]);
+  /* El MISMO tamano que usa la pagina: las dos vistas comparten `items`, asi
+     que pedir tamanos distintos hacia que la ultima en cargar decidiera cuantas
+     ve la otra. */
+  useEffect(() => { dispatch(fetchNotificaciones({ pageSize: PAGE_SIZE })); }, [dispatch]);
 
   // Cerrar al pulsar fuera del botón Y fuera del panel (que vive en un portal,
   // fuera del subárbol del sidebar). Mismo patrón que las otras dos campanas.
@@ -117,65 +125,58 @@ export default function NotificacionesBell() {
 
   const panel = open && createPortal(
     <div
-      className="stock-bell__dropdown"
+      className={NOTIF_PANEL}
       ref={panelRef}
-      style={{ top: pos.top, left: pos.left, width: `min(320px, calc(100vw - 16px))` }}
+      style={{ top: pos.top, left: pos.left, width: 'min(320px, calc(100vw - 16px))' }}
     >
-      <div className="stock-bell__header">
+      <div className={NOTIF_PANEL_CABECERA}>
         <MdNotificationsActive size={16} />
         <span>Notificaciones{noLeidas > 0 ? ` (${noLeidas} sin leer)` : ''}</span>
       </div>
 
-      {previo.length === 0 ? (
-        <div className="stock-bell__empty">Sin notificaciones</div>
-      ) : (
-        <div className="flex flex-col divide-y divide-border">
-          {previo.map(n => {
-            const Icono = ICONO_TIPO[n.Tipo] || MdNotificationsActive;
-            return (
-              <button
-                key={n.Id}
-                type="button"
-                onClick={() => abrirNotificacion(n)}
-                /* min-h-[48px] es el mínimo táctil y la fila entera es el
-                   objetivo: en un panel de 320px, un botón pequeño al final
-                   obliga a apuntar. */
-                className={`flex min-h-[48px] w-full items-start gap-sm px-md py-sm text-left transition-colors hover:bg-surface-hover ${n.Leido ? '' : 'bg-primary-wash'}`}
+      {/* La LISTA es la unica franja que se desplaza; cabecera y pie quedan
+          fijos para que el boton de "ver mas" no se vaya nunca de la pantalla. */}
+      <div className={NOTIF_PANEL_LISTA}>
+        {previo.length === 0 ? (
+          <div className={NOTIF_PANEL_VACIO}>Sin notificaciones</div>
+        ) : previo.map(n => {
+          const Icono = ICONO_TIPO[n.Tipo] || MdNotificationsActive;
+          return (
+            <button
+              key={n.Id}
+              type="button"
+              onClick={() => abrirNotificacion(n)}
+              className={`${NOTIF_PANEL_FILA} ${n.Leido ? '' : 'bg-primary-wash'}`}
+            >
+              <span
+                className="flex size-[28px] shrink-0 items-center justify-center rounded-lg border"
+                style={estiloTipo(n.Tipo)}
               >
-                <span
-                  className="flex size-[28px] shrink-0 items-center justify-center rounded-lg border"
-                  style={estiloTipo(n.Tipo)}
-                >
-                  <Icono size={15} />
+                <Icono size={15} />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className={`block truncate text-small ${n.Leido ? 'font-semibold text-text-muted' : 'font-bold text-text'}`}>
+                  {n.Titulo}
                 </span>
-                <span className="min-w-0 flex-1">
-                  <span className={`block truncate text-small ${n.Leido ? 'font-semibold text-text-muted' : 'font-bold text-text'}`}>
-                    {n.Titulo}
-                  </span>
-                  <span className="mt-[0.1rem] block truncate text-[0.72rem] text-text-muted">
-                    {META_TIPO[n.Tipo]?.label || n.Tipo} · {fechaCorta(n.FechaCreacion)}
-                  </span>
+                <span className="mt-[0.1rem] block truncate text-[0.72rem] text-text-muted">
+                  {META_TIPO[n.Tipo]?.label || n.Tipo} · {fechaCorta(n.FechaCreacion)}
                 </span>
-              </button>
-            );
-          })}
-        </div>
-      )}
+              </span>
+            </button>
+          );
+        })}
+      </div>
 
-      {/* "Ver más" sale SIEMPRE que haya algo, incluso con 5 o menos: el panel
-          es una vista previa y el listado tiene filtros, resumen por tipo y el
-          botón de marcar el lote, que aquí no caben. El texto cambia para no
-          prometer "más" cuando no hay más. */}
-      <button
-        type="button"
-        onClick={irAlListado}
-        className="flex min-h-[48px] w-full items-center justify-center gap-xs border-t border-border
-                   bg-surface px-lg text-body font-bold text-primary transition-colors
-                   hover:bg-primary-wash focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-primary"
-      >
-        {hayMas ? 'Ver más notificaciones' : 'Ver todas las notificaciones'}
-        <MdArrowForward size={16} />
-      </button>
+      {/* Solo cuando hay MAS de 5: con 5 o menos, el panel ya muestra todo lo
+          que hay y un "ver mas" prometeria algo que no existe. Para ir al
+          listado sin que sobre nada estan el segundo clic en la campana y la
+          entrada "Notificaciones" del menu. */}
+      {hayMas && (
+        <button type="button" onClick={irAlListado} className={NOTIF_PANEL_PIE}>
+          Ver más notificaciones
+          <MdArrowForward size={16} />
+        </button>
+      )}
     </div>,
     document.body,
   );
