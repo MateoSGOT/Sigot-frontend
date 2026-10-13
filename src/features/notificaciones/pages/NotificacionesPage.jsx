@@ -1,9 +1,12 @@
 import React, { useCallback, useEffect, useState } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
 import {
   MdNotificationsActive, MdEventNote, MdInventory2, MdLocalShipping,
   MdReceiptLong, MdDoneAll, MdNotificationsNone,
 } from 'react-icons/md';
-import { notificacionesService } from '../services/notificacionesService.js';
+import {
+  fetchNotificaciones, marcarNotificacionLeida, marcarTodasLeidas,
+} from '../slices/notificacionesSlice.js';
 import { useToast } from '../../../shared/components/Toast/ToastContext.jsx';
 import {
   TIPOS_NOTIFICACION, META_TIPO, estiloTipo, NOTIF_ICONO, NOTIF_LISTA, NOTIF_FILA,
@@ -43,11 +46,12 @@ const PAGE_SIZE = 50;
 
 export default function NotificacionesPage() {
   const { addToast } = useToast();
-  const [items, setItems] = useState([]);
-  const [noLeidas, setNoLeidas] = useState(0);
-  const [total, setTotal] = useState(0);
-  const [loading, setLoading] = useState(true);
-  const [marcando, setMarcando] = useState(false);
+  const dispatch = useDispatch();
+  /* Del STORE y no de estado local: la campana del Sidebar lee el mismo
+     contador, asi que marcar algo como leido aqui lo baja alli sin recargar.
+     Con estado local, los dos pedian lo mismo por su cuenta y quedaban
+     desincronizados en cuanto el usuario tocaba uno. */
+  const { items, total, noLeidas, loading, actionLoading } = useSelector(s => s.notificaciones);
   const [soloNoLeidas, setSoloNoLeidas] = useState(false);
   const [tipoFiltro, setTipoFiltro] = useState('TODOS');
 
@@ -57,52 +61,35 @@ export default function NotificacionesPage() {
      que ya se trajo. Mandar el tipo también obligaría a recargar en cada
      pastilla para un recorte que cabe en memoria. */
   const cargar = useCallback(async () => {
-    setLoading(true);
-    try {
-      const r = await notificacionesService.getMias({ page: 1, pageSize: PAGE_SIZE, soloNoLeidas });
-      setItems(r.data || []);
-      setNoLeidas(r.noLeidas ?? 0);
-      setTotal(r.total ?? 0);
-    } catch {
-      addToast({ type: 'error', message: 'No se pudieron cargar las notificaciones.' });
-    } finally {
-      setLoading(false);
-    }
-  }, [soloNoLeidas, addToast]);
+    const r = await dispatch(fetchNotificaciones({ page: 1, pageSize: PAGE_SIZE, soloNoLeidas }));
+    if (r.error) addToast({ type: 'error', message: 'No se pudieron cargar las notificaciones.' });
+  }, [dispatch, soloNoLeidas, addToast]);
 
   useEffect(() => { cargar(); }, [cargar]);
 
+  /* El optimismo vive en el SLICE (se aplica en `pending` y se revierte en
+     `rejected`), no aqui: asi la campana del Sidebar tambien ve el cambio al
+     instante, y si falla se revierte solo esa fila en vez de recargar la lista
+     entera, que perderia el scroll del usuario. */
   const marcarUna = async (n) => {
     if (n.Leido) return;
-    /* Optimista: la fila se marca en pantalla antes de que responda el
-       servidor. En una lista de alta densidad se van marcando varias seguidas y
-       esperar la ida y vuelta en cada una se siente trabado. Si falla, se
-       recarga y el estado real vuelve. */
-    setItems(prev => prev.map(x => (x.Id === n.Id ? { ...x, Leido: true } : x)));
-    setNoLeidas(v => Math.max(0, v - 1));
-    try {
-      await notificacionesService.marcarLeida(n.Id);
-    } catch {
-      addToast({ type: 'error', message: 'No se pudo marcar como leída.' });
-      cargar();
-    }
+    const r = await dispatch(marcarNotificacionLeida(n.Id));
+    if (r.error) addToast({ type: 'error', message: 'No se pudo marcar como leída.' });
   };
 
   const marcarTodas = async () => {
-    setMarcando(true);
-    try {
-      const r = await notificacionesService.marcarTodasLeidas();
-      const n = r?.data?.cambiadas ?? 0;
-      addToast({
-        type: n > 0 ? 'success' : 'info',
-        message: n > 0 ? `${n} notificación(es) marcadas como leídas.` : 'No había notificaciones sin leer.',
-      });
-      await cargar();
-    } catch {
+    const r = await dispatch(marcarTodasLeidas());
+    if (r.error) {
       addToast({ type: 'error', message: 'No se pudo marcar el lote como leído.' });
-    } finally {
-      setMarcando(false);
+      return;
     }
+    // El numero lo decide el SERVIDOR (solo el lote que este rol ve), no se
+    // adivina aqui: adelantarlo podria decir "12" cuando cambiaron 8.
+    const n = r.payload ?? 0;
+    addToast({
+      type: n > 0 ? 'success' : 'info',
+      message: n > 0 ? `${n} notificación(es) marcadas como leídas.` : 'No había notificaciones sin leer.',
+    });
   };
 
   const visibles = tipoFiltro === 'TODOS' ? items : items.filter(n => n.Tipo === tipoFiltro);
@@ -124,11 +111,11 @@ export default function NotificacionesPage() {
         <button
           className="btn btn--primary"
           onClick={marcarTodas}
-          disabled={marcando || noLeidas === 0}
+          disabled={actionLoading || noLeidas === 0}
           title={noLeidas === 0 ? 'No hay notificaciones sin leer' : 'Marca como leídas todas las que te corresponden'}
         >
           <MdDoneAll size={18} />
-          {marcando ? 'Marcando...' : 'Marcar todas como leídas'}
+          {actionLoading ? 'Marcando...' : 'Marcar todas como leídas'}
         </button>
       </div>
 

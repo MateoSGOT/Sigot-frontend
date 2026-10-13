@@ -12,6 +12,7 @@ import ordenesReducer from '../features/ordenes/slices/ordenesSlice';
 import novedadesReducer from '../features/novedades/slices/novedadesSlice';
 import rolesReducer from '../features/roles/slices/rolesSlice';
 import dashboardReducer from '../features/dashboard/slices/dashboardSlice';
+import notificacionesReducer from '../features/notificaciones/slices/notificacionesSlice';
 
 export const store = configureStore({
   reducer: {
@@ -26,6 +27,7 @@ export const store = configureStore({
     agenda: agendaReducer,
     ordenes: ordenesReducer,
     novedades: novedadesReducer,
+    notificaciones: notificacionesReducer,
     roles: rolesReducer,
     dashboard: dashboardReducer,
   },

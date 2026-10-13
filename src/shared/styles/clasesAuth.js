@@ -43,28 +43,37 @@
    porque lo comparte OrdenesPage (bg-primary-50); si se quiere exactamente 4%,
    hay que bajar el 5% de esa linea de variables.css y revisar esa otra vista.
 
-   LA CUADRÍCULA ES LO QUE FALTABA, y su color NO es el que se pidió. El encargo
-   decía slate-200 al 15-20 %. Medido sobre este lienzo:
-       slate-200 al 15 %  ->  rgb(245,247,250)    3 niveles de diferencia
-       slate-200 al 20 %  ->  rgb(244,246,250)    4 niveles
-   Tres o cuatro niveles sobre 248 no se ven en ninguna pantalla: sería una
-   cuadrícula que existe en el CSS y no en la imagen. La referencia útil es la
-   versión oscura, que usaba blanco al 5 % sobre #0A0A0B y daba 12 niveles.
+   LA CUADRÍCULA: 17 NIVELES SOBRE EL CANVAS. Medido componiendo cada candidato
+   sobre --color-bg (#F8FAFC = slate-50) y midiendo la diferencia en niveles de
+   0-255:
+       --color-border-light 4.5 %  ->  rgb(237,239,241)   11 niveles  (lo anterior)
+       --color-border       7 %    ->  rgb(231,233,235)   17 niveles  (lo actual)
+       --color-border-strong 16 %  ->  rgb(210,212,213)   39 niveles
+       slate-200 al 35 %           ->  rgb(240,244,248)    8 niveles
+       slate-200 al 40 %           ->  rgb(239,243,247)    9 niveles
+       zinc-200 al 40 %            ->  rgb(240,241,244)    9 niveles
 
-   Se usa --color-border-light (rgba(10,10,11,0.045)), que compone a
-   rgb(237,239,241): 11 niveles, prácticamente esa misma referencia. Y es un
-   token del sistema, no un color suelto -- es justamente "la línea más tenue
-   sobre superficie clara", que es lo que es una trama de hairlines.
+   OJO CON slate-200 / zinc-200: dan MENOS contraste que lo que ya había, no
+   más. slate-200 es (226,232,240), un gris ya muy claro, y diluirlo al 35-40 %
+   contra un canvas de (248,250,252) apenas lo mueve. La intuición de "un gris
+   visible de Tailwind" falla aquí porque el canvas también es casi blanco: lo
+   que marca la diferencia es la OPACIDAD de una tinta oscura, no el nombre del
+   gris.
 
-   Para ajustarlo: --color-border da 17 niveles (más marcada); bajar el token,
-   menos. El tamaño de celda son 40px, como se pidió.
+   Se usa --color-border, que es un token del sistema (la auditoría de paleta
+   rechaza colores sueltos) y sube de 11 a 17 niveles. Para subir más, el
+   siguiente escalón es --color-border-strong con 39 niveles: es un cambio de
+   una palabra en esta misma constante.
+
+   Referencia: la versión oscura usaba blanco al 5 % sobre #0A0A0B, que son 12
+   niveles -- así que 17 ya está por encima de la trama que sí se veía.
 
    UNA SOLA CADENA, SIN CONCATENAR. Tailwind busca candidatos escaneando el
    TEXTO FUENTE: una clase repartida entre dos literales unidos con + no aparece
    entera en el archivo, el escáner no la ve y la utilidad no se genera. El
    build pasa limpio y el fondo sale liso. Ya ocurrió con esta misma trama en su
    versión oscura. De ahí la línea larga. */
-const CUADRICULA = 'bg-[repeating-linear-gradient(0deg,var(--color-border-light)_0px,var(--color-border-light)_1px,transparent_1px,transparent_40px),repeating-linear-gradient(90deg,var(--color-border-light)_0px,var(--color-border-light)_1px,transparent_1px,transparent_40px)] [mask-image:radial-gradient(900px_600px_at_50%_30%,#000_20%,transparent_75%)]';
+const CUADRICULA = 'bg-[repeating-linear-gradient(0deg,var(--color-border)_0px,var(--color-border)_1px,transparent_1px,transparent_40px),repeating-linear-gradient(90deg,var(--color-border)_0px,var(--color-border)_1px,transparent_1px,transparent_40px)] [mask-image:radial-gradient(900px_600px_at_50%_30%,#000_20%,transparent_75%)]';
 
 const HALO = 'bg-[radial-gradient(1200px_600px_at_100%_-10%,var(--color-primary-50),transparent_62%)]';
 

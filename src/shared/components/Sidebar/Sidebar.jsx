@@ -5,6 +5,7 @@ import { MdLogout, MdChevronRight } from 'react-icons/md';
 import { logout } from '../../../features/auth/slices/authSlice';
 import StockAlertBell from '../StockAlertBell/StockAlertBell.jsx';
 import NovedadAlertBell from '../NovedadAlertBell/NovedadAlertBell.jsx';
+import NotificacionesBell from '../NotificacionesBell/NotificacionesBell.jsx';
 import { useSidebar } from '../../contexts/SidebarContext.jsx';
 // Estructura y filtrado por permisos: compartidos con BottomNav. Ver navStructure.js
 // -- están afuera para que exista un solo criterio de visibilidad por rol.
@@ -127,6 +128,10 @@ export default function Sidebar() {
         <span className="sidebar__marca-mini" aria-hidden="true">S</span>
         <div className="sidebar__header-actions">
           <div className="sidebar__header-bells">
+            {/* La campana de NOTIFICACIONES va primera: es la general (los
+                cuatro tipos del taller, filtrados por la suscripcion del rol),
+                mientras que las otras dos son de un dominio concreto. */}
+            <NotificacionesBell />
             <StockAlertBell />
             {esAdminOSuperAdmin && <NovedadAlertBell />}
           </div>

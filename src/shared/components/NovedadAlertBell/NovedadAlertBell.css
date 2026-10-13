@@ -5,8 +5,17 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 34px;
-  height: 34px;
+  /* 30px y no 34: con la campana de Notificaciones son TRES en la cabecera del
+     sidebar, y a 34 la tercera se salia 10px del area util (medido: borde
+     derecho en 237 contra un limite de 227 en los 232px del sidebar expandido).
+     Es el mismo fallo que ya aparecio con el wordmark al colapsar.
+
+     Se tocan las tres a la vez, no solo la nueva: tres campanas de tamanos
+     distintos en la misma fila se ven como un error. En movil el area tactil la
+     sube a 44px una utilidad en el JSX (max-lg:min-h-[44px]), asi que este
+     numero solo afecta al escritorio, donde se pulsa con raton. */
+  width: 30px;
+  height: 30px;
   border-radius: 8px;
   border: none;
   background: rgba(255,255,255,0.07);
