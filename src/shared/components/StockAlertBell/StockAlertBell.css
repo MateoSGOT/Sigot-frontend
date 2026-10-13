@@ -50,6 +50,24 @@
    —que se necesita para el brillo ::before y el borde glass— y flota
    completo sobre el contenido en vez de recortarse a los 240px. */
 .stock-bell__dropdown {
+/* ── Alto acotado y desplazamiento propio ──
+   Esta caja declaraba `overflow: hidden` SIN altura maxima y pintaba TODAS las
+   alertas. Con 181 repuestos en stock bajo -- el caso real del taller -- la
+   lista se salia por abajo de la pantalla, tapaba el sidebar entero y no habia
+   forma de desplazarla: lo que no cabia dejaba de existir, incluido el propio
+   boton "Ver todos", que quedaba empujado fuera.
+
+   La caja se limita ahora a min(70dvh, 26rem) y se reparte en tres franjas:
+   cabecera y pie FIJOS y la lista en medio con su propio scroll. El
+   overflow:hidden se mantiene para que las esquinas redondeadas recorten la
+   primera y la ultima fila.
+
+   dvh y no vh: en movil, vh no descuenta la barra del navegador y la caja se
+   pasaria de alto por esa barra. */
+  display: flex;
+  flex-direction: column;
+  max-height: min(70dvh, 26rem);
+
   position: fixed;
   width: min(280px, calc(100vw - 16px));
   background: var(--color-surface);
@@ -138,3 +156,17 @@
 /* Skeleton de carga (reemplaza el texto "Cargando...") */
 .stock-bell__loading { display: flex; flex-direction: column; gap: var(--space-sm); padding: var(--space-md) var(--space-lg); }
 .stock-bell__skeleton-row { display: flex; align-items: center; justify-content: space-between; gap: var(--space-md); }
+
+/* La UNICA franja que se desplaza. overscroll-contain evita que al llegar al
+   final el gesto siga moviendo la pagina por detras del panel. */
+.stock-bell__lista {
+  flex: 1 1 auto;
+  min-height: 0;          /* sin esto, un hijo flex no se encoge y el scroll no aparece */
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+/* Cabecera y pie, fuera del scroll: el boton de "ver mas" tiene que seguir
+   alcanzable por muchas alertas que haya. */
+.stock-bell__header,
+.stock-bell__ver-todos { flex-shrink: 0; }

@@ -6,6 +6,12 @@ import api from '../../services/api.js';
 import Skeleton from '../Skeleton/Skeleton.jsx';
 import './StockAlertBell.css';
 
+/* MÁXIMO de filas en el panel. Es una vista previa, no el inventario: con 181
+   repuestos en stock bajo -- el caso real del taller -- pintarlos todos hacía
+   que el panel se saliera de la pantalla y tapara el sidebar. Las que no caben
+   se ven en Repuestos, que es donde además se pueden filtrar y editar. */
+const MAX_PREVIO = 5;
+
 export default function StockAlertBell() {
   const navigate = useNavigate();
   const [items, setItems]       = useState([]);
@@ -74,6 +80,8 @@ export default function StockAlertBell() {
   };
 
   const count = items.length;
+  const previo = items.slice(0, MAX_PREVIO);
+  const hayMas = count > MAX_PREVIO;
 
   const dropdown = open && createPortal(
     <div className="stock-bell__dropdown" ref={dropdownRef} style={{ top: pos.top, left: pos.left }}>
@@ -81,6 +89,9 @@ export default function StockAlertBell() {
             <MdWarning size={16} />
             <span>Stock bajo ({count})</span>
           </div>
+          {/* Franja desplazable: cabecera y pie quedan fuera para que el boton
+              de "ver mas" siga alcanzable por muchas alertas que haya. */}
+          <div className="stock-bell__lista">
           {loading && (
             <div className="stock-bell__loading">
               {[0, 1, 2].map(i => (
@@ -92,7 +103,7 @@ export default function StockAlertBell() {
             </div>
           )}
           {!loading && count === 0 && <div className="stock-bell__empty">Sin alertas de stock</div>}
-          {!loading && items.map(item => (
+          {!loading && previo.map(item => (
             <div
               key={item.Id_Repuesto}
               className={`stock-bell__item ${item.criticidad === 'critico' ? 'stock-bell__item--critico' : 'stock-bell__item--bajo'}`}
@@ -107,9 +118,10 @@ export default function StockAlertBell() {
               </span>
             </div>
           ))}
+          </div>
       {count > 0 && (
         <button className="stock-bell__ver-todos" onClick={() => { setOpen(false); navigate('/repuestos'); }}>
-          Ver todos en Repuestos →
+          {hayMas ? `Ver más (${count}) en Repuestos →` : 'Ver todos en Repuestos →'}
         </button>
       )}
     </div>,
