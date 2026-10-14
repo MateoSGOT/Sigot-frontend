@@ -7,8 +7,8 @@ export const notificacionesService = {
      solo los tipos a los que ese rol está suscrito. El filtro no se puede hacer
      aquí porque el frontend no debe decidir qué alertas le corresponden a cada
      rol -- esa es la matriz, y vive en la base. */
-  getMias: ({ page = 1, pageSize = 30, soloNoLeidas = false } = {}) =>
-    api.get(BASE + '/mias', { params: { page, pageSize, soloNoLeidas } }).then(r => r.data),
+  getMias: ({ page = 1, pageSize = 30, soloNoLeidas = false, tipo = null } = {}) =>
+    api.get(BASE + '/mias', { params: { page, pageSize, soloNoLeidas, ...(tipo ? { tipo } : {}) } }).then(r => r.data),
 
   marcarLeida: (id) => api.patch(`${BASE}/${id}/leida`).then(r => r.data),
 

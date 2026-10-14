@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { MdChevronLeft, MdChevronRight } from 'react-icons/md';
+import Paginacion from '../Paginacion/Paginacion.jsx';
 import EmptyState from '../EmptyState/EmptyState.jsx';
 import { TableSkeleton } from '../Skeleton/Skeleton.jsx';
 import './Table.css';
@@ -137,19 +137,10 @@ export default function Table({
         </table>
       </div>
 
-      {!loading && totalPages > 1 && (
-        <div className="table-pagination">
-          <button className="table-pagination__btn max-lg:min-h-[44px] max-lg:min-w-[44px]" onClick={() => goTo(safePage - 1)} disabled={safePage === 1} aria-label="Página anterior">
-            <MdChevronLeft size={16} />
-          </button>
-          <span className="table-pagination__current">{safePage}</span>
-          <span className="table-pagination__sep">de</span>
-          <span className="table-pagination__total">{totalPages}</span>
-          <button className="table-pagination__btn max-lg:min-h-[44px] max-lg:min-w-[44px]" onClick={() => goTo(safePage + 1)} disabled={safePage === totalPages} aria-label="Página siguiente">
-            <MdChevronRight size={16} />
-          </button>
-        </div>
-      )}
+      {/* El control se extrajo a shared/components/Paginacion para poder usarlo
+          tambien en /notificaciones, que no es una tabla. Mismo marcado y mismas
+          clases: ningun modulo cambia de aspecto. */}
+      {!loading && <Paginacion page={safePage} totalPages={totalPages} onPageChange={goTo} />}
     </div>
   );
 }

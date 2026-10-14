@@ -6,9 +6,11 @@ import {
   MdReceiptLong, MdDoneAll, MdNotificationsNone,
 } from 'react-icons/md';
 import {
-  fetchNotificaciones, marcarNotificacionLeida, marcarTodasLeidas, PAGE_SIZE,
+  fetchNotificaciones, marcarNotificacionLeida, marcarTodasLeidas,
 } from '../slices/notificacionesSlice.js';
 import { useToast } from '../../../shared/components/Toast/ToastContext.jsx';
+import Paginacion from '../../../shared/components/Paginacion/Paginacion.jsx';
+import FilterDropdown from '../../../shared/components/FilterDropdown/FilterDropdown.jsx';
 import {
   TIPOS_NOTIFICACION, META_TIPO, estiloTipo, NOTIF_ICONO, NOTIF_LISTA, NOTIF_FILA,
   NOTIF_FILA_NO_LEIDA, NOTIF_FILA_LEIDA, NOTIF_TITULO, NOTIF_TITULO_LEIDO,
@@ -50,9 +52,15 @@ export default function NotificacionesPage() {
      contador, asi que marcar algo como leido aqui lo baja alli sin recargar.
      Con estado local, los dos pedian lo mismo por su cuenta y quedaban
      desincronizados en cuanto el usuario tocaba uno. */
-  const { items, total, noLeidas, loading, actionLoading } = useSelector(s => s.notificaciones);
+  const { items, total, noLeidas, porTipo, loading, actionLoading } = useSelector(s => s.notificaciones);
   const [soloNoLeidas, setSoloNoLeidas] = useState(false);
   const [tipoFiltro, setTipoFiltro] = useState('TODOS');
+  /* Paginacion en SERVIDOR, el mismo patron que servicios/repuestos/compras:
+     la pagina y el tamano son estado local y el backend devuelve { data, total }.
+     Con 181 alertas de stock bajo -- y creciendo -- traerlas todas para cortar
+     en el cliente es justo lo que colapsa la vista. */
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
   /* Repuesto a resaltar al llegar desde la campana de stock. Viene por el state
      del router porque es un detalle de navegacion, no un recurso con URL. */
@@ -70,11 +78,21 @@ export default function NotificacionesPage() {
      es el acceso rapido a esta vista: tiene que ver lo mismo que ella.
 
      El contador `noLeidas` sigue viniendo del servidor, que es quien conoce el
-     total real mas alla de las PAGE_SIZE traidas. */
+     total real mas alla de la pagina cargada. */
   const cargar = useCallback(async () => {
-    const r = await dispatch(fetchNotificaciones({ page: 1, pageSize: PAGE_SIZE }));
+    // 'all' en el selector equivale a pedir todo de una, igual que en los demas
+    // modulos (ver ServiciosPage: pageSize === 'all' -> 9999).
+    const ps = pageSize === 'all' ? 9999 : pageSize;
+    /* Los filtros viajan al SERVIDOR junto con el paginado. Aplicarlos en el
+       cliente solo miraba la pagina cargada: pedir "Citas" en la pagina 1 de 20
+       mostraba unicamente las que cayeran en esas 10 filas, y vacio si no caia
+       ninguna aunque existieran mas adelante. */
+    const r = await dispatch(fetchNotificaciones({
+      page, pageSize: ps, soloNoLeidas,
+      tipo: tipoFiltro === 'TODOS' ? null : tipoFiltro,
+    }));
     if (r.error) addToast({ type: 'error', message: 'No se pudieron cargar las notificaciones.' });
-  }, [dispatch, addToast]);
+  }, [dispatch, page, pageSize, soloNoLeidas, tipoFiltro, addToast]);
 
   useEffect(() => { cargar(); }, [cargar]);
 
@@ -113,14 +131,25 @@ export default function NotificacionesPage() {
     });
   };
 
-  const visibles = items
-    .filter(n => (tipoFiltro === 'TODOS' ? true : n.Tipo === tipoFiltro))
-    .filter(n => (soloNoLeidas ? !n.Leido : true));
+  /* Cambiar un filtro vuelve a la primera pagina. Sin esto, estando en la
+     pagina 7 y filtrando por "Citas" se quedaria en una pagina que ya no existe
+     y la lista saldria vacia sin explicacion. */
+  const cambiarTipo = (t) => { setTipoFiltro(t); setPage(1); };
+  const cambiarNoLeidas = (v) => { setSoloNoLeidas(v); setPage(1); };
+  const cambiarPageSize = (v) => { setPageSize(v); setPage(1); };
 
-  /* Conteo por tipo sobre lo CARGADO, que es lo mismo que filtra la pastilla:
-     si el número viniera del total del servidor y el filtro del cliente, la
-     pastilla diría "12" y mostraría 8. */
-  const conteoPorTipo = items.reduce((acc, n) => { acc[n.Tipo] = (acc[n.Tipo] || 0) + 1; return acc; }, {});
+  const totalPaginas = pageSize === 'all'
+    ? 1
+    : Math.max(1, Math.ceil(total / Number(pageSize)));
+
+  // Ya viene filtrado y paginado del servidor: aqui solo se pinta.
+  const visibles = items;
+
+  /* Del SERVIDOR y sobre todo el alcance del rol, no sobre la pagina: con 181
+     alertas repartidas en 20 paginas, contar lo cargado hacia que la pastilla
+     dijera "Stock bajo (8)". Ahora el numero y lo que muestra el filtro
+     coinciden porque los dos los decide la misma consulta. */
+  const conteoPorTipo = porTipo || {};
 
   return (
     <div className="page">
@@ -128,7 +157,9 @@ export default function NotificacionesPage() {
         <div>
           <h1 className="page__title">Notificaciones</h1>
           <p className="page__subtitle">
-            {loading ? 'Cargando...' : `${total} alerta(s) · ${noLeidas} sin leer`}
+            {loading
+              ? 'Cargando...'
+              : `${total} alerta(s) · ${noLeidas} sin leer${totalPaginas > 1 ? ` · página ${page} de ${totalPaginas}` : ''}`}
           </p>
         </div>
         <button
@@ -151,20 +182,20 @@ export default function NotificacionesPage() {
               <div className={NOTIF_FILTROS}>
                 <button
                   className={`${NOTIF_FILTRO}${!soloNoLeidas ? ` ${NOTIF_FILTRO_ACTIVO}` : ''}`}
-                  onClick={() => setSoloNoLeidas(false)}
+                  onClick={() => cambiarNoLeidas(false)}
                 >
                   Todas
                 </button>
                 <button
                   className={`${NOTIF_FILTRO}${soloNoLeidas ? ` ${NOTIF_FILTRO_ACTIVO}` : ''}`}
-                  onClick={() => setSoloNoLeidas(true)}
+                  onClick={() => cambiarNoLeidas(true)}
                 >
                   Sin leer {noLeidas > 0 ? `(${noLeidas})` : ''}
                 </button>
                 <span className="mx-xs h-[24px] w-px bg-border" aria-hidden="true" />
                 <button
                   className={`${NOTIF_FILTRO}${tipoFiltro === 'TODOS' ? ` ${NOTIF_FILTRO_ACTIVO}` : ''}`}
-                  onClick={() => setTipoFiltro('TODOS')}
+                  onClick={() => cambiarTipo('TODOS')}
                 >
                   Todo tipo
                 </button>
@@ -172,11 +203,23 @@ export default function NotificacionesPage() {
                   <button
                     key={t.tipo}
                     className={`${NOTIF_FILTRO}${tipoFiltro === t.tipo ? ` ${NOTIF_FILTRO_ACTIVO}` : ''}`}
-                    onClick={() => setTipoFiltro(t.tipo)}
+                    onClick={() => cambiarTipo(t.tipo)}
                   >
                     {t.label} {conteoPorTipo[t.tipo] ? `(${conteoPorTipo[t.tipo]})` : ''}
                   </button>
                 ))}
+                {/* Mismo selector de tamano que el resto de modulos, para que
+                    "10 / 25 / 50 / todas" signifique lo mismo en toda la app. */}
+                <span className="ml-auto">
+                  <FilterDropdown
+                    pageSize={pageSize}
+                    onPageSizeChange={cambiarPageSize}
+                    /* Sin el filtro de estado: las notificaciones no tienen
+                       activo/inactivo, y sus propios filtros ya estan a la
+                       izquierda en pastillas. */
+                    showStatus={false}
+                  />
+                </span>
               </div>
             </div>
 
@@ -233,6 +276,10 @@ export default function NotificacionesPage() {
                 })
               )}
             </div>
+            {/* El MISMO control que usan las tablas de los demas modulos
+                (shared/components/Paginacion), no una copia: ver el encabezado
+                de ese fichero. */}
+            <Paginacion page={page} totalPages={totalPaginas} onPageChange={setPage} />
           </div>
         </section>
 

@@ -6,7 +6,7 @@ import {
   MdNotificationsActive, MdEventNote, MdInventory2,
   MdLocalShipping, MdReceiptLong, MdArrowForward,
 } from 'react-icons/md';
-import { fetchNotificaciones, marcarNotificacionLeida, PAGE_SIZE } from '../../../features/notificaciones/slices/notificacionesSlice.js';
+import { fetchRecientes, marcarNotificacionLeida } from '../../../features/notificaciones/slices/notificacionesSlice.js';
 import {
   META_TIPO, estiloTipo,
   NOTIF_PANEL, NOTIF_PANEL_CABECERA, NOTIF_PANEL_LISTA, NOTIF_PANEL_FILA,
@@ -51,17 +51,18 @@ export default function NotificacionesBell() {
   /* El contador sale del STORE, no de un estado local: así la campana y la
      página /notificaciones muestran el mismo número y marcar algo como leído
      en la página baja el contador de aquí sin recargar. */
-  const { items, noLeidas } = useSelector(s => s.notificaciones);
+  /* `recientes`, no `items`: items es la PAGINA que se este viendo en
+     /notificaciones, y desde que esa vista pagina, leer de ahi haria que la
+     campana mostrara las cinco primeras de la pagina 7. `recientes` es siempre
+     la cabeza de la lista. */
+  const { recientes, totalRecientes, noLeidas } = useSelector(s => s.notificaciones);
 
   const [open, setOpen] = useState(false);
   const [pos, setPos] = useState({ top: 0, left: 0 });
   const btnRef = useRef(null);
   const panelRef = useRef(null);
 
-  /* El MISMO tamano que usa la pagina: las dos vistas comparten `items`, asi
-     que pedir tamanos distintos hacia que la ultima en cargar decidiera cuantas
-     ve la otra. */
-  useEffect(() => { dispatch(fetchNotificaciones({ pageSize: PAGE_SIZE })); }, [dispatch]);
+  useEffect(() => { dispatch(fetchRecientes()); }, [dispatch]);
 
   // Cerrar al pulsar fuera del botón Y fuera del panel (que vive en un portal,
   // fuera del subárbol del sidebar). Mismo patrón que las otras dos campanas.
@@ -120,8 +121,11 @@ export default function NotificacionesBell() {
     irAlListado();
   };
 
-  const previo = items.slice(0, MAX_PREVIO);
-  const hayMas = items.length > MAX_PREVIO;
+  const previo = recientes.slice(0, MAX_PREVIO);
+  /* Se compara contra el TOTAL del servidor, no contra lo traido: la campana
+     solo pide 6, asi que `recientes.length > 5` diria "hay mas" como maximo una
+     vez y nunca sabria que son 181. */
+  const hayMas = totalRecientes > MAX_PREVIO;
 
   const panel = open && createPortal(
     <div

@@ -8,22 +8,50 @@ import { notificacionesService } from '../services/notificacionesService.js';
 
    Con estado local en cada uno, los dos piden lo mismo por su cuenta y quedan
    desincronizados en cuanto el usuario toca uno de ellos. */
-/* UNA sola lista en el store, sin filtrar, y un solo tamano de pagina.
-   La campana es el acceso rapido a /notificaciones: lo que muestra tienen que
-   ser las MISMAS cinco primeras de esa lista. Si la pagina recargara con un
-   filtro aplicado (p. ej. "sin leer"), reemplazaria `items` y la campana pasaria
-   a mostrar un subconjunto distinto de lo que el usuario cree estar viendo.
+/* DOS listas, y la separacion no es un capricho:
 
-   Por eso el filtro de no leidas se aplica en el CLIENTE, igual que el de tipo:
-   los dos acotan lo ya traido y ninguno toca la lista canonica. El contador
-   `noLeidas` sigue viniendo del servidor, que es quien sabe el total real. */
-export const PAGE_SIZE = 50;
+     items     -- la PAGINA que se esta viendo en /notificaciones. Cambia al
+                  pasar de pagina o al cambiar el tamano.
+     recientes -- las primeras de la lista, que es lo que pinta la campana.
+
+   Compartian array hasta que la vista gano paginacion, y entonces pasar a la
+   pagina 2 reemplazaba `items` y la campana se ponia a mostrar las cinco
+   primeras de ESA pagina: cinco alertas del medio del listado, sin relacion con
+   "lo mas reciente". Son dos preguntas distintas -- "que pagina estoy mirando" y
+   "que hay arriba del todo" -- y cada una necesita su respuesta.
+
+   Las dos salen de la MISMA consulta y el MISMO orden, asi que las 5 de la
+   campana siguen siendo la cabeza de la pagina 1: el acceso rapido sigue
+   llevando a lo que se ve al entrar.
+
+   Los filtros de la vista (tipo y "sin leer") se aplican en el CLIENTE sobre
+   `items`: acotan lo ya traido y no tocan ninguna de las dos listas. El contador
+   `noLeidas` viene del servidor, que es quien conoce el total real mas alla de
+   la pagina cargada. */
+export const PAGE_SIZE = 10;
+
+/* Cuantas trae la campana: 5 para mostrar + 1 para saber si hay mas, sin pedir
+   un conteo aparte. El total real lo da igualmente la respuesta. */
+export const PREVIO_SIZE = 6;
 
 export const fetchNotificaciones = createAsyncThunk(
   'notificaciones/fetch',
-  async ({ page = 1, pageSize = 30, soloNoLeidas = false } = {}, { rejectWithValue }) => {
+  async ({ page = 1, pageSize = 30, soloNoLeidas = false, tipo = null } = {}, { rejectWithValue }) => {
     try {
-      return await notificacionesService.getMias({ page, pageSize, soloNoLeidas });
+      return await notificacionesService.getMias({ page, pageSize, soloNoLeidas, tipo });
+    } catch (e) {
+      return rejectWithValue(e?.response?.data?.message || 'No se pudieron cargar las notificaciones');
+    }
+  },
+);
+
+/* La campana pide SIEMPRE la primera pagina y escribe en `recientes`, nunca en
+   `items`: asi la paginacion de la vista no la arrastra. */
+export const fetchRecientes = createAsyncThunk(
+  'notificaciones/fetchRecientes',
+  async (_, { rejectWithValue }) => {
+    try {
+      return await notificacionesService.getMias({ page: 1, pageSize: PREVIO_SIZE });
     } catch (e) {
       return rejectWithValue(e?.response?.data?.message || 'No se pudieron cargar las notificaciones');
     }
@@ -56,7 +84,15 @@ export const marcarTodasLeidas = createAsyncThunk(
 
 const initialState = {
   items: [],
+  recientes: [],
   total: 0,
+  /* Total que ve la campana, sin los filtros de la vista: es lo que decide si
+     muestra "Ver mas". */
+  totalRecientes: 0,
+  /* Conteo por tipo calculado por el SERVIDOR sobre todo el alcance del rol, no
+     sobre la pagina: una pastilla que dice "Stock bajo (8)" porque es lo que
+     cayo en las 10 filas visibles miente cuando hay 181. */
+  porTipo: {},
   noLeidas: 0,
   loading: false,
   actionLoading: false,
@@ -76,20 +112,44 @@ const slice = createSlice({
        s.items = a.payload?.data || [];
        s.total = a.payload?.total ?? 0;
        s.noLeidas = a.payload?.noLeidas ?? 0;
+       s.porTipo = a.payload?.porTipo ?? {};
      })
      .addCase(fetchNotificaciones.rejected, (s, a) => { s.loading = false; s.error = a.payload; })
+
+     /* No toca `loading`: la campana carga de fondo y encender el indicador de
+        la vista por una peticion que el usuario no pidio haria parpadear la
+        lista. Si actualiza `total` y `noLeidas`, que son del servidor. */
+     .addCase(fetchRecientes.fulfilled, (s, a) => {
+       s.recientes = a.payload?.data || [];
+       /* La campana NO pisa `total` ni `porTipo`: los pide sin filtros y la
+          vista puede estar filtrada, asi que sobrescribirlos haria saltar el
+          subtitulo y las pastillas cada vez que la campana refresca. Solo
+          actualiza noLeidas, que es el mismo numero en los dos sitios. */
+       s.noLeidas = a.payload?.noLeidas ?? s.noLeidas;
+       s.totalRecientes = a.payload?.total ?? s.totalRecientes;
+     })
 
      /* Marcar una se aplica de forma OPTIMISTA, en `pending`: en una lista densa
         se marcan varias seguidas y esperar la ida y vuelta en cada una se siente
         trabado. Si el servidor rechaza, `rejected` lo revierte -- no se recarga
         la lista entera, que perdería el scroll del usuario. */
+     /* Se marca en LAS DOS listas: la misma notificacion puede estar en la
+        pagina visible y en la vista previa de la campana, y dejar una sin tocar
+        la mostraria como no leida justo al lado de la que si lo esta. El
+        contador baja UNA vez, no una por lista. */
      .addCase(marcarNotificacionLeida.pending, (s, a) => {
-       const n = s.items.find((x) => x.Id === a.meta.arg);
-       if (n && !n.Leido) { n.Leido = true; s.noLeidas = Math.max(0, s.noLeidas - 1); }
+       const estaba = [s.items, s.recientes]
+         .map((lista) => lista.find((x) => x.Id === a.meta.arg))
+         .filter(Boolean);
+       if (estaba.some((n) => !n.Leido)) s.noLeidas = Math.max(0, s.noLeidas - 1);
+       estaba.forEach((n) => { n.Leido = true; });
      })
      .addCase(marcarNotificacionLeida.rejected, (s, a) => {
-       const n = s.items.find((x) => x.Id === a.meta.arg);
-       if (n && n.Leido) { n.Leido = false; s.noLeidas += 1; }
+       const estaba = [s.items, s.recientes]
+         .map((lista) => lista.find((x) => x.Id === a.meta.arg))
+         .filter(Boolean);
+       if (estaba.some((n) => n.Leido)) s.noLeidas += 1;
+       estaba.forEach((n) => { n.Leido = false; });
        s.error = a.payload;
      })
 
@@ -101,6 +161,7 @@ const slice = createSlice({
        s.actionLoading = false;
        s.cambiadas = a.payload;
        s.items.forEach((n) => { n.Leido = true; });
+       s.recientes.forEach((n) => { n.Leido = true; });
        s.noLeidas = 0;
      })
      .addCase(marcarTodasLeidas.rejected, (s, a) => { s.actionLoading = false; s.error = a.payload; });
